@@ -1,9 +1,10 @@
 import { Link, useNavigate } from 'react-router-dom';
-import { Check, Sparkles, ArrowLeft } from 'lucide-react';
+import { Check, ArrowLeft } from 'lucide-react';
 import { useState } from 'react';
 import { useAuth } from '@/hooks/useAuth';
-import { useFoundingCount } from '@/hooks/useFoundingCount';
 import { STRIPE_PRICES } from '@/lib/stripe-prices';
+
+type Plan = 'pro_monthly' | 'pro_yearly';
 
 function Card({
   name,
@@ -13,9 +14,8 @@ function Card({
   cta,
   highlight,
   badge,
-  disabled,
-  onClick,
   loading,
+  onClick,
 }: {
   name: string;
   price: string;
@@ -24,9 +24,8 @@ function Card({
   cta: string;
   highlight?: boolean;
   badge?: string;
-  disabled?: boolean;
-  onClick?: () => void;
   loading?: boolean;
+  onClick?: () => void;
 }) {
   return (
     <div
@@ -34,7 +33,7 @@ function Card({
     >
       {badge && (
         <div className="inline-flex self-start items-center gap-1 text-xs uppercase tracking-wider text-primary bg-primary/10 px-2 py-0.5 rounded-full mb-3">
-          <Sparkles size={12} /> {badge}
+          {badge}
         </div>
       )}
       <h3 className="font-display text-2xl">{name}</h3>
@@ -51,7 +50,7 @@ function Card({
       </ul>
       <button
         className={highlight ? 'btn-primary mt-6' : 'btn-secondary mt-6'}
-        disabled={disabled || loading}
+        disabled={loading}
         onClick={onClick}
       >
         {loading ? 'Loading…' : cta}
@@ -62,43 +61,40 @@ function Card({
 
 export default function Pricing() {
   const { user, session } = useAuth();
-  const { remaining } = useFoundingCount();
   const nav = useNavigate();
-  const [loadingTier, setLoadingTier] = useState<'pro' | 'founding' | null>(null);
+  const [loadingPlan, setLoadingPlan] = useState<Plan | null>(null);
   const [err, setErr] = useState<string | null>(null);
 
-  async function checkout(tier: 'pro' | 'founding') {
+  async function checkout(plan: Plan) {
     if (!user || !session) {
       nav('/login?next=/pricing');
       return;
     }
     setErr(null);
-    setLoadingTier(tier);
+    setLoadingPlan(plan);
     try {
-      const priceId = tier === 'pro' ? STRIPE_PRICES.pro : STRIPE_PRICES.founding;
+      const priceId = plan === 'pro_yearly' ? STRIPE_PRICES.pro_yearly : STRIPE_PRICES.pro_monthly;
       const res = await fetch('/api/stripe-checkout', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           Authorization: `Bearer ${session.access_token}`,
         },
-        body: JSON.stringify({ priceId, tier }),
+        body: JSON.stringify({ priceId, tier: 'pro' }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data?.error ?? 'Checkout failed');
       window.location.href = data.url;
     } catch (e: any) {
       setErr(e?.message ?? 'Something went wrong');
-      setLoadingTier(null);
+      setLoadingPlan(null);
     }
   }
 
-  async function startFree() {
+  function startFree() {
     if (!user) nav('/login');
     else nav('/app');
   }
-
-  const foundingSoldOut = remaining !== null && remaining <= 0;
 
   return (
     <div className="min-h-screen">
@@ -135,7 +131,7 @@ export default function Pricing() {
             onClick={startFree}
           />
           <Card
-            name="Pro"
+            name="Pro Monthly"
             price="$9"
             period="/month"
             highlight
@@ -146,26 +142,23 @@ export default function Pricing() {
               'JSON export',
               'Cancel anytime',
             ]}
-            cta="Upgrade to Pro"
-            loading={loadingTier === 'pro'}
-            onClick={() => checkout('pro')}
+            cta="Upgrade monthly"
+            loading={loadingPlan === 'pro_monthly'}
+            onClick={() => checkout('pro_monthly')}
           />
           <Card
-            name="Founding"
-            price="$9"
-            period="/month forever"
-            badge={foundingSoldOut ? 'Sold out' : `${remaining ?? '…'}/250 left`}
+            name="Pro Yearly"
+            price="$79"
+            period="/year"
+            badge="Save $29"
             features={[
-              'Everything in Pro',
-              'Locked at $9/mo for life',
-              'Founding-member badge',
-              'Direct line for feature requests',
-              'Capped at 250 members',
+              'Everything in Pro Monthly',
+              'Two months free vs monthly',
+              'Cancel anytime',
             ]}
-            cta={foundingSoldOut ? 'Sold out' : 'Claim a seat'}
-            disabled={foundingSoldOut}
-            loading={loadingTier === 'founding'}
-            onClick={() => checkout('founding')}
+            cta="Upgrade yearly"
+            loading={loadingPlan === 'pro_yearly'}
+            onClick={() => checkout('pro_yearly')}
           />
         </div>
       </div>

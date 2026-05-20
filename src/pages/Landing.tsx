@@ -1,7 +1,6 @@
 import { Link } from 'react-router-dom';
 import { useState } from 'react';
 import { Sparkles, FlaskConical, ScanLine, ArrowRight, ChevronDown } from 'lucide-react';
-import { useFoundingCount } from '@/hooks/useFoundingCount';
 
 const FAQS = [
   {
@@ -13,8 +12,8 @@ const FAQS = [
     a: 'Yes — every row is locked to your account via Postgres row-level security. You can export everything as JSON or delete your account at any time.',
   },
   {
-    q: 'What is the Founding plan?',
-    a: 'First 250 subscribers pay $9/month and stay at $9/month forever. Same features as Pro — different price guarantee.',
+    q: 'Monthly or yearly?',
+    a: 'Pro is $9/month or $79/year. Yearly saves you two months. Cancel anytime in either.',
   },
   {
     q: 'Do I need to scan a barcode?',
@@ -23,7 +22,6 @@ const FAQS = [
 ];
 
 export default function Landing() {
-  const { remaining } = useFoundingCount();
   const [openFaq, setOpenFaq] = useState<number | null>(0);
 
   return (
@@ -75,16 +73,13 @@ export default function Landing() {
       <section className="max-w-3xl mx-auto px-6 py-16">
         <div className="card p-8 text-center border-primary/30">
           <div className="inline-flex items-center gap-2 text-xs uppercase tracking-wider text-primary mb-3">
-            <Sparkles size={14} /> Founding members
+            <Sparkles size={14} /> Pro
           </div>
-          <h2 className="font-display text-4xl mb-3">$9/month. Locked for life.</h2>
+          <h2 className="font-display text-4xl mb-3">$9/month or $79/year.</h2>
           <p className="text-muted mb-6">
-            First 250 subscribers stay at $9/month forever. Same features as Pro — different
-            guarantee.
+            Unlimited products, full scanner, cancel anytime. Yearly saves you two months.
           </p>
-          <div className="text-5xl font-display mb-2">{remaining ?? '—'}</div>
-          <div className="text-muted text-sm mb-6">seats remaining of 250</div>
-          <Link to="/pricing" className="btn-primary">Claim a seat</Link>
+          <Link to="/pricing" className="btn-primary">See pricing</Link>
         </div>
       </section>
 
