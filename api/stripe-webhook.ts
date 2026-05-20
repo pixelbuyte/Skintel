@@ -132,9 +132,13 @@ export default async function handler(req: Request) {
         break;
       }
       case 'invoice.payment_succeeded': {
-        const invoice = event.data.object as Stripe.Invoice;
-        if (invoice.subscription) {
-          const sub = await stripe.subscriptions.retrieve(invoice.subscription as string);
+        const invoice = event.data.object as Stripe.Invoice & { subscription?: string | Stripe.Subscription | null };
+        const subId =
+          typeof invoice.subscription === 'string'
+            ? invoice.subscription
+            : invoice.subscription?.id ?? null;
+        if (subId) {
+          const sub = await stripe.subscriptions.retrieve(subId);
           await upsertFromSubscription(sub);
         }
         break;
