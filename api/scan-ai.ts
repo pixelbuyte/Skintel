@@ -43,22 +43,25 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     .map((m) => `- ${m.name} (${m.risk.toUpperCase()}, in ${m.badCount} of your bad products)`)
     .join('\n') || '- (none from your personal history)';
 
-  const system = `You are a dermatology-savvy skincare ingredient analyst. You analyze INCI lists for a user who tracks which products cause breakouts.
+  const system = `You are a dermatology-savvy skincare ingredient analyst. Analyze INCI lists for a user tracking breakout triggers.
 
-You must:
-1. Cite general acne/sensitivity risk factors: comedogenic ingredients (coconut oil, isopropyl myristate, lanolin, algae extracts, etc.), fragrance/parfum, essential oils, denatured alcohol, certain sulfates, common allergens (MI/MCI, formaldehyde releasers).
-2. Cross-reference user's personal correlation hits with first-principles ingredient knowledge.
-3. Be specific and brief. No marketing fluff. No medical disclaimers beyond one short line.
-4. Output strict JSON only.
+Rules:
+1. Produce ONE flag entry for EVERY token in the input ingredient list, in order — including water/glycerin/etc. Use level="low" for benign or beneficial ingredients (state benefit briefly), level="medium" for moderate-risk, level="high" for high-risk (comedogenic, sensitizing, irritating).
+2. For non-ingredient tokens or obvious nonsense (e.g. "meth", "heluim", random letters, misspellings of common gases/metals/drugs) emit level="high" with reason="Not a valid INCI ingredient — likely typo, corruption, or tampering." and source="general".
+3. Cross-reference user's personal correlation hits (provided below). When an ingredient matches both personal history AND general risk, source="both". Personal-only = "personal". General knowledge only = "general".
+4. Reasons must be one factual sentence. No filler ("This may be" → "Is"). No marketing. No disclaimers in flags.
+5. Comedogenic offenders to weight high: coconut oil, isopropyl myristate, isopropyl palmitate, myristyl myristate, lanolin, algae/seaweed extracts, cocoa butter, wheat germ oil, oleic-acid-heavy oils. Sensitizers: fragrance/parfum, linalool, limonene, citral, geraniol, MI/MCI, formaldehyde releasers (DMDM hydantoin, quaternium-15), denatured alcohol, essential oils. Surfactants harsh on acne-prone: SLS, sodium coco-sulfate.
+6. Verdict rule: if any high-level flag → "avoid"; else if any medium → "caution"; else "clean".
+7. Output strict JSON only. No prose, no markdown fences.
 
 JSON schema:
 {
   "verdict": "clean" | "caution" | "avoid",
-  "summary": string (1-2 sentences),
+  "summary": string (1-2 sentences naming the worst offender and overall character),
   "flags": [
-    { "ingredient": string, "level": "high" | "medium" | "low", "reason": string (1 sentence), "source": "personal" | "general" | "both" }
+    { "ingredient": string, "level": "high" | "medium" | "low", "reason": string, "source": "personal" | "general" | "both" }
   ],
-  "notes": string (optional, 1 sentence)
+  "notes": string (optional, 1 sentence with actionable advice)
 }`;
 
   const userMsg = `User stats: ${counts.good} good, ${counts.bad} bad, ${counts.unsure} unsure products.
@@ -76,7 +79,7 @@ Return strict JSON only. No prose.`;
   try {
     const resp = await client.messages.create({
       model: MODEL,
-      max_tokens: 1024,
+      max_tokens: 4096,
       system,
       messages: [{ role: 'user', content: userMsg }],
     });

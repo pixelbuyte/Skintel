@@ -83,6 +83,41 @@ export default function Scanner() {
     setScanned(input);
     setAi(null);
     setAiErr(null);
+    setTimeout(() => runAiScanWith(input), 0);
+  }
+
+  async function runAiScanWith(text: string) {
+    if (!text.trim()) return;
+    setAiLoading(true);
+    setAiErr(null);
+    setAi(null);
+    try {
+      const parsed = parseInci(text);
+      const localMatches: { name: string; risk: 'high' | 'medium'; badCount: number }[] = [];
+      for (const i of parsed) {
+        const hit = culpritMap.get(i.normalized);
+        if (hit) localMatches.push(hit);
+      }
+      const { data: { session } } = await supabase.auth.getSession();
+      const r = await fetch('/api/scan-ai', {
+        method: 'POST',
+        headers: {
+          'content-type': 'application/json',
+          authorization: `Bearer ${session?.access_token ?? ''}`,
+        },
+        body: JSON.stringify({ inci: text, matches: localMatches }),
+      });
+      if (!r.ok) {
+        const e = await r.json().catch(() => ({}));
+        throw new Error(e.error ?? `HTTP ${r.status}`);
+      }
+      const { result } = (await r.json()) as { result: AiResult };
+      setAi(result);
+    } catch (e: any) {
+      setAiErr(String(e?.message ?? e));
+    } finally {
+      setAiLoading(false);
+    }
   }
 
   if (!canUseScanner) {
