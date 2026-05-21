@@ -1,5 +1,5 @@
 import Stripe from 'stripe';
-import { getServiceClient } from './_lib';
+import { getServiceClient } from './_lib.js';
 
 export const config = { runtime: 'nodejs' };
 

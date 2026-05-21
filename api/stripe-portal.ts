@@ -1,5 +1,5 @@
 import Stripe from 'stripe';
-import { appUrl, getServiceClient, getUserFromAuthHeader, json } from './_lib';
+import { appUrl, getServiceClient, getUserFromAuthHeader, json } from './_lib.js';
 
 export const config = { runtime: 'nodejs' };
 

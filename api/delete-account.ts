@@ -1,4 +1,4 @@
-import { getServiceClient, getUserFromAuthHeader, json } from './_lib';
+import { getServiceClient, getUserFromAuthHeader, json } from './_lib.js';
 
 export const config = { runtime: 'nodejs' };
 
