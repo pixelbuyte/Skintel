@@ -1,16 +1,19 @@
 import Stripe from 'stripe';
+import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { appUrl, getServiceClient, getUserFromAuthHeader, json } from './_lib.js';
 
-export const config = { runtime: 'nodejs' };
-
-export default async function handler(req: Request) {
-  if (req.method !== 'POST') return json({ error: 'Method not allowed' }, { status: 405 });
+export default async function handler(req: VercelRequest, res: VercelResponse) {
+  if (req.method !== 'POST') return json(res, { error: 'Method not allowed' }, 405);
 
   const user = await getUserFromAuthHeader(req);
-  if (!user) return json({ error: 'Unauthorized' }, { status: 401 });
+  if (!user) return json(res, { error: 'Unauthorized' }, 401);
 
-  const { priceId, tier } = (await req.json()) as { priceId?: string; tier?: 'pro' | 'founding' };
-  if (!priceId || !tier) return json({ error: 'Missing priceId or tier' }, { status: 400 });
+  const body = (typeof req.body === 'string' ? JSON.parse(req.body) : req.body) as {
+    priceId?: string;
+    tier?: 'pro' | 'founding';
+  };
+  const { priceId, tier } = body ?? {};
+  if (!priceId || !tier) return json(res, { error: 'Missing priceId or tier' }, 400);
 
   const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, { apiVersion: '2024-12-18.acacia' as any });
 
@@ -18,7 +21,7 @@ export default async function handler(req: Request) {
     const sb = getServiceClient();
     const { data } = await sb.rpc('founding_seats_remaining');
     if (typeof data === 'number' && data <= 0) {
-      return json({ error: 'Founding seats sold out' }, { status: 409 });
+      return json(res, { error: 'Founding seats sold out' }, 409);
     }
   }
 
@@ -43,5 +46,5 @@ export default async function handler(req: Request) {
     allow_promotion_codes: true,
   });
 
-  return json({ url: session.url });
+  return json(res, { url: session.url });
 }

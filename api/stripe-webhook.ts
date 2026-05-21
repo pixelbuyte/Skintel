@@ -1,7 +1,8 @@
 import Stripe from 'stripe';
-import { getServiceClient } from './_lib.js';
+import type { VercelRequest, VercelResponse } from '@vercel/node';
+import { getServiceClient, readRawBody } from './_lib.js';
 
-export const config = { runtime: 'nodejs' };
+export const config = { api: { bodyParser: false } };
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, { apiVersion: '2024-12-18.acacia' as any });
 
@@ -9,6 +10,7 @@ function tierFromPriceId(priceId: string | undefined | null): 'pro' | 'founding'
   if (!priceId) return null;
   if (priceId === process.env.VITE_STRIPE_PRICE_FOUNDING) return 'founding';
   if (priceId === process.env.VITE_STRIPE_PRICE_PRO) return 'pro';
+  if (priceId === process.env.VITE_STRIPE_PRICE_PRO_YEARLY) return 'pro';
   return null;
 }
 
@@ -39,18 +41,12 @@ async function assignFoundingSeatIfNeeded(userId: string) {
     .order('founding_seat_number', { ascending: false })
     .limit(1)
     .maybeSingle();
-  const next = ((maxRow?.founding_seat_number ?? 0) as number) + 1;
-  return next;
+  return ((maxRow?.founding_seat_number ?? 0) as number) + 1;
 }
 
-async function upsertFromSubscription(
-  sub: Stripe.Subscription,
-  userIdOverride?: string,
-) {
+async function upsertFromSubscription(sub: Stripe.Subscription, userIdOverride?: string) {
   const sb = getServiceClient();
-  const userId =
-    userIdOverride ??
-    (sub.metadata?.supabase_user_id as string | undefined);
+  const userId = userIdOverride ?? (sub.metadata?.supabase_user_id as string | undefined);
   if (!userId) return;
 
   const priceId = sub.items.data[0]?.price?.id;
@@ -78,13 +74,14 @@ async function upsertFromSubscription(
   await sb.from('subscriptions').upsert(row, { onConflict: 'user_id' });
 }
 
-export default async function handler(req: Request) {
+export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (req.method !== 'POST') {
-    return new Response(JSON.stringify({ error: 'Method not allowed' }), { status: 405 });
+    res.status(405).json({ error: 'Method not allowed' });
+    return;
   }
 
-  const sig = req.headers.get('stripe-signature') ?? '';
-  const raw = await req.text();
+  const sig = (req.headers['stripe-signature'] as string) ?? '';
+  const raw = await readRawBody(req);
 
   const secrets = [process.env.STRIPE_WEBHOOK_SECRET_NEW, process.env.STRIPE_WEBHOOK_SECRET].filter(
     Boolean,
@@ -101,14 +98,14 @@ export default async function handler(req: Request) {
     }
   }
   if (!event) {
-    return new Response(JSON.stringify({ error: 'Invalid signature', detail: String(lastErr) }), {
-      status: 400,
-    });
+    res.status(400).json({ error: 'Invalid signature', detail: String(lastErr) });
+    return;
   }
 
   const isNew = await alreadyProcessed(event.id);
   if (!isNew) {
-    return new Response(JSON.stringify({ received: true, deduped: true }), { status: 200 });
+    res.status(200).json({ received: true, deduped: true });
+    return;
   }
 
   try {
@@ -132,7 +129,9 @@ export default async function handler(req: Request) {
         break;
       }
       case 'invoice.payment_succeeded': {
-        const invoice = event.data.object as Stripe.Invoice & { subscription?: string | Stripe.Subscription | null };
+        const invoice = event.data.object as Stripe.Invoice & {
+          subscription?: string | Stripe.Subscription | null;
+        };
         const subId =
           typeof invoice.subscription === 'string'
             ? invoice.subscription
@@ -144,16 +143,13 @@ export default async function handler(req: Request) {
         break;
       }
       default:
-        return new Response(
-          JSON.stringify({ received: true, ignored: event.type }),
-          { status: 200 },
-        );
+        res.status(200).json({ received: true, ignored: event.type });
+        return;
     }
   } catch (e) {
-    return new Response(JSON.stringify({ error: 'Handler failed', detail: String(e) }), {
-      status: 500,
-    });
+    res.status(500).json({ error: 'Handler failed', detail: String(e) });
+    return;
   }
 
-  return new Response(JSON.stringify({ received: true }), { status: 200 });
+  res.status(200).json({ received: true });
 }

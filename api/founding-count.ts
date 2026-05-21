@@ -1,20 +1,14 @@
+import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { getServiceClient } from './_lib.js';
 
-export const config = { runtime: 'nodejs' };
-
-export default async function handler(_req: Request) {
+export default async function handler(_req: VercelRequest, res: VercelResponse) {
   const sb = getServiceClient();
   const { data, error } = await sb.rpc('founding_seats_remaining');
+  res.setHeader('content-type', 'application/json');
   if (error) {
-    return new Response(JSON.stringify({ remaining: null, error: error.message }), {
-      status: 500,
-      headers: { 'content-type': 'application/json' },
-    });
+    res.status(500).send(JSON.stringify({ remaining: null, error: error.message }));
+    return;
   }
-  return new Response(JSON.stringify({ remaining: data ?? 0 }), {
-    headers: {
-      'content-type': 'application/json',
-      'cache-control': 'public, max-age=10, stale-while-revalidate=30',
-    },
-  });
+  res.setHeader('cache-control', 'public, max-age=10, stale-while-revalidate=30');
+  res.status(200).send(JSON.stringify({ remaining: data ?? 0 }));
 }

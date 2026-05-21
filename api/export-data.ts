@@ -1,12 +1,11 @@
+import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { getServiceClient, getUserFromAuthHeader, json } from './_lib.js';
 
-export const config = { runtime: 'nodejs' };
-
-export default async function handler(req: Request) {
-  if (req.method !== 'GET') return json({ error: 'Method not allowed' }, { status: 405 });
+export default async function handler(req: VercelRequest, res: VercelResponse) {
+  if (req.method !== 'GET') return json(res, { error: 'Method not allowed' }, 405);
 
   const user = await getUserFromAuthHeader(req);
-  if (!user) return json({ error: 'Unauthorized' }, { status: 401 });
+  if (!user) return json(res, { error: 'Unauthorized' }, 401);
 
   const sb = getServiceClient();
   const [{ data: products }, { data: subscription }] = await Promise.all([
@@ -29,10 +28,10 @@ export default async function handler(req: Request) {
     2,
   );
 
-  return new Response(body, {
-    headers: {
-      'content-type': 'application/json',
-      'content-disposition': `attachment; filename="skintel-export-${new Date().toISOString().slice(0, 10)}.json"`,
-    },
-  });
+  res.setHeader('content-type', 'application/json');
+  res.setHeader(
+    'content-disposition',
+    `attachment; filename="skintel-export-${new Date().toISOString().slice(0, 10)}.json"`,
+  );
+  res.status(200).send(body);
 }

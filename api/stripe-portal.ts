@@ -1,13 +1,12 @@
 import Stripe from 'stripe';
+import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { appUrl, getServiceClient, getUserFromAuthHeader, json } from './_lib.js';
 
-export const config = { runtime: 'nodejs' };
-
-export default async function handler(req: Request) {
-  if (req.method !== 'POST') return json({ error: 'Method not allowed' }, { status: 405 });
+export default async function handler(req: VercelRequest, res: VercelResponse) {
+  if (req.method !== 'POST') return json(res, { error: 'Method not allowed' }, 405);
 
   const user = await getUserFromAuthHeader(req);
-  if (!user) return json({ error: 'Unauthorized' }, { status: 401 });
+  if (!user) return json(res, { error: 'Unauthorized' }, 401);
 
   const sb = getServiceClient();
   const { data: sub } = await sb
@@ -17,7 +16,7 @@ export default async function handler(req: Request) {
     .maybeSingle();
 
   if (!sub?.stripe_customer_id) {
-    return json({ error: 'No billing account found' }, { status: 404 });
+    return json(res, { error: 'No billing account found' }, 404);
   }
 
   const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, { apiVersion: '2024-12-18.acacia' as any });
@@ -26,5 +25,5 @@ export default async function handler(req: Request) {
     return_url: `${appUrl()}/app/settings`,
   });
 
-  return json({ url: session.url });
+  return json(res, { url: session.url });
 }
