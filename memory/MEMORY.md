@@ -1,0 +1,27 @@
+# Memory Index
+
+- [User Preferences](feedback_save_everything.md) — user wants important things from every chat saved to memory
+- [Security Tools](project_security_tools.md) — CAI (pip) and PentestAgent (C:/Users/rrswa/pentestagent) installed, both use Ollama llama3.1:8b
+- [Video Editing Preferences](user_video_editing.md) — uses Claude Code for TikTok/Reels edits; automated workflows, learning/production/short-form modes, anime + fight edits
+- [Video Session Apr 8](project_video_session_apr8.md) — full stack confirmed working, videos organized in OneDrive/Videos, master script still to build
+- [Full Session Log Apr 8](project_full_session_apr8.md) — complete file locations, folder structure, unresolved tasks (master script, GitHub 75-token repo)
+- [Pentest MCP Server Apr 14](project_pentest_mcp_apr14.md) — Kali Linux Docker MCP server built & registered in Claude Desktop, 6 tools, image pentest-mcp-server:latest
+- [Video Workspace Paths](project_video_paths.md) — all footage saves to C:/Users/rrswa/videos/, NOT OneDrive
+- [FaceScore Website Apr 25](project_facescore_apr25.md) — PSL looksmaxxing rater at C:/Users/rrswa/facescore/, GPT-4o Vision, run with node server.js → localhost:3000
+- [Claude vs GPT Trailer May 2026](project_claude_vs_gpt_trailer.md) — 1:18 trailer built end-to-end with VO, 3 output versions, scripts saved
+- [TTS Options](reference_tts_options.md) — gTTS+pitch works free, edge-tts broken on Py 3.14, Zapier ElevenLabs out of credits
+- [CAI Status](project_cai_status.md) — CAI working in WSL venv; OPENAI_API_KEY=dummy + OLLAMA_HOST=0.0.0.0 required
+- [Shopify Bug Bounty](project_shopify_bugbounty.md) — active H1 bounty on own dev stores; 5 scenarios planned, starting with staff permission bypass
+- [Skills Mass Install May 2026](project_skills_install_may2026.md) — 945 skills installed from 5 repos, live in ~/.agents/skills/ + ~/.claude/skills/
+- [Parallel Work](feedback_parallel_work.md) — prefers parallel agent/tool execution for independent work
+- [Overnight Run May 9](project_overnight_run_may9.md) — sequential overnight pass on videos/facescore/pentestagent; shared log at C:/Users/rrswa/overnight_2026-05-09/
+- [Session Loop May 15](project_session_loop_may15.md) — recurring 10-min save-session cron (job 5cc2703f) active this session
+- [Subs Tracker Full](project_subs_tracker.md) — subs-tracker-two.vercel.app, Next.js+Supabase, Stripe FULLY WORKING May 16, local at C:/Users/rrswa/subs,tracker/
+- [Purchase Ping](project_recipt_gpt.md) — recipt-gpt-wrapper.vercel.app, 8 dashboard improvements shipped May 17: bulk delete, CSV export, category hint, OCR progress, clickable stat cards, settings feedback, empty state spinner, mobile truncation fix
+- [Stripe Setup Log](project_stripe_may15.md) — full Stripe integration log for subs-tracker, all env vars set, webhook fixed
+- [AI News 30-Clip May 16](project_ai_news_30clips_may16.md) — 30 viral AI news clips rendering to Downloads/ai_news_30clips_2026-05-16/, 3 waves parallel, ~40 min ETA
+- [No AI Slop](feedback_no_ai_slop.md) — for video edits use real footage/news/music, never synthetic placeholders
+- [VO Speed](feedback_vo_speed.md) — short-form VO must be slower (SAPI rate ≤160, atempo ≤1.0); first 30-clip render was too fast
+- [Skintel Project](project_skintel.md) — Vite SPA + Supabase + Stripe at skintel-six.vercel.app; owner has pro til 2028, Vercel Node handler style, .js ESM imports
+- [Skintel Session May 20](project_skintel_session_may20.md) — full build log: routes, API handler rewrite, OAuth swap, Stripe live test 200, pro grant, MCP fixes
+- [Memory MCPs Active](reference_memory_mcps.md) — memory-kg + mem0 MCPs wired; both stdio, restart Claude Code to load tools

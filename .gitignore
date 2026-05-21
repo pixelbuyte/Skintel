@@ -24,3 +24,7 @@ dist-ssr
 *.sw?
 
 .vercel
+
+# local dev scripts
+grant-pro.mjs
+test-checkout.mjs
