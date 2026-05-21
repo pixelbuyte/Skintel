@@ -13,6 +13,9 @@ import EditProduct from '@/pages/EditProduct';
 import Culprits from '@/pages/Culprits';
 import Scanner from '@/pages/Scanner';
 import Settings from '@/pages/Settings';
+import Routine from '@/pages/Routine';
+import Recommend from '@/pages/Recommend';
+import Journal from '@/pages/Journal';
 
 function App() {
   return (
@@ -89,6 +92,36 @@ function App() {
           <ProtectedRoute>
             <Layout>
               <Settings />
+            </Layout>
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/app/routine"
+        element={
+          <ProtectedRoute>
+            <Layout>
+              <Routine />
+            </Layout>
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/app/recommend"
+        element={
+          <ProtectedRoute>
+            <Layout>
+              <Recommend />
+            </Layout>
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/app/journal"
+        element={
+          <ProtectedRoute>
+            <Layout>
+              <Journal />
             </Layout>
           </ProtectedRoute>
         }

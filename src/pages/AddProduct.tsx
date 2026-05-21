@@ -7,6 +7,10 @@ import { useSubscription } from '@/hooks/useSubscription';
 import { parseInci } from '@/lib/inci';
 import type { Outcome } from '@/lib/types';
 import { PaywallBanner } from '@/components/PaywallBanner';
+import ImportFromUrl from '@/components/ImportFromUrl';
+import PhotoUpload from '@/components/PhotoUpload';
+import ProductSearchBox from '@/components/ProductSearchBox';
+import BarcodeScanner from '@/components/BarcodeScanner';
 
 export default function AddProduct() {
   const nav = useNavigate();
@@ -70,6 +74,30 @@ export default function AddProduct() {
         <ArrowLeft size={16} /> Back to products
       </Link>
       <h1 className="font-display text-4xl mb-6">Add a product</h1>
+
+      <div className="card p-5 mb-6 flex flex-col gap-4">
+        <div className="text-sm font-medium">Quick fill (Pro)</div>
+        <ProductSearchBox onSelected={(d) => {
+          setBrand(d.brand ?? '');
+          setProductName(d.productName ?? '');
+          setIngredientsRaw(d.ingredients);
+        }} />
+        <ImportFromUrl onImported={(d) => {
+          setBrand(d.brand ?? '');
+          setProductName(d.productName ?? '');
+          setIngredientsRaw(d.ingredients);
+        }} />
+        <PhotoUpload onExtracted={(d) => {
+          setBrand(d.brand ?? '');
+          setProductName(d.productName ?? '');
+          setIngredientsRaw(d.ingredients);
+        }} />
+        <BarcodeScanner onScanned={(d) => {
+          setBrand(d.brand ?? '');
+          setProductName(d.productName ?? '');
+          setIngredientsRaw(d.ingredients);
+        }} />
+      </div>
 
       <form onSubmit={submit} className="flex flex-col gap-5">
         <div className="grid md:grid-cols-2 gap-4">

@@ -1,5 +1,5 @@
 import { NavLink, useNavigate } from 'react-router-dom';
-import { LayoutDashboard, Package, AlertTriangle, ScanLine, Settings, LogOut, Sparkles } from 'lucide-react';
+import { LayoutDashboard, Package, AlertTriangle, ScanLine, Settings, LogOut, Sparkles, Sun, Lightbulb, BookOpen } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { useSubscription } from '@/hooks/useSubscription';
 
@@ -8,6 +8,9 @@ const NAV = [
   { to: '/app/products', label: 'Products', icon: Package },
   { to: '/app/culprits', label: 'Culprits', icon: AlertTriangle },
   { to: '/app/scanner', label: 'Scanner', icon: ScanLine },
+  { to: '/app/journal', label: 'Journal', icon: BookOpen },
+  { to: '/app/routine', label: 'Routine', icon: Sun },
+  { to: '/app/recommend', label: 'Recommend', icon: Lightbulb },
   { to: '/app/settings', label: 'Settings', icon: Settings },
 ];
 
