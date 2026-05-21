@@ -62,8 +62,8 @@ async function upsertFromSubscription(sub: Stripe.Subscription, userIdOverride?:
     stripe_customer_id: typeof sub.customer === 'string' ? sub.customer : sub.customer.id,
     stripe_subscription_id: sub.id,
     status: sub.status,
-    current_period_end: sub.current_period_end
-      ? new Date(sub.current_period_end * 1000).toISOString()
+    current_period_end: sub.items.data[0]?.current_period_end
+      ? new Date(sub.items.data[0].current_period_end * 1000).toISOString()
       : null,
   };
 
