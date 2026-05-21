@@ -65,7 +65,7 @@ export default function ProductSearchBox({ onSelected }: Props) {
           return;
         }
 
-        const resp = await fetch(`/api/product-search?q=${encodeURIComponent(trimmed)}`, {
+        const resp = await fetch(`/api/lookup?mode=search&q=${encodeURIComponent(trimmed)}`, {
           headers: { Authorization: `Bearer ${token}` },
         });
 

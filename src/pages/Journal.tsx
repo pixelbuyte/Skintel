@@ -146,7 +146,7 @@ export default function Journal() {
     setAnalysis(null);
     try {
       const headers = await authHeader();
-      const r = await fetch('/api/journal-analyze', {
+      const r = await fetch('/api/journal?action=analyze', {
         method: 'POST',
         headers: { 'content-type': 'application/json', ...headers },
       });

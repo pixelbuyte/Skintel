@@ -42,7 +42,7 @@ export default function ImportFromUrl({ onImported }: Props) {
         return;
       }
 
-      const resp = await fetch('/api/import-url', {
+      const resp = await fetch('/api/lookup?mode=url', {
         method: 'POST',
         headers: {
           'content-type': 'application/json',

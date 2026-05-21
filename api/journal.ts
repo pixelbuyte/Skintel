@@ -1,10 +1,15 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { getServiceClient, getUserFromAuthHeader, json } from './_lib.js';
+import analyzeJournal from './_journal-analyze.js';
 
 type Condition = 'clear' | 'mild' | 'moderate' | 'breakout';
 const CONDITIONS: Condition[] = ['clear', 'mild', 'moderate', 'breakout'];
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
+  if (req.method === 'POST' && req.query?.action === 'analyze') {
+    return analyzeJournal(req, res);
+  }
+
   const user = await getUserFromAuthHeader(req);
   if (!user) return json(res, { error: 'Unauthorized' }, 401);
 

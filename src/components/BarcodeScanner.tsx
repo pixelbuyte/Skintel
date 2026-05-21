@@ -43,7 +43,7 @@ export default function BarcodeScanner({
         setError('You must be signed in.');
         return;
       }
-      const r = await fetch(`/api/barcode-lookup?upc=${encodeURIComponent(cleaned)}`, {
+      const r = await fetch(`/api/lookup?mode=barcode&upc=${encodeURIComponent(cleaned)}`, {
         method: 'GET',
         headers: { Authorization: `Bearer ${token}` },
       });
