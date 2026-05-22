@@ -33,7 +33,7 @@ async function fileToBase64(file: File): Promise<{ base64: string; mimeType: All
     throw new Error('Only JPEG, PNG, or WEBP images are supported.');
   }
   const bitmap = await createImageBitmap(file);
-  const MAX = 1600;
+  const MAX = 2200;
   const scale = Math.min(1, MAX / Math.max(bitmap.width, bitmap.height));
   const w = Math.round(bitmap.width * scale);
   const h = Math.round(bitmap.height * scale);
@@ -42,9 +42,10 @@ async function fileToBase64(file: File): Promise<{ base64: string; mimeType: All
   canvas.height = h;
   const ctx = canvas.getContext('2d');
   if (!ctx) throw new Error('Canvas unsupported');
+  ctx.imageSmoothingQuality = 'high';
   ctx.drawImage(bitmap, 0, 0, w, h);
   const blob: Blob = await new Promise((resolve, reject) =>
-    canvas.toBlob((b) => (b ? resolve(b) : reject(new Error('Encode failed'))), 'image/jpeg', 0.85)
+    canvas.toBlob((b) => (b ? resolve(b) : reject(new Error('Encode failed'))), 'image/jpeg', 0.92)
   );
   const buf = await blob.arrayBuffer();
   const bytes = new Uint8Array(buf);

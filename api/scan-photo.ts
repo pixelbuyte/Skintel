@@ -2,7 +2,7 @@ import Anthropic from '@anthropic-ai/sdk';
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { getServiceClient, getUserFromAuthHeader, json } from './_lib.js';
 
-const MODEL = 'claude-haiku-4-5-20251001';
+const MODEL = 'claude-sonnet-4-6';
 
 export const config = {
   api: {
@@ -15,12 +15,23 @@ export const config = {
 type AllowedMime = 'image/jpeg' | 'image/png' | 'image/webp';
 const ALLOWED_MIME: AllowedMime[] = ['image/jpeg', 'image/png', 'image/webp'];
 
-const PROMPT =
-  'Extract the brand name, product name, and full INCI ingredient list visible in this photo. ' +
-  'The image shows the back of a skincare product bottle. ' +
-  'Return ONLY strict JSON: {"brand": string|null, "productName": string|null, "ingredients": string} ' +
-  'where ingredients is a comma-separated INCI list as printed. ' +
-  'If no ingredient list is visible, return {"brand": null, "productName": null, "ingredients": ""}.';
+const PROMPT = `You are an OCR system for skincare product labels. Read the image carefully — text may be small, curved on a bottle, low contrast, or partially rotated.
+
+Extract:
+1. Brand name (usually largest text on front; "null" if not visible)
+2. Product name (subtitle/descriptor; "null" if not visible)
+3. Full INCI ingredient list — the comma-separated list usually starting with "Ingredients:" or "Composition:" or just a block of chemical names (Water, Glycerin, ...). Read EVERY ingredient even if list wraps lines. Preserve order and original spelling. Keep parenthetical CI codes.
+
+Rules:
+- If you see ANY ingredient-like words (e.g. Water, Aqua, Glycerin, ...), include them — do not return empty.
+- If text is partially readable, transcribe what you can; do not invent.
+- Join ingredients with ", " (comma + space). Do NOT add line breaks inside the string.
+- Strip leading "Ingredients:" / "INCI:" / "Composition:" labels.
+
+Return ONLY strict JSON, no markdown fences, no prose:
+{"brand": string|null, "productName": string|null, "ingredients": string}
+
+If genuinely nothing readable: {"brand": null, "productName": null, "ingredients": ""}`;
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (req.method !== 'POST') return json(res, { error: 'Method not allowed' }, 405);
