@@ -15,23 +15,24 @@ export const config = {
 type AllowedMime = 'image/jpeg' | 'image/png' | 'image/webp';
 const ALLOWED_MIME: AllowedMime[] = ['image/jpeg', 'image/png', 'image/webp'];
 
-const PROMPT = `You are an OCR system for skincare product labels. Read the image carefully — text may be small, curved on a bottle, low contrast, or partially rotated.
+const PROMPT = `You are a precise OCR system for skincare/cosmetic packaging. The image shows a product label (often the back of a bottle or jar). Transcribe everything you can see.
 
-Extract:
-1. Brand name (usually largest text on front; "null" if not visible)
-2. Product name (subtitle/descriptor; "null" if not visible)
-3. Full INCI ingredient list — the comma-separated list usually starting with "Ingredients:" or "Composition:" or just a block of chemical names (Water, Glycerin, ...). Read EVERY ingredient even if list wraps lines. Preserve order and original spelling. Keep parenthetical CI codes.
+TASKS:
+1. brand — the company/brand (e.g. "CeraVe", "The Ordinary", "Cetaphil", "La Roche-Posay"). Usually printed at top in bold/distinct typeface. If logo-only and unreadable, return null.
+2. productName — the product descriptor (e.g. "Foaming Facial Cleanser", "Niacinamide 10% + Zinc 1%"). Typically below the brand. If absent return null.
+3. ingredients — the FULL INCI list. Find any block labeled "Ingredients", "Ingrédients", "INCI", "Composition", "Active Ingredients", or an unlabeled comma-separated chemical list. Read every single token across all wrapped lines.
 
-Rules:
-- If you see ANY ingredient-like words (e.g. Water, Aqua, Glycerin, ...), include them — do not return empty.
-- If text is partially readable, transcribe what you can; do not invent.
-- Join ingredients with ", " (comma + space). Do NOT add line breaks inside the string.
-- Strip leading "Ingredients:" / "INCI:" / "Composition:" labels.
+CRITICAL RULES:
+- DO read the entire ingredient block. Don't stop at the first line. Most lists have 15-40 ingredients.
+- DO preserve original spelling, accents, parentheses (e.g. "Tocopheryl Acetate", "CI 77891 (Titanium Dioxide)").
+- DO join all ingredients into ONE string with ", " separator. Collapse line breaks into the separator.
+- DO NOT invent ingredients you can't read. Skip illegible ones silently.
+- DO NOT include the literal "Ingredients:" prefix in the output string.
+- DO NOT add commentary, markdown fences, or prose.
+- If the photo only shows the FRONT of the package and no ingredient list is visible, set ingredients to "" but still try to extract brand + productName from the front.
 
-Return ONLY strict JSON, no markdown fences, no prose:
-{"brand": string|null, "productName": string|null, "ingredients": string}
-
-If genuinely nothing readable: {"brand": null, "productName": null, "ingredients": ""}`;
+OUTPUT — strict JSON only:
+{"brand": string|null, "productName": string|null, "ingredients": string}`;
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (req.method !== 'POST') return json(res, { error: 'Method not allowed' }, 405);
@@ -70,7 +71,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   try {
     const resp = await client.messages.create({
       model: MODEL,
-      max_tokens: 2048,
+      max_tokens: 4096,
       messages: [
         {
           role: 'user',
