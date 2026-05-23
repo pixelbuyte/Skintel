@@ -27,12 +27,15 @@ const maskableSvg = `<svg xmlns="http://www.w3.org/2000/svg" width="512" height=
   </g>
 </svg>`;
 
+const faviconSvg = readFileSync(resolve(root, 'public/favicon.svg'));
+
 const tasks = [
   { name: 'apple-touch-icon.png', size: 180, src: svg },
   { name: 'icon-192.png', size: 192, src: svg },
   { name: 'icon-512.png', size: 512, src: svg },
   { name: 'icon-512-maskable.png', size: 512, src: Buffer.from(maskableSvg) },
-  { name: 'favicon-32.png', size: 32, src: svg },
+  { name: 'favicon-32.png', size: 32, src: faviconSvg },
+  { name: 'favicon-16.png', size: 16, src: faviconSvg },
 ];
 
 for (const t of tasks) {
