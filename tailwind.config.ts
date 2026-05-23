@@ -49,11 +49,16 @@ export default {
           '0%,100%': { opacity: '1' },
           '50%': { opacity: '0.6' },
         },
+        marquee: {
+          '0%': { transform: 'translateX(0)' },
+          '100%': { transform: 'translateX(-33.3333%)' },
+        },
       },
       animation: {
         'rise-in': 'rise-in 600ms cubic-bezier(0.23, 1, 0.32, 1) both',
         breathe: 'breathe 2400ms ease-in-out infinite',
         'soft-pulse': 'soft-pulse 2200ms ease-in-out infinite',
+        marquee: 'marquee 42s linear infinite',
       },
     },
   },

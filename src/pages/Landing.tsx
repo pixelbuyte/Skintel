@@ -17,11 +17,11 @@ const FAQS = [
   },
   {
     q: 'Is my data private?',
-    a: 'Every row is locked to your account via Postgres row-level security. Export everything as JSON or wipe your account at any time.',
+    a: 'Every row is locked to your account via Postgres row-level security. Export everything as JSON, or wipe your account at any time.',
   },
   {
     q: 'Monthly or yearly?',
-    a: 'Pro is $9/month or $79/year. Yearly saves you two months. Cancel anytime in either.',
+    a: 'Pro is $9 a month, or $79 a year. The yearly plan saves you two months. Cancel anytime in either.',
   },
   {
     q: 'Do I need to scan a barcode?',
@@ -34,24 +34,39 @@ const STEPS = [
     n: '01',
     icon: <FlaskConical size={20} />,
     title: 'Log your routine',
-    body: "Add the products you're actually using. Paste the ingredient list — we parse the INCI so you don't have to.",
-    detail: 'Brand · product · outcome',
+    body: "Add the products you're actually using. Paste the ingredient list, and Skintel parses the INCI so you don't have to.",
+    detail: ['brand', 'product', 'outcome'],
   },
   {
     n: '02',
     icon: <Sparkles size={20} />,
     title: 'See the pattern',
     body: 'Skintel surfaces the ingredients showing up in your breakout products that never appear in your safe ones.',
-    detail: 'Bisabolol · Coconut alkanes · Linalool',
+    detail: ['bisabolol', 'coconut alkanes', 'linalool'],
   },
   {
     n: '03',
     icon: <ScanLine size={20} />,
     title: 'Scan before you buy',
     body: 'Snap a label, scan a barcode, or paste any INCI list. Skintel checks it against your personal trigger map.',
-    detail: 'Watch out · Good for you · Everything else',
+    detail: ['watch out', 'good for you', 'everything else'],
   },
 ];
+
+const MARQUEE = [
+  { name: 'niacinamide', tone: 'good' },
+  { name: 'bisabolol', tone: 'bad' },
+  { name: 'glycerin', tone: 'good' },
+  { name: 'fragrance', tone: 'bad' },
+  { name: 'ceramide NP', tone: 'good' },
+  { name: 'linalool', tone: 'bad' },
+  { name: 'panthenol', tone: 'good' },
+  { name: 'coconut alkanes', tone: 'bad' },
+  { name: 'centella asiatica', tone: 'good' },
+  { name: 'limonene', tone: 'bad' },
+  { name: 'squalane', tone: 'good' },
+  { name: 'sodium hyaluronate', tone: 'good' },
+] as const;
 
 export default function Landing() {
   const [openFaq, setOpenFaq] = useState<number | null>(0);
@@ -113,9 +128,9 @@ export default function Landing() {
               <span className="italic text-primary">broke out.</span>
             </h1>
 
-            <p className="text-lg text-muted max-w-xl mb-8 leading-relaxed">
-              Log the products in your routine, tag what works, and Skintel surfaces the exact
-              ingredients showing up in your breakouts — so you can avoid them next time.
+            <p className="text-lg text-muted max-w-[60ch] mb-8 leading-relaxed">
+              Log the products in your routine. Tag what works. Skintel surfaces the exact
+              ingredients showing up across your breakouts, so you can skip them next time.
             </p>
 
             <div className="flex items-center gap-3 flex-wrap">
@@ -171,7 +186,7 @@ export default function Landing() {
                   2 of your triggers found.
                 </div>
                 <div className="text-xs text-bad-fg/80 mt-1">
-                  We'd skip this one — both ingredients showed up in your last 3 breakouts.
+                  Skip this one. Both ingredients showed up in your last 3 breakouts.
                 </div>
               </div>
 
@@ -226,6 +241,36 @@ export default function Landing() {
         </div>
       </section>
 
+      <section
+        aria-label="Ingredients ticker"
+        className="border-y border-border bg-card/40 overflow-hidden"
+      >
+        <div className="relative py-5">
+          <div
+            aria-hidden
+            className="pointer-events-none absolute inset-y-0 left-0 w-24 bg-gradient-to-r from-bg to-transparent z-10"
+          />
+          <div
+            aria-hidden
+            className="pointer-events-none absolute inset-y-0 right-0 w-24 bg-gradient-to-l from-bg to-transparent z-10"
+          />
+          <div className="flex gap-3 whitespace-nowrap will-change-transform animate-marquee">
+            {[...MARQUEE, ...MARQUEE, ...MARQUEE].map((m, i) => (
+              <span
+                key={i}
+                className={`font-mono text-xs px-3 py-1 rounded-full border ${
+                  m.tone === 'good'
+                    ? 'bg-good-bg/40 border-good-fg/15 text-good-fg/90'
+                    : 'bg-bad-bg/40 border-bad-fg/15 text-bad-fg/90'
+                }`}
+              >
+                {m.name}
+              </span>
+            ))}
+          </div>
+        </div>
+      </section>
+
       <section className="max-w-6xl mx-auto px-6 py-16 md:py-24">
         <div className="max-w-2xl mb-14">
           <div className="text-xs uppercase tracking-[0.18em] text-muted font-medium mb-3">
@@ -238,57 +283,42 @@ export default function Landing() {
           </h2>
         </div>
 
-        <div className="relative">
-          <div
-            aria-hidden
-            className="absolute left-[10px] md:left-[14px] top-2 bottom-2 w-px bg-gradient-to-b from-border via-border to-transparent"
-          />
-          <ol className="space-y-12 md:space-y-16">
-            {STEPS.map((s, i) => {
-              const reverse = i % 2 === 1;
-              return (
-                <li
-                  key={s.n}
-                  className={`grid md:grid-cols-[28px_1fr] gap-x-6 md:gap-x-10 items-start ${
-                    reverse ? 'md:[&>.detail]:order-first' : ''
-                  }`}
-                >
-                  <div className="relative">
-                    <div className="size-7 rounded-full bg-card border border-border flex items-center justify-center text-primary shadow-card">
-                      {s.icon}
-                    </div>
-                  </div>
-                  <div className={`grid md:grid-cols-2 gap-6 md:gap-10 ${reverse ? 'md:[direction:rtl]' : ''}`}>
-                    <div className={reverse ? 'md:[direction:ltr]' : ''}>
-                      <div className="font-mono text-[10px] text-muted tracking-[0.18em] mb-2">
-                        STEP {s.n}
-                      </div>
-                      <h3 className="font-display text-2xl md:text-3xl mb-2 leading-tight">
-                        {s.title}
-                      </h3>
-                      <p className="text-muted text-base leading-relaxed">{s.body}</p>
-                    </div>
-                    <div className={`detail ${reverse ? 'md:[direction:ltr]' : ''}`}>
-                      <div className="card p-5 relative overflow-hidden">
-                        <div
-                          aria-hidden
-                          className="pointer-events-none absolute inset-0 rounded-card"
-                          style={{ boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.7)' }}
-                        />
-                        <div className="text-[10px] uppercase tracking-[0.14em] text-muted font-medium mb-3">
-                          Example
-                        </div>
-                        <div className="font-mono text-xs text-ink/90 leading-relaxed">
-                          {s.detail}
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                </li>
-              );
-            })}
-          </ol>
-        </div>
+        <ol className="space-y-14 md:space-y-20">
+          {STEPS.map((s) => (
+            <li
+              key={s.n}
+              className="grid md:grid-cols-[120px_1fr_minmax(0,360px)] gap-x-10 gap-y-6 items-start"
+            >
+              <div className="flex items-baseline gap-3 md:block">
+                <div className="font-display text-5xl md:text-6xl text-primary/30 leading-none">
+                  {s.n}
+                </div>
+                <div className="text-primary/80 md:mt-2">{s.icon}</div>
+              </div>
+
+              <div className="max-w-[55ch]">
+                <h3 className="font-display text-2xl md:text-3xl mb-3 leading-tight">
+                  {s.title}
+                </h3>
+                <p className="text-muted text-base leading-relaxed">{s.body}</p>
+              </div>
+
+              <div className="md:pt-2">
+                <ul className="space-y-1.5">
+                  {s.detail.map((d) => (
+                    <li
+                      key={d}
+                      className="flex items-center gap-2.5 font-mono text-xs text-ink/70"
+                    >
+                      <span className="size-1 rounded-full bg-primary/60" />
+                      {d}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            </li>
+          ))}
+        </ol>
       </section>
 
       <section className="max-w-6xl mx-auto px-6 py-16 md:py-24">
@@ -302,7 +332,7 @@ export default function Landing() {
               <br />
               the serum you just regretted.
             </h2>
-            <p className="text-muted text-lg max-w-md leading-relaxed">
+            <p className="text-muted text-lg max-w-[52ch] leading-relaxed">
               Free to log your first products. Pro unlocks unlimited routine tracking and the full
               ingredient scanner.
             </p>
@@ -328,7 +358,7 @@ export default function Landing() {
               <div className="text-muted">/ month</div>
             </div>
             <div className="text-sm text-muted mb-6">
-              or $79/year — saves you two months
+              or $79 a year (saves you two months)
             </div>
 
             <ul className="space-y-2.5 mb-7 text-sm">
