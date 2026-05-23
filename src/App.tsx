@@ -16,6 +16,7 @@ import Settings from '@/pages/Settings';
 import Routine from '@/pages/Routine';
 import Recommend from '@/pages/Recommend';
 import Journal from '@/pages/Journal';
+import Roadmap from '@/pages/Roadmap';
 
 function App() {
   return (
@@ -25,6 +26,7 @@ function App() {
       <Route path="/auth/callback" element={<AuthCallback />} />
       <Route path="/pricing" element={<Pricing />} />
       <Route path="/checkout/success" element={<CheckoutSuccess />} />
+      <Route path="/roadmap" element={<Roadmap />} />
 
       <Route
         path="/app"
