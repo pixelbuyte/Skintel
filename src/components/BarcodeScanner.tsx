@@ -1,5 +1,7 @@
-import { useState } from 'react';
-import { ScanBarcode, Loader2 } from 'lucide-react';
+import { useState, useRef } from 'react';
+import { ScanBarcode, Loader2, Camera, X } from 'lucide-react';
+import { useZxing } from 'react-zxing';
+import type { Result } from '@zxing/library';
 import { supabase } from '@/lib/supabase';
 
 type ScanResult = {
@@ -17,6 +19,62 @@ type LookupResponse = {
   error?: string;
 };
 
+function CameraScanner({
+  onDetected,
+  onClose,
+}: {
+  onDetected: (code: string) => void;
+  onClose: () => void;
+}) {
+  const [err, setErr] = useState<string | null>(null);
+  const firedRef = useRef(false);
+
+  const { ref } = useZxing({
+    onResult(result: Result) {
+      if (firedRef.current) return;
+      const text = result.getText().replace(/\D/g, '');
+      if (/^\d{8,13}$/.test(text)) {
+        firedRef.current = true;
+        onDetected(text);
+      }
+    },
+    onError(e) {
+      setErr(e instanceof Error ? e.message : String(e));
+    },
+    constraints: {
+      video: { facingMode: 'environment' },
+      audio: false,
+    },
+  });
+
+  return (
+    <div className="fixed inset-0 z-50 bg-black/90 flex flex-col">
+      <div className="flex justify-between items-center p-4 text-white">
+        <span className="font-display text-lg">Point at barcode</span>
+        <button onClick={onClose} className="p-2 hover:bg-white/10 rounded-full">
+          <X size={24} />
+        </button>
+      </div>
+      <div className="flex-1 flex items-center justify-center p-4">
+        <div className="relative w-full max-w-md aspect-[4/3] bg-black rounded-lg overflow-hidden">
+          <video ref={ref} className="w-full h-full object-cover" />
+          <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+            <div className="border-2 border-red-500 w-3/4 h-1/3 rounded" />
+          </div>
+        </div>
+      </div>
+      {err && (
+        <div className="text-sm text-red-300 bg-red-900/50 mx-4 mb-4 px-3 py-2 rounded">
+          {err}
+        </div>
+      )}
+      <p className="text-white/70 text-xs text-center pb-4 px-4">
+        Hold steady. Auto-detects EAN/UPC.
+      </p>
+    </div>
+  );
+}
+
 export default function BarcodeScanner({
   onScanned,
 }: {
@@ -26,11 +84,12 @@ export default function BarcodeScanner({
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [preview, setPreview] = useState<ScanResult | null>(null);
+  const [cameraOpen, setCameraOpen] = useState(false);
 
-  async function lookup() {
+  async function lookup(codeArg?: string) {
     setError(null);
     setPreview(null);
-    const cleaned = upc.trim();
+    const cleaned = (codeArg ?? upc).trim();
     if (!/^\d{8,13}$/.test(cleaned)) {
       setError('UPC must be 8-13 digits.');
       return;
@@ -69,6 +128,12 @@ export default function BarcodeScanner({
     if (preview) onScanned(preview);
   }
 
+  function onCameraDetect(code: string) {
+    setCameraOpen(false);
+    setUpc(code);
+    lookup(code);
+  }
+
   return (
     <div className="card p-6 space-y-4">
       <div className="flex items-center gap-2">
@@ -77,8 +142,24 @@ export default function BarcodeScanner({
       </div>
 
       <p className="text-muted text-sm">
-        Enter the UPC/EAN below to look up brand, product name, and ingredient list.
+        Use camera or enter UPC/EAN. Returns brand, product name, ingredient list.
       </p>
+
+      <button
+        type="button"
+        onClick={() => setCameraOpen(true)}
+        className="btn-primary w-full inline-flex items-center justify-center gap-2"
+        disabled={loading}
+      >
+        <Camera size={18} />
+        Scan with camera
+      </button>
+
+      <div className="flex items-center gap-2 text-xs text-muted">
+        <div className="flex-1 h-px bg-gray-200" />
+        <span>or type</span>
+        <div className="flex-1 h-px bg-gray-200" />
+      </div>
 
       <div className="flex flex-col sm:flex-row gap-2">
         <input
@@ -94,7 +175,7 @@ export default function BarcodeScanner({
         />
         <button
           type="button"
-          onClick={lookup}
+          onClick={() => lookup()}
           disabled={loading || !upc.trim()}
           className="btn-primary inline-flex items-center justify-center gap-2 disabled:opacity-50"
         >
@@ -138,6 +219,13 @@ export default function BarcodeScanner({
             </button>
           </div>
         </div>
+      )}
+
+      {cameraOpen && (
+        <CameraScanner
+          onDetected={onCameraDetect}
+          onClose={() => setCameraOpen(false)}
+        />
       )}
     </div>
   );
