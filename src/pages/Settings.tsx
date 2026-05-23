@@ -108,7 +108,7 @@ export default function Settings() {
         <div className="card p-6">
           <h2 className="font-display text-2xl mb-1">Your data</h2>
           <p className="text-muted text-sm mb-4">
-            Export everything as JSON — products, ingredients, and tags.
+            Export everything as JSON: products, ingredients, and tags.
           </p>
           <button className="btn-secondary" onClick={exportData} disabled={busy === 'export'}>
             <Download size={16} /> {busy === 'export' ? 'Preparing…' : 'Export data'}

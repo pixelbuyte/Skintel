@@ -53,7 +53,7 @@ export default function Login() {
         </Link>
         <h1 className="font-display text-3xl mb-2">Sign in</h1>
         <p className="text-muted text-sm mb-6">
-          One click with Google. We only use your email — never anything else.
+          One click with Google. We only use your email, never anything else.
         </p>
         <button
           type="button"

@@ -23,7 +23,7 @@ type Tile = {
 };
 
 const TILES: Tile[] = [
-  { id: 'barcode', icon: ScanLine, title: 'Scan barcode', hint: 'Fastest — camera reads EAN/UPC' },
+  { id: 'barcode', icon: ScanLine, title: 'Scan barcode', hint: 'Fastest. Camera reads EAN/UPC.' },
   { id: 'photo', icon: ImageIcon, title: 'Snap ingredient label', hint: 'AI OCR reads the back of the bottle' },
   { id: 'url', icon: Link2, title: 'Paste product URL', hint: 'Sephora, Ulta, brand sites' },
 ];

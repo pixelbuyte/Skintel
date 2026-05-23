@@ -65,7 +65,7 @@ export default function Culprits() {
       <div className="mb-6">
         <h1 className="font-display text-4xl">Suspect ingredients</h1>
         <p className="text-muted text-sm mt-1">
-          Ingredients showing up across your breakout products — ranked by how often.
+          Ingredients showing up across your breakout products, ranked by how often.
         </p>
       </div>
 
@@ -73,7 +73,7 @@ export default function Culprits() {
         <div className="flex items-center gap-2 mb-4">
           <AlertTriangle className="text-bad-fg" size={20} />
           <h2 className="font-display text-2xl">High risk</h2>
-          <span className="text-xs text-muted">— only in breakout products</span>
+          <span className="text-xs text-muted">only in breakout products</span>
         </div>
         {high.length === 0 ? (
           <div className="text-muted text-sm">None yet.</div>
@@ -90,7 +90,7 @@ export default function Culprits() {
         <div className="flex items-center gap-2 mb-4">
           <AlertCircle className="text-unsure-fg" size={20} />
           <h2 className="font-display text-2xl">Medium risk</h2>
-          <span className="text-xs text-muted">— also in some safe products</span>
+          <span className="text-xs text-muted">also in some safe products</span>
         </div>
         {medium.length === 0 ? (
           <div className="text-muted text-sm">None yet.</div>

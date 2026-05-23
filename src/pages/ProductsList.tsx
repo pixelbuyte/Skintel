@@ -49,7 +49,7 @@ export default function ProductsList() {
       ) : products.length === 0 ? (
         <EmptyState
           title="No products yet"
-          body="Start by logging the products in your current routine. Tag what works and what doesn't — Skintel will surface the patterns."
+          body="Start by logging the products in your current routine. Tag what works and what doesn't. Skintel will surface the patterns."
           cta={
             <button type="button" onClick={() => setSheetOpen(true)} className="btn-primary">
               <Plus size={16} /> Add your first product
@@ -81,7 +81,7 @@ export default function ProductsList() {
                     </Link>
                     {p.category && <div className="text-xs text-muted mt-0.5">{p.category}</div>}
                   </td>
-                  <td className="px-5 py-4 hidden md:table-cell text-muted text-sm">{p.brand ?? '—'}</td>
+                  <td className="px-5 py-4 hidden md:table-cell text-muted text-sm">{p.brand ?? '·'}</td>
                   <td className="px-5 py-4">
                     <OutcomeBadge outcome={p.outcome} size="sm" />
                   </td>

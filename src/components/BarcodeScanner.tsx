@@ -201,7 +201,7 @@ export default function BarcodeScanner({
             </div>
             <div className="flex-1">
               <div className="font-medium">Scan with camera</div>
-              <div className="text-xs text-muted mt-0.5">Center the barcode — auto-detects EAN/UPC</div>
+              <div className="text-xs text-muted mt-0.5">Center the barcode. Auto-detects EAN/UPC.</div>
             </div>
             <Camera className="text-muted" size={20} />
           </div>
@@ -214,7 +214,7 @@ export default function BarcodeScanner({
         <div className="card p-5 space-y-3">
           <div className="font-medium">Connection weak</div>
           <p className="text-sm text-muted">
-            UPC <span className="font-mono">{lastUpc}</span> saved — we'll fetch it next time you're online.
+            UPC <span className="font-mono">{lastUpc}</span> saved. We'll fetch it next time you're online.
           </p>
           <div className="flex gap-2 pt-1">
             <button type="button" className="btn-primary" onClick={() => lookup(lastUpc)}>
@@ -234,7 +234,7 @@ export default function BarcodeScanner({
           <div className="font-medium">Couldn't read that</div>
           {error && <p className="text-sm text-bad-fg">{error}</p>}
           <p className="text-sm text-muted">
-            Try snapping the ingredient label instead — works for any product.
+            Try snapping the ingredient label instead. Works for any product.
           </p>
           <div className="flex gap-2 pt-1">
             <button type="button" className="btn-primary" onClick={() => setMode('camera')}>

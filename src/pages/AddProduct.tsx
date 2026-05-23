@@ -47,7 +47,7 @@ export default function AddProduct() {
     e.preventDefault();
     setErr(null);
     if (atCap) {
-      setErr('Free plan limit reached — upgrade to add more products.');
+      setErr('Free plan limit reached. Upgrade to add more products.');
       return;
     }
     if (!productName.trim()) {
@@ -68,7 +68,7 @@ export default function AddProduct() {
       nav('/app/products');
     } catch (e: any) {
       if (e?.message?.includes('FREE_PLAN_LIMIT')) {
-        setErr('Free plan limit reached — upgrade to add more products.');
+        setErr('Free plan limit reached. Upgrade to add more products.');
       } else {
         setErr(e?.message ?? 'Failed to save product');
       }

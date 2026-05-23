@@ -90,7 +90,7 @@ const RAW: IngredientInfo[] = [
   { name: 'Lactic Acid', category: 'active', benefit: 'Gentle AHA exfoliant' },
   { name: 'Mandelic Acid', category: 'active', benefit: 'Gentle AHA, sensitive-safe' },
   { name: 'Azelaic Acid', category: 'active', benefit: 'Calms, evens tone' },
-  { name: 'Ascorbic Acid', category: 'active', benefit: 'Vitamin C — brightens' },
+  { name: 'Ascorbic Acid', category: 'active', benefit: 'Vitamin C, brightens' },
   { name: 'Sodium Ascorbyl Phosphate', category: 'active', benefit: 'Stable vit C' },
   { name: 'Tetrahexyldecyl Ascorbate', category: 'active', benefit: 'Oil-soluble vit C' },
   { name: 'Tranexamic Acid', category: 'active', benefit: 'Fades dark spots' },
@@ -114,7 +114,7 @@ const RAW: IngredientInfo[] = [
   { name: 'Matrixyl', category: 'peptide', benefit: 'Collagen support' },
 
   // Antioxidants
-  { name: 'Tocopherol', category: 'antioxidant', benefit: 'Vitamin E — antioxidant' },
+  { name: 'Tocopherol', category: 'antioxidant', benefit: 'Vitamin E, antioxidant' },
   { name: 'Tocopheryl Acetate', category: 'antioxidant', benefit: 'Stable vit E' },
   { name: 'Ferulic Acid', category: 'antioxidant', benefit: 'Boosts vit C stability' },
   { name: 'Resveratrol', category: 'antioxidant', benefit: 'Antioxidant' },
@@ -257,7 +257,7 @@ export function generateVerdict(buckets: Buckets): Verdict {
   if (w <= 1) {
     return {
       tone: 'caution',
-      headline: `⚠ Caution — ${w} of your triggers`,
+      headline: `⚠ Caution. ${w} of your triggers`,
       body: `One ingredient you've reacted to before. Patch test before regular use.`,
     };
   }
