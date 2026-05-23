@@ -1,10 +1,11 @@
 import { useMemo, useState } from 'react';
-import { ScanLine, CheckCircle2, AlertTriangle, Sparkles, Loader2 } from 'lucide-react';
+import { ScanLine, Sparkles, Loader2 } from 'lucide-react';
 import { useProducts } from '@/hooks/useProducts';
 import { useCulprits } from '@/hooks/useCulprits';
 import { useSubscription } from '@/hooks/useSubscription';
-import { parseInci } from '@/lib/inci';
 import { PaywallBanner } from '@/components/PaywallBanner';
+import { ScanResult } from '@/components/ScanResult';
+import { parseInci } from '@/lib/inci';
 import { supabase } from '@/lib/supabase';
 
 const EXAMPLE = `Water, Glycerin, Niacinamide, Cetyl Alcohol, Caprylic/Capric Triglyceride, Ceramide NP, Sodium Hyaluronate, Phenoxyethanol, Fragrance`;
@@ -39,24 +40,17 @@ export default function Scanner() {
     return m;
   }, [high, medium]);
 
-  const matches = useMemo(() => {
-    if (!scanned) return null;
-    const parsed = parseInci(scanned);
-    const out: { name: string; risk: 'high' | 'medium'; badCount: number }[] = [];
-    for (const i of parsed) {
-      const hit = culpritMap.get(i.normalized);
-      if (hit) out.push(hit);
-    }
-    out.sort((a, b) => (a.risk === b.risk ? b.badCount - a.badCount : a.risk === 'high' ? -1 : 1));
-    return out;
-  }, [scanned, culpritMap]);
-
   async function runAiScan() {
     if (!scanned) return;
     setAiLoading(true);
     setAiErr(null);
     setAi(null);
     try {
+      const localMatches: { name: string; risk: 'high' | 'medium'; badCount: number }[] = [];
+      for (const i of parseInci(scanned)) {
+        const hit = culpritMap.get(i.normalized);
+        if (hit) localMatches.push(hit);
+      }
       const { data: { session } } = await supabase.auth.getSession();
       const r = await fetch('/api/scan-ai', {
         method: 'POST',
@@ -64,7 +58,7 @@ export default function Scanner() {
           'content-type': 'application/json',
           authorization: `Bearer ${session?.access_token ?? ''}`,
         },
-        body: JSON.stringify({ inci: scanned, matches }),
+        body: JSON.stringify({ inci: scanned, matches: localMatches }),
       });
       if (!r.ok) {
         const e = await r.json().catch(() => ({}));
@@ -92,9 +86,8 @@ export default function Scanner() {
     setAiErr(null);
     setAi(null);
     try {
-      const parsed = parseInci(text);
       const localMatches: { name: string; risk: 'high' | 'medium'; badCount: number }[] = [];
-      for (const i of parsed) {
+      for (const i of parseInci(text)) {
         const hit = culpritMap.get(i.normalized);
         if (hit) localMatches.push(hit);
       }
@@ -163,40 +156,9 @@ export default function Scanner() {
         </div>
       </div>
 
-      {matches && matches.length === 0 && (
-        <div className="card mt-6 p-6 bg-good-bg text-good-fg flex items-start gap-3">
-          <CheckCircle2 size={24} className="shrink-0 mt-0.5" />
-          <div>
-            <div className="font-display text-xl mb-1">No personal triggers found</div>
-            <p className="text-sm">This product doesn't contain any of your flagged ingredients.</p>
-          </div>
-        </div>
-      )}
-
-      {matches && matches.length > 0 && (
-        <div className="card mt-6 p-6 bg-bad-bg text-bad-fg">
-          <div className="flex items-start gap-3 mb-4">
-            <AlertTriangle size={24} className="shrink-0 mt-0.5" />
-            <div>
-              <div className="font-display text-xl mb-1">
-                {matches.length} personal trigger{matches.length === 1 ? '' : 's'} detected
-              </div>
-              <p className="text-sm">This product contains ingredients that appear in your breakouts.</p>
-            </div>
-          </div>
-          <ul className="space-y-2">
-            {matches.map((m) => (
-              <li
-                key={m.name}
-                className="flex items-center justify-between bg-card rounded-lg px-4 py-2 text-ink"
-              >
-                <span className="font-mono text-sm">{m.name}</span>
-                <span className="text-xs">
-                  {m.risk === 'high' ? 'HIGH' : 'MEDIUM'} · in {m.badCount} breakouts
-                </span>
-              </li>
-            ))}
-          </ul>
+      {scanned && (
+        <div className="mt-6">
+          <ScanResult ingredients={scanned} high={high} medium={medium} />
         </div>
       )}
 
