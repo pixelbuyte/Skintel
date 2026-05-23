@@ -19,6 +19,10 @@ const Routine = lazy(() => import('@/pages/Routine'));
 const Recommend = lazy(() => import('@/pages/Recommend'));
 const Journal = lazy(() => import('@/pages/Journal'));
 const Roadmap = lazy(() => import('@/pages/Roadmap'));
+const Privacy = lazy(() => import('@/pages/Privacy'));
+const Terms = lazy(() => import('@/pages/Terms'));
+const About = lazy(() => import('@/pages/About'));
+const Contact = lazy(() => import('@/pages/Contact'));
 
 function RouteFallback() {
   return (
@@ -38,6 +42,10 @@ function App() {
         <Route path="/pricing" element={<Pricing />} />
         <Route path="/checkout/success" element={<CheckoutSuccess />} />
         <Route path="/roadmap" element={<Roadmap />} />
+        <Route path="/privacy" element={<Privacy />} />
+        <Route path="/terms" element={<Terms />} />
+        <Route path="/about" element={<About />} />
+        <Route path="/contact" element={<Contact />} />
 
         <Route
           path="/app"
