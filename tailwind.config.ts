@@ -25,10 +25,15 @@ export default {
         mono: ['"JetBrains Mono"', 'ui-monospace', 'monospace'],
       },
       borderRadius: {
-        card: '12px',
+        card: '16px',
       },
       boxShadow: {
         card: '0 1px 2px rgba(26,24,20,0.04), 0 1px 3px rgba(26,24,20,0.06)',
+        soft: '0 4px 12px rgba(26,24,20,0.06)',
+        sheet: '0 -12px 32px rgba(26,24,20,0.12)',
+      },
+      transitionTimingFunction: {
+        ios: 'cubic-bezier(0.32, 0.72, 0, 1)',
       },
     },
   },

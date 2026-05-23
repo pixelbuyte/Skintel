@@ -1,0 +1,19 @@
+{
+  "name": "Skintel",
+  "short_name": "Skintel",
+  "description": "Your skincare ingredient intelligence — scan, track, and avoid the ingredients that don't agree with you.",
+  "start_url": "/app",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#FAF8F5",
+  "theme_color": "#A35848",
+  "icons": [
+    {
+      "src": "/icons/skintel.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}
