@@ -1,3 +1,4 @@
+import Anthropic from '@anthropic-ai/sdk';
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { getServiceClient, getUserFromAuthHeader, json } from './_lib.js';
 
@@ -5,8 +6,56 @@ type LookupResult = {
   brand: string | null;
   productName: string | null;
   ingredients: string;
-  source: 'openbeautyfacts' | 'openfoodfacts' | null;
+  source: 'openbeautyfacts' | 'openfoodfacts' | 'claude' | null;
 };
+
+async function claudeFillIngredients(
+  brand: string | null,
+  productName: string | null,
+  upc: string
+): Promise<{ brand: string | null; productName: string | null; ingredients: string } | null> {
+  if (!process.env.ANTHROPIC_API_KEY) return null;
+  const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
+  const hint = [brand, productName].filter(Boolean).join(' ');
+  const prompt = `You are a skincare product database. Return real, verifiable INCI ingredient list for this product. If you don't know, return empty ingredients — do NOT invent.
+
+Product hint: ${hint || '(unknown)'}
+UPC/EAN: ${upc}
+
+Return strict JSON only:
+{"brand": string|null, "productName": string|null, "ingredients": string}
+
+Rules:
+- ingredients = full INCI list, comma-separated, no "Ingredients:" prefix
+- If you cannot verify a real published INCI list, return ingredients: ""
+- Do NOT make up ingredients`;
+
+  try {
+    const resp = await client.messages.create({
+      model: 'claude-haiku-4-5-20251001',
+      max_tokens: 2048,
+      messages: [{ role: 'user', content: prompt }],
+    });
+    const text = resp.content
+      .filter((b): b is Anthropic.TextBlock => b.type === 'text')
+      .map((b) => b.text)
+      .join('');
+    const fenced = text.match(/```(?:json)?\s*([\s\S]*?)```/);
+    const candidate = fenced ? fenced[1] : (text.match(/\{[\s\S]*\}/)?.[0] ?? text);
+    const parsed = JSON.parse(candidate) as {
+      brand?: string | null;
+      productName?: string | null;
+      ingredients?: string;
+    };
+    return {
+      brand: parsed.brand ?? brand ?? null,
+      productName: parsed.productName ?? productName ?? null,
+      ingredients: (parsed.ingredients ?? '').trim(),
+    };
+  } catch {
+    return null;
+  }
+}
 
 async function fetchProduct(
   baseUrl: string,
@@ -75,14 +124,37 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   }
 
   const obf = await fetchProduct('https://world.openbeautyfacts.org', upc);
-  if (obf) {
-    const result: LookupResult = { ...obf, source: 'openbeautyfacts' };
+  const off = obf ? null : await fetchProduct('https://world.openfoodfacts.org', upc);
+  const dbHit = obf ?? off;
+  const dbSource: 'openbeautyfacts' | 'openfoodfacts' | null = obf
+    ? 'openbeautyfacts'
+    : off
+    ? 'openfoodfacts'
+    : null;
+
+  if (dbHit && dbHit.ingredients) {
+    const result: LookupResult = { ...dbHit, source: dbSource };
     return json(res, result);
   }
 
-  const off = await fetchProduct('https://world.openfoodfacts.org', upc);
-  if (off) {
-    const result: LookupResult = { ...off, source: 'openfoodfacts' };
+  const claude = await claudeFillIngredients(
+    dbHit?.brand ?? null,
+    dbHit?.productName ?? null,
+    upc
+  );
+
+  if (claude && (claude.ingredients || claude.brand || claude.productName)) {
+    const result: LookupResult = {
+      brand: claude.brand,
+      productName: claude.productName,
+      ingredients: claude.ingredients,
+      source: dbSource ?? 'claude',
+    };
+    return json(res, result);
+  }
+
+  if (dbHit) {
+    const result: LookupResult = { ...dbHit, source: dbSource };
     return json(res, result);
   }
 
