@@ -1,6 +1,8 @@
 import { useCallback, useRef, useState } from 'react';
 import { Camera, Upload, Loader2 } from 'lucide-react';
+import imageCompression from 'browser-image-compression';
 import { supabase } from '@/lib/supabase';
+import { haptic } from '@/lib/haptics';
 
 type ExtractedData = {
   brand?: string | null;
@@ -32,22 +34,16 @@ async function fileToBase64(file: File): Promise<{ base64: string; mimeType: All
   if (!isAllowedMime(file.type)) {
     throw new Error('Only JPEG, PNG, or WEBP images are supported.');
   }
-  const bitmap = await createImageBitmap(file);
-  const MAX = 2200;
-  const scale = Math.min(1, MAX / Math.max(bitmap.width, bitmap.height));
-  const w = Math.round(bitmap.width * scale);
-  const h = Math.round(bitmap.height * scale);
-  const canvas = document.createElement('canvas');
-  canvas.width = w;
-  canvas.height = h;
-  const ctx = canvas.getContext('2d');
-  if (!ctx) throw new Error('Canvas unsupported');
-  ctx.imageSmoothingQuality = 'high';
-  ctx.drawImage(bitmap, 0, 0, w, h);
-  const blob: Blob = await new Promise((resolve, reject) =>
-    canvas.toBlob((b) => (b ? resolve(b) : reject(new Error('Encode failed'))), 'image/jpeg', 0.92)
-  );
-  const buf = await blob.arrayBuffer();
+  // Compress client-side to dodge Vercel's 4.5 MB payload cap.
+  // 1080 px max edge keeps OCR readable while staying well under the limit.
+  const compressed = await imageCompression(file, {
+    maxSizeMB: 0.5,
+    maxWidthOrHeight: 1080,
+    useWebWorker: true,
+    initialQuality: 0.85,
+    fileType: 'image/jpeg',
+  });
+  const buf = await compressed.arrayBuffer();
   const bytes = new Uint8Array(buf);
   let bin = '';
   for (let i = 0; i < bytes.length; i++) bin += String.fromCharCode(bytes[i]);
@@ -128,12 +124,14 @@ export default function PhotoUpload({ onExtracted }: Props) {
       const result = payload.result;
       if (!result) throw new Error('No result returned.');
 
+      haptic.success();
       onExtracted({
         brand: result.brand ?? null,
         productName: result.productName ?? null,
         ingredients: result.ingredients ?? '',
       });
     } catch (e: any) {
+      haptic.error();
       setError(String(e?.message ?? e));
     } finally {
       setLoading(false);

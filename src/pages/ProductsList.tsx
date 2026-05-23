@@ -1,14 +1,18 @@
+import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Plus, ChevronRight } from 'lucide-react';
 import { useProducts } from '@/hooks/useProducts';
 import { useSubscription } from '@/hooks/useSubscription';
 import { OutcomeBadge } from '@/components/OutcomeBadge';
 import { EmptyState } from '@/components/EmptyState';
+import { AddProductSheet } from '@/components/AddProductSheet';
 import { formatDate, pluralize } from '@/lib/format';
+import { haptic } from '@/lib/haptics';
 
 export default function ProductsList() {
   const { products, loading } = useProducts();
   const { tier, productLimit } = useSubscription();
+  const [sheetOpen, setSheetOpen] = useState(false);
   const atCap = tier === 'free' && products.length >= productLimit;
 
   return (
@@ -21,14 +25,24 @@ export default function ProductsList() {
             {tier === 'free' && ` · ${products.length}/${productLimit} on free plan`}
           </p>
         </div>
-        <Link
-          to={atCap ? '/pricing' : '/app/products/new'}
-          className="btn-primary"
-        >
-          <Plus size={16} />
-          {atCap ? 'Upgrade to add more' : 'Add product'}
-        </Link>
+        {atCap ? (
+          <Link to="/pricing" className="btn-primary">
+            <Plus size={16} /> Upgrade to add more
+          </Link>
+        ) : (
+          <button
+            type="button"
+            onClick={() => {
+              haptic.tap();
+              setSheetOpen(true);
+            }}
+            className="btn-primary"
+          >
+            <Plus size={16} /> Add product
+          </button>
+        )}
       </div>
+      <AddProductSheet open={sheetOpen} onOpenChange={setSheetOpen} />
 
       {loading ? (
         <div className="text-muted">Loading…</div>
@@ -37,9 +51,9 @@ export default function ProductsList() {
           title="No products yet"
           body="Start by logging the products in your current routine. Tag what works and what doesn't — Skintel will surface the patterns."
           cta={
-            <Link to="/app/products/new" className="btn-primary">
+            <button type="button" onClick={() => setSheetOpen(true)} className="btn-primary">
               <Plus size={16} /> Add your first product
-            </Link>
+            </button>
           }
         />
       ) : (

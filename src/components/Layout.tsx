@@ -2,6 +2,7 @@ import { type ReactNode } from 'react';
 import { Sidebar, useSidebarCollapsed } from './Sidebar';
 import { BottomNav } from './BottomNav';
 import { MobileTopBar } from './MobileTopBar';
+import { AddProductFab } from './AddProductFab';
 
 export function Layout({ children }: { children: ReactNode }) {
   const { collapsed, setCollapsed } = useSidebarCollapsed();
@@ -15,6 +16,7 @@ export function Layout({ children }: { children: ReactNode }) {
           {children}
         </main>
       </div>
+      <AddProductFab />
       <BottomNav />
     </div>
   );

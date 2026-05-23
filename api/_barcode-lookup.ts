@@ -2,11 +2,21 @@ import Anthropic from '@anthropic-ai/sdk';
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { getServiceClient, getUserFromAuthHeader, json } from './_lib.js';
 
+type CacheSource = 'openbeautyfacts' | 'openfoodfacts' | 'claude';
+
 type LookupResult = {
   brand: string | null;
   productName: string | null;
   ingredients: string;
-  source: 'openbeautyfacts' | 'openfoodfacts' | 'claude' | null;
+  source: CacheSource | 'cache' | null;
+};
+
+type CacheRow = {
+  upc: string;
+  brand: string | null;
+  product_name: string | null;
+  ingredients: string;
+  source: string;
 };
 
 async function claudeFillIngredients(
@@ -134,6 +144,22 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     return json(res, { error: 'Invalid UPC (must be 8-13 digits)' }, 400);
   }
 
+  // 1) Cache hit short-circuits everything (incl. Claude web_search billing).
+  const { data: cached } = await sb
+    .from('barcode_cache')
+    .select('upc, brand, product_name, ingredients, source')
+    .eq('upc', upc)
+    .maybeSingle<CacheRow>();
+  if (cached && cached.ingredients) {
+    const result: LookupResult = {
+      brand: cached.brand,
+      productName: cached.product_name,
+      ingredients: cached.ingredients,
+      source: 'cache',
+    };
+    return json(res, result);
+  }
+
   const obf = await fetchProduct('https://world.openbeautyfacts.org', upc);
   const off = obf ? null : await fetchProduct('https://world.openfoodfacts.org', upc);
   const dbHit = obf ?? off;
@@ -143,7 +169,24 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     ? 'openfoodfacts'
     : null;
 
-  if (dbHit && dbHit.ingredients) {
+  async function persist(row: { brand: string | null; productName: string | null; ingredients: string; source: CacheSource }) {
+    if (!row.ingredients) return;
+    await sb
+      .from('barcode_cache')
+      .upsert(
+        {
+          upc,
+          brand: row.brand,
+          product_name: row.productName,
+          ingredients: row.ingredients,
+          source: row.source,
+        },
+        { onConflict: 'upc', ignoreDuplicates: true }
+      );
+  }
+
+  if (dbHit && dbHit.ingredients && dbSource) {
+    await persist({ ...dbHit, source: dbSource });
     const result: LookupResult = { ...dbHit, source: dbSource };
     return json(res, result);
   }
@@ -155,11 +198,20 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   );
 
   if (claude && (claude.ingredients || claude.brand || claude.productName)) {
+    const finalSource: CacheSource = dbSource ?? 'claude';
+    if (claude.ingredients) {
+      await persist({
+        brand: claude.brand,
+        productName: claude.productName,
+        ingredients: claude.ingredients,
+        source: finalSource,
+      });
+    }
     const result: LookupResult = {
       brand: claude.brand,
       productName: claude.productName,
       ingredients: claude.ingredients,
-      source: dbSource ?? 'claude',
+      source: finalSource,
     };
     return json(res, result);
   }
