@@ -17,23 +17,34 @@ async function claudeFillIngredients(
   if (!process.env.ANTHROPIC_API_KEY) return null;
   const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
   const hint = [brand, productName].filter(Boolean).join(' ');
-  const prompt = `You are a skincare product database. Return real, verifiable INCI ingredient list for this product. If you don't know, return empty ingredients — do NOT invent.
+  const prompt = `Find the full INCI ingredient list for this skincare/cosmetic product. Use web_search to look up the brand's official page or major retailers (Sephora, Ulta, Boots, brand site).
 
-Product hint: ${hint || '(unknown)'}
+Product: ${hint || '(unknown — look up by UPC)'}
 UPC/EAN: ${upc}
 
-Return strict JSON only:
+Steps:
+1. Search web for the product (use UPC and/or brand + product name).
+2. Find the INCI / ingredients list from official brand site or reputable retailer.
+3. Return strict JSON only — no commentary, no markdown.
+
+Output format:
 {"brand": string|null, "productName": string|null, "ingredients": string}
 
-Rules:
-- ingredients = full INCI list, comma-separated, no "Ingredients:" prefix
-- If you cannot verify a real published INCI list, return ingredients: ""
-- Do NOT make up ingredients`;
+- ingredients = full INCI, comma-separated, no "Ingredients:" prefix
+- If after searching you cannot find an authoritative list, return ingredients: ""
+- Do NOT invent ingredients`;
 
   try {
     const resp = await client.messages.create({
       model: 'claude-haiku-4-5-20251001',
-      max_tokens: 2048,
+      max_tokens: 4096,
+      tools: [
+        {
+          type: 'web_search_20250305',
+          name: 'web_search',
+          max_uses: 4,
+        } as any,
+      ],
       messages: [{ role: 'user', content: prompt }],
     });
     const text = resp.content
