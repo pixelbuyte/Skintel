@@ -2,7 +2,7 @@ import Anthropic from '@anthropic-ai/sdk';
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { getServiceClient, getUserFromAuthHeader, json } from './_lib.js';
 
-const MODEL = 'claude-haiku-4-5-20251001';
+const MODEL = 'claude-sonnet-4-6';
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (req.method !== 'POST') return json(res, { error: 'Method not allowed' }, 405);
@@ -49,19 +49,23 @@ Rules:
 1. Produce ONE flag entry for EVERY token in the input ingredient list, in order — including water/glycerin/etc. Use level="low" for benign or beneficial ingredients (state benefit briefly), level="medium" for moderate-risk, level="high" for high-risk (comedogenic, sensitizing, irritating).
 2. For non-ingredient tokens or obvious nonsense (e.g. "meth", "heluim", random letters, misspellings of common gases/metals/drugs) emit level="high" with reason="Not a valid INCI ingredient — likely typo, corruption, or tampering." and source="general".
 3. Cross-reference user's personal correlation hits (provided below). When an ingredient matches both personal history AND general risk, source="both". Personal-only = "personal". General knowledge only = "general".
-4. Reasons must be one factual sentence. No filler ("This may be" → "Is"). No marketing. No disclaimers in flags.
+4. Reasons must be ONE specific sentence — name the mechanism (e.g. "Comedogenic rating 4/5 — clogs pores in acne-prone skin", "Common contact sensitizer in fragrance allergy panels", "Humectant that draws water into stratum corneum"). No filler ("This may be" → "Is"). No marketing. No disclaimers.
 5. Comedogenic offenders to weight high: coconut oil, isopropyl myristate, isopropyl palmitate, myristyl myristate, lanolin, algae/seaweed extracts, cocoa butter, wheat germ oil, oleic-acid-heavy oils. Sensitizers: fragrance/parfum, linalool, limonene, citral, geraniol, MI/MCI, formaldehyde releasers (DMDM hydantoin, quaternium-15), denatured alcohol, essential oils. Surfactants harsh on acne-prone: SLS, sodium coco-sulfate.
 6. Verdict rule: if any high-level flag → "avoid"; else if any medium → "caution"; else "clean".
-7. Output strict JSON only. No prose, no markdown fences.
+7. score 0-100: start at 100; subtract 15 per high flag, 5 per medium flag, 0 per low. Floor at 0.
+8. summary must NAME the worst offender(s) AND give the verdict reason in one breath. Example: "Avoid — coconut oil + isopropyl myristate are both 4/5 comedogenic, and the formula leans on fragrance allergens (linalool, limonene)."
+9. notes must give ACTIONABLE alternative or use-case: "Safe as a body lotion but skip on the face if you're acne-prone." or "Swap for a fragrance-free version of the same brand." Never just say "consult a derm".
+10. Output strict JSON only. No prose, no markdown fences.
 
 JSON schema:
 {
   "verdict": "clean" | "caution" | "avoid",
-  "summary": string (1-2 sentences naming the worst offender and overall character),
+  "score": number (0-100),
+  "summary": string (one specific sentence naming the worst offender + verdict reason),
   "flags": [
     { "ingredient": string, "level": "high" | "medium" | "low", "reason": string, "source": "personal" | "general" | "both" }
   ],
-  "notes": string (optional, 1 sentence with actionable advice)
+  "notes": string (one actionable sentence — alternative or use-case)
 }`;
 
   const userMsg = `User stats: ${counts.good} good, ${counts.bad} bad, ${counts.unsure} unsure products.
@@ -79,7 +83,7 @@ Return strict JSON only. No prose.`;
   try {
     const resp = await client.messages.create({
       model: MODEL,
-      max_tokens: 4096,
+      max_tokens: 8192,
       system,
       messages: [{ role: 'user', content: userMsg }],
     });

@@ -18,6 +18,7 @@ type Flag = {
 };
 type AiResult = {
   verdict: 'clean' | 'caution' | 'avoid';
+  score?: number;
   summary: string;
   flags: Flag[];
   notes?: string;
@@ -178,7 +179,7 @@ export default function Scanner() {
 
       {ai && (
         <div className="card mt-6 p-6">
-          <div className="flex items-center gap-2 mb-3">
+          <div className="flex items-center gap-2 mb-3 flex-wrap">
             <Sparkles size={18} />
             <span className="font-display text-xl">AI ingredient analysis</span>
             <span
@@ -192,6 +193,19 @@ export default function Scanner() {
             >
               {ai.verdict.toUpperCase()}
             </span>
+            {typeof ai.score === 'number' && (
+              <span
+                className={`text-xs font-mono px-2 py-1 rounded ${
+                  ai.score >= 70
+                    ? 'bg-good-bg text-good-fg'
+                    : ai.score >= 40
+                    ? 'bg-unsure-bg text-unsure-fg'
+                    : 'bg-bad-bg text-bad-fg'
+                }`}
+              >
+                {ai.score}/100
+              </span>
+            )}
           </div>
           <p className="text-sm mb-4">{ai.summary}</p>
           {ai.flags.length > 0 && (

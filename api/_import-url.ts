@@ -4,9 +4,30 @@ import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { getServiceClient, getUserFromAuthHeader, json } from './_lib.js';
 
 const MODEL = 'claude-haiku-4-5-20251001';
-const FETCH_TIMEOUT_MS = 10_000;
-const MAX_BYTES = 1_000_000; // 1MB
-const UA = 'Mozilla/5.0 (compatible; SkintelBot/1.0)';
+const FETCH_TIMEOUT_MS = 15_000;
+const MAX_BYTES = 3_000_000; // 3MB — Amazon/Sephora pages can be huge
+
+// Real Chrome on Windows UA so retail sites don't return bot-block pages
+const UA =
+  'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36';
+
+const BROWSER_HEADERS: Record<string, string> = {
+  'user-agent': UA,
+  accept:
+    'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8',
+  'accept-language': 'en-US,en;q=0.9',
+  'accept-encoding': 'gzip, deflate, br',
+  'cache-control': 'no-cache',
+  pragma: 'no-cache',
+  'sec-ch-ua': '"Chromium";v="131", "Not_A Brand";v="24", "Google Chrome";v="131"',
+  'sec-ch-ua-mobile': '?0',
+  'sec-ch-ua-platform': '"Windows"',
+  'sec-fetch-dest': 'document',
+  'sec-fetch-mode': 'navigate',
+  'sec-fetch-site': 'none',
+  'sec-fetch-user': '?1',
+  'upgrade-insecure-requests': '1',
+};
 
 type Extracted = { brand?: string; productName?: string; ingredients: string };
 
@@ -28,10 +49,7 @@ async function fetchPage(url: string): Promise<string> {
       method: 'GET',
       redirect: 'follow',
       signal: controller.signal,
-      headers: {
-        'user-agent': UA,
-        accept: 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
-      },
+      headers: BROWSER_HEADERS,
     });
     if (!resp.ok) throw new Error(`Fetch failed: ${resp.status}`);
 
@@ -86,65 +104,175 @@ function looksLikeIngredients(text: string): boolean {
 
 function cleanIngredientsString(raw: string): string {
   let s = normalizeWhitespace(raw);
-  // Strip leading "Ingredients:" / "INCI:" labels
   s = s.replace(/^\s*(ingredients?|inci|full\s+ingredients?\s+list|composition)\s*[:\-–—]\s*/i, '');
-  // Trim trailing period
   s = s.replace(/\.+\s*$/, '');
   return s.trim();
 }
 
-function extractFromHtml(html: string): Extracted {
+function detectBotBlock(html: string): string | null {
+  const lc = html.toLowerCase();
+  if (lc.includes('captcha-delivery.com') || lc.includes('px-captcha') || lc.includes('datadome')) {
+    return 'Site bot protection (DataDome). Try a brand-direct URL instead.';
+  }
+  if (lc.includes('robot check') || lc.includes('/errors/validatecaptcha')) {
+    return 'Amazon bot protection page returned. Try the brand product page or paste the ingredient list directly.';
+  }
+  if (lc.includes('access denied') && lc.includes('cloudfront')) {
+    return 'Site blocked our fetch (Cloudfront). Try the brand product page or paste ingredients directly.';
+  }
+  if (lc.includes('akamai') && lc.includes('reference #')) {
+    return 'Site blocked our fetch (Akamai). Try the brand product page or paste ingredients directly.';
+  }
+  return null;
+}
+
+// Site-specific extractors run BEFORE generic ones.
+function extractAmazon($: cheerio.CheerioAPI): string {
+  // Amazon shows ingredients in #important-information section (bullet-listed) or
+  // an "Ingredients" labeled row inside #productDetails table.
+  const labelRegex = /^(ingredients?|inci|full ingredients?( list)?)\b/i;
+
+  // 1. #important-information has h4/h5 "Ingredients" + paragraph
+  const importantSection = $('#important-information');
+  if (importantSection.length) {
+    let found = '';
+    importantSection.find('h4, h5, .a-text-bold').each((_i, el) => {
+      if (found) return;
+      const label = $(el).text().trim();
+      if (!labelRegex.test(label)) return;
+      let node = $(el).parent().next();
+      for (let i = 0; i < 5 && node.length; i++) {
+        const txt = node.text().trim();
+        if (looksLikeIngredients(txt)) {
+          found = txt;
+          return;
+        }
+        node = node.next();
+      }
+      // Also try sibling text inside same content block
+      const sib = $(el).nextAll().slice(0, 5).text().trim();
+      if (looksLikeIngredients(sib)) found = sib;
+    });
+    if (found) return found;
+  }
+
+  // 2. Look for "Ingredients" label inside any .content section
+  let scanResult = '';
+  $('.content, .a-section, #aplus, #aplus_feature_div').each((_i, el) => {
+    if (scanResult) return;
+    const html = $(el).html() ?? '';
+    const m = html.match(
+      /(?:<(?:h[1-6]|strong|b)[^>]*>\s*ingredients?\s*[:\-–—]?\s*<\/[^>]+>)([\s\S]{40,4000})/i,
+    );
+    if (m) {
+      const piece = cheerio.load(m[1])('body').text();
+      if (looksLikeIngredients(piece)) scanResult = piece;
+    }
+  });
+  return scanResult;
+}
+
+function extractSephora($: cheerio.CheerioAPI): string {
+  // Sephora puts ingredients inside .css-pz80c5 / dt-dd accordion / "Ingredients" h2 section
+  let found = '';
+  $('h2, h3, button[aria-controls]').each((_i, el) => {
+    if (found) return;
+    const label = $(el).text().trim();
+    if (!/ingredient/i.test(label)) return;
+    let node = $(el).parent();
+    for (let i = 0; i < 4 && node.length; i++) {
+      const txt = node.text().trim();
+      // Pull the part AFTER the "Ingredients" word
+      const idx = txt.toLowerCase().indexOf('ingredients');
+      const sliced = idx >= 0 ? txt.slice(idx + 'ingredients'.length).replace(/^[\s:.\-–—]+/, '') : txt;
+      if (looksLikeIngredients(sliced)) {
+        found = sliced;
+        return;
+      }
+      node = node.parent();
+    }
+  });
+  return found;
+}
+
+function extractUlta($: cheerio.CheerioAPI): string {
+  // Ulta accordion: <button>Ingredients</button> then <div>text</div>
+  let found = '';
+  $('button, summary, h3, h4').each((_i, el) => {
+    if (found) return;
+    if (!/^ingredients\b/i.test($(el).text().trim())) return;
+    const parent = $(el).parent();
+    const txt = parent.text();
+    const idx = txt.toLowerCase().indexOf('ingredients');
+    const sliced = idx >= 0 ? txt.slice(idx + 'ingredients'.length).replace(/^[\s:.\-–—]+/, '') : '';
+    if (looksLikeIngredients(sliced)) found = sliced;
+  });
+  return found;
+}
+
+function extractFromHtml(html: string, url: URL): Extracted {
   const $ = cheerio.load(html);
 
-  // brand: try common meta tags, then site name
+  const host = url.hostname.toLowerCase();
+  const isAmazon = /(^|\.)amazon\./.test(host);
+  const isSephora = /(^|\.)sephora\./.test(host);
+  const isUlta = /(^|\.)ulta\./.test(host);
+
+  // brand
   const brand =
     $('meta[property="product:brand"]').attr('content')?.trim() ||
     $('meta[name="brand"]').attr('content')?.trim() ||
+    $('#bylineInfo').text().trim().replace(/^(Brand|Visit the)\s*:?\s*/i, '').replace(/\s+Store$/i, '') ||
+    $('[data-at="brand_name"]').text().trim() ||
     $('meta[property="og:site_name"]').attr('content')?.trim() ||
     undefined;
 
-  // product name: og:title / twitter:title / <title>
+  // product name
   const productName =
     $('meta[property="og:title"]').attr('content')?.trim() ||
     $('meta[name="twitter:title"]').attr('content')?.trim() ||
+    $('#productTitle').text().trim() ||
+    $('[data-at="product_name"]').text().trim() ||
     $('h1').first().text().trim() ||
     $('title').first().text().trim() ||
     undefined;
 
-  // ----- ingredients hunt -----
   let ingredients = '';
 
-  // 1) JSON-LD: any object with "ingredients"
-  $('script[type="application/ld+json"]').each((_i, el) => {
-    if (ingredients) return;
-    const raw = $(el).contents().text();
-    if (!raw) return;
-    try {
-      const parsed = JSON.parse(raw);
-      const stack: unknown[] = Array.isArray(parsed) ? [...parsed] : [parsed];
-      while (stack.length) {
-        const node = stack.shift();
-        if (!node || typeof node !== 'object') continue;
-        const obj = node as Record<string, unknown>;
-        for (const key of Object.keys(obj)) {
-          const v = obj[key];
-          if (
-            /ingredient/i.test(key) &&
-            typeof v === 'string' &&
-            looksLikeIngredients(v)
-          ) {
-            ingredients = v;
-            return;
-          }
-          if (v && typeof v === 'object') stack.push(v);
-        }
-      }
-    } catch {
-      /* ignore */
-    }
-  });
+  // site-specific FIRST
+  if (isAmazon) ingredients = extractAmazon($);
+  else if (isSephora) ingredients = extractSephora($);
+  else if (isUlta) ingredients = extractUlta($);
 
-  // 2) dt/dd or th/td pairs with "Ingredients" label
+  // 1) JSON-LD
+  if (!ingredients) {
+    $('script[type="application/ld+json"]').each((_i, el) => {
+      if (ingredients) return;
+      const raw = $(el).contents().text();
+      if (!raw) return;
+      try {
+        const parsed = JSON.parse(raw);
+        const stack: unknown[] = Array.isArray(parsed) ? [...parsed] : [parsed];
+        while (stack.length) {
+          const node = stack.shift();
+          if (!node || typeof node !== 'object') continue;
+          const obj = node as Record<string, unknown>;
+          for (const key of Object.keys(obj)) {
+            const v = obj[key];
+            if (/ingredient/i.test(key) && typeof v === 'string' && looksLikeIngredients(v)) {
+              ingredients = v;
+              return;
+            }
+            if (v && typeof v === 'object') stack.push(v);
+          }
+        }
+      } catch {
+        /* ignore */
+      }
+    });
+  }
+
+  // 2) dt/dd or th/td pairs
   if (!ingredients) {
     $('dt, th').each((_i, el) => {
       if (ingredients) return;
@@ -156,7 +284,7 @@ function extractFromHtml(html: string): Extracted {
     });
   }
 
-  // 3) elements whose own text starts with "Ingredients:"
+  // 3) elements whose text starts with "Ingredients:"
   if (!ingredients) {
     $('p, div, span, li').each((_i, el) => {
       if (ingredients) return;
@@ -166,7 +294,7 @@ function extractFromHtml(html: string): Extracted {
     });
   }
 
-  // 4) Heading "Ingredients" followed by paragraph/list
+  // 4) Heading "Ingredients" followed by content
   if (!ingredients) {
     $('h1, h2, h3, h4, h5, h6, strong, b').each((_i, el) => {
       if (ingredients) return;
@@ -174,7 +302,7 @@ function extractFromHtml(html: string): Extracted {
       if (!/^(ingredients|inci|full ingredients?( list)?|composition)\b/i.test(label)) return;
       let node = $(el).next();
       let collected = '';
-      for (let i = 0; i < 4 && node.length; i++) {
+      for (let i = 0; i < 6 && node.length; i++) {
         const t = node.text().trim();
         if (t) collected += (collected ? ' ' : '') + t;
         if (looksLikeIngredients(collected)) break;
@@ -184,11 +312,11 @@ function extractFromHtml(html: string): Extracted {
     });
   }
 
-  // 5) Global regex over visible text as last cheerio resort
+  // 5) Global regex over visible text
   if (!ingredients) {
     const bodyText = $('body').text();
     const m = bodyText.match(
-      /(?:ingredients?|inci)\s*[:\-–—]\s*([A-Za-z0-9 ,/().\-\[\]®©™&'+%:;\u00c0-\u024f]{40,3000})/i,
+      /(?:ingredients?|inci)\s*[:\-–—]\s*([A-Za-z0-9 ,/().\-\[\]®©™&'+%:;\u00c0-\u024f]{40,4000})/i,
     );
     if (m && looksLikeIngredients(m[1])) ingredients = m[1];
   }
@@ -207,18 +335,30 @@ function ingredientTokenCount(s: string): number {
 
 function stripToText(html: string): string {
   const $ = cheerio.load(html);
-  $('script, style, noscript, svg, iframe').remove();
+  $('script, style, noscript, svg, iframe, header, footer, nav').remove();
   return normalizeWhitespace($('body').text() || $.root().text() || '');
 }
 
-async function aiExtract(html: string, fallbackBrand?: string, fallbackName?: string): Promise<Extracted> {
-  const text = stripToText(html).slice(0, 8000);
+async function aiExtract(
+  html: string,
+  url: URL,
+  fallbackBrand?: string,
+  fallbackName?: string,
+): Promise<Extracted> {
+  const text = stripToText(html).slice(0, 16000);
   const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY! });
   const resp = await client.messages.create({
     model: MODEL,
     max_tokens: 2048,
-    system:
-      'Extract product name, brand, and full INCI ingredient list from this page text. Return strict JSON only: {brand, productName, ingredients: string} — ingredients comma-separated.',
+    system: `You are extracting product info from a beauty/skincare product page on ${url.hostname}.
+Return strict JSON only — no preamble, no markdown fences:
+{"brand": string, "productName": string, "ingredients": string}
+
+Rules:
+- ingredients = comma-separated INCI list (full list, not summary).
+- If only a partial list is shown (e.g. "key ingredients"), return what you find.
+- If no ingredients exist on the page, return empty string for ingredients.
+- Strip "Ingredients:" / "INCI:" prefix.`,
     messages: [{ role: 'user', content: text }],
   });
   const out = resp.content
@@ -265,11 +405,17 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     return json(res, { error: 'Failed to fetch page', detail: String(e?.message ?? e) }, 502);
   }
 
-  let extracted = extractFromHtml(html);
+  // Bot-block detection
+  const blockReason = detectBotBlock(html);
+  if (blockReason) {
+    return json(res, { error: blockReason }, 422);
+  }
+
+  let extracted = extractFromHtml(html, parsedUrl);
 
   if (ingredientTokenCount(extracted.ingredients) < 5) {
     try {
-      const ai = await aiExtract(html, extracted.brand, extracted.productName);
+      const ai = await aiExtract(html, parsedUrl, extracted.brand, extracted.productName);
       if (ingredientTokenCount(ai.ingredients) >= ingredientTokenCount(extracted.ingredients)) {
         extracted = ai;
       }
@@ -281,12 +427,18 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
           422,
         );
       }
-      // Else keep what cheerio found, even if short.
     }
   }
 
   if (!extracted.ingredients) {
-    return json(res, { error: 'No ingredients found on page' }, 422);
+    return json(
+      res,
+      {
+        error:
+          'No ingredients found on that page. The site may hide them behind JavaScript. Try copy-pasting the ingredient list directly.',
+      },
+      422,
+    );
   }
 
   return json(res, {
