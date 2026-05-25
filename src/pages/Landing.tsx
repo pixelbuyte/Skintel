@@ -11,6 +11,7 @@ import {
 } from 'lucide-react';
 import { TryItDemo } from '@/components/TryItDemo';
 import { useInView } from '@/lib/useInView';
+import { useFoundingCount } from '@/hooks/useFoundingCount';
 
 const FAQS = [
   {
@@ -134,6 +135,114 @@ function FadeUp({ children, delay = 0 }: { children: React.ReactNode; delay?: nu
       style={{ transitionDelay: inView ? `${delay}ms` : '0ms' }}
     >
       {children}
+    </div>
+  );
+}
+
+function ComingSoonWaitlist() {
+  const { remaining, total } = useFoundingCount();
+  const [email, setEmail] = useState('');
+  const [submitting, setSubmitting] = useState(false);
+  const [joined, setJoined] = useState(false);
+  const [err, setErr] = useState<string | null>(null);
+
+  async function submit(e: React.FormEvent) {
+    e.preventDefault();
+    setErr(null);
+    const clean = email.trim().toLowerCase();
+    if (!clean) return;
+    setSubmitting(true);
+    try {
+      const res = await fetch('/api/waitlist', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: clean, source: 'landing' }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data?.error ?? 'Signup failed');
+      setJoined(true);
+    } catch (e: any) {
+      setErr(e?.message ?? 'Something went wrong');
+    } finally {
+      setSubmitting(false);
+    }
+  }
+
+  const seatsLine =
+    typeof remaining === 'number'
+      ? `${remaining} of ${total} founding spots left.`
+      : `${total} founding spots total.`;
+
+  return (
+    <div className="card p-7 md:p-10 relative overflow-hidden">
+      <div
+        aria-hidden
+        className="absolute -top-24 -right-24 size-72 bg-primary/10 blur-3xl rounded-full"
+      />
+      <div
+        aria-hidden
+        className="pointer-events-none absolute inset-0 rounded-card"
+        style={{ boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.7)' }}
+      />
+      <div className="relative">
+        <div className="inline-flex items-center gap-2 text-xs uppercase tracking-[0.14em] text-primary bg-primary/8 border border-primary/15 px-3 py-1.5 rounded-full mb-5">
+          <Sparkles size={12} /> Coming June 2026
+        </div>
+        <h2 className="font-display text-4xl md:text-5xl leading-tight mb-4">
+          The app is coming.
+        </h2>
+        <p className="text-muted text-lg max-w-[58ch] leading-relaxed mb-6">
+          Skintel for iOS launches June 2026. Join the waitlist and be first to know —
+          or lock in lifetime access for $5 before it's gone forever.
+        </p>
+
+        <div className="text-sm text-primary font-medium mb-6">{seatsLine}</div>
+
+        {!joined ? (
+          <form onSubmit={submit} className="flex flex-col sm:flex-row gap-3 mb-4 max-w-xl">
+            <input
+              type="email"
+              required
+              autoComplete="email"
+              placeholder="you@example.com"
+              className="input flex-1"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              disabled={submitting}
+            />
+            <button
+              type="submit"
+              disabled={submitting}
+              className="btn-secondary active:scale-[0.97] transition-transform duration-150 ease-emil whitespace-nowrap"
+            >
+              {submitting ? 'Joining…' : 'Join waitlist'}
+            </button>
+          </form>
+        ) : (
+          <div className="card p-5 mb-4 border-good-fg/30 bg-good-bg/40">
+            <div className="font-display text-lg text-good-fg mb-1">You're on the list!</div>
+            <div className="text-sm text-good-fg/90">
+              Want lifetime access before the price goes up?
+            </div>
+          </div>
+        )}
+
+        {err && (
+          <div className="text-sm text-bad-fg mb-3" role="alert">
+            {err}
+          </div>
+        )}
+
+        <div className="flex items-center gap-3 flex-wrap">
+          <Link
+            to="/pricing#founding"
+            className="btn-primary active:scale-[0.97] transition-transform duration-150 ease-emil"
+          >
+            Get lifetime access — $5 <ArrowRight size={14} />
+          </Link>
+          <span className="text-xs text-muted">One-time. Forever. No subscription.</span>
+        </div>
+      </div>
     </div>
   );
 }
@@ -391,6 +500,12 @@ export default function Landing() {
             </FadeUp>
           ))}
         </ol>
+      </section>
+
+      <section className="max-w-4xl mx-auto px-6 py-16 md:py-20">
+        <FadeUp>
+          <ComingSoonWaitlist />
+        </FadeUp>
       </section>
 
       <section className="max-w-6xl mx-auto px-6 py-16 md:py-24">

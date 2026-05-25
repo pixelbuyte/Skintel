@@ -1,10 +1,11 @@
 import { Link, useNavigate } from 'react-router-dom';
-import { Check, ArrowLeft } from 'lucide-react';
+import { Check, ArrowLeft, Sparkles } from 'lucide-react';
 import { useState } from 'react';
 import { useAuth } from '@/hooks/useAuth';
+import { useFoundingCount } from '@/hooks/useFoundingCount';
 import { STRIPE_PRICES } from '@/lib/stripe-prices';
 
-type Plan = 'pro_monthly' | 'pro_yearly';
+type Plan = 'pro_monthly' | 'pro_yearly' | 'founding';
 
 function Card({
   name,
@@ -64,6 +65,8 @@ export default function Pricing() {
   const nav = useNavigate();
   const [loadingPlan, setLoadingPlan] = useState<Plan | null>(null);
   const [err, setErr] = useState<string | null>(null);
+  const { remaining, total } = useFoundingCount();
+  const foundingSoldOut = typeof remaining === 'number' && remaining <= 0;
 
   async function checkout(plan: Plan) {
     if (!user || !session) {
@@ -73,14 +76,20 @@ export default function Pricing() {
     setErr(null);
     setLoadingPlan(plan);
     try {
-      const priceId = plan === 'pro_yearly' ? STRIPE_PRICES.pro_yearly : STRIPE_PRICES.pro_monthly;
+      let priceId = STRIPE_PRICES.pro_monthly;
+      let tier: 'pro' | 'founding' = 'pro';
+      if (plan === 'pro_yearly') priceId = STRIPE_PRICES.pro_yearly;
+      else if (plan === 'founding') {
+        priceId = STRIPE_PRICES.founding;
+        tier = 'founding';
+      }
       const res = await fetch('/api/stripe-checkout', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           Authorization: `Bearer ${session.access_token}`,
         },
-        body: JSON.stringify({ priceId, tier: 'pro' }),
+        body: JSON.stringify({ priceId, tier }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data?.error ?? 'Checkout failed');
@@ -115,6 +124,47 @@ export default function Pricing() {
         </div>
 
         {err && <div className="text-sm text-bad-fg text-center mb-4">{err}</div>}
+
+        <div id="founding" className="card p-6 md:p-8 mb-10 border-primary/40 ring-2 ring-primary/20 relative overflow-hidden">
+          <div
+            aria-hidden
+            className="absolute -top-16 -right-16 size-60 bg-primary/10 blur-3xl rounded-full"
+          />
+          <div className="relative grid md:grid-cols-[1fr_auto] gap-6 items-center">
+            <div>
+              <div className="inline-flex items-center gap-1.5 text-xs uppercase tracking-[0.14em] text-primary bg-primary/10 px-2.5 py-1 rounded-full mb-3 font-medium">
+                <Sparkles size={11} /> Founding · Lifetime
+              </div>
+              <h2 className="font-display text-3xl md:text-4xl mb-2">
+                $5 lifetime access
+              </h2>
+              <p className="text-muted text-sm md:text-base max-w-[52ch] mb-3">
+                One-time payment. Forever. No subscription. Locks in everything in Pro
+                before the iOS launch.
+              </p>
+              <div className="text-sm text-primary font-medium">
+                {typeof remaining === 'number'
+                  ? foundingSoldOut
+                    ? 'Founding seats sold out.'
+                    : `${remaining} of ${total} founding spots left.`
+                  : `${total} founding spots total.`}
+              </div>
+            </div>
+            <div className="flex flex-col items-stretch md:items-end gap-2">
+              <button
+                className="btn-primary"
+                disabled={loadingPlan === 'founding' || foundingSoldOut}
+                onClick={() => checkout('founding')}
+              >
+                {foundingSoldOut
+                  ? 'Sold out'
+                  : loadingPlan === 'founding'
+                    ? 'Loading…'
+                    : 'Get lifetime — $5'}
+              </button>
+            </div>
+          </div>
+        </div>
 
         <div className="grid md:grid-cols-3 gap-6">
           <Card

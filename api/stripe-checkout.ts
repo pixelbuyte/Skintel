@@ -32,15 +32,18 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     .eq('user_id', user.id)
     .maybeSingle();
 
+  const isFounding = tier === 'founding';
   const session = await stripe.checkout.sessions.create({
-    mode: 'subscription',
+    mode: isFounding ? 'payment' : 'subscription',
     payment_method_types: ['card'],
     line_items: [{ price: priceId, quantity: 1 }],
     customer: sub?.stripe_customer_id ?? undefined,
     customer_email: sub?.stripe_customer_id ? undefined : user.email ?? undefined,
     client_reference_id: user.id,
     metadata: { supabase_user_id: user.id, tier },
-    subscription_data: { metadata: { supabase_user_id: user.id, tier } },
+    ...(isFounding
+      ? {}
+      : { subscription_data: { metadata: { supabase_user_id: user.id, tier } } }),
     success_url: `${appUrl()}/checkout/success?session_id={CHECKOUT_SESSION_ID}`,
     cancel_url: `${appUrl()}/pricing`,
     allow_promotion_codes: true,

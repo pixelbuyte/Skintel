@@ -118,6 +118,30 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         if (session.subscription && userId) {
           const sub = await stripe.subscriptions.retrieve(session.subscription as string);
           await upsertFromSubscription(sub, userId);
+        } else if (
+          session.mode === 'payment' &&
+          session.payment_status === 'paid' &&
+          userId &&
+          session.metadata?.tier === 'founding'
+        ) {
+          const sb = getServiceClient();
+          const seatNumber = await assignFoundingSeatIfNeeded(userId);
+          const customerId =
+            typeof session.customer === 'string'
+              ? session.customer
+              : session.customer?.id ?? null;
+          await sb.from('subscriptions').upsert(
+            {
+              user_id: userId,
+              tier: 'founding',
+              status: 'active',
+              stripe_customer_id: customerId,
+              stripe_subscription_id: null,
+              current_period_end: null,
+              founding_seat_number: seatNumber,
+            },
+            { onConflict: 'user_id' },
+          );
         }
         break;
       }
