@@ -433,8 +433,8 @@ function AppStoreBadge({ subtitle = 'Coming to the' }: { subtitle?: string }) {
 
 function GooglePlayLogo({ size = 22 }: { size?: number }) {
   return (
-    <svg width={size} height={size} viewBox="0 0 24 24" fill="currentColor" aria-hidden>
-      <path d="M4.13 2.34a1 1 0 0 0-.63.93v17.46a1 1 0 0 0 .63.93l9.42-9.66L4.13 2.34zm10.83 11.13l2.67 2.73-9.5 5.43 6.83-8.16zm0-2.94L8.13 2.37l9.5 5.43-2.67 2.73zM19.42 9.4l-3.04 1.74L13.5 8.2l5.92-3.4a1.04 1.04 0 0 1 1.42.37 1.05 1.05 0 0 1-.04 1.16l-1.38 3.07zm0 5.2l1.38 3.07a1.05 1.05 0 0 1 .04 1.16 1.04 1.04 0 0 1-1.42.37l-5.92-3.4 2.88-2.94 3.04 1.74z" />
+    <svg width={size} height={size} viewBox="0 0 512 512" fill="currentColor" aria-hidden>
+      <path d="M325.3 234.3L104.6 13l280.8 161.2-60.1 60.1zM47 0C34 6.8 25.3 19.2 25.3 35.3v441.3c0 16.1 8.7 28.5 21.7 35.3l256.6-256L47 0zm425.2 225.6l-58.9-34.1-65.7 64.5 65.7 64.5 60.1-34.1c18-14.3 18-46.5-1.2-60.8zM104.6 499l280.8-161.2-60.1-60.1L104.6 499z" />
     </svg>
   );
 }
