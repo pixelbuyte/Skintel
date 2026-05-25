@@ -12,6 +12,7 @@ import {
 import { TryItDemo } from '@/components/TryItDemo';
 import { useInView } from '@/lib/useInView';
 import { useFoundingCount } from '@/hooks/useFoundingCount';
+import { Tilt3D } from '@/components/Tilt3D';
 
 const FAQS = [
   {
@@ -79,63 +80,951 @@ const MARQUEE = [
   { name: 'sodium hyaluronate', tone: 'good' },
 ] as const;
 
-const PRICING = [
+type DemoKey =
+  | 'counter'
+  | 'pulse'
+  | 'verdict'
+  | 'download'
+  | 'infinity'
+  | 'scan'
+  | 'calendar'
+  | 'check'
+  | 'savings'
+  | 'mail'
+  | 'key'
+  | 'lock'
+  | 'shield'
+  | 'sparkle'
+  | 'star'
+  | 'dashboard'
+  | 'routine'
+  | 'journal'
+  | 'recommend'
+  | 'add-product'
+  | 'history'
+  | 'login';
+
+type Feature = { text: string; demo: DemoKey };
+
+const PRICING: ReadonlyArray<{
+  id: string;
+  name: string;
+  tagline: string;
+  price: string;
+  cadence: string;
+  blurb: string;
+  features: ReadonlyArray<Feature>;
+  tour?: ReadonlyArray<Feature>;
+  cta: string;
+  href: string;
+  highlight: boolean;
+}> = [
   {
     id: 'free',
     name: 'Free',
+    tagline: 'Forever free · no card',
     price: '$0',
     cadence: 'forever',
-    blurb: 'Log your first products and see the basics.',
-    features: ['Up to 5 products', 'Personal trigger detection', 'Manual INCI paste', 'Export your data'],
-    cta: 'Start free',
+    blurb: 'Find your first trigger ingredient before your next breakout. Nothing to lose.',
+    features: [
+      { text: 'Log up to 5 products', demo: 'counter' },
+      { text: 'Personal trigger detection', demo: 'pulse' },
+      { text: 'Instant INCI verdicts', demo: 'verdict' },
+      { text: 'Export your data — yours always', demo: 'download' },
+    ],
+    tour: [
+      { text: 'One-tap sign in', demo: 'login' },
+      { text: 'Personal dashboard', demo: 'dashboard' },
+      { text: 'Add products in seconds', demo: 'add-product' },
+    ],
+    cta: 'Start free →',
     href: '/login',
     highlight: false,
   },
   {
     id: 'pro-monthly',
-    name: 'Pro Monthly',
+    name: 'Pro',
+    tagline: '⭐ Most popular · 30-day trial',
     price: '$9',
     cadence: '/ month',
-    blurb: 'The full scanner. Cancel anytime.',
+    blurb:
+      "Less than the serum you're about to regret. Scan anything, anywhere, before you swipe the card.",
     features: [
-      'Unlimited products',
-      'Ingredient scanner',
-      'Barcode + label OCR',
-      'Routine + journal',
-      'Cancel anytime',
+      { text: 'Unlimited products + scans', demo: 'infinity' },
+      { text: 'Full barcode + label OCR scanner', demo: 'scan' },
+      { text: 'Routine builder + breakout journal', demo: 'calendar' },
+      { text: 'AI verdicts on every new launch', demo: 'sparkle' },
+      { text: 'Personal trigger map, kept private', demo: 'shield' },
+      { text: 'Cancel anytime — no questions', demo: 'check' },
     ],
-    cta: 'Go Pro monthly',
+    tour: [
+      { text: 'Smart dashboard with patterns', demo: 'dashboard' },
+      { text: 'AM / PM routine builder', demo: 'routine' },
+      { text: 'Breakout journal w/ photos', demo: 'journal' },
+      { text: 'AI recommender for new launches', demo: 'recommend' },
+      { text: 'Full scan history archive', demo: 'history' },
+    ],
+    cta: 'Upgrade to Pro',
     href: '/pricing#pro-monthly',
     highlight: true,
   },
   {
     id: 'pro-yearly',
     name: 'Pro Yearly',
+    tagline: 'Smartest pick · save $29',
     price: '$79',
     cadence: '/ year',
-    blurb: 'Same as Pro. Two months off.',
+    blurb:
+      'Two months on the house. For people done playing skincare roulette every single month.',
     features: [
-      'Everything in Pro',
-      'Save $29 vs monthly',
-      'Two months free',
-      'Priority email support',
+      { text: 'Everything in Pro', demo: 'star' },
+      { text: '2 months free — that\'s $29 saved', demo: 'savings' },
+      { text: 'Priority email support (<24h)', demo: 'mail' },
+      { text: 'Early access to new scanners', demo: 'key' },
+      { text: 'Locked-in pricing forever', demo: 'lock' },
     ],
-    cta: 'Go Pro yearly',
+    tour: [
+      { text: 'Smart dashboard with patterns', demo: 'dashboard' },
+      { text: 'AM / PM routine builder', demo: 'routine' },
+      { text: 'Breakout journal w/ photos', demo: 'journal' },
+      { text: 'AI recommender for new launches', demo: 'recommend' },
+      { text: 'Full scanner + barcode + OCR', demo: 'scan' },
+      { text: 'Full scan history archive', demo: 'history' },
+    ],
+    cta: 'Save 2 months',
     href: '/pricing#pro-yearly',
     highlight: false,
   },
-] as const;
+];
 
-function FadeUp({ children, delay = 0 }: { children: React.ReactNode; delay?: number }) {
+function FeatureDemo({ kind, active = true }: { kind: DemoKey; active?: boolean }) {
+  const [tick, setTick] = useState(0);
+  useEffect(() => {
+    if (!active) return;
+    const id = window.setInterval(() => setTick((t) => t + 1), 900);
+    return () => window.clearInterval(id);
+  }, [active]);
+
+  switch (kind) {
+    case 'counter': {
+      const n = (tick % 6);
+      return (
+        <div className="flex items-center gap-0.5">
+          {[0, 1, 2, 3, 4].map((i) => (
+            <span
+              key={i}
+              className={`size-1.5 rounded-full transition-colors duration-300 ${
+                i < n ? 'bg-primary' : 'bg-primary/20'
+              }`}
+            />
+          ))}
+          <span className="ml-1 font-mono text-[10px] text-primary tabular-nums">{n}/5</span>
+        </div>
+      );
+    }
+    case 'pulse':
+      return (
+        <div className="flex items-center gap-1.5">
+          <span className="relative flex h-2 w-2">
+            <span className="absolute inline-flex h-full w-full rounded-full bg-bad-fg animate-ping opacity-75" />
+            <span className="relative inline-flex h-2 w-2 rounded-full bg-bad-fg" />
+          </span>
+          <span className="font-mono text-[9px] text-bad-fg uppercase tracking-wider">trigger</span>
+        </div>
+      );
+    case 'verdict': {
+      const states = ['safe', 'watch', 'safe'];
+      const state = states[tick % states.length];
+      return (
+        <span
+          className={`font-mono text-[9px] uppercase tracking-wider px-1.5 py-0.5 rounded transition-colors duration-500 ${
+            state === 'safe' ? 'bg-good-bg text-good-fg' : 'bg-bad-bg text-bad-fg'
+          }`}
+        >
+          {state}
+        </span>
+      );
+    }
+    case 'download':
+      return (
+        <span className="inline-flex items-center justify-center size-5 rounded-md bg-primary/10 text-primary overflow-hidden">
+          <svg
+            width="11"
+            height="11"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2.5"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            style={{ animation: 'demoBob 1.4s ease-in-out infinite' }}
+          >
+            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+            <polyline points="7 10 12 15 17 10" />
+            <line x1="12" y1="15" x2="12" y2="3" />
+          </svg>
+        </span>
+      );
+    case 'infinity':
+      return (
+        <span className="font-display text-base text-primary leading-none" style={{ animation: 'demoPulse 1.8s ease-in-out infinite' }}>
+          ∞
+        </span>
+      );
+    case 'scan':
+      return (
+        <span className="relative inline-block w-10 h-3.5 rounded bg-ink/90 overflow-hidden">
+          <span
+            aria-hidden
+            className="absolute inset-y-0 w-1.5 bg-primary/80 shadow-[0_0_8px_rgba(163,88,72,0.8)]"
+            style={{ animation: 'scanSweep 1.4s ease-in-out infinite' }}
+          />
+          <span aria-hidden className="absolute inset-y-0.5 left-1 right-1 flex gap-[1px]">
+            {[2, 4, 1, 3, 2, 5, 2, 3, 1, 4, 2, 3].map((w, i) => (
+              <span key={i} className="bg-bg/40" style={{ width: w }} />
+            ))}
+          </span>
+        </span>
+      );
+    case 'calendar': {
+      const dot = tick % 3;
+      return (
+        <div className="grid grid-cols-7 gap-[2px]">
+          {Array.from({ length: 14 }).map((_, i) => (
+            <span
+              key={i}
+              className={`size-1 rounded-[1px] transition-colors duration-500 ${
+                i === 3 + dot || i === 9 ? 'bg-primary' : 'bg-primary/15'
+              }`}
+            />
+          ))}
+        </div>
+      );
+    }
+    case 'check':
+      return (
+        <span
+          className="inline-flex items-center justify-center size-5 rounded-full bg-good-bg text-good-fg"
+          style={{ animation: 'demoPulse 2.2s ease-in-out infinite' }}
+        >
+          <Check size={11} strokeWidth={3} />
+        </span>
+      );
+    case 'savings':
+      return (
+        <div className="flex gap-[2px]">
+          {Array.from({ length: 12 }).map((_, i) => (
+            <span
+              key={i}
+              className={`h-3 w-1 rounded-[1px] ${
+                i >= 10 ? 'bg-primary shadow-[0_0_6px_rgba(163,88,72,0.6)]' : 'bg-primary/20'
+              }`}
+            />
+          ))}
+        </div>
+      );
+    case 'mail':
+      return (
+        <span
+          className="inline-flex items-center justify-center size-5 rounded-md bg-primary/10 text-primary relative"
+          style={{ animation: 'demoBob 1.6s ease-in-out infinite' }}
+        >
+          <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+            <rect x="2" y="4" width="20" height="16" rx="2" />
+            <polyline points="22,6 12,13 2,6" />
+          </svg>
+          <span className="absolute -top-0.5 -right-0.5 size-1.5 rounded-full bg-bad-fg" />
+        </span>
+      );
+    case 'key':
+      return (
+        <span
+          className="inline-flex items-center justify-center size-5 rounded-md bg-primary/10 text-primary"
+          style={{ animation: 'demoSpin 4s linear infinite' }}
+        >
+          <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M21 2l-2 2m-7.61 7.61a5.5 5.5 0 1 1-7.778 7.778 5.5 5.5 0 0 1 7.777-7.777zm0 0L15.5 7.5m0 0l3 3L22 7l-3-3m-3.5 3.5L19 4" />
+          </svg>
+        </span>
+      );
+    case 'lock':
+      return (
+        <span className="inline-flex items-center justify-center size-5 rounded-md bg-primary/10 text-primary">
+          <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+            <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
+            <path d="M7 11V7a5 5 0 0 1 10 0v4" />
+          </svg>
+        </span>
+      );
+    case 'shield':
+      return (
+        <span
+          className="inline-flex items-center justify-center size-5 rounded-md bg-good-bg text-good-fg"
+          style={{ animation: 'demoPulse 2s ease-in-out infinite' }}
+        >
+          <ShieldCheck size={11} />
+        </span>
+      );
+    case 'sparkle':
+      return (
+        <span
+          className="inline-flex items-center justify-center size-5 rounded-md bg-primary/10 text-primary"
+          style={{ animation: 'demoSparkle 1.6s ease-in-out infinite' }}
+        >
+          <Sparkles size={11} />
+        </span>
+      );
+    case 'star':
+      return (
+        <span
+          className="font-display text-sm text-primary leading-none"
+          style={{ animation: 'demoSparkle 2s ease-in-out infinite' }}
+        >
+          ★
+        </span>
+      );
+    default:
+      return null;
+  }
+}
+
+type RevealVariant = 'up' | 'left' | 'right' | 'zoom' | 'tilt' | 'rise';
+
+function FadeUp({
+  children,
+  delay = 0,
+  variant = 'up',
+}: {
+  children: React.ReactNode;
+  delay?: number;
+  variant?: RevealVariant;
+}) {
   const { ref, inView } = useInView<HTMLDivElement>({ threshold: 0.12 });
   return (
     <div
       ref={ref}
-      className={`fade-up${inView ? ' in-view' : ''}`}
+      className={`reveal reveal-${variant}${inView ? ' in-view' : ''}`}
       style={{ transitionDelay: inView ? `${delay}ms` : '0ms' }}
     >
       {children}
     </div>
+  );
+}
+
+function AppleLogo({ size = 18 }: { size?: number }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 384 512" fill="currentColor" aria-hidden>
+      <path d="M318.7 268.7c-.2-36.7 16.4-64.4 50-84.8-18.8-26.9-47.2-41.7-84.7-44.6-35.5-2.8-74.3 20.7-88.5 20.7-15 0-49.4-19.7-76.4-19.7C63.3 141.2 4 184.8 4 273.5q0 39.3 14.4 81.2c12.8 36.7 59 126.7 107.2 125.2 25.2-.6 43-17.9 75.8-17.9 31.8 0 48.3 17.9 76.4 17.9 48.6-.7 90.4-82.5 102.6-119.3-65.2-30.7-61.7-90-61.7-91.9zm-56.6-164.2c27.3-32.4 24.8-61.9 24-72.5-24.1 1.4-52 16.4-67.9 34.9-17.5 19.8-27.8 44.3-25.6 71.9 26.1 2 49.9-11.4 69.5-34.3z" />
+    </svg>
+  );
+}
+
+function AppStoreBadge({ subtitle = 'Coming to the' }: { subtitle?: string }) {
+  return (
+    <div className="inline-flex items-center gap-3 bg-ink text-bg px-5 py-3 rounded-2xl border border-bg/10 hover:border-bg/25 transition-colors duration-200">
+      <AppleLogo size={28} />
+      <div className="text-left leading-tight">
+        <div className="text-[10px] uppercase tracking-[0.18em] opacity-80">{subtitle}</div>
+        <div className="font-display text-xl leading-tight">App Store</div>
+      </div>
+    </div>
+  );
+}
+
+function GooglePlayLogo({ size = 22 }: { size?: number }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="currentColor" aria-hidden>
+      <path d="M4.13 2.34a1 1 0 0 0-.63.93v17.46a1 1 0 0 0 .63.93l9.42-9.66L4.13 2.34zm10.83 11.13l2.67 2.73-9.5 5.43 6.83-8.16zm0-2.94L8.13 2.37l9.5 5.43-2.67 2.73zM19.42 9.4l-3.04 1.74L13.5 8.2l5.92-3.4a1.04 1.04 0 0 1 1.42.37 1.05 1.05 0 0 1-.04 1.16l-1.38 3.07zm0 5.2l1.38 3.07a1.05 1.05 0 0 1 .04 1.16 1.04 1.04 0 0 1-1.42.37l-5.92-3.4 2.88-2.94 3.04 1.74z" />
+    </svg>
+  );
+}
+
+function PlayStoreBadge({ subtitle = 'Coming to' }: { subtitle?: string }) {
+  return (
+    <div className="inline-flex items-center gap-3 bg-ink text-bg px-5 py-3 rounded-2xl border border-bg/10 hover:border-bg/25 transition-colors duration-200">
+      <GooglePlayLogo size={26} />
+      <div className="text-left leading-tight">
+        <div className="text-[10px] uppercase tracking-[0.18em] opacity-80">{subtitle}</div>
+        <div className="font-display text-xl leading-tight">Google Play</div>
+      </div>
+    </div>
+  );
+}
+
+type Scene =
+  | 'scanner'
+  | 'scanning'
+  | 'analyzing'
+  | 'verdict'
+  | 'dashboard'
+  | 'routine'
+  | 'journal'
+  | 'recommend';
+
+function PhoneMockup() {
+  const [scene, setScene] = useState<Scene>('scanner');
+
+  useEffect(() => {
+    const timeline: Array<[Scene, number]> = [
+      ['scanner', 2000],
+      ['scanning', 2200],
+      ['analyzing', 1700],
+      ['verdict', 3600],
+      ['dashboard', 3400],
+      ['routine', 3200],
+      ['journal', 3200],
+      ['recommend', 3400],
+    ];
+    let i = 0;
+    let id: number;
+    const step = () => {
+      setScene(timeline[i][0]);
+      id = window.setTimeout(() => {
+        i = (i + 1) % timeline.length;
+        step();
+      }, timeline[i][1]);
+    };
+    step();
+    return () => window.clearTimeout(id);
+  }, []);
+
+  return (
+    <div className="relative mx-auto" style={{ maxWidth: 240 }}>
+      <div
+        aria-hidden
+        className="absolute -inset-10 bg-primary/25 blur-[60px] rounded-full"
+      />
+      <div className="relative aspect-[9/19.5] rounded-[38px] bg-ink p-[5px] shadow-[0_30px_60px_-15px_rgba(0,0,0,0.45),0_0_0_1px_rgba(255,255,255,0.06)_inset]">
+        <div className="absolute top-1.5 left-1/2 -translate-x-1/2 w-20 h-4 bg-ink rounded-b-2xl z-20" />
+        <div className="relative h-full w-full rounded-[34px] bg-bg overflow-hidden flex flex-col text-ink">
+          <div className="px-3 pt-6 pb-1.5 flex items-center justify-between">
+            <div className="font-display text-[11px] leading-none">
+              Skintel<span className="text-primary">.</span>
+            </div>
+            <div className="flex items-center gap-1">
+              <div className="text-[7px] uppercase tracking-wider text-muted leading-none">Pro</div>
+              <div className="size-4 rounded-full bg-card border border-border" />
+            </div>
+          </div>
+
+          <div className="relative flex-1 min-h-0">
+            <SceneScanner active={scene === 'scanner'} />
+            <SceneScanning active={scene === 'scanning'} />
+            <SceneAnalyzing active={scene === 'analyzing'} />
+            <SceneVerdict active={scene === 'verdict'} />
+            <SceneDashboard active={scene === 'dashboard'} />
+            <SceneRoutine active={scene === 'routine'} />
+            <SceneJournal active={scene === 'journal'} />
+            <SceneRecommend active={scene === 'recommend'} />
+          </div>
+
+          <div className="px-2.5 pb-2 pt-1.5 space-y-1">
+            <PhoneTabBar scene={scene} />
+            <div className="mx-auto h-0.5 w-14 rounded-full bg-ink/30 mt-1" />
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function SceneWrap({ active, children }: { active: boolean; children: React.ReactNode }) {
+  return (
+    <div
+      className={`absolute inset-0 px-2.5 pb-2 flex flex-col transition-all duration-500 ease-emil ${
+        active ? 'opacity-100 translate-y-0 pointer-events-auto' : 'opacity-0 translate-y-1 pointer-events-none'
+      }`}
+    >
+      {children}
+    </div>
+  );
+}
+
+function SceneScanner({ active }: { active: boolean }) {
+  return (
+    <SceneWrap active={active}>
+      <div className="text-[7px] uppercase tracking-wider text-muted/70 leading-none px-0.5 mb-1.5">
+        Scanner
+      </div>
+      <div className="relative flex-1 rounded-lg bg-ink overflow-hidden">
+        <div
+          aria-hidden
+          className="absolute inset-0"
+          style={{
+            background:
+              'radial-gradient(circle at 50% 40%, rgba(163,88,72,0.18), transparent 60%), repeating-linear-gradient(45deg, rgba(255,255,255,0.02) 0 6px, transparent 6px 12px)',
+          }}
+        />
+        <div className="absolute inset-0 flex items-center justify-center">
+          <div className="relative size-[88px]">
+            <div className="absolute -top-1 -left-1 size-3 border-t-2 border-l-2 border-primary rounded-tl" />
+            <div className="absolute -top-1 -right-1 size-3 border-t-2 border-r-2 border-primary rounded-tr" />
+            <div className="absolute -bottom-1 -left-1 size-3 border-b-2 border-l-2 border-primary rounded-bl" />
+            <div className="absolute -bottom-1 -right-1 size-3 border-b-2 border-r-2 border-primary rounded-br" />
+            <div className="absolute inset-2 rounded bg-card/5 border border-bg/10" />
+          </div>
+        </div>
+        <div className="absolute bottom-2 inset-x-2 text-center">
+          <div className="font-mono text-[7px] text-primary uppercase tracking-wider animate-pulse">
+            Align barcode
+          </div>
+        </div>
+      </div>
+      <div className="mt-1.5 rounded-md bg-primary text-card flex items-center justify-center py-1 font-medium text-[8.5px]">
+        Tap to scan
+      </div>
+    </SceneWrap>
+  );
+}
+
+function SceneScanning({ active }: { active: boolean }) {
+  return (
+    <SceneWrap active={active}>
+      <div className="text-[7px] uppercase tracking-wider text-primary leading-none px-0.5 mb-1.5">
+        Scanning…
+      </div>
+      <div className="relative flex-1 rounded-lg bg-ink overflow-hidden">
+        <div aria-hidden className="absolute inset-0 bg-gradient-to-b from-transparent via-primary/5 to-transparent" />
+        <div className="absolute inset-0 flex items-center justify-center">
+          <div className="relative">
+            <div className="flex items-end gap-[1.5px] h-12 px-2 bg-bg/95 rounded">
+              {[3, 1, 4, 2, 1, 5, 1, 3, 2, 4, 1, 2, 5, 1, 3, 2, 1, 4, 2, 1].map((w, i) => (
+                <span key={i} className="bg-ink h-full" style={{ width: w }} />
+              ))}
+            </div>
+            <div className="text-center font-mono text-[7px] text-muted mt-1">8 904781 234567</div>
+          </div>
+        </div>
+        {active && (
+          <div
+            aria-hidden
+            className="absolute inset-x-0 h-1 bg-primary shadow-[0_0_12px_rgba(163,88,72,0.9)]"
+            style={{ animation: 'sceneScan 1.6s ease-in-out infinite' }}
+          />
+        )}
+        <div className="absolute -top-px -left-px size-2.5 border-t-2 border-l-2 border-primary" />
+        <div className="absolute -top-px -right-px size-2.5 border-t-2 border-r-2 border-primary" />
+        <div className="absolute -bottom-px -left-px size-2.5 border-b-2 border-l-2 border-primary" />
+        <div className="absolute -bottom-px -right-px size-2.5 border-b-2 border-r-2 border-primary" />
+      </div>
+      <div className="mt-1.5 rounded-md bg-card border border-primary/30 flex items-center justify-between px-2 py-1">
+        <span className="font-mono text-[7px] text-muted uppercase">Reading EAN-13</span>
+        <span className="flex gap-0.5">
+          <span className="size-1 rounded-full bg-primary animate-pulse" />
+          <span className="size-1 rounded-full bg-primary animate-pulse" style={{ animationDelay: '120ms' }} />
+          <span className="size-1 rounded-full bg-primary animate-pulse" style={{ animationDelay: '240ms' }} />
+        </span>
+      </div>
+    </SceneWrap>
+  );
+}
+
+function SceneAnalyzing({ active }: { active: boolean }) {
+  return (
+    <SceneWrap active={active}>
+      <div className="text-[7px] uppercase tracking-wider text-primary leading-none px-0.5 mb-1.5">
+        Drunk Elephant B-Hydra
+      </div>
+      <div className="relative flex-1 rounded-lg bg-card border border-border p-2 overflow-hidden">
+        <div className="flex items-center gap-2 mb-2">
+          <div className="relative size-7">
+            <div className="absolute inset-0 rounded-full border-2 border-primary/15" />
+            <div
+              className="absolute inset-0 rounded-full border-2 border-primary border-r-transparent"
+              style={{ animation: 'demoSpin 1s linear infinite' }}
+            />
+          </div>
+          <div className="flex-1">
+            <div className="font-display text-[10px] leading-none">Analyzing INCI</div>
+            <div className="text-[7px] text-muted mt-0.5">17 ingredients</div>
+          </div>
+        </div>
+        <div className="space-y-0.5">
+          {['Aqua', 'Glycerin', 'Niacinamide', 'Bisabolol', 'Coconut Alkanes', 'Linalool', 'Ceramide NP', 'Panthenol'].map((ing, i) => (
+            <div
+              key={ing}
+              className="font-mono text-[7.5px] text-ink/70 leading-tight opacity-0"
+              style={active ? { animation: `streamIn 200ms ease-out forwards`, animationDelay: `${i * 140}ms` } : undefined}
+            >
+              › {ing}
+            </div>
+          ))}
+        </div>
+      </div>
+    </SceneWrap>
+  );
+}
+
+function SceneVerdict({ active }: { active: boolean }) {
+  return (
+    <SceneWrap active={active}>
+      <div className="rounded-lg bg-bad-bg/70 border border-bad-fg/15 px-2 py-1.5 mb-1.5">
+        <div className="flex items-center justify-between">
+          <div className="font-display text-[11px] text-bad-fg leading-none">2 triggers found</div>
+          <div className="text-[7px] font-mono text-bad-fg/70">SKIP</div>
+        </div>
+        <div className="text-[8px] text-bad-fg/80 leading-tight mt-0.5">B-Hydra Intensive Hydration</div>
+      </div>
+
+      <div className="text-[7px] uppercase tracking-wider text-muted/70 leading-none px-0.5 mb-1">
+        Watch out
+      </div>
+      <div className="space-y-1 mb-1.5">
+        {[
+          ['Bisabolol', '3×'],
+          ['Coconut Alkanes', '3×'],
+          ['Linalool', '2×'],
+        ].map(([n, c], i) => (
+          <div
+            key={n}
+            className="flex items-center justify-between rounded-md bg-bad-bg/60 border border-bad-fg/15 px-1.5 py-0.5 opacity-0"
+            style={active ? { animation: 'streamIn 250ms ease-out forwards', animationDelay: `${i * 80}ms` } : undefined}
+          >
+            <span className="font-mono text-[8px]">{n}</span>
+            <span className="text-[7px] font-mono text-bad-fg/80">{c}</span>
+          </div>
+        ))}
+      </div>
+
+      <div className="text-[7px] uppercase tracking-wider text-muted/70 leading-none px-0.5 mb-1">
+        Good for you
+      </div>
+      <div className="space-y-1 flex-1">
+        {[
+          ['Niacinamide', 'barrier'],
+          ['Glycerin', 'humectant'],
+          ['Ceramide NP', 'barrier'],
+        ].map(([n, t], i) => (
+          <div
+            key={n}
+            className="flex items-center justify-between rounded-md bg-good-bg/60 border border-good-fg/15 px-1.5 py-0.5 opacity-0"
+            style={active ? { animation: 'streamIn 250ms ease-out forwards', animationDelay: `${320 + i * 80}ms` } : undefined}
+          >
+            <span className="font-mono text-[8px]">{n}</span>
+            <span className="text-[7px] text-good-fg/80">{t}</span>
+          </div>
+        ))}
+      </div>
+    </SceneWrap>
+  );
+}
+
+function PhoneTabBar({ scene }: { scene: Scene }) {
+  const tab =
+    scene === 'scanner' || scene === 'scanning' || scene === 'analyzing'
+      ? 'scan'
+      : scene === 'verdict'
+        ? 'scan'
+        : scene === 'dashboard' || scene === 'recommend'
+          ? 'home'
+          : scene === 'routine'
+            ? 'routine'
+            : 'journal';
+  const tabs: Array<{ id: string; label: string; icon: React.ReactNode }> = [
+    {
+      id: 'home',
+      label: 'Home',
+      icon: (
+        <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+          <path d="M3 12l9-9 9 9" />
+          <path d="M5 10v10h14V10" />
+        </svg>
+      ),
+    },
+    {
+      id: 'scan',
+      label: 'Scan',
+      icon: (
+        <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+          <path d="M4 7V4h3" />
+          <path d="M17 4h3v3" />
+          <path d="M20 17v3h-3" />
+          <path d="M7 20H4v-3" />
+          <line x1="4" y1="12" x2="20" y2="12" />
+        </svg>
+      ),
+    },
+    {
+      id: 'routine',
+      label: 'Routine',
+      icon: (
+        <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+          <circle cx="12" cy="12" r="9" />
+          <path d="M12 7v5l3 2" />
+        </svg>
+      ),
+    },
+    {
+      id: 'journal',
+      label: 'Journal',
+      icon: (
+        <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+          <path d="M4 4h14a2 2 0 0 1 2 2v14" />
+          <path d="M4 4v16h14" />
+          <path d="M8 8h8M8 12h8M8 16h5" />
+        </svg>
+      ),
+    },
+  ];
+  return (
+    <div className="flex items-center justify-around rounded-lg bg-card border border-border py-1 px-1">
+      {tabs.map((t) => {
+        const active = t.id === tab;
+        return (
+          <div
+            key={t.id}
+            className={`flex flex-col items-center gap-0.5 px-1.5 py-0.5 rounded-md transition-all duration-300 ${
+              active ? 'text-primary bg-primary/10' : 'text-muted/60'
+            }`}
+          >
+            {t.icon}
+            <span className="text-[6px] uppercase tracking-wider leading-none font-medium">{t.label}</span>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+function SceneDashboard({ active }: { active: boolean }) {
+  return (
+    <SceneWrap active={active}>
+      <div className="flex items-center justify-between mb-1.5 px-0.5">
+        <div>
+          <div className="text-[7px] uppercase tracking-wider text-muted/70 leading-none">Today</div>
+          <div className="font-display text-[11px] leading-tight">Your skin map</div>
+        </div>
+        <div className="size-5 rounded-full bg-primary/15 flex items-center justify-center text-primary">
+          <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M9.94 14.34l-3.18-3.18-1.41 1.41 4.59 4.59 9.36-9.36-1.41-1.41z" />
+          </svg>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-3 gap-1 mb-1.5">
+        {[
+          ['12', 'Products', 'text-ink'],
+          ['3', 'Triggers', 'text-bad-fg'],
+          ['9', 'Safe', 'text-good-fg'],
+        ].map(([n, l, c], i) => (
+          <div
+            key={l}
+            className="rounded-md bg-card border border-border px-1 py-1 text-center opacity-0"
+            style={active ? { animation: 'streamIn 240ms ease-out forwards', animationDelay: `${i * 80}ms` } : undefined}
+          >
+            <div className={`font-display text-[12px] leading-none ${c}`}>{n}</div>
+            <div className="text-[6.5px] uppercase tracking-wider text-muted leading-none mt-0.5">{l}</div>
+          </div>
+        ))}
+      </div>
+
+      <div className="text-[7px] uppercase tracking-wider text-muted/70 leading-none px-0.5 mb-1">
+        Top triggers
+      </div>
+      <div className="space-y-0.5 flex-1">
+        {[
+          ['Bisabolol', '5×'],
+          ['Coconut Alkanes', '4×'],
+          ['Linalool', '3×'],
+          ['Limonene', '2×'],
+        ].map(([n, c], i) => (
+          <div
+            key={n}
+            className="flex items-center justify-between rounded-md bg-bad-bg/40 border border-bad-fg/15 px-1.5 py-0.5 opacity-0"
+            style={active ? { animation: 'streamIn 220ms ease-out forwards', animationDelay: `${280 + i * 70}ms` } : undefined}
+          >
+            <span className="font-mono text-[8px]">{n}</span>
+            <span className="text-[7px] font-mono text-bad-fg/80">{c}</span>
+          </div>
+        ))}
+      </div>
+    </SceneWrap>
+  );
+}
+
+function SceneRoutine({ active }: { active: boolean }) {
+  return (
+    <SceneWrap active={active}>
+      <div className="flex items-center justify-between mb-1.5 px-0.5">
+        <div className="font-display text-[11px] leading-none">Routine</div>
+        <div className="text-[7px] font-mono text-muted uppercase">Sun · 8:42a</div>
+      </div>
+
+      <div className="rounded-lg bg-card border border-border p-1.5 mb-1">
+        <div className="flex items-center justify-between mb-1">
+          <div className="flex items-center gap-1">
+            <div className="size-3 rounded-full bg-primary/20 flex items-center justify-center text-primary">
+              <svg width="6" height="6" viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="12" r="5" /></svg>
+            </div>
+            <span className="text-[8px] font-medium uppercase tracking-wider">AM</span>
+          </div>
+          <span className="text-[7px] font-mono text-good-fg">3/3</span>
+        </div>
+        <div className="space-y-0.5">
+          {['Gentle cleanser', 'Niacinamide serum', 'SPF 50'].map((step, i) => (
+            <div
+              key={step}
+              className="flex items-center gap-1 opacity-0"
+              style={active ? { animation: 'streamIn 220ms ease-out forwards', animationDelay: `${i * 90}ms` } : undefined}
+            >
+              <div className="size-2 rounded-full bg-good-fg/80 flex items-center justify-center">
+                <svg width="5" height="5" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="4" strokeLinecap="round">
+                  <polyline points="5 13 9 17 19 7" />
+                </svg>
+              </div>
+              <span className="text-[7.5px] text-ink/80 leading-tight">{step}</span>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      <div className="rounded-lg bg-card border border-border p-1.5 flex-1">
+        <div className="flex items-center justify-between mb-1">
+          <div className="flex items-center gap-1">
+            <div className="size-3 rounded-full bg-ink/80 flex items-center justify-center text-card">
+              <svg width="6" height="6" viewBox="0 0 24 24" fill="currentColor"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" /></svg>
+            </div>
+            <span className="text-[8px] font-medium uppercase tracking-wider">PM</span>
+          </div>
+          <span className="text-[7px] font-mono text-primary">1/3</span>
+        </div>
+        <div className="space-y-0.5">
+          {[
+            ['Oil cleanser', true],
+            ['Retinol', false],
+            ['Ceramide cream', false],
+          ].map(([step, done], i) => (
+            <div
+              key={String(step)}
+              className="flex items-center gap-1 opacity-0"
+              style={active ? { animation: 'streamIn 220ms ease-out forwards', animationDelay: `${320 + i * 90}ms` } : undefined}
+            >
+              <div className={`size-2 rounded-full border ${done ? 'bg-good-fg/80 border-good-fg/80' : 'border-muted/40'}`} />
+              <span className={`text-[7.5px] leading-tight ${done ? 'text-ink/80' : 'text-muted'}`}>{String(step)}</span>
+            </div>
+          ))}
+        </div>
+      </div>
+    </SceneWrap>
+  );
+}
+
+function SceneJournal({ active }: { active: boolean }) {
+  return (
+    <SceneWrap active={active}>
+      <div className="flex items-center justify-between mb-1.5 px-0.5">
+        <div className="font-display text-[11px] leading-none">Journal</div>
+        <div className="size-4 rounded-full bg-primary text-card flex items-center justify-center">
+          <svg width="7" height="7" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round">
+            <line x1="12" y1="5" x2="12" y2="19" />
+            <line x1="5" y1="12" x2="19" y2="12" />
+          </svg>
+        </div>
+      </div>
+
+      <div
+        className="rounded-lg bg-card border border-border p-1.5 mb-1 opacity-0"
+        style={active ? { animation: 'streamIn 280ms ease-out forwards' } : undefined}
+      >
+        <div className="flex items-start gap-1.5">
+          <div className="size-8 rounded bg-gradient-to-br from-primary/30 via-primary/10 to-bg border border-border flex items-center justify-center text-primary">
+            <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <rect x="3" y="5" width="18" height="14" rx="2" />
+              <circle cx="12" cy="12" r="3" />
+            </svg>
+          </div>
+          <div className="flex-1 min-w-0">
+            <div className="flex items-center justify-between">
+              <div className="text-[8px] font-medium leading-none">Today</div>
+              <div className="text-[6.5px] font-mono uppercase tracking-wider text-bad-fg bg-bad-bg/60 px-1 py-0.5 rounded">Flare</div>
+            </div>
+            <div className="text-[7px] text-muted mt-0.5 leading-tight">Cheek + jawline · day 2</div>
+            <div className="flex flex-wrap gap-0.5 mt-0.5">
+              {['itchy', 'red'].map((t) => (
+                <span key={t} className="text-[6px] font-mono uppercase px-1 py-px rounded bg-bg border border-border">
+                  {t}
+                </span>
+              ))}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {[
+        ['Fri', 'clear', 'good'],
+        ['Thu', 'clear', 'good'],
+        ['Wed', 'small bump', 'mid'],
+      ].map(([d, n, tone], i) => (
+        <div
+          key={String(d)}
+          className={`flex items-center justify-between rounded-md px-1.5 py-0.5 mb-0.5 opacity-0 ${
+            tone === 'good' ? 'bg-good-bg/40 border border-good-fg/15' : 'bg-card border border-border'
+          }`}
+          style={active ? { animation: 'streamIn 220ms ease-out forwards', animationDelay: `${200 + i * 90}ms` } : undefined}
+        >
+          <span className="font-mono text-[7px] text-muted uppercase">{d}</span>
+          <span className="text-[7.5px] text-ink/80">{n}</span>
+        </div>
+      ))}
+    </SceneWrap>
+  );
+}
+
+function SceneRecommend({ active }: { active: boolean }) {
+  return (
+    <SceneWrap active={active}>
+      <div className="text-[7px] uppercase tracking-wider text-primary leading-none px-0.5 mb-1.5">
+        Should I buy this?
+      </div>
+
+      <div className="rounded-lg bg-card border border-border p-1.5 mb-1.5">
+        <div className="flex items-center gap-1.5">
+          <div className="size-8 rounded bg-gradient-to-br from-primary/25 to-bg border border-border" />
+          <div className="flex-1 min-w-0">
+            <div className="font-display text-[9px] leading-tight">CeraVe AM Lotion</div>
+            <div className="text-[7px] text-muted">Moisturizer · $14</div>
+          </div>
+        </div>
+      </div>
+
+      <div
+        className="rounded-lg bg-good-bg/60 border border-good-fg/20 px-1.5 py-1 mb-1 opacity-0"
+        style={active ? { animation: 'streamIn 260ms ease-out forwards' } : undefined}
+      >
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-1">
+            <div className="size-2.5 rounded-full bg-good-fg flex items-center justify-center">
+              <svg width="6" height="6" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="4" strokeLinecap="round">
+                <polyline points="5 13 9 17 19 7" />
+              </svg>
+            </div>
+            <div className="font-display text-[9.5px] text-good-fg leading-none">Safe for you</div>
+          </div>
+          <div className="text-[6.5px] font-mono text-good-fg/80 uppercase">0 triggers</div>
+        </div>
+        <div className="text-[7px] text-good-fg/80 leading-tight mt-0.5">Ceramides + niacinamide. SPF 30.</div>
+      </div>
+
+      <div className="text-[7px] uppercase tracking-wider text-muted/70 leading-none px-0.5 mb-1">
+        Why
+      </div>
+      <div className="space-y-0.5 flex-1">
+        {[
+          ['Ceramide NP', 'barrier'],
+          ['Niacinamide', 'calms'],
+          ['No fragrance', 'safe'],
+        ].map(([n, t], i) => (
+          <div
+            key={n}
+            className="flex items-center justify-between rounded-md bg-good-bg/40 border border-good-fg/15 px-1.5 py-0.5 opacity-0"
+            style={active ? { animation: 'streamIn 220ms ease-out forwards', animationDelay: `${260 + i * 80}ms` } : undefined}
+          >
+            <span className="font-mono text-[8px]">{n}</span>
+            <span className="text-[7px] text-good-fg/80">{t}</span>
+          </div>
+        ))}
+      </div>
+    </SceneWrap>
   );
 }
 
@@ -168,79 +1057,822 @@ function ComingSoonWaitlist() {
     }
   }
 
-  const seatsLine =
-    typeof remaining === 'number'
-      ? `${remaining} of ${total} founding spots left.`
-      : `${total} founding spots total.`;
+  const seatsRemaining = typeof remaining === 'number' ? remaining : null;
+  const pctLeft =
+    seatsRemaining !== null ? Math.max(0, Math.min(100, (seatsRemaining / total) * 100)) : 100;
 
   return (
-    <div className="card p-7 md:p-10 relative overflow-hidden">
+    <div className="relative overflow-hidden rounded-[32px] bg-ink text-bg shadow-[0_40px_80px_-30px_rgba(0,0,0,0.5)]">
       <div
         aria-hidden
-        className="absolute -top-24 -right-24 size-72 bg-primary/10 blur-3xl rounded-full"
+        className="absolute inset-0 opacity-[0.04]"
+        style={{
+          backgroundImage:
+            "url(\"data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='160' height='160'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2'/></filter><rect width='100%25' height='100%25' filter='url(%23n)'/></svg>\")",
+        }}
       />
       <div
         aria-hidden
-        className="pointer-events-none absolute inset-0 rounded-card"
-        style={{ boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.7)' }}
+        className="absolute -top-40 -left-40 size-[480px] bg-primary/30 blur-[120px] rounded-full"
       />
-      <div className="relative">
-        <div className="inline-flex items-center gap-2 text-xs uppercase tracking-[0.14em] text-primary bg-primary/8 border border-primary/15 px-3 py-1.5 rounded-full mb-5">
-          <Sparkles size={12} /> Coming June 2026
-        </div>
-        <h2 className="font-display text-4xl md:text-5xl leading-tight mb-4">
-          The app is coming.
-        </h2>
-        <p className="text-muted text-lg max-w-[58ch] leading-relaxed mb-6">
-          Skintel for iOS launches June 2026. Join the waitlist and be first to know —
-          or lock in lifetime access for $5 before it's gone forever.
-        </p>
+      <div
+        aria-hidden
+        className="absolute -bottom-40 -right-40 size-[520px] bg-primary/20 blur-[140px] rounded-full"
+      />
 
-        <div className="text-sm text-primary font-medium mb-6">{seatsLine}</div>
+      <div className="relative grid lg:grid-cols-[1.2fr_1fr] gap-10 lg:gap-16 p-8 sm:p-12 lg:p-16 items-center">
+        <div>
+          <div className="inline-flex items-center gap-2.5 bg-bg/10 backdrop-blur border border-bg/15 px-3.5 py-1.5 rounded-full mb-6">
+            <AppleLogo size={13} />
+            <span className="text-bg/40">·</span>
+            <GooglePlayLogo size={14} />
+            <span className="text-xs uppercase tracking-[0.18em] font-medium ml-1">
+              Coming Soon · iOS &amp; Android
+            </span>
+          </div>
 
-        {!joined ? (
-          <form onSubmit={submit} className="flex flex-col sm:flex-row gap-3 mb-4 max-w-xl">
-            <input
-              type="email"
-              required
-              autoComplete="email"
-              placeholder="you@example.com"
-              className="input flex-1"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              disabled={submitting}
-            />
-            <button
-              type="submit"
-              disabled={submitting}
-              className="btn-secondary active:scale-[0.97] transition-transform duration-150 ease-emil whitespace-nowrap"
-            >
-              {submitting ? 'Joining…' : 'Join waitlist'}
-            </button>
-          </form>
-        ) : (
-          <div className="card p-5 mb-4 border-good-fg/30 bg-good-bg/40">
-            <div className="font-display text-lg text-good-fg mb-1">You're on the list!</div>
-            <div className="text-sm text-good-fg/90">
-              Want lifetime access before the price goes up?
+          <h2 className="font-display text-[2.5rem] sm:text-5xl lg:text-[3.75rem] leading-[1.02] tracking-tight mb-5">
+            Skintel mobile.
+            <br />
+            <span className="italic text-primary">Launching June 2026.</span>
+          </h2>
+
+          <p className="text-bg/70 text-lg max-w-[52ch] leading-relaxed mb-8">
+            Scan any product at the store. Live trigger alerts on every label.
+            Be first in line — or lock in <span className="text-bg font-semibold">lifetime access for just $5</span>{' '}
+            before it's gone forever.
+          </p>
+
+          <div className="mb-8">
+            <div className="flex items-baseline justify-between mb-2">
+              <span className="text-xs uppercase tracking-[0.16em] text-bg/60 font-medium">
+                Founding member spots
+              </span>
+              <span className="text-sm font-display">
+                {seatsRemaining !== null ? (
+                  <>
+                    <span className="text-primary font-semibold">{seatsRemaining}</span>
+                    <span className="text-bg/50"> / {total} left</span>
+                  </>
+                ) : (
+                  <span className="text-bg/50">{total} total</span>
+                )}
+              </span>
+            </div>
+            <div className="h-1.5 w-full rounded-full bg-bg/10 overflow-hidden">
+              <div
+                className="h-full bg-gradient-to-r from-primary to-primary/60 rounded-full transition-[width] duration-700 ease-emil"
+                style={{ width: `${pctLeft}%` }}
+              />
             </div>
           </div>
-        )}
 
-        {err && (
-          <div className="text-sm text-bad-fg mb-3" role="alert">
-            {err}
+          {!joined ? (
+            <form onSubmit={submit} className="flex flex-col sm:flex-row gap-3 mb-5">
+              <input
+                type="email"
+                required
+                autoComplete="email"
+                placeholder="your@email.com"
+                className="flex-1 px-4 py-3.5 rounded-xl bg-bg/10 backdrop-blur border border-bg/20 text-bg placeholder:text-bg/40 focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary transition"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                disabled={submitting}
+              />
+              <button
+                type="submit"
+                disabled={submitting}
+                className="px-6 py-3.5 rounded-xl bg-bg text-ink font-medium hover:bg-bg/90 active:scale-[0.97] transition-all duration-150 ease-emil disabled:opacity-60 whitespace-nowrap inline-flex items-center justify-center gap-2"
+              >
+                {submitting ? 'Joining…' : 'Notify me at launch'}
+                {!submitting && <ArrowRight size={16} />}
+              </button>
+            </form>
+          ) : (
+            <div className="rounded-xl bg-primary/15 border border-primary/30 p-5 mb-5">
+              <div className="font-display text-xl mb-1">✓ You're on the list.</div>
+              <div className="text-sm text-bg/80">
+                We'll email you the moment Skintel hits the App Store + Google Play.
+                Want lifetime access before the price goes up?
+              </div>
+            </div>
+          )}
+
+          {err && (
+            <div className="text-sm text-bad-fg mb-4" role="alert">
+              {err}
+            </div>
+          )}
+
+          <div className="flex items-center gap-4 flex-wrap pt-2">
+            <Link
+              to="/pricing#founding"
+              className="inline-flex items-center gap-2 px-6 py-3.5 rounded-xl bg-primary text-card font-semibold hover:bg-primary-hover active:scale-[0.97] transition-all duration-150 ease-emil shadow-[0_10px_30px_-10px_rgba(163,88,72,0.6)]"
+            >
+              Lock in lifetime — $5 <ArrowRight size={16} />
+            </Link>
+            <div className="flex items-center gap-2 text-xs text-bg/60">
+              <ShieldCheck size={13} />
+              One-time payment · No subscription
+            </div>
           </div>
-        )}
 
-        <div className="flex items-center gap-3 flex-wrap">
-          <Link
-            to="/pricing#founding"
-            className="btn-primary active:scale-[0.97] transition-transform duration-150 ease-emil"
+          <div className="mt-10 pt-8 border-t border-bg/10 flex items-center gap-3 flex-wrap">
+            <AppStoreBadge />
+            <PlayStoreBadge />
+            <div className="text-xs text-bg/50 max-w-[24ch] leading-relaxed ml-1">
+              Pre-launch waitlist.
+              <br />
+              Web stays live forever.
+            </div>
+          </div>
+        </div>
+
+        <div className="relative hidden lg:block">
+          <PhoneMockup />
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function ScrollProgress() {
+  const [p, setP] = useState(0);
+  useEffect(() => {
+    let raf = 0;
+    const onScroll = () => {
+      cancelAnimationFrame(raf);
+      raf = requestAnimationFrame(() => {
+        const h = document.documentElement;
+        const max = h.scrollHeight - h.clientHeight;
+        setP(max > 0 ? Math.min(1, h.scrollTop / max) : 0);
+      });
+    };
+    onScroll();
+    window.addEventListener('scroll', onScroll, { passive: true });
+    return () => {
+      cancelAnimationFrame(raf);
+      window.removeEventListener('scroll', onScroll);
+    };
+  }, []);
+  return <div className="scroll-progress" style={{ ['--p' as any]: p }} aria-hidden />;
+}
+
+function useParallaxRoot() {
+  useEffect(() => {
+    let raf = 0;
+    const onScroll = () => {
+      cancelAnimationFrame(raf);
+      raf = requestAnimationFrame(() => {
+        document.documentElement.style.setProperty('--scrollY', String(window.scrollY));
+      });
+    };
+    onScroll();
+    window.addEventListener('scroll', onScroll, { passive: true });
+    return () => {
+      cancelAnimationFrame(raf);
+      window.removeEventListener('scroll', onScroll);
+    };
+  }, []);
+}
+
+function BigDemo({ kind }: { kind: DemoKey }) {
+  const [tick, setTick] = useState(0);
+  useEffect(() => {
+    const id = window.setInterval(() => setTick((t) => t + 1), 800);
+    return () => window.clearInterval(id);
+  }, []);
+
+  switch (kind) {
+    case 'counter': {
+      const n = (tick % 6);
+      return (
+        <div className="flex flex-col items-center gap-4">
+          <div className="font-display text-7xl text-primary tabular-nums" style={{ textShadow: '0 0 30px rgba(163,88,72,0.4)' }}>
+            {n}<span className="text-primary/30">/5</span>
+          </div>
+          <div className="flex items-center gap-2">
+            {[0, 1, 2, 3, 4].map((i) => (
+              <span
+                key={i}
+                className={`h-2 w-10 rounded-full transition-all duration-500 ${
+                  i < n ? 'bg-primary shadow-[0_0_12px_rgba(163,88,72,0.7)]' : 'bg-primary/15'
+                }`}
+              />
+            ))}
+          </div>
+          <div className="font-mono text-xs text-muted">Product slots filling</div>
+        </div>
+      );
+    }
+    case 'pulse':
+      return (
+        <div className="flex flex-col items-center gap-4">
+          <div className="relative size-32 flex items-center justify-center">
+            <span className="absolute inset-0 rounded-full bg-bad-fg/20 animate-ping" />
+            <span className="absolute inset-3 rounded-full bg-bad-fg/30 animate-pulse" />
+            <span className="relative size-16 rounded-full bg-bad-fg flex items-center justify-center font-display text-2xl text-card">!</span>
+          </div>
+          <div className="text-center">
+            <div className="font-mono text-xs uppercase tracking-[0.2em] text-bad-fg mb-1">Trigger detected</div>
+            <div className="font-display text-2xl">Bisabolol</div>
+            <div className="text-sm text-muted">Appears in 3 of your breakouts</div>
+          </div>
+        </div>
+      );
+    case 'verdict': {
+      const states = [
+        { label: 'safe', cls: 'bg-good-bg text-good-fg' },
+        { label: 'watch', cls: 'bg-bad-bg text-bad-fg' },
+        { label: 'safe', cls: 'bg-good-bg text-good-fg' },
+        { label: 'safe', cls: 'bg-good-bg text-good-fg' },
+      ];
+      const cur = states[tick % states.length];
+      return (
+        <div className="flex flex-col items-center gap-4">
+          <div className={`inline-flex items-center gap-2 px-6 py-3 rounded-full font-mono text-lg uppercase tracking-[0.2em] transition-all duration-500 ${cur.cls}`}>
+            <span className="size-2 rounded-full bg-current" />
+            {cur.label}
+          </div>
+          <div className="font-mono text-xs text-muted">Niacinamide · Glycerin · Bisabolol</div>
+        </div>
+      );
+    }
+    case 'download':
+      return (
+        <div className="flex flex-col items-center gap-4">
+          <div className="relative size-24">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" className="size-24 text-primary" style={{ animation: 'demoBob 1.4s ease-in-out infinite' }}>
+              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+              <polyline points="7 10 12 15 17 10" />
+              <line x1="12" y1="15" x2="12" y2="3" />
+            </svg>
+          </div>
+          <div className="font-mono text-xs uppercase tracking-[0.2em] text-primary">skintel-export.json</div>
+          <div className="text-sm text-muted text-center max-w-[28ch]">Your full history, downloadable anytime</div>
+        </div>
+      );
+    case 'infinity':
+      return (
+        <div className="flex flex-col items-center gap-4">
+          <div className="font-display text-[120px] text-primary leading-none" style={{ animation: 'demoPulse 1.6s ease-in-out infinite', textShadow: '0 0 40px rgba(163,88,72,0.5)' }}>
+            ∞
+          </div>
+          <div className="font-mono text-xs uppercase tracking-[0.2em] text-muted">No product limit</div>
+        </div>
+      );
+    case 'scan':
+      return (
+        <div className="flex flex-col items-center gap-4">
+          <div className="relative w-56 h-24 rounded-lg bg-ink overflow-hidden">
+            <div className="absolute inset-3 flex items-end gap-[2px]">
+              {[3, 1, 4, 2, 1, 5, 1, 3, 2, 4, 1, 2, 5, 1, 3, 2, 1, 4, 2, 1, 3, 2, 4, 1].map((w, i) => (
+                <span key={i} className="bg-bg h-full" style={{ width: w }} />
+              ))}
+            </div>
+            <div
+              aria-hidden
+              className="absolute inset-x-0 h-1.5 bg-primary shadow-[0_0_20px_rgba(163,88,72,1)]"
+              style={{ animation: 'sceneScan 1.6s ease-in-out infinite' }}
+            />
+          </div>
+          <div className="font-mono text-xs text-muted">8 904781 234567</div>
+          <div className="font-mono text-xs uppercase tracking-[0.2em] text-primary">EAN-13 detected</div>
+        </div>
+      );
+    case 'calendar': {
+      const today = tick % 28;
+      return (
+        <div className="flex flex-col items-center gap-4">
+          <div className="grid grid-cols-7 gap-1.5">
+            {Array.from({ length: 28 }).map((_, i) => (
+              <span
+                key={i}
+                className={`size-6 rounded-md flex items-center justify-center font-mono text-[10px] transition-colors duration-500 ${
+                  i === today ? 'bg-primary text-card shadow-[0_0_14px_rgba(163,88,72,0.6)]' : i % 5 === 0 ? 'bg-bad-bg/40 text-bad-fg' : i % 3 === 0 ? 'bg-good-bg/40 text-good-fg' : 'bg-primary/5'
+                }`}
+              >
+                {i + 1}
+              </span>
+            ))}
+          </div>
+          <div className="font-mono text-xs uppercase tracking-[0.2em] text-muted">Routine + journal</div>
+        </div>
+      );
+    }
+    case 'check':
+      return (
+        <div className="flex flex-col items-center gap-4">
+          <div className="size-24 rounded-full bg-good-bg flex items-center justify-center" style={{ animation: 'demoPulse 1.8s ease-in-out infinite' }}>
+            <Check size={56} className="text-good-fg" strokeWidth={3} />
+          </div>
+          <div className="font-display text-2xl">Cancel anytime</div>
+          <div className="text-sm text-muted text-center max-w-[28ch]">One tap. No questions. No "are you sure" gauntlet.</div>
+        </div>
+      );
+    case 'savings':
+      return (
+        <div className="flex flex-col items-center gap-4">
+          <div className="grid grid-cols-12 gap-1">
+            {Array.from({ length: 12 }).map((_, i) => (
+              <span
+                key={i}
+                className={`h-10 w-3 rounded-sm ${
+                  i >= 10 ? 'bg-primary shadow-[0_0_10px_rgba(163,88,72,0.7)]' : 'bg-primary/20'
+                }`}
+              />
+            ))}
+          </div>
+          <div className="flex items-baseline gap-2">
+            <div className="font-display text-5xl text-primary">$29</div>
+            <div className="text-sm text-muted">saved per year</div>
+          </div>
+          <div className="font-mono text-xs uppercase tracking-[0.2em] text-muted">2 months on the house</div>
+        </div>
+      );
+    case 'mail':
+      return (
+        <div className="flex flex-col items-center gap-4">
+          <div className="relative size-24 rounded-2xl bg-primary/10 flex items-center justify-center" style={{ animation: 'demoBob 1.6s ease-in-out infinite' }}>
+            <svg width="60" height="60" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" className="text-primary">
+              <rect x="2" y="4" width="20" height="16" rx="2" />
+              <polyline points="22,6 12,13 2,6" />
+            </svg>
+            <span className="absolute -top-1.5 -right-1.5 inline-flex items-center justify-center size-6 rounded-full bg-bad-fg text-card font-mono text-xs">1</span>
+          </div>
+          <div className="font-display text-xl">Priority support</div>
+          <div className="font-mono text-xs uppercase tracking-[0.2em] text-primary">Reply within 24h</div>
+        </div>
+      );
+    case 'key':
+      return (
+        <div className="flex flex-col items-center gap-4">
+          <div className="size-24 rounded-2xl bg-primary/10 flex items-center justify-center text-primary" style={{ animation: 'demoSpin 4s linear infinite' }}>
+            <svg width="56" height="56" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M21 2l-2 2m-7.61 7.61a5.5 5.5 0 1 1-7.778 7.778 5.5 5.5 0 0 1 7.777-7.777zm0 0L15.5 7.5m0 0l3 3L22 7l-3-3m-3.5 3.5L19 4" />
+            </svg>
+          </div>
+          <div className="font-display text-xl">Early access</div>
+          <div className="text-sm text-muted text-center max-w-[28ch]">First in line for every new scanner we ship</div>
+        </div>
+      );
+    case 'lock':
+      return (
+        <div className="flex flex-col items-center gap-4">
+          <div className="relative size-24 rounded-2xl bg-primary/10 flex items-center justify-center text-primary">
+            <svg width="60" height="60" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
+              <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
+              <path d="M7 11V7a5 5 0 0 1 10 0v4" />
+            </svg>
+          </div>
+          <div className="font-display text-2xl">$79 <span className="text-base text-muted">/ year, forever</span></div>
+          <div className="font-mono text-xs uppercase tracking-[0.2em] text-muted text-center max-w-[32ch]">No renewal hikes. No grandfather drama.</div>
+        </div>
+      );
+    case 'shield':
+      return (
+        <div className="flex flex-col items-center gap-4">
+          <div className="size-24 rounded-full bg-good-bg flex items-center justify-center" style={{ animation: 'demoPulse 2s ease-in-out infinite' }}>
+            <ShieldCheck size={56} className="text-good-fg" />
+          </div>
+          <div className="font-display text-xl">Your data, locked tight</div>
+          <div className="font-mono text-xs uppercase tracking-[0.2em] text-muted">Row-level encrypted · never sold</div>
+        </div>
+      );
+    case 'sparkle':
+      return (
+        <div className="flex flex-col items-center gap-4">
+          <div className="relative size-24 rounded-2xl bg-primary/10 flex items-center justify-center text-primary" style={{ animation: 'demoSparkle 1.6s ease-in-out infinite' }}>
+            <Sparkles size={56} />
+          </div>
+          <div className="font-display text-xl">AI verdict, every launch</div>
+          <div className="text-sm text-muted text-center max-w-[28ch]">New product drops? You'll know the verdict before the reviews</div>
+        </div>
+      );
+    case 'star':
+      return (
+        <div className="flex flex-col items-center gap-4">
+          <div className="font-display text-[120px] text-primary leading-none" style={{ animation: 'demoSparkle 1.8s ease-in-out infinite' }}>
+            ★
+          </div>
+          <div className="font-display text-2xl">Everything in Pro</div>
+          <div className="font-mono text-xs uppercase tracking-[0.2em] text-muted">Plus the extras below</div>
+        </div>
+      );
+    case 'login':
+      return (
+        <div className="w-full max-w-[280px] mx-auto">
+          <div className="rounded-2xl bg-card border border-border p-4 shadow-soft">
+            <div className="font-display text-lg mb-1">Welcome back</div>
+            <div className="text-xs text-muted mb-3">One tap. No password games.</div>
+            <div className="relative mb-2">
+              <input
+                readOnly
+                value="you@skin.tel"
+                className="w-full px-3 py-2 rounded-lg border border-border bg-bg text-xs font-mono"
+              />
+              <span className="absolute right-2 top-1/2 -translate-y-1/2 size-1.5 rounded-full bg-primary animate-pulse" />
+            </div>
+            <div className="rounded-lg bg-primary text-card py-2 text-center text-xs font-medium mb-2">
+              Send magic link →
+            </div>
+            <div className="flex items-center gap-2 my-2">
+              <span className="flex-1 h-px bg-border" />
+              <span className="text-[9px] text-muted uppercase tracking-wider">or</span>
+              <span className="flex-1 h-px bg-border" />
+            </div>
+            <div className="rounded-lg bg-ink text-bg py-2 text-center text-xs font-medium flex items-center justify-center gap-2">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" /></svg>
+              Continue with Google
+            </div>
+          </div>
+          <div className="font-mono text-[10px] uppercase tracking-[0.2em] text-muted mt-3 text-center">
+            No accounts to manage
+          </div>
+        </div>
+      );
+    case 'dashboard':
+      return (
+        <div className="w-full max-w-[300px] mx-auto">
+          <div className="rounded-2xl bg-card border border-border p-3 shadow-soft">
+            <div className="flex items-center justify-between mb-3">
+              <div>
+                <div className="text-[9px] text-muted uppercase tracking-wider">Pattern</div>
+                <div className="font-display text-base leading-tight">3 triggers locked in</div>
+              </div>
+              <div className="size-7 rounded-full bg-primary/15 flex items-center justify-center text-primary">
+                <Sparkles size={13} />
+              </div>
+            </div>
+            <div className="grid grid-cols-3 gap-1.5 mb-3">
+              <div className="rounded-md bg-bad-bg/60 p-1.5">
+                <div className="font-display text-base text-bad-fg leading-none">7</div>
+                <div className="text-[8px] text-bad-fg/80 uppercase tracking-wider">breakouts</div>
+              </div>
+              <div className="rounded-md bg-good-bg/60 p-1.5">
+                <div className="font-display text-base text-good-fg leading-none">12</div>
+                <div className="text-[8px] text-good-fg/80 uppercase tracking-wider">safe</div>
+              </div>
+              <div className="rounded-md bg-primary/10 p-1.5">
+                <div className="font-display text-base text-primary leading-none">19</div>
+                <div className="text-[8px] text-primary/80 uppercase tracking-wider">logged</div>
+              </div>
+            </div>
+            <div className="space-y-1">
+              {[
+                { name: 'Bisabolol', cls: 'bg-bad-bg/60 text-bad-fg', tag: '3 breakouts' },
+                { name: 'Niacinamide', cls: 'bg-good-bg/60 text-good-fg', tag: 'barrier' },
+                { name: 'Coconut Alkanes', cls: 'bg-bad-bg/60 text-bad-fg', tag: '3 breakouts' },
+              ].map((row, i) => (
+                <div
+                  key={row.name}
+                  className={`flex items-center justify-between rounded px-2 py-1 opacity-0 ${row.cls}`}
+                  style={{ animation: 'streamIn 300ms ease-out forwards', animationDelay: `${i * 80}ms` }}
+                >
+                  <span className="font-mono text-[10px]">{row.name}</span>
+                  <span className="text-[8px]">{row.tag}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+          <div className="font-mono text-[10px] uppercase tracking-[0.2em] text-muted mt-3 text-center">
+            Patterns at a glance
+          </div>
+        </div>
+      );
+    case 'routine':
+      return (
+        <div className="w-full max-w-[300px] mx-auto">
+          <div className="rounded-2xl bg-card border border-border p-3 shadow-soft space-y-2">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-1.5">
+                <span className="size-2 rounded-full bg-primary" />
+                <span className="font-mono text-[10px] uppercase tracking-wider text-primary">AM</span>
+              </div>
+              <span className="text-[9px] text-muted">4 steps</span>
+            </div>
+            <div className="space-y-1">
+              {['Cleanser', 'Niacinamide serum', 'Moisturizer', 'SPF 50'].map((s, i) => (
+                <div
+                  key={s}
+                  className="flex items-center gap-2 rounded-md bg-bg/60 px-2 py-1 opacity-0"
+                  style={{ animation: 'streamIn 250ms ease-out forwards', animationDelay: `${i * 60}ms` }}
+                >
+                  <span className="font-mono text-[8px] text-muted">0{i + 1}</span>
+                  <span className="text-[10px] flex-1">{s}</span>
+                  <Check size={10} className="text-good-fg" />
+                </div>
+              ))}
+            </div>
+            <div className="h-px bg-border my-1" />
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-1.5">
+                <span className="size-2 rounded-full bg-ink" />
+                <span className="font-mono text-[10px] uppercase tracking-wider text-ink">PM</span>
+              </div>
+              <span className="text-[9px] text-muted">5 steps</span>
+            </div>
+            <div className="space-y-1">
+              {['Double cleanse', 'Retinol', 'Peptide serum', 'Moisturizer', 'Sleep mask'].map((s, i) => (
+                <div
+                  key={s}
+                  className="flex items-center gap-2 rounded-md bg-bg/60 px-2 py-1 opacity-0"
+                  style={{ animation: 'streamIn 250ms ease-out forwards', animationDelay: `${300 + i * 60}ms` }}
+                >
+                  <span className="font-mono text-[8px] text-muted">0{i + 1}</span>
+                  <span className="text-[10px] flex-1">{s}</span>
+                  <Check size={10} className="text-good-fg" />
+                </div>
+              ))}
+            </div>
+          </div>
+          <div className="font-mono text-[10px] uppercase tracking-[0.2em] text-muted mt-3 text-center">
+            Drag-to-reorder routine builder
+          </div>
+        </div>
+      );
+    case 'journal':
+      return (
+        <div className="w-full max-w-[280px] mx-auto">
+          <div className="rounded-2xl bg-card border border-border p-3 shadow-soft">
+            <div className="flex items-center justify-between mb-2">
+              <div className="font-display text-base leading-tight">Tuesday</div>
+              <div className="font-mono text-[9px] text-muted uppercase tracking-wider">May 23</div>
+            </div>
+            <div className="relative aspect-[5/3] rounded-lg mb-2 overflow-hidden bg-gradient-to-br from-bad-bg via-primary/20 to-good-bg">
+              <div className="absolute inset-0 flex items-center justify-center">
+                <div className="size-12 rounded-full bg-bg/80 backdrop-blur flex items-center justify-center">
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-primary">
+                    <circle cx="12" cy="12" r="3" />
+                    <path d="M5 7h2.5l1.5-2h6l1.5 2H19a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V9a2 2 0 0 1 2-2z" />
+                  </svg>
+                </div>
+              </div>
+              <div className="absolute top-1.5 right-1.5 inline-flex items-center gap-1 bg-bad-fg text-card px-1.5 py-0.5 rounded text-[8px] uppercase tracking-wider">
+                <span className="size-1 rounded-full bg-card animate-pulse" />
+                Flare
+              </div>
+            </div>
+            <div className="space-y-1">
+              <div className="text-[10px] text-ink/80 leading-snug">
+                Cheek + jaw. Skipped retinol last night. Tried new SPF.
+              </div>
+              <div className="flex flex-wrap gap-1 mt-1.5">
+                {['#cheek', '#jaw', '#new-spf'].map((t) => (
+                  <span key={t} className="font-mono text-[8px] bg-primary/10 text-primary px-1.5 py-0.5 rounded">
+                    {t}
+                  </span>
+                ))}
+              </div>
+            </div>
+          </div>
+          <div className="font-mono text-[10px] uppercase tracking-[0.2em] text-muted mt-3 text-center">
+            Photos · notes · auto tags
+          </div>
+        </div>
+      );
+    case 'recommend':
+      return (
+        <div className="w-full max-w-[280px] mx-auto">
+          <div className="rounded-2xl bg-card border border-border p-3 shadow-soft">
+            <div className="flex items-center gap-2 mb-3">
+              <div className="size-7 rounded-full bg-primary/15 flex items-center justify-center text-primary" style={{ animation: 'demoSparkle 1.6s ease-in-out infinite' }}>
+                <Sparkles size={13} />
+              </div>
+              <div className="flex-1">
+                <div className="font-display text-sm leading-none">Should I buy this?</div>
+                <div className="text-[9px] text-muted">Glow Recipe Watermelon Toner</div>
+              </div>
+            </div>
+            <div className="rounded-lg bg-bad-bg/70 border border-bad-fg/20 p-2 mb-2">
+              <div className="flex items-center justify-between mb-0.5">
+                <div className="font-display text-sm text-bad-fg">Skip it</div>
+                <div className="font-mono text-[9px] text-bad-fg/80 uppercase">87% match</div>
+              </div>
+              <div className="text-[9px] text-bad-fg/80 leading-snug">
+                Contains 2 of your trigger ingredients
+              </div>
+            </div>
+            <div className="space-y-1">
+              <div className="text-[9px] uppercase tracking-wider text-muted">Try instead</div>
+              {['Cosrx AHA/BHA Toner', 'Beauty of Joseon Glow', 'Naturium Mandelic'].map((p, i) => (
+                <div
+                  key={p}
+                  className="flex items-center justify-between rounded-md bg-good-bg/40 px-2 py-1 opacity-0"
+                  style={{ animation: 'streamIn 280ms ease-out forwards', animationDelay: `${300 + i * 80}ms` }}
+                >
+                  <span className="text-[10px]">{p}</span>
+                  <span className="font-mono text-[8px] text-good-fg uppercase">safe</span>
+                </div>
+              ))}
+            </div>
+          </div>
+          <div className="font-mono text-[10px] uppercase tracking-[0.2em] text-muted mt-3 text-center">
+            AI verdict + smart alternatives
+          </div>
+        </div>
+      );
+    case 'add-product':
+      return (
+        <div className="w-full max-w-[280px] mx-auto">
+          <div className="rounded-2xl bg-card border border-border p-3 shadow-soft">
+            <div className="font-display text-base mb-2">Add product</div>
+            <div className="space-y-2">
+              <div>
+                <div className="text-[9px] uppercase tracking-wider text-muted mb-0.5">Brand</div>
+                <div className="rounded-md bg-bg/60 px-2 py-1.5 font-mono text-[10px]">
+                  The Ordinary
+                </div>
+              </div>
+              <div>
+                <div className="text-[9px] uppercase tracking-wider text-muted mb-0.5">Product</div>
+                <div className="rounded-md bg-bg/60 px-2 py-1.5 font-mono text-[10px]">
+                  Niacinamide 10% + Zinc
+                </div>
+              </div>
+              <div>
+                <div className="text-[9px] uppercase tracking-wider text-muted mb-0.5">Outcome</div>
+                <div className="grid grid-cols-3 gap-1">
+                  {[
+                    { label: 'safe', cls: 'bg-good-bg/60 text-good-fg ring-1 ring-good-fg/40' },
+                    { label: 'meh', cls: 'bg-bg/60 text-muted' },
+                    { label: 'break', cls: 'bg-bg/60 text-muted' },
+                  ].map((b) => (
+                    <span key={b.label} className={`text-center rounded-md py-1 font-mono text-[9px] uppercase tracking-wider ${b.cls}`}>
+                      {b.label}
+                    </span>
+                  ))}
+                </div>
+              </div>
+              <div className="rounded-md bg-primary text-card py-1.5 text-center text-[10px] font-medium" style={{ animation: 'demoPulse 1.6s ease-in-out infinite' }}>
+                Save + analyze
+              </div>
+            </div>
+          </div>
+          <div className="font-mono text-[10px] uppercase tracking-[0.2em] text-muted mt-3 text-center">
+            Logged in under 10 seconds
+          </div>
+        </div>
+      );
+    case 'history':
+      return (
+        <div className="w-full max-w-[280px] mx-auto">
+          <div className="rounded-2xl bg-card border border-border p-3 shadow-soft">
+            <div className="flex items-center justify-between mb-2">
+              <div className="font-display text-base">Scan history</div>
+              <div className="font-mono text-[9px] text-muted">142 total</div>
+            </div>
+            <div className="space-y-1">
+              {[
+                { name: 'Drunk Elephant B-Hydra', tag: 'skip', cls: 'bg-bad-bg/60 text-bad-fg', when: '2m ago' },
+                { name: 'Beauty of Joseon Glow', tag: 'safe', cls: 'bg-good-bg/60 text-good-fg', when: '1h ago' },
+                { name: 'Cosrx AHA/BHA Toner', tag: 'safe', cls: 'bg-good-bg/60 text-good-fg', when: 'Yesterday' },
+                { name: 'Glow Recipe Watermelon', tag: 'skip', cls: 'bg-bad-bg/60 text-bad-fg', when: '3d ago' },
+                { name: 'Naturium Mandelic', tag: 'safe', cls: 'bg-good-bg/60 text-good-fg', when: '4d ago' },
+              ].map((row, i) => (
+                <div
+                  key={row.name}
+                  className="flex items-center gap-2 rounded-md bg-bg/40 px-2 py-1 opacity-0"
+                  style={{ animation: 'streamIn 240ms ease-out forwards', animationDelay: `${i * 70}ms` }}
+                >
+                  <span className={`text-[8px] font-mono uppercase tracking-wider px-1.5 py-0.5 rounded ${row.cls}`}>
+                    {row.tag}
+                  </span>
+                  <span className="text-[10px] flex-1 truncate">{row.name}</span>
+                  <span className="font-mono text-[8px] text-muted">{row.when}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+          <div className="font-mono text-[10px] uppercase tracking-[0.2em] text-muted mt-3 text-center">
+            Every verdict, forever searchable
+          </div>
+        </div>
+      );
+    default:
+      return null;
+  }
+}
+
+function PlanDemoModal({ planId, onClose }: { planId: string; onClose: () => void }) {
+  const plan = PRICING.find((p) => p.id === planId);
+  const all = plan ? [...plan.features, ...(plan.tour ?? [])] : [];
+  const [idx, setIdx] = useState(0);
+
+  useEffect(() => {
+    setIdx(0);
+  }, [planId]);
+
+  useEffect(() => {
+    if (!plan || all.length === 0) return;
+    const id = window.setInterval(() => {
+      setIdx((i) => (i + 1) % all.length);
+    }, 3200);
+    return () => window.clearInterval(id);
+  }, [plan, all.length]);
+
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') onClose();
+    };
+    document.addEventListener('keydown', onKey);
+    document.body.style.overflow = 'hidden';
+    return () => {
+      document.removeEventListener('keydown', onKey);
+      document.body.style.overflow = '';
+    };
+  }, [onClose]);
+
+  if (!plan) return null;
+  const current = all[idx] ?? plan.features[0];
+  const isTour = idx >= plan.features.length;
+
+  return (
+    <div
+      className="fixed inset-0 z-[80] flex items-center justify-center p-4"
+      onClick={onClose}
+      role="dialog"
+      aria-modal="true"
+    >
+      <div className="absolute inset-0 bg-ink/80 backdrop-blur-xl" style={{ animation: 'modalFade 300ms ease-out' }} />
+      <div
+        className="relative w-full max-w-md card overflow-hidden shadow-[0_40px_80px_-20px_rgba(0,0,0,0.5)]"
+        onClick={(e) => e.stopPropagation()}
+        style={{ animation: 'modalRise 380ms cubic-bezier(0.22,1,0.36,1)' }}
+      >
+        <div
+          aria-hidden
+          className="absolute -top-24 -right-24 size-64 bg-primary/15 blur-3xl rounded-full"
+        />
+        <div
+          aria-hidden
+          className="absolute -bottom-24 -left-24 size-64 bg-primary/10 blur-3xl rounded-full"
+        />
+
+        <div className="relative px-6 pt-6 pb-4 flex items-start justify-between border-b border-border">
+          <div>
+            <div className="text-[10px] uppercase tracking-[0.2em] text-primary font-semibold mb-1">
+              {plan.tagline}
+            </div>
+            <div className="font-display text-2xl leading-none">{plan.name}</div>
+            <div className="flex items-baseline gap-1.5 mt-1">
+              <span className="font-display text-2xl text-primary">{plan.price}</span>
+              <span className="text-xs text-muted">{plan.cadence}</span>
+            </div>
+          </div>
+          <button
+            type="button"
+            onClick={onClose}
+            className="size-9 rounded-full bg-bg hover:bg-card border border-border flex items-center justify-center text-muted hover:text-ink transition-colors"
+            aria-label="Close"
           >
-            Get lifetime access — $5 <ArrowRight size={14} />
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+              <line x1="18" y1="6" x2="6" y2="18" />
+              <line x1="6" y1="6" x2="18" y2="18" />
+            </svg>
+          </button>
+        </div>
+
+        <div className="relative px-6 py-8 min-h-[320px] flex flex-col items-center justify-center text-center">
+          <div className="font-mono text-[10px] uppercase tracking-[0.22em] text-muted/70 mb-1">
+            {isTour ? 'Inside the app' : 'Feature'} {idx + 1} of {all.length}
+          </div>
+          <div className="font-display text-xl mb-6 max-w-[28ch]">{current.text}</div>
+          <div key={`${planId}-${idx}`} style={{ animation: 'modalRise 400ms cubic-bezier(0.22,1,0.36,1)' }}>
+            <BigDemo kind={current.demo} />
+          </div>
+        </div>
+
+        <div className="relative px-6 pb-6 pt-4 border-t border-border">
+          <div className="flex items-center justify-center gap-1.5 mb-4">
+            {all.map((_, i) => {
+              const tourDot = i >= plan.features.length;
+              return (
+                <button
+                  key={i}
+                  type="button"
+                  onClick={() => setIdx(i)}
+                  className={`h-1.5 rounded-full transition-all duration-300 ${
+                    i === idx
+                      ? tourDot
+                        ? 'w-8 bg-gradient-to-r from-primary to-primary/60'
+                        : 'w-8 bg-primary'
+                      : tourDot
+                        ? 'w-1.5 bg-primary/30 hover:bg-primary/50'
+                        : 'w-1.5 bg-primary/20 hover:bg-primary/40'
+                  }`}
+                  aria-label={`Show ${tourDot ? 'tour' : 'feature'} ${i + 1}`}
+                />
+              );
+            })}
+          </div>
+          <Link
+            to={plan.href}
+            className="btn-primary w-full active:scale-[0.985] transition-transform duration-150"
+            onClick={onClose}
+          >
+            {plan.cta} <ArrowRight size={14} />
           </Link>
-          <span className="text-xs text-muted">One-time. Forever. No subscription.</span>
         </div>
       </div>
     </div>
@@ -249,7 +1881,9 @@ function ComingSoonWaitlist() {
 
 export default function Landing() {
   const [openFaq, setOpenFaq] = useState<number | null>(0);
+  const [demoPlan, setDemoPlan] = useState<string | null>(null);
   const [scrolled, setScrolled] = useState(false);
+  useParallaxRoot();
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 8);
@@ -260,6 +1894,7 @@ export default function Landing() {
 
   return (
     <div className="min-h-[100dvh] bg-bg text-ink overflow-x-hidden relative">
+      <ScrollProgress />
       <div aria-hidden className="pointer-events-none fixed inset-0 bg-grain opacity-[0.03] mix-blend-multiply z-0" />
 
       <header
@@ -415,6 +2050,12 @@ export default function Landing() {
         </div>
       </section>
 
+      <section className="max-w-6xl mx-auto px-6 pb-16 md:pb-20">
+        <FadeUp>
+          <ComingSoonWaitlist />
+        </FadeUp>
+      </section>
+
       <section className="max-w-3xl mx-auto px-6 pb-16 md:pb-24">
         <FadeUp>
           <TryItDemo />
@@ -451,61 +2092,102 @@ export default function Landing() {
         </div>
       </section>
 
-      <section className="max-w-6xl mx-auto px-6 py-16 md:py-24">
+      <section className="relative max-w-6xl mx-auto px-6 py-20 md:py-32">
+        <div
+          aria-hidden
+          className="pointer-events-none absolute -top-10 -left-20 size-72 bg-primary/8 blur-3xl rounded-full parallax-slow"
+        />
+        <div
+          aria-hidden
+          className="pointer-events-none absolute bottom-10 -right-20 size-72 bg-primary/8 blur-3xl rounded-full parallax-med"
+        />
+
         <FadeUp>
-          <div className="max-w-2xl mb-14">
-            <div className="text-xs uppercase tracking-[0.18em] text-muted font-medium mb-3">
-              How it works
+          <div className="max-w-2xl mb-16 md:mb-24">
+            <div className="inline-flex items-center gap-2 text-[11px] uppercase tracking-[0.22em] text-primary font-semibold mb-4">
+              <span className="h-px w-8 bg-primary/40" /> How it works
             </div>
-            <h2 className="font-display text-4xl md:text-5xl leading-tight">
-              Three steps. No more
+            <h2 className="font-display text-5xl md:text-7xl leading-[0.95] tracking-tight">
+              Three steps.
               <br />
-              ingredient detective work.
+              <span className="italic font-light text-primary">Zero detective work.</span>
             </h2>
           </div>
         </FadeUp>
 
-        <ol className="space-y-14 md:space-y-20">
+        <ol className="relative space-y-16 md:space-y-28">
+          <div
+            aria-hidden
+            className="hidden md:block absolute left-[60px] top-4 bottom-4 w-px bg-gradient-to-b from-transparent via-primary/30 to-transparent"
+          />
+
           {STEPS.map((s, i) => (
-            <FadeUp key={s.n} delay={i * 60}>
-              <li className="grid md:grid-cols-[120px_1fr_minmax(0,360px)] gap-x-10 gap-y-6 items-start">
-                <div className="flex items-baseline gap-3 md:block">
-                  <div className="font-display text-5xl md:text-6xl text-primary/30 leading-none">
-                    {s.n}
+            <FadeUp key={s.n} delay={i * 80} variant={i % 2 === 0 ? 'left' : 'right'}>
+              <li className="group relative grid md:grid-cols-[120px_1fr_minmax(0,360px)] gap-x-10 gap-y-6 items-start">
+                <div className="relative flex items-baseline gap-3 md:block">
+                  <div className="relative">
+                    <div
+                      className="font-display text-7xl md:text-8xl leading-none bg-clip-text text-transparent transition-all duration-500 ease-emil group-hover:scale-105"
+                      style={{
+                        backgroundImage:
+                          'linear-gradient(135deg, rgba(163,88,72,0.9) 0%, rgba(163,88,72,0.25) 60%, rgba(163,88,72,0.05) 100%)',
+                      }}
+                    >
+                      {s.n}
+                    </div>
+                    <div
+                      aria-hidden
+                      className="absolute inset-0 font-display text-7xl md:text-8xl leading-none text-primary/5 select-none translate-x-1 translate-y-1 -z-10"
+                    >
+                      {s.n}
+                    </div>
                   </div>
-                  <div className="text-primary/80 md:mt-2">{s.icon}</div>
+                  <div className="md:mt-3 inline-flex items-center justify-center size-9 rounded-full bg-primary/10 border border-primary/20 text-primary shadow-[0_0_20px_rgba(163,88,72,0.15)] group-hover:bg-primary group-hover:text-card transition-all duration-400 ease-emil">
+                    {s.icon}
+                  </div>
                 </div>
 
-                <div className="max-w-[55ch]">
-                  <h3 className="font-display text-2xl md:text-3xl mb-3 leading-tight">
+                <div className="max-w-[55ch] md:pt-3">
+                  <h3 className="font-display text-3xl md:text-4xl mb-4 leading-[1.05] tracking-tight">
                     {s.title}
                   </h3>
-                  <p className="text-muted text-base leading-relaxed">{s.body}</p>
+                  <p className="text-muted text-base md:text-lg leading-relaxed">{s.body}</p>
                 </div>
 
-                <div className="md:pt-2">
-                  <ul className="space-y-1.5">
-                    {s.detail.map((d) => (
-                      <li
-                        key={d}
-                        className="flex items-center gap-2.5 font-mono text-xs text-ink/70"
-                      >
-                        <span className="size-1 rounded-full bg-primary/60" />
-                        {d}
-                      </li>
-                    ))}
-                  </ul>
+                <div className="md:pt-3">
+                  <div className="relative card p-5 overflow-hidden bg-gradient-to-br from-card to-bg/50 border-primary/10 transition-all duration-500 ease-emil group-hover:border-primary/30 group-hover:shadow-[0_20px_60px_-20px_rgba(163,88,72,0.4)] group-hover:-translate-y-1">
+                    <div
+                      aria-hidden
+                      className="absolute -top-12 -right-12 size-32 bg-primary/10 blur-2xl rounded-full opacity-0 group-hover:opacity-100 transition-opacity duration-500"
+                    />
+                    <div className="relative">
+                      <div className="text-[10px] uppercase tracking-[0.2em] text-muted/70 font-semibold mb-3">
+                        Example
+                      </div>
+                      <ul className="space-y-2">
+                        {s.detail.map((d, di) => (
+                          <li
+                            key={d}
+                            className="flex items-center gap-3 font-mono text-xs"
+                            style={{ transitionDelay: `${di * 60}ms` }}
+                          >
+                            <span className="relative flex h-1.5 w-1.5">
+                              <span className="absolute inline-flex h-full w-full rounded-full bg-primary/40 group-hover:animate-ping" />
+                              <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-primary" />
+                            </span>
+                            <span className="text-ink/80 group-hover:text-ink transition-colors duration-300">
+                              {d}
+                            </span>
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  </div>
                 </div>
               </li>
             </FadeUp>
           ))}
         </ol>
-      </section>
-
-      <section className="max-w-4xl mx-auto px-6 py-16 md:py-20">
-        <FadeUp>
-          <ComingSoonWaitlist />
-        </FadeUp>
       </section>
 
       <section className="max-w-6xl mx-auto px-6 py-16 md:py-24">
@@ -528,8 +2210,9 @@ export default function Landing() {
         <div className="grid md:grid-cols-3 gap-5">
           {PRICING.map((p, i) => (
             <FadeUp key={p.id} delay={i * 80}>
+              <Tilt3D max={8} lift={14} className="h-full">
               <div
-                className={`card p-7 h-full relative overflow-hidden flex flex-col ${
+                className={`card p-7 h-full relative overflow-hidden flex flex-col transition-shadow duration-300 ease-emil hover:shadow-[0_30px_60px_-20px_rgba(163,88,72,0.25)] ${
                   p.highlight ? 'border-primary/30 shadow-soft' : ''
                 }`}
               >
@@ -545,43 +2228,116 @@ export default function Landing() {
                   style={{ boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.7)' }}
                 />
                 <div className="relative flex-1">
-                  {p.highlight && (
-                    <div className="inline-flex items-center gap-1.5 text-[10px] uppercase tracking-[0.14em] text-primary bg-primary/10 px-2.5 py-1 rounded-full mb-4 font-medium">
-                      <Sparkles size={10} /> Most popular
-                    </div>
-                  )}
-                  <div className="text-sm text-muted mb-1">{p.name}</div>
-                  <div className="flex items-baseline gap-2 mb-1">
-                    <div className="font-display text-5xl leading-none">{p.price}</div>
-                    <div className="text-muted text-sm">{p.cadence}</div>
+                  <div
+                    className={`inline-flex items-center gap-1.5 text-[10px] uppercase tracking-[0.18em] px-2.5 py-1 rounded-full mb-4 font-semibold border ${
+                      p.highlight
+                        ? 'text-primary bg-primary/10 border-primary/25 shadow-[0_0_18px_rgba(163,88,72,0.15)]'
+                        : 'text-muted/80 bg-bg/60 border-border'
+                    }`}
+                  >
+                    {p.highlight && <Sparkles size={10} />}
+                    {p.tagline}
                   </div>
-                  <p className="text-sm text-muted mb-6 mt-2">{p.blurb}</p>
+                  <div className="font-display text-2xl mb-3 leading-none">{p.name}</div>
+                  <div className="flex items-baseline gap-2 mb-3">
+                    <div
+                      className={`font-display text-6xl leading-none ${
+                        p.highlight ? 'text-primary' : 'text-ink'
+                      }`}
+                    >
+                      {p.price}
+                    </div>
+                    <div className="text-muted text-sm font-medium">{p.cadence}</div>
+                  </div>
+                  <div
+                    className={`relative mb-6 pl-4 py-2 rounded-r-lg border-l-2 ${
+                      p.highlight
+                        ? 'border-primary bg-gradient-to-r from-primary/10 to-transparent'
+                        : 'border-primary/40 bg-gradient-to-r from-primary/5 to-transparent'
+                    }`}
+                  >
+                    <span
+                      aria-hidden
+                      className="absolute -left-[6px] top-2 size-2.5 rounded-full bg-primary shadow-[0_0_10px_rgba(163,88,72,0.6)]"
+                    />
+                    <p className="text-[15px] text-ink/85 italic leading-snug font-serif max-w-[34ch]">
+                      "{p.blurb}"
+                    </p>
+                  </div>
 
-                  <ul className="space-y-2 mb-6 text-sm">
-                    {p.features.map((f) => (
-                      <li key={f} className="flex items-start gap-2.5">
-                        <span className="size-4 mt-0.5 rounded-full bg-primary/10 text-primary flex items-center justify-center shrink-0">
-                          <Check size={11} strokeWidth={3} />
+                  <ul className="space-y-3 mb-6 text-sm">
+                    {p.features.map((f, fi) => (
+                      <li
+                        key={f.text}
+                        className="flex items-center gap-3 group/feat"
+                        style={{ transitionDelay: `${fi * 40}ms` }}
+                      >
+                        <span
+                          className={`relative shrink-0 size-5 transition-all duration-300 group-hover/feat:scale-110 ${
+                            p.highlight ? 'rotate-[8deg]' : ''
+                          }`}
+                        >
+                          <span
+                            aria-hidden
+                            className={`absolute inset-0 rounded-md rotate-45 transition-all duration-300 ${
+                              p.highlight
+                                ? 'bg-gradient-to-br from-primary to-primary-hover shadow-[0_4px_14px_-2px_rgba(163,88,72,0.55)]'
+                                : 'bg-gradient-to-br from-primary/15 to-primary/5 border border-primary/25 group-hover/feat:from-primary group-hover/feat:to-primary-hover group-hover/feat:border-transparent group-hover/feat:shadow-[0_4px_14px_-2px_rgba(163,88,72,0.45)]'
+                            }`}
+                          />
+                          <span
+                            className={`relative z-10 flex items-center justify-center h-full w-full transition-colors duration-300 ${
+                              p.highlight
+                                ? 'text-card'
+                                : 'text-primary group-hover/feat:text-card'
+                            }`}
+                          >
+                            <Check size={11} strokeWidth={3.5} />
+                          </span>
                         </span>
-                        <span>{f}</span>
+                        <span className="text-ink/85 leading-snug group-hover/feat:text-ink transition-colors duration-200 flex-1">
+                          {f.text}
+                        </span>
+                        <span className="shrink-0 opacity-90 group-hover/feat:opacity-100 transition-opacity">
+                          <FeatureDemo kind={f.demo} />
+                        </span>
                       </li>
                     ))}
                   </ul>
                 </div>
 
-                <Link
-                  to={p.href}
-                  className={`${
-                    p.highlight ? 'btn-primary' : 'btn-secondary'
-                  } w-full active:scale-[0.985] transition-transform duration-150 ease-emil relative`}
-                >
-                  {p.cta} <ArrowRight size={14} />
-                </Link>
+                <div className="space-y-2">
+                  <Link
+                    to={p.href}
+                    className={`${
+                      p.highlight ? 'btn-primary' : 'btn-secondary'
+                    } w-full active:scale-[0.985] transition-transform duration-150 ease-emil relative`}
+                  >
+                    {p.cta} <ArrowRight size={14} />
+                  </Link>
+                  <button
+                    type="button"
+                    onClick={() => setDemoPlan(p.id)}
+                    className="w-full inline-flex items-center justify-center gap-2 text-xs uppercase tracking-[0.18em] font-semibold text-primary hover:text-primary-hover transition-colors duration-200 ease-emil py-2 group/demo"
+                  >
+                    <span className="relative flex h-1.5 w-1.5">
+                      <span className="absolute inline-flex h-full w-full rounded-full bg-primary animate-ping opacity-75" />
+                      <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-primary" />
+                    </span>
+                    See it in action
+                    <ArrowRight size={12} className="group-hover/demo:translate-x-0.5 transition-transform duration-200" />
+                  </button>
+                </div>
               </div>
+              </Tilt3D>
             </FadeUp>
           ))}
         </div>
       </section>
+
+      {demoPlan && (
+        <PlanDemoModal planId={demoPlan} onClose={() => setDemoPlan(null)} />
+      )}
 
       <section className="max-w-3xl mx-auto px-6 py-16 md:py-24">
         <FadeUp>
