@@ -489,40 +489,150 @@ function PhoneMockup() {
   }, []);
 
   return (
-    <div className="relative mx-auto" style={{ maxWidth: 240 }}>
+    <div className="relative mx-auto" style={{ maxWidth: 252 }}>
+      {/* outer halo */}
       <div
         aria-hidden
-        className="absolute -inset-10 bg-primary/25 blur-[60px] rounded-full"
+        className="absolute -inset-12 bg-primary/22 blur-[68px] rounded-full pointer-events-none"
       />
-      <div className="relative aspect-[9/19.5] rounded-[38px] bg-ink p-[5px] shadow-[0_30px_60px_-15px_rgba(0,0,0,0.45),0_0_0_1px_rgba(255,255,255,0.06)_inset]">
-        <div className="absolute top-1.5 left-1/2 -translate-x-1/2 w-20 h-4 bg-ink rounded-b-2xl z-20" />
-        <div className="relative h-full w-full rounded-[34px] bg-bg overflow-hidden flex flex-col text-ink">
-          <div className="px-3 pt-6 pb-1.5 flex items-center justify-between">
-            <div className="font-display text-[11px] leading-none">
-              Skintel<span className="text-primary">.</span>
-            </div>
-            <div className="flex items-center gap-1">
-              <div className="text-[7px] uppercase tracking-wider text-muted leading-none">Pro</div>
-              <div className="size-4 rounded-full bg-card border border-border" />
-            </div>
-          </div>
+      {/* drop shadow under phone */}
+      <div
+        aria-hidden
+        className="absolute left-1/2 -translate-x-1/2 -bottom-6 w-3/4 h-6 bg-ink/40 blur-2xl rounded-full pointer-events-none"
+      />
 
-          <div className="relative flex-1 min-h-0">
-            <SceneScanner active={scene === 'scanner'} />
-            <SceneScanning active={scene === 'scanning'} />
-            <SceneAnalyzing active={scene === 'analyzing'} />
-            <SceneVerdict active={scene === 'verdict'} />
-            <SceneDashboard active={scene === 'dashboard'} />
-            <SceneRoutine active={scene === 'routine'} />
-            <SceneJournal active={scene === 'journal'} />
-            <SceneRecommend active={scene === 'recommend'} />
-          </div>
+      {/* side buttons: left */}
+      <div aria-hidden className="absolute -left-[3px] top-[14%] w-[3px] h-6 rounded-l-sm bg-gradient-to-r from-ink/90 to-ink/60 z-0" />
+      <div aria-hidden className="absolute -left-[3px] top-[22%] w-[3px] h-10 rounded-l-sm bg-gradient-to-r from-ink/90 to-ink/60 z-0" />
+      <div aria-hidden className="absolute -left-[3px] top-[33%] w-[3px] h-10 rounded-l-sm bg-gradient-to-r from-ink/90 to-ink/60 z-0" />
+      {/* side button: right (power) */}
+      <div aria-hidden className="absolute -right-[3px] top-[26%] w-[3px] h-14 rounded-r-sm bg-gradient-to-l from-ink/90 to-ink/60 z-0" />
 
-          <div className="px-2.5 pb-2 pt-1.5 space-y-1">
-            <PhoneTabBar scene={scene} />
-            <div className="mx-auto h-0.5 w-14 rounded-full bg-ink/30 mt-1" />
+      {/* phone body — titanium frame */}
+      <div
+        className="relative aspect-[9/19.5] rounded-[44px] p-[3px] z-10"
+        style={{
+          background:
+            'linear-gradient(140deg, #2a2520 0%, #1a1614 18%, #0d0a08 32%, #1a1614 52%, #2a2520 70%, #0d0a08 100%)',
+          boxShadow:
+            '0 36px 70px -18px rgba(0,0,0,0.55), 0 0 0 1px rgba(255,255,255,0.04) inset, 0 1px 0 0 rgba(255,255,255,0.08) inset, 0 -1px 0 0 rgba(0,0,0,0.5) inset',
+        }}
+      >
+        {/* inner bezel ring */}
+        <div className="relative aspect-[9/19.5] rounded-[41px] bg-ink p-[6px] overflow-hidden">
+          {/* glass screen */}
+          <div className="relative h-full w-full rounded-[35px] bg-bg overflow-hidden flex flex-col text-ink">
+            {/* status bar: time + indicators */}
+            <div className="relative h-[26px] px-5 pt-1.5 flex items-center justify-between text-ink z-10">
+              <div className="font-display text-[10px] leading-none font-semibold">9:41</div>
+              <div className="flex items-center gap-1">
+                {/* signal bars */}
+                <div className="flex items-end gap-[1px]">
+                  <span className="w-[2px] h-[3px] bg-ink rounded-sm" />
+                  <span className="w-[2px] h-[4px] bg-ink rounded-sm" />
+                  <span className="w-[2px] h-[5px] bg-ink rounded-sm" />
+                  <span className="w-[2px] h-[6px] bg-ink rounded-sm" />
+                </div>
+                {/* wifi */}
+                <svg width="9" height="7" viewBox="0 0 16 12" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M1 4c4-3.5 10-3.5 14 0" />
+                  <path d="M3.5 6.5c2.5-2 6.5-2 9 0" />
+                  <path d="M6 9c1-1 3-1 4 0" />
+                  <circle cx="8" cy="11" r="0.5" fill="currentColor" />
+                </svg>
+                {/* battery */}
+                <div className="flex items-center">
+                  <div className="w-5 h-2.5 rounded-[2px] border border-ink/80 relative p-[1px]">
+                    <div className="absolute inset-[1px] right-[5px] bg-ink rounded-[1px]" />
+                  </div>
+                  <div className="w-[1px] h-1 bg-ink/80 rounded-r-sm" />
+                </div>
+              </div>
+            </div>
+
+            {/* Dynamic Island */}
+            <div
+              aria-hidden
+              className="absolute top-[7px] left-1/2 -translate-x-1/2 z-20"
+              style={{
+                width: 78,
+                height: 22,
+                borderRadius: 999,
+                background: '#000',
+                boxShadow: '0 0 0 1px rgba(255,255,255,0.04), 0 2px 6px rgba(0,0,0,0.4) inset',
+              }}
+            >
+              {/* camera dot */}
+              <div className="absolute right-2 top-1/2 -translate-y-1/2 size-2 rounded-full bg-[#0a0a14]">
+                <div className="absolute inset-[2px] rounded-full bg-gradient-to-br from-[#1a2030] to-[#050510]" />
+                <div className="absolute top-[1px] left-[1px] size-[2px] rounded-full bg-white/30" />
+              </div>
+              {/* face-id sensor dot */}
+              <div className="absolute left-2 top-1/2 -translate-y-1/2 size-1 rounded-full bg-ink/80" />
+            </div>
+
+            {/* brand header (smaller now since status bar took top) */}
+            <div className="px-3 pt-1 pb-1 flex items-center justify-between">
+              <div className="font-display text-[11px] leading-none">
+                Skintel<span className="text-primary">.</span>
+              </div>
+              <div className="flex items-center gap-1">
+                <div className="text-[7px] uppercase tracking-wider text-muted leading-none font-semibold">Pro</div>
+                <div className="size-4 rounded-full bg-gradient-to-br from-primary/30 to-primary/10 border border-border" />
+              </div>
+            </div>
+
+            {/* scene area */}
+            <div className="relative flex-1 min-h-0">
+              <SceneScanner active={scene === 'scanner'} />
+              <SceneScanning active={scene === 'scanning'} />
+              <SceneAnalyzing active={scene === 'analyzing'} />
+              <SceneVerdict active={scene === 'verdict'} />
+              <SceneDashboard active={scene === 'dashboard'} />
+              <SceneRoutine active={scene === 'routine'} />
+              <SceneJournal active={scene === 'journal'} />
+              <SceneRecommend active={scene === 'recommend'} />
+            </div>
+
+            {/* tab bar */}
+            <div className="px-2.5 pb-1.5 pt-1.5 space-y-1">
+              <PhoneTabBar scene={scene} />
+            </div>
+
+            {/* home indicator */}
+            <div className="pb-1.5 flex items-center justify-center">
+              <div className="h-[3px] w-20 rounded-full bg-ink/40" />
+            </div>
+
+            {/* screen glare overlay */}
+            <div
+              aria-hidden
+              className="pointer-events-none absolute inset-0 rounded-[35px]"
+              style={{
+                background:
+                  'linear-gradient(135deg, rgba(255,255,255,0.10) 0%, rgba(255,255,255,0) 22%, rgba(255,255,255,0) 78%, rgba(255,255,255,0.05) 100%)',
+              }}
+            />
+            {/* top inner shadow under island */}
+            <div
+              aria-hidden
+              className="pointer-events-none absolute top-0 inset-x-0 h-8 rounded-t-[35px]"
+              style={{
+                background: 'linear-gradient(180deg, rgba(0,0,0,0.06), transparent)',
+              }}
+            />
           </div>
         </div>
+
+        {/* frame outer highlight stroke */}
+        <div
+          aria-hidden
+          className="pointer-events-none absolute inset-0 rounded-[44px]"
+          style={{
+            boxShadow:
+              '0 0 0 0.5px rgba(255,255,255,0.18) inset, 0 0 0 1.5px rgba(0,0,0,0.6)',
+          }}
+        />
       </div>
     </div>
   );
