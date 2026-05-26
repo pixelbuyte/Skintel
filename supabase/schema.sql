@@ -79,7 +79,7 @@ create policy "subs_read_own" on public.subscriptions
 -- ============ founding seats RPC ============
 create or replace function public.founding_seats_remaining()
 returns int language sql security definer stable as $$
-  select greatest(0, 250 - (
+  select greatest(0, 500 - (
     select count(*)::int from public.subscriptions where tier = 'founding'
   ));
 $$;

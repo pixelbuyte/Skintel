@@ -143,15 +143,15 @@ function FoundingCard({
       <div className="relative grid md:grid-cols-[1fr_auto] gap-6 items-center">
         <div>
           <div className="inline-flex items-center gap-1.5 text-xs uppercase tracking-[0.14em] text-primary bg-primary/10 px-2.5 py-1 rounded-full mb-3 font-medium">
-            <Sparkles size={11} className="animate-pulse" /> Founding · Lifetime
+            <Sparkles size={11} className="animate-pulse" /> Founding · 6 months
           </div>
           <h2 className="font-display text-3xl md:text-4xl mb-2 flex items-baseline gap-2">
-            <span className="tabular-nums animate-rise-in">$5</span>
-            <span className="text-muted text-lg font-sans">lifetime access</span>
+            <span className="tabular-nums animate-rise-in">$20</span>
+            <span className="text-muted text-lg font-sans">for 6 months</span>
           </h2>
           <p className="text-muted text-sm md:text-base max-w-[52ch] mb-4">
-            One-time payment. Forever. No subscription. Locks in everything in Pro
-            before the iOS launch.
+            One-time payment. 6 months of everything in Pro. No subscription, no
+            auto-renew — locked in before the iOS launch.
           </p>
 
           <div className="max-w-sm mb-3">
@@ -208,7 +208,7 @@ function FoundingCard({
                 ? 'Loading…'
                 : (
                   <>
-                    Get lifetime — $5 <ArrowRight size={14} />
+                    Get 6 months — $20 <ArrowRight size={14} />
                   </>
                 )}
           </MagneticButton>
@@ -233,7 +233,7 @@ function FoundingCard({
       <div className="relative">
         <div className="flex items-center justify-between mb-5">
           <div className="text-xs uppercase tracking-[0.14em] text-primary font-medium">
-            Lifetime perks
+            Founding perks
           </div>
           <button
             type="button"
@@ -249,7 +249,7 @@ function FoundingCard({
         <ul className="grid sm:grid-cols-2 gap-3 mb-6">
           {[
             'Everything in Pro Yearly',
-            'Lifetime access — pay once',
+            '6 months of Pro — pay once',
             'Founding member badge',
             'Priority feature requests',
             'Early access to iOS app',
@@ -274,7 +274,7 @@ function FoundingCard({
             onCheckout();
           }}
         >
-          {soldOut ? 'Sold out' : loading ? 'Loading…' : 'Claim lifetime — $5'}
+          {soldOut ? 'Sold out' : loading ? 'Loading…' : 'Claim 6 months — $20'}
         </MagneticButton>
         <style>{`
           @keyframes featurePop {

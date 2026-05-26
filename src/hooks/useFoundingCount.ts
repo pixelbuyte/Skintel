@@ -18,5 +18,5 @@ export function useFoundingCount(pollMs = 30_000) {
     };
   }, [pollMs]);
 
-  return { remaining, total: 250 };
+  return { remaining, total: 500 };
 }

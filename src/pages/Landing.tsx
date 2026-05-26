@@ -1209,8 +1209,8 @@ function ComingSoonWaitlist() {
 
           <p className="text-bg/70 text-lg max-w-[52ch] leading-relaxed mb-8">
             Scan any product at the store. Live trigger alerts on every label.
-            Be first in line — or lock in <span className="text-bg font-semibold">lifetime access for just $5</span>{' '}
-            before it's gone forever.
+            Be first in line — or lock in <span className="text-bg font-semibold">6 months of Pro for just $20</span>{' '}
+            before the founding spots are gone.
           </p>
 
           <div className="mb-8">
@@ -1263,7 +1263,7 @@ function ComingSoonWaitlist() {
               <div className="font-display text-xl mb-1">✓ You're on the list.</div>
               <div className="text-sm text-bg/80">
                 We'll email you the moment Skintel hits the App Store + Google Play.
-                Want lifetime access before the price goes up?
+                Want 6 months of Pro before the price goes up?
               </div>
             </div>
           )}
@@ -1279,11 +1279,11 @@ function ComingSoonWaitlist() {
               to="/pricing#founding"
               className="inline-flex items-center gap-2 px-6 py-3.5 rounded-xl bg-primary text-card font-semibold hover:bg-primary-hover active:scale-[0.97] transition-all duration-150 ease-emil shadow-[0_10px_30px_-10px_rgba(163,88,72,0.6)]"
             >
-              Lock in lifetime — $5 <ArrowRight size={16} />
+              Lock in 6 months — $20 <ArrowRight size={16} />
             </Link>
             <div className="flex items-center gap-2 text-xs text-bg/60">
               <ShieldCheck size={13} />
-              One-time payment · No subscription
+              One-time payment · 6 months of Pro
             </div>
           </div>
 
