@@ -35,12 +35,18 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   const body = (typeof req.body === 'string' ? JSON.parse(req.body) : req.body) as {
     goal?: string;
     budget?: string;
+    maxPrice?: number;
+    count?: number;
     notes?: string;
   };
 
   const goal = body?.goal as Goal | undefined;
   const budget = body?.budget as Budget | undefined;
   const notes = (body?.notes ?? '').trim().slice(0, 500);
+  const rawMax = Number(body?.maxPrice);
+  const maxPrice = Number.isFinite(rawMax) ? Math.min(Math.max(Math.round(rawMax), 10), 100) : null;
+  const rawCount = Number(body?.count);
+  const count = Number.isFinite(rawCount) ? Math.min(Math.max(Math.round(rawCount), 3), 30) : 6;
 
   if (!goal || !GOALS.includes(goal)) return json(res, { error: 'Invalid goal' }, 400);
   if (!budget || !BUDGETS.includes(budget)) return json(res, { error: 'Invalid budget' }, 400);
@@ -104,20 +110,23 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   const avoidStr = topAvoid.length > 0 ? topAvoid.join(', ') : '(none on record)';
   const preferStr = topPrefer.length > 0 ? topPrefer.join(', ') : '(none on record)';
 
-  const system = `You are a skincare expert. Recommend 3 specific real products matching the user's category and budget. Avoid these ingredients: ${avoidStr}. Prefer products containing these (when relevant): ${preferStr}. Budget tiers: drugstore (under $20), mid ($20-50), luxury ($50+). Return ONLY strict JSON: {"recommendations": [{"brand": string, "productName": string, "category": string, "priceRange": string, "keyIngredients": string[], "whyItFits": string, "watchOuts": string|null}]}`;
+  const priceCap = maxPrice ?? (budget === 'drugstore' ? 20 : budget === 'mid' ? 50 : 100);
+
+  const system = `You are a skincare expert. Recommend ${count} specific real products matching the user's category and budget cap. Avoid these ingredients: ${avoidStr}. Prefer products containing these (when relevant): ${preferStr}. Hard rules: every product's priceRange must be at or under $${priceCap} USD. Vary brands across the list (no more than 2 products per brand). Order from lowest to highest price. Return ONLY strict JSON: {"recommendations": [{"brand": string, "productName": string, "category": string, "priceRange": string, "keyIngredients": string[], "whyItFits": string, "watchOuts": string|null}]}`;
 
   const userMsg = `Category: ${goal}
-Budget: ${BUDGET_DESC[budget]}
+Budget cap: $${priceCap} or less per product (${BUDGET_DESC[budget]} tier)
+Number of picks: ${count}
 ${notes ? `User notes: ${notes}` : ''}
 
-Return strict JSON only. Exactly 3 recommendations.`;
+Return strict JSON only. Exactly ${count} recommendations, all priced at or under $${priceCap}.`;
 
   const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY! });
 
   try {
     const resp = await client.messages.create({
       model: MODEL,
-      max_tokens: 2048,
+      max_tokens: Math.min(8192, 1024 + count * 280),
       system,
       messages: [{ role: 'user', content: userMsg }],
     });

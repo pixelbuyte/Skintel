@@ -44,7 +44,10 @@ function CameraView({
       }
     },
     onError(e) {
-      setErr(e instanceof Error ? e.message : String(e));
+      const msg = e instanceof Error ? e.message : String(e);
+      // Suppress "no barcode found" — fires constantly while searching, not a real error.
+      if (/no multiformat readers|not found/i.test(msg)) return;
+      setErr(msg);
     },
     constraints: {
       video: { facingMode: 'environment' },

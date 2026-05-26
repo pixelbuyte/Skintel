@@ -2,15 +2,31 @@ import { useCallback, useEffect, useState } from 'react';
 import { supabase } from '@/lib/supabase';
 import type { Subscription, Tier } from '@/lib/types';
 import { useAuth } from './useAuth';
+import { isPreview } from '@/lib/preview';
 
 const FREE_PRODUCT_LIMIT = 5;
 
 export function useSubscription() {
   const { user } = useAuth();
   const [sub, setSub] = useState<Subscription | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(!isPreview());
 
   const fetchSub = useCallback(async () => {
+    if (isPreview()) {
+      setSub({
+        user_id: 'preview-user',
+        tier: 'pro',
+        stripe_customer_id: null,
+        stripe_subscription_id: null,
+        status: 'active',
+        current_period_end: null,
+        founding_seat_number: null,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+      });
+      setLoading(false);
+      return;
+    }
     if (!user) {
       setSub(null);
       setLoading(false);

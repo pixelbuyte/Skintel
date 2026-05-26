@@ -2,14 +2,22 @@ import { useCallback, useEffect, useState } from 'react';
 import { supabase } from '@/lib/supabase';
 import type { Outcome, ProductWithIngredients } from '@/lib/types';
 import { useAuth } from './useAuth';
+import { isPreview, PREVIEW_PRODUCTS } from '@/lib/preview';
 
 export function useProducts() {
   const { user } = useAuth();
-  const [products, setProducts] = useState<ProductWithIngredients[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [products, setProducts] = useState<ProductWithIngredients[]>(
+    isPreview() ? PREVIEW_PRODUCTS : [],
+  );
+  const [loading, setLoading] = useState(!isPreview());
   const [error, setError] = useState<string | null>(null);
 
   const fetchProducts = useCallback(async () => {
+    if (isPreview()) {
+      setProducts(PREVIEW_PRODUCTS);
+      setLoading(false);
+      return;
+    }
     if (!user) {
       setProducts([]);
       setLoading(false);

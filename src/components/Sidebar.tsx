@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { NavLink, useNavigate } from 'react-router-dom';
 import {
   LayoutDashboard,
@@ -13,19 +13,21 @@ import {
   BookOpen,
   ChevronsLeft,
   ChevronsRight,
+  CreditCard,
+  UserCircle2,
 } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { useSubscription } from '@/hooks/useSubscription';
+import { Avatar } from '@/components/Avatar';
 
 const NAV = [
   { to: '/app', label: 'Dashboard', icon: LayoutDashboard, end: true },
   { to: '/app/products', label: 'Products', icon: Package },
-  { to: '/app/culprits', label: 'Culprits', icon: AlertTriangle },
+  { to: '/app/culprits', label: 'Triggers', icon: AlertTriangle },
   { to: '/app/scanner', label: 'Scanner', icon: ScanLine },
   { to: '/app/journal', label: 'Journal', icon: BookOpen },
   { to: '/app/routine', label: 'Routine', icon: Sun },
   { to: '/app/recommend', label: 'Recommend', icon: Lightbulb },
-  { to: '/app/settings', label: 'Settings', icon: Settings },
 ];
 
 const STORAGE_KEY = 'skintel_sidebar_collapsed';
@@ -51,9 +53,25 @@ export function Sidebar({
   const { user, signOut } = useAuth();
   const { tier } = useSubscription();
   const nav = useNavigate();
+  const [menuOpen, setMenuOpen] = useState(false);
+  const menuRef = useRef<HTMLDivElement>(null);
 
   const tierBadge = tier === 'founding' ? 'Founding' : tier === 'pro' ? 'Pro' : 'Free';
   const width = collapsed ? 'w-16' : 'w-60';
+
+  // Close profile menu on outside click.
+  useEffect(() => {
+    if (!menuOpen) return;
+    const handle = (e: MouseEvent) => {
+      if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
+        setMenuOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handle);
+    return () => document.removeEventListener('mousedown', handle);
+  }, [menuOpen]);
+
+  const seed = user?.email ?? user?.id ?? 'anon';
 
   return (
     <aside
@@ -96,27 +114,96 @@ export function Sidebar({
         ))}
       </nav>
 
-      <div className="border-t border-border pt-3 mt-3">
-        {!collapsed && (
-          <div className="px-2 mb-2">
-            <div className="text-xs text-muted truncate">{user?.email}</div>
-            <div className="inline-block mt-1 px-2 py-0.5 rounded-full text-xs bg-bg border border-border">
-              {tierBadge}
-            </div>
-          </div>
-        )}
+      {/* PROFILE DOCK */}
+      <div ref={menuRef} className="relative mt-3">
+        {/* Profile chip — click opens menu */}
         <button
           type="button"
-          title={collapsed ? 'Sign out' : undefined}
-          className={`w-full flex items-center ${collapsed ? 'justify-center' : 'gap-2'} px-3 py-2.5 rounded-xl text-sm text-muted hover:bg-bg transition-colors`}
-          onClick={async () => {
-            await signOut();
-            nav('/');
-          }}
+          onClick={() => setMenuOpen((v) => !v)}
+          aria-expanded={menuOpen}
+          className={`w-full flex items-center ${
+            collapsed ? 'justify-center' : 'gap-3'
+          } rounded-xl border border-border bg-bg/60 hover:bg-bg active:scale-[0.98] transition-all px-2 py-2 ${
+            menuOpen ? 'ring-2 ring-primary/20 border-primary/30' : ''
+          }`}
+          title={collapsed ? user?.email ?? '' : undefined}
         >
-          <LogOut size={16} />
-          {!collapsed && 'Sign out'}
+          <Avatar seed={seed} size={32} className="rounded-xl" />
+          {!collapsed && (
+            <span className="min-w-0 flex-1 text-left">
+              <span className="block text-[13px] font-medium text-ink truncate">
+                {user?.email}
+              </span>
+              <span className="inline-flex items-center gap-1 mt-0.5">
+                <span
+                  className={`size-1.5 rounded-full ${
+                    tier === 'free' ? 'bg-muted' : 'bg-primary'
+                  }`}
+                />
+                <span className="text-[10px] uppercase tracking-wider text-muted font-mono">
+                  {tierBadge}
+                </span>
+              </span>
+            </span>
+          )}
         </button>
+
+        {/* Floating menu */}
+        {menuOpen && (
+          <div
+            className={`absolute ${
+              collapsed ? 'left-full ml-2 bottom-0' : 'left-0 right-0 bottom-full mb-2'
+            } z-40 rounded-xl border border-border bg-cream shadow-sheet p-1 min-w-[200px]`}
+          >
+            <NavLink
+              to="/app/settings"
+              onClick={() => setMenuOpen(false)}
+              className={({ isActive }) =>
+                `flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm transition-colors ${
+                  isActive ? 'bg-primary text-card' : 'text-ink hover:bg-card'
+                }`
+              }
+            >
+              <Settings size={15} />
+              Settings
+            </NavLink>
+            <button
+              type="button"
+              onClick={() => {
+                setMenuOpen(false);
+                nav('/pricing');
+              }}
+              className="w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm text-ink hover:bg-card transition-colors"
+            >
+              <CreditCard size={15} />
+              Billing
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                setMenuOpen(false);
+                nav('/app/settings');
+              }}
+              className="w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm text-ink hover:bg-card transition-colors"
+            >
+              <UserCircle2 size={15} />
+              Account
+            </button>
+            <div className="h-px bg-border my-1" />
+            <button
+              type="button"
+              onClick={async () => {
+                setMenuOpen(false);
+                await signOut();
+                nav('/');
+              }}
+              className="w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm text-bad-fg hover:bg-bad-bg transition-colors"
+            >
+              <LogOut size={15} />
+              Sign out
+            </button>
+          </div>
+        )}
       </div>
     </aside>
   );

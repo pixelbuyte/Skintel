@@ -10,7 +10,6 @@ import {
   AnimatedBorder,
   SparkleField,
   MagneticButton,
-  CountUp,
 } from '@/components/Tilt3D';
 
 type Plan = 'pro_monthly' | 'pro_yearly' | 'founding';
@@ -60,12 +59,11 @@ function Card({
         )}
         <h3 className="font-display text-2xl">{name}</h3>
         <div className="mt-2 mb-5 flex items-baseline gap-1">
-          <CountUp
-            to={priceNumber}
-            prefix={pricePrefix}
-            suffix={priceSuffix}
-            className="font-display text-5xl tabular-nums"
-          />
+          <span className="font-display text-5xl tabular-nums animate-rise-in">
+            {pricePrefix}
+            {priceNumber}
+            {priceSuffix}
+          </span>
           {period && <span className="text-muted text-sm ml-1">{period}</span>}
         </div>
         <ul className="space-y-2 text-sm flex-1 group/list">
@@ -148,7 +146,7 @@ function FoundingCard({
             <Sparkles size={11} className="animate-pulse" /> Founding · Lifetime
           </div>
           <h2 className="font-display text-3xl md:text-4xl mb-2 flex items-baseline gap-2">
-            <CountUp to={5} prefix="$" className="tabular-nums" />
+            <span className="tabular-nums animate-rise-in">$5</span>
             <span className="text-muted text-lg font-sans">lifetime access</span>
           </h2>
           <p className="text-muted text-sm md:text-base max-w-[52ch] mb-4">

@@ -50,8 +50,14 @@ async function upsertFromSubscription(sub: Stripe.Subscription, userIdOverride?:
   if (!userId) return;
 
   const priceId = sub.items.data[0]?.price?.id;
-  let tier = tierFromPriceId(priceId) ?? (sub.metadata?.tier as 'pro' | 'founding' | undefined);
-  if (!tier) tier = 'pro';
+  // Fail safe: only grant a paid tier when the Stripe price_id maps to a known
+  // plan (or metadata explicitly carries a recognized tier). An unrecognized or
+  // missing price must default to 'free', never 'pro' — otherwise a broken
+  // webhook payload would silently grant Pro to anyone.
+  const metaTier = sub.metadata?.tier;
+  const tier: 'pro' | 'founding' | 'free' =
+    tierFromPriceId(priceId) ??
+    (metaTier === 'pro' || metaTier === 'founding' ? metaTier : 'free');
 
   const active = sub.status === 'active' || sub.status === 'trialing' || sub.status === 'past_due';
   const finalTier = active ? tier : 'free';

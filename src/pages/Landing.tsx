@@ -144,7 +144,7 @@ const PRICING: ReadonlyArray<{
   {
     id: 'pro-monthly',
     name: 'Pro',
-    tagline: '⭐ Most popular · 30-day trial',
+    tagline: 'Most popular · 30-day trial',
     price: '$9',
     cadence: '/ month',
     blurb:
@@ -2320,7 +2320,7 @@ export default function Landing() {
         <div className="grid md:grid-cols-3 gap-5">
           {PRICING.map((p, i) => (
             <FadeUp key={p.id} delay={i * 80}>
-              <Tilt3D max={8} lift={14} className="h-full">
+              <Tilt3D max={4} lift={6} shine={false} className="h-full">
               <div
                 className={`card p-7 h-full relative overflow-hidden flex flex-col transition-shadow duration-300 ease-emil hover:shadow-[0_30px_60px_-20px_rgba(163,88,72,0.25)] ${
                   p.highlight ? 'border-primary/30 shadow-soft' : ''
@@ -2416,19 +2416,19 @@ export default function Landing() {
                   </ul>
                 </div>
 
-                <div className="space-y-2">
+                <div className="space-y-2 relative z-20" style={{ transform: 'translateZ(40px)' }}>
                   <Link
                     to={p.href}
                     className={`${
                       p.highlight ? 'btn-primary' : 'btn-secondary'
-                    } w-full active:scale-[0.985] transition-transform duration-150 ease-emil relative`}
+                    } w-full active:scale-[0.97] hover:scale-[1.02] transition-transform duration-150 ease-emil relative cursor-pointer`}
                   >
                     {p.cta} <ArrowRight size={14} />
                   </Link>
                   <button
                     type="button"
                     onClick={() => setDemoPlan(p.id)}
-                    className="w-full inline-flex items-center justify-center gap-2 text-xs uppercase tracking-[0.18em] font-semibold text-primary hover:text-primary-hover transition-colors duration-200 ease-emil py-2 group/demo"
+                    className="w-full inline-flex items-center justify-center gap-2 text-xs uppercase tracking-[0.18em] font-semibold text-primary hover:text-primary-hover hover:scale-[1.03] active:scale-[0.97] transition-all duration-200 ease-emil py-2 group/demo cursor-pointer relative"
                   >
                     <span className="relative flex h-1.5 w-1.5">
                       <span className="absolute inline-flex h-full w-full rounded-full bg-primary animate-ping opacity-75" />

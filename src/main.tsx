@@ -7,9 +7,11 @@ import { AuthProvider } from '@/hooks/useAuth';
 import { registerServiceWorker, captureInstallPrompt } from '@/lib/pwa';
 import { processQueue } from '@/lib/offlineQueue';
 import { supabase } from '@/lib/supabase';
+import { setupNativeShell } from '@/lib/native';
 
 captureInstallPrompt();
 registerServiceWorker();
+void setupNativeShell();
 
 // Best-effort flush of any UPCs queued while offline (e.g. drugstore basement).
 // Silent — failures stay in the queue.

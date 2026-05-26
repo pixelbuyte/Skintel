@@ -5,7 +5,8 @@ export default {
   theme: {
     extend: {
       colors: {
-        bg: '#FAF8F5',
+        bg: '#F4EDE0',
+        cream: '#FFFEFA',
         card: '#FFFEFA',
         primary: '#A35848',
         'primary-hover': '#8E4538',
