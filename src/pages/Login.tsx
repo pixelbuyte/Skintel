@@ -42,11 +42,39 @@ export default function Login() {
   const [password, setPassword] = useState('');
   const [err, setErr] = useState<string | null>(null);
   const [info, setInfo] = useState<string | null>(null);
+  const [confirmed, setConfirmed] = useState<string | null>(null);
   const [oauthSubmitting, setOauthSubmitting] = useState(false);
   const [emailSubmitting, setEmailSubmitting] = useState(false);
 
   if (loading) return null;
   if (user) return <Navigate to="/app" replace />;
+
+  if (confirmed) {
+    return (
+      <div className="min-h-screen flex items-center justify-center p-6">
+        <div className="card p-8 w-full max-w-md text-center">
+          <div className="size-16 rounded-full bg-primary/10 flex items-center justify-center mx-auto mb-5">
+            <Sparkles className="text-primary" size={28} />
+          </div>
+          <h1 className="font-display text-3xl mb-2">Check your inbox</h1>
+          <p className="text-muted text-sm mb-1">
+            We sent a confirmation link to
+          </p>
+          <p className="font-medium mb-5">{confirmed}</p>
+          <p className="text-muted text-sm mb-6">
+            Click the link in the email to activate your account, then come back here to sign in.
+          </p>
+          <button
+            type="button"
+            className="btn-secondary w-full"
+            onClick={() => { setConfirmed(null); setMode('signin'); }}
+          >
+            Back to sign in
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   async function doGoogle() {
     setErr(null);
@@ -81,7 +109,7 @@ export default function Login() {
       const { error, needsConfirm } = await signUpWithEmail(cleanEmail, password);
       if (error) setErr(error.message);
       else if (needsConfirm) {
-        setInfo('Check your email to confirm your account, then sign in.');
+        setConfirmed(cleanEmail);
         setPassword('');
       }
     } else if (mode === 'reset') {

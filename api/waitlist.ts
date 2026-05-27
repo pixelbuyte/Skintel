@@ -1,5 +1,5 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-import { getServiceClient, json } from './_lib.js';
+import { getServiceClient, json, sendEmail } from './_lib.js';
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
 
@@ -37,6 +37,33 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
     if (error && (error as any).code !== '23505') {
       return json(res, { error: 'Signup failed' }, 500);
+    }
+
+    const isNew = !error;
+    if (isNew) {
+      await sendEmail({
+        to: rawEmail,
+        subject: "You're on the Skintel list 🌿",
+        html: `
+          <div style="font-family:sans-serif;max-width:520px;margin:0 auto;color:#1a1a1a">
+            <h2 style="font-size:24px;margin-bottom:8px">You're on the list.</h2>
+            <p style="color:#555;line-height:1.6">
+              We'll email you the moment Skintel hits the App Store and Google Play.
+            </p>
+            <p style="color:#555;line-height:1.6">
+              While you wait — want 6 months of Pro access before the price goes up?
+              Founding spots are limited to 500.
+            </p>
+            <a href="https://skinstel.com/pricing" style="display:inline-block;margin-top:16px;background:#A35848;color:#fff;padding:12px 28px;border-radius:8px;text-decoration:none;font-weight:600;">
+              Claim founding access — $20
+            </a>
+            <p style="margin-top:32px;color:#999;font-size:12px;">
+              Skintel · skinstel.com<br>
+              You signed up at skinstel.com. Reply to unsubscribe.
+            </p>
+          </div>
+        `,
+      });
     }
 
     return json(res, { ok: true });

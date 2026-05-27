@@ -1,6 +1,6 @@
 import Stripe from 'stripe';
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-import { getServiceClient, readRawBody } from './_lib.js';
+import { getServiceClient, readRawBody, sendEmail } from './_lib.js';
 
 export const config = { api: { bodyParser: false } };
 
@@ -148,6 +148,34 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
             },
             { onConflict: 'user_id' },
           );
+          const customerEmail =
+            typeof session.customer_details?.email === 'string'
+              ? session.customer_details.email
+              : null;
+          if (customerEmail) {
+            await sendEmail({
+              to: customerEmail,
+              subject: `You're Founding Member #${seatNumber} — welcome to Skintel`,
+              html: `
+                <div style="font-family:sans-serif;max-width:520px;margin:0 auto;color:#1a1a1a">
+                  <h2 style="font-size:24px;margin-bottom:8px">You're in. Welcome, Founding Member #${seatNumber}.</h2>
+                  <p style="color:#555;line-height:1.6">
+                    Your account now has 6 months of Skintel Pro — ingredient scanning, conflict detection, personalized routine builder, everything.
+                  </p>
+                  <p style="color:#555;line-height:1.6">
+                    No subscription. No auto-renew. You're locked in before the iOS launch.
+                  </p>
+                  <a href="https://skinstel.com/app" style="display:inline-block;margin-top:16px;background:#A35848;color:#fff;padding:12px 28px;border-radius:8px;text-decoration:none;font-weight:600;">
+                    Open Skintel
+                  </a>
+                  <p style="margin-top:32px;color:#999;font-size:12px;">
+                    Skintel · skinstel.com<br>
+                    Questions? Reply to this email.
+                  </p>
+                </div>
+              `,
+            });
+          }
         }
         break;
       }
