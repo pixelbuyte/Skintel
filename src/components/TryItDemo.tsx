@@ -243,7 +243,12 @@ export function TryItDemo() {
             <div className="mt-7 space-y-3">
               <ResultReveal delay={0} variant="verdict">
                 <div className={`transition-all duration-700 ${verdictGlow ? 'verdict-glow' : ''}`}>
-                  <VerdictCard verdict={result.verdict} />
+                  <VerdictCard
+                    verdict={result.verdict}
+                    goodCount={result.buckets.good.length}
+                    badCount={result.buckets.watchOut.length}
+                    totalCount={result.count}
+                  />
                 </div>
               </ResultReveal>
               {result.buckets.watchOut.length > 0 && (
@@ -258,8 +263,13 @@ export function TryItDemo() {
               )}
               {result.buckets.rest.length > 0 && (
                 <ResultReveal delay={360}>
-                  <div className="text-xs text-muted px-1">
-                    + {result.buckets.rest.length} more ingredients in everything else
+                  <div className="flex items-center gap-2 px-1">
+                    <span className="flex-1 h-px bg-border" />
+                    <span className="inline-flex items-center gap-1.5 text-[11px] font-mono text-muted border border-border rounded-full px-3 py-1">
+                      <span className="size-1.5 rounded-full bg-muted/40" />
+                      {result.buckets.rest.length} more · no known issues
+                    </span>
+                    <span className="flex-1 h-px bg-border" />
                   </div>
                 </ResultReveal>
               )}

@@ -2,6 +2,7 @@ import { Link } from 'react-router-dom';
 import { useEffect, useState } from 'react';
 import {
   ArrowRight,
+  AlertTriangle,
   ChevronDown,
   ScanLine,
   ShieldCheck,
@@ -1422,34 +1423,188 @@ function BigDemo({ kind }: { kind: DemoKey }) {
           <div className="text-sm text-muted text-center max-w-[28ch]">Your full history, downloadable anytime</div>
         </div>
       );
-    case 'infinity':
+    case 'infinity': {
+      const visibleCount = Math.min((tick % 8) + 1, 6);
+      const products = [
+        { name: 'CeraVe Moisturizing Cream', verdict: 'safe', safe: true },
+        { name: 'The Ordinary Niacinamide', verdict: 'safe', safe: true },
+        { name: 'Glow Recipe Watermelon', verdict: 'skip', safe: false },
+        { name: 'Drunk Elephant B-Hydra', verdict: 'skip', safe: false },
+        { name: 'Cosrx Snail 96 Essence', verdict: 'safe', safe: true },
+        { name: 'La Roche-Posay Toleriane', verdict: 'safe', safe: true },
+      ];
       return (
-        <div className="flex flex-col items-center gap-4">
-          <div className="font-display text-[120px] text-primary leading-none" style={{ animation: 'demoPulse 1.6s ease-in-out infinite', textShadow: '0 0 40px rgba(163,88,72,0.5)' }}>
-            ∞
-          </div>
-          <div className="font-mono text-xs uppercase tracking-[0.2em] text-muted">No product limit</div>
-        </div>
-      );
-    case 'scan':
-      return (
-        <div className="flex flex-col items-center gap-4">
-          <div className="relative w-56 h-24 rounded-lg bg-ink overflow-hidden">
-            <div className="absolute inset-3 flex items-end gap-[2px]">
-              {[3, 1, 4, 2, 1, 5, 1, 3, 2, 4, 1, 2, 5, 1, 3, 2, 1, 4, 2, 1, 3, 2, 4, 1].map((w, i) => (
-                <span key={i} className="bg-bg h-full" style={{ width: w }} />
-              ))}
+        <div className="w-full max-w-[300px] mx-auto">
+          <div className="flex items-center justify-between mb-2.5">
+            <div className="font-mono text-[10px] text-muted uppercase tracking-wider">Your library</div>
+            <div className="flex items-baseline gap-1">
+              <span className="font-display text-xl text-primary tabular-nums" style={{ textShadow: '0 0 16px rgba(163,88,72,0.5)' }}>{visibleCount}</span>
+              <span className="font-mono text-[10px] text-primary/40">/ ∞</span>
             </div>
-            <div
-              aria-hidden
-              className="absolute inset-x-0 h-1.5 bg-primary shadow-[0_0_20px_rgba(163,88,72,1)]"
-              style={{ animation: 'sceneScan 1.6s ease-in-out infinite' }}
-            />
           </div>
-          <div className="font-mono text-xs text-muted">8 904781 234567</div>
-          <div className="font-mono text-xs uppercase tracking-[0.2em] text-primary">EAN-13 detected</div>
+          <div className="space-y-1.5">
+            {products.slice(0, visibleCount).map((p, i) => (
+              <div
+                key={p.name}
+                className={`flex items-center gap-2.5 rounded-xl border px-3 py-2 ${p.safe ? 'bg-good-bg/30 border-good-fg/15' : 'bg-bad-bg/30 border-bad-fg/15'}`}
+                style={i === visibleCount - 1 ? { animation: 'cardSlide 320ms cubic-bezier(0.22,1,0.36,1) forwards' } : undefined}
+              >
+                <div className={`size-6 rounded-lg flex items-center justify-center text-[10px] shrink-0 ${p.safe ? 'bg-good-fg/15 text-good-fg' : 'bg-bad-fg/15 text-bad-fg'}`}>
+                  {p.safe ? '✓' : '!'}
+                </div>
+                <span className="font-mono text-[10px] flex-1 truncate">{p.name}</span>
+                <span className={`font-mono text-[8px] uppercase tracking-wider px-1.5 py-0.5 rounded ${p.safe ? 'text-good-fg bg-good-fg/10' : 'text-bad-fg bg-bad-fg/10'}`}>
+                  {p.verdict}
+                </span>
+              </div>
+            ))}
+          </div>
+          <div className="font-mono text-[10px] uppercase tracking-[0.2em] text-muted mt-3 text-center">
+            No product limit — ever
+          </div>
         </div>
       );
+    }
+    case 'scan': {
+      // 6 phases: 0-2 = barcode mode, 3-5 = photo OCR mode
+      const totalPhase = Math.floor(tick / 2) % 6;
+      const isOcrMode = totalPhase >= 3;
+      const scanPhase = totalPhase % 3; // 0=viewfinder, 1=processing, 2=results
+      const scanIngredients = [
+        { name: 'Aqua', safe: true }, { name: 'Glycerin', safe: true },
+        { name: 'Niacinamide', safe: true }, { name: 'Bisabolol', safe: false },
+        { name: 'Fragrance', safe: false },
+      ];
+      const ocrLines = ['Aqua, Glycerin, Niacinamide,', 'Bisabolol, Cetearyl Alcohol,', 'Fragrance, Panthenol...'];
+      return (
+        <div className="w-full max-w-[280px] mx-auto">
+          {/* mode toggle pill */}
+          <div className="flex items-center justify-center gap-1 mb-2">
+            <span className={`font-mono text-[9px] uppercase tracking-wider px-2.5 py-1 rounded-full transition-all duration-400 ${!isOcrMode ? 'bg-primary text-card' : 'text-muted'}`}>
+              Barcode
+            </span>
+            <span className="text-muted/40 text-[10px]">·</span>
+            <span className={`font-mono text-[9px] uppercase tracking-wider px-2.5 py-1 rounded-full transition-all duration-400 ${isOcrMode ? 'bg-primary text-card' : 'text-muted'}`}>
+              Photo OCR
+            </span>
+          </div>
+
+          <div
+            key={`scan-${isOcrMode}`}
+            className="relative rounded-2xl overflow-hidden border transition-all duration-500"
+            style={{
+              background: scanPhase === 0 ? '#060606' : 'var(--card)',
+              borderColor: scanPhase === 0 ? 'rgba(163,88,72,0.35)' : 'var(--border)',
+              height: 200,
+            }}
+          >
+            {/* ── BARCODE MODE ── */}
+            {!isOcrMode && scanPhase === 0 && (
+              <>
+                <svg className="absolute inset-6 pointer-events-none" viewBox="0 0 100 100" fill="none">
+                  <path d="M5 22 L5 5 L22 5" stroke="rgba(163,88,72,0.85)" strokeWidth="3" strokeLinecap="round" />
+                  <path d="M78 5 L95 5 L95 22" stroke="rgba(163,88,72,0.85)" strokeWidth="3" strokeLinecap="round" />
+                  <path d="M5 78 L5 95 L22 95" stroke="rgba(163,88,72,0.85)" strokeWidth="3" strokeLinecap="round" />
+                  <path d="M95 78 L95 95 L78 95" stroke="rgba(163,88,72,0.85)" strokeWidth="3" strokeLinecap="round" />
+                </svg>
+                <div className="absolute inset-x-8 top-1/2 -translate-y-1/2 flex items-end justify-center gap-[3px] h-12">
+                  {[2,1,3,1,2,4,1,2,3,1,4,2,1,3,2,1,3,1,2,4,1,2].map((w, i) => (
+                    <span key={i} className="rounded-[1px]" style={{ width: w * 2.5, height: '100%', background: 'rgba(255,255,255,0.12)' }} />
+                  ))}
+                </div>
+                <div aria-hidden className="absolute inset-x-0 h-0.5" style={{ background: 'rgba(163,88,72,0.9)', boxShadow: '0 0 14px 4px rgba(163,88,72,0.7)', animation: 'sceneScan 1.4s ease-in-out infinite' }} />
+                <div className="absolute bottom-3 inset-x-0 flex justify-center">
+                  <span className="font-mono text-[9px] uppercase tracking-widest text-primary/70 flex items-center gap-1.5">
+                    <span className="size-1.5 rounded-full bg-primary animate-ping" />
+                    Scan barcode
+                  </span>
+                </div>
+              </>
+            )}
+            {!isOcrMode && scanPhase === 1 && (
+              <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 p-4" style={{ animation: 'streamIn 300ms ease-out forwards' }}>
+                <div className="size-11 rounded-full bg-good-bg flex items-center justify-center">
+                  <Check size={22} className="text-good-fg" strokeWidth={3} />
+                </div>
+                <div className="font-display text-sm">Product found</div>
+                <div className="font-mono text-xs text-primary">CeraVe Moisturizing Cream</div>
+                <div className="font-mono text-[9px] text-muted">EAN · 8 904781 234567</div>
+                <div className="w-32 h-1 rounded-full bg-border overflow-hidden mt-1">
+                  <div className="h-full bg-primary rounded-full" style={{ animation: 'loadBar 0.7s ease-out forwards' }} />
+                </div>
+              </div>
+            )}
+
+            {/* ── PHOTO OCR MODE ── */}
+            {isOcrMode && scanPhase === 0 && (
+              <>
+                <svg className="absolute inset-6 pointer-events-none" viewBox="0 0 100 100" fill="none">
+                  <path d="M5 22 L5 5 L22 5" stroke="rgba(163,88,72,0.85)" strokeWidth="3" strokeLinecap="round" />
+                  <path d="M78 5 L95 5 L95 22" stroke="rgba(163,88,72,0.85)" strokeWidth="3" strokeLinecap="round" />
+                  <path d="M5 78 L5 95 L22 95" stroke="rgba(163,88,72,0.85)" strokeWidth="3" strokeLinecap="round" />
+                  <path d="M95 78 L95 95 L78 95" stroke="rgba(163,88,72,0.85)" strokeWidth="3" strokeLinecap="round" />
+                </svg>
+                {/* ingredient text visible in camera */}
+                <div className="absolute inset-8 flex flex-col justify-center gap-1.5">
+                  {ocrLines.map((line, i) => (
+                    <div key={i} className="font-mono text-[9px] text-white/30 leading-tight">{line}</div>
+                  ))}
+                </div>
+                {/* horizontal sweep line (text OCR style) */}
+                <div aria-hidden className="absolute inset-x-0 h-0.5" style={{ background: 'rgba(163,88,72,0.7)', boxShadow: '0 0 12px 3px rgba(163,88,72,0.5)', animation: 'sceneScan 1.6s ease-in-out infinite' }} />
+                <div className="absolute bottom-3 inset-x-0 flex justify-center">
+                  <span className="font-mono text-[9px] uppercase tracking-widest text-primary/70 flex items-center gap-1.5">
+                    <span className="size-1.5 rounded-full bg-primary animate-ping" />
+                    Reading label…
+                  </span>
+                </div>
+              </>
+            )}
+            {isOcrMode && scanPhase === 1 && (
+              <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 p-4" style={{ animation: 'streamIn 300ms ease-out forwards' }}>
+                <div className="size-11 rounded-full bg-primary/15 flex items-center justify-center text-primary">
+                  <ScanLine size={22} className="animate-pulse" />
+                </div>
+                <div className="font-display text-sm">Text extracted</div>
+                <div className="font-mono text-[9px] text-muted text-center max-w-[22ch]">Aqua, Glycerin, Niacinamide, Bisabolol…</div>
+                <div className="w-32 h-1 rounded-full bg-border overflow-hidden mt-1">
+                  <div className="h-full bg-primary rounded-full" style={{ animation: 'loadBar 0.9s ease-out forwards' }} />
+                </div>
+              </div>
+            )}
+
+            {/* ── SHARED RESULTS (phase 2) ── */}
+            {scanPhase === 2 && (
+              <div className="absolute inset-0 flex flex-col p-3 gap-1.5" style={{ animation: 'streamIn 250ms ease-out forwards' }}>
+                <div className="flex items-center justify-between mb-0.5">
+                  <div className="font-mono text-[9px] text-muted uppercase tracking-wider">{isOcrMode ? 'Label scan' : 'CeraVe Moisturizing'}</div>
+                  <div className="font-mono text-[8px] px-1.5 py-0.5 rounded bg-unsure-bg text-unsure-fg uppercase">Caution</div>
+                </div>
+                {scanIngredients.map((ing, i) => (
+                  <div
+                    key={ing.name}
+                    className={`flex items-center gap-2 rounded-md px-2 py-1 opacity-0 ${ing.safe ? 'bg-good-bg/30' : 'bg-bad-bg/40'}`}
+                    style={{ animation: `streamIn 240ms ease-out ${i * 70}ms forwards` }}
+                  >
+                    <span className={`size-1.5 rounded-full shrink-0 ${ing.safe ? 'bg-good-fg' : 'bg-bad-fg'}`} />
+                    <span className="font-mono text-[10px] flex-1">{ing.name}</span>
+                    {!ing.safe && <span className="font-mono text-[8px] text-bad-fg uppercase">trigger</span>}
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
+          <div className="font-mono text-[10px] uppercase tracking-[0.2em] text-muted mt-2.5 text-center">
+            {scanPhase === 0
+              ? isOcrMode ? 'Snap the ingredients list' : 'Point at any barcode'
+              : scanPhase === 1
+              ? isOcrMode ? 'AI reads the text' : 'Decoded in 0.3s'
+              : 'Full breakdown instantly'}
+          </div>
+        </div>
+      );
+    }
     case 'calendar': {
       const today = tick % 28;
       return (
@@ -1549,16 +1704,56 @@ function BigDemo({ kind }: { kind: DemoKey }) {
           <div className="font-mono text-xs uppercase tracking-[0.2em] text-muted">Row-level encrypted · never sold</div>
         </div>
       );
-    case 'sparkle':
+    case 'sparkle': {
+      const thinking = tick % 6 < 2;
+      const VERDICT_TEXT = 'Bisabolol triggered 3 of your last 5 flare-ups. This product contains it — skip.';
+      const revealPct = tick % 6 === 2 ? 0.35 : tick % 6 === 3 ? 0.7 : tick % 6 >= 4 ? 1 : 0;
+      const revealLen = Math.floor(VERDICT_TEXT.length * revealPct);
       return (
-        <div className="flex flex-col items-center gap-4">
-          <div className="relative size-24 rounded-2xl bg-primary/10 flex items-center justify-center text-primary" style={{ animation: 'demoSparkle 1.6s ease-in-out infinite' }}>
-            <Sparkles size={56} />
+        <div className="w-full max-w-[280px] mx-auto">
+          <div className="rounded-2xl bg-card border border-border p-4 shadow-soft">
+            <div className="flex items-center gap-2 mb-3">
+              <div className="size-7 rounded-full bg-primary/15 flex items-center justify-center text-primary shrink-0" style={thinking ? { animation: 'demoSparkle 1.2s ease-in-out infinite' } : undefined}>
+                <Sparkles size={13} />
+              </div>
+              <div className="font-display text-sm flex-1">AI Verdict</div>
+              {thinking ? (
+                <div className="flex gap-1">
+                  {[0, 1, 2].map((i) => (
+                    <span key={i} className="size-1.5 rounded-full bg-primary/60" style={{ animation: `dotBounce 0.9s ease-in-out ${i * 0.18}s infinite` }} />
+                  ))}
+                </div>
+              ) : revealPct >= 1 ? (
+                <span className="font-mono text-[8px] uppercase tracking-wider px-1.5 py-0.5 rounded bg-bad-bg text-bad-fg">Skip</span>
+              ) : null}
+            </div>
+            {thinking ? (
+              <div className="space-y-2">
+                <div className="h-2.5 rounded-full" style={{ background: 'rgba(163,88,72,0.1)', animation: 'shimmerLoad 1.1s ease-in-out infinite' }} />
+                <div className="h-2.5 rounded-full w-4/5" style={{ background: 'rgba(163,88,72,0.08)', animation: 'shimmerLoad 1.1s ease-in-out 0.15s infinite' }} />
+                <div className="h-2.5 rounded-full w-3/5" style={{ background: 'rgba(163,88,72,0.06)', animation: 'shimmerLoad 1.1s ease-in-out 0.3s infinite' }} />
+              </div>
+            ) : (
+              <div className="text-[11px] leading-relaxed text-ink/90 min-h-[52px]">
+                {VERDICT_TEXT.slice(0, revealLen)}
+                {revealPct < 1 && <span className="inline-block w-0.5 h-3 bg-primary ml-0.5 align-middle animate-pulse" />}
+              </div>
+            )}
+            {revealPct >= 1 && (
+              <div className="mt-3 pt-2 border-t border-border flex items-center gap-2">
+                <div className="size-5 rounded-full bg-bad-bg flex items-center justify-center shrink-0">
+                  <AlertTriangle size={10} className="text-bad-fg" />
+                </div>
+                <span className="font-mono text-[9px] text-bad-fg/80">2 triggers in your personal map</span>
+              </div>
+            )}
           </div>
-          <div className="font-display text-xl">AI verdict, every launch</div>
-          <div className="text-sm text-muted text-center max-w-[28ch]">New product drops? You'll know the verdict before the reviews</div>
+          <div className="font-mono text-[10px] uppercase tracking-[0.2em] text-muted mt-3 text-center">
+            Personalized to your trigger history
+          </div>
         </div>
       );
+    }
     case 'star':
       return (
         <div className="flex flex-col items-center gap-4">

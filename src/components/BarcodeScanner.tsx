@@ -50,45 +50,106 @@ function CameraView({
       setErr(msg);
     },
     constraints: {
-      video: { facingMode: 'environment' },
+      video: {
+        facingMode: { ideal: 'environment' },
+        width: { ideal: 1920 },
+        height: { ideal: 1080 },
+      },
       audio: false,
     },
   });
 
+  // Ensure video plays inline on iOS and uses center positioning
+  useEffect(() => {
+    const el = ref.current as HTMLVideoElement | null;
+    if (!el) return;
+    el.setAttribute('playsinline', 'true');
+    el.setAttribute('webkit-playsinline', 'true');
+    el.muted = true;
+    el.autoplay = true;
+  }, [ref]);
+
   return (
-    <div className="fixed inset-0 z-[60] bg-black flex flex-col" style={{ paddingTop: 'env(safe-area-inset-top)', paddingBottom: 'env(safe-area-inset-bottom)' }}>
-      <div className="flex justify-between items-center p-4 text-white">
-        <span className="font-display text-lg">Scan barcode</span>
+    <div className="fixed inset-0 z-[60] bg-black overflow-hidden">
+      {/* Full-screen camera feed */}
+      <video
+        ref={ref}
+        autoPlay
+        playsInline
+        muted
+        className="absolute inset-0 w-full h-full object-cover"
+        style={{ objectPosition: 'center center' }}
+      />
+
+      {/* Dark vignette outside viewfinder for focus */}
+      <div className="absolute inset-0 pointer-events-none" style={{ background: 'radial-gradient(ellipse at center, transparent 30%, rgba(0,0,0,0.55) 80%)' }} />
+
+      {/* Top bar overlay */}
+      <div
+        className="absolute top-0 left-0 right-0 z-10 flex justify-between items-center px-4 py-3 text-white"
+        style={{
+          paddingTop: 'calc(env(safe-area-inset-top) + 12px)',
+          background: 'linear-gradient(to bottom, rgba(0,0,0,0.6), transparent)',
+        }}
+      >
+        <span className="font-display text-lg drop-shadow">Scan barcode</span>
         <button
           onClick={onClose}
-          className="p-2 -m-2 min-h-11 min-w-11 inline-flex items-center justify-center rounded-full hover:bg-white/10 active:scale-95 transition-transform"
+          className="p-2 -m-2 min-h-11 min-w-11 inline-flex items-center justify-center rounded-full bg-black/30 hover:bg-black/50 active:scale-95 transition-transform backdrop-blur-sm"
           aria-label="Close scanner"
         >
-          <X size={24} />
+          <X size={22} />
         </button>
       </div>
-      <div className="flex-1 flex items-center justify-center p-4">
-        <div className="relative w-full max-w-md aspect-[4/3] bg-black rounded-3xl overflow-hidden shadow-sheet">
-          <video ref={ref} className="w-full h-full object-cover" />
-          <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-            <div className="relative w-3/4 h-1/3">
-              <div className="absolute inset-0 rounded-2xl border-2 border-white/90 animate-pulse" />
-              <div className="absolute -top-1 -left-1 w-6 h-6 border-t-2 border-l-2 border-primary rounded-tl-2xl" />
-              <div className="absolute -top-1 -right-1 w-6 h-6 border-t-2 border-r-2 border-primary rounded-tr-2xl" />
-              <div className="absolute -bottom-1 -left-1 w-6 h-6 border-b-2 border-l-2 border-primary rounded-bl-2xl" />
-              <div className="absolute -bottom-1 -right-1 w-6 h-6 border-b-2 border-r-2 border-primary rounded-br-2xl" />
-            </div>
-          </div>
+
+      {/* Viewfinder centered */}
+      <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+        <div className="relative w-[78%] max-w-sm" style={{ aspectRatio: '5 / 3' }}>
+          {/* corner brackets only — no full border (less obstructive) */}
+          <div className="absolute -top-1 -left-1 w-8 h-8 border-t-[3px] border-l-[3px] border-white/95 rounded-tl-2xl" style={{ boxShadow: '0 0 10px rgba(255,255,255,0.4)' }} />
+          <div className="absolute -top-1 -right-1 w-8 h-8 border-t-[3px] border-r-[3px] border-white/95 rounded-tr-2xl" style={{ boxShadow: '0 0 10px rgba(255,255,255,0.4)' }} />
+          <div className="absolute -bottom-1 -left-1 w-8 h-8 border-b-[3px] border-l-[3px] border-white/95 rounded-bl-2xl" style={{ boxShadow: '0 0 10px rgba(255,255,255,0.4)' }} />
+          <div className="absolute -bottom-1 -right-1 w-8 h-8 border-b-[3px] border-r-[3px] border-white/95 rounded-br-2xl" style={{ boxShadow: '0 0 10px rgba(255,255,255,0.4)' }} />
+
+          {/* sweeping laser line */}
+          <div
+            className="absolute inset-x-4 h-0.5 rounded-full"
+            style={{
+              background: 'rgba(163,88,72,0.95)',
+              boxShadow: '0 0 14px 4px rgba(163,88,72,0.7)',
+              animation: 'bcScan 1.6s ease-in-out infinite',
+            }}
+          />
         </div>
       </div>
-      {err && (
-        <div className="text-sm text-red-300 bg-red-900/50 mx-4 mb-4 px-3 py-2 rounded-xl">
-          {err}
-        </div>
-      )}
-      <p className="text-white/70 text-xs text-center pb-6 px-4">
-        Center the barcode in the frame.
-      </p>
+
+      {/* Bottom hint + error overlay */}
+      <div
+        className="absolute bottom-0 left-0 right-0 z-10 px-6 pt-8 pb-6 text-center text-white"
+        style={{
+          paddingBottom: 'calc(env(safe-area-inset-bottom) + 20px)',
+          background: 'linear-gradient(to top, rgba(0,0,0,0.6), transparent)',
+        }}
+      >
+        {err ? (
+          <div className="text-sm text-red-300 bg-red-900/60 mx-auto inline-block px-3 py-2 rounded-xl backdrop-blur-sm">
+            {err}
+          </div>
+        ) : (
+          <p className="text-white/90 text-sm font-medium drop-shadow">
+            Center the barcode inside the frame
+          </p>
+        )}
+      </div>
+
+      <style>{`
+        @keyframes bcScan {
+          0%   { top: 8%;  opacity: 0.0; }
+          15%  { opacity: 1; }
+          85%  { opacity: 1; }
+          100% { top: 92%; opacity: 0.0; }
+        }
+      `}</style>
     </div>
   );
 }
