@@ -2239,6 +2239,67 @@ export default function Landing() {
         </div>
       </section>
 
+      {/* ── INGREDIENT REALITY STRIP ── */}
+      <section className="py-16 md:py-24 px-6 bg-bg">
+        <div className="max-w-6xl mx-auto">
+          <FadeUp>
+            <div className="inline-flex items-center gap-2 text-[11px] uppercase tracking-[0.22em] text-muted font-semibold mb-8">
+              <span className="h-px w-8 bg-border" /> Ingredient reality check
+            </div>
+          </FadeUp>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {[
+              {
+                pct: '67%',
+                fact: 'of skincare products contain fragrance',
+                context: 'It\'s the #1 cause of allergic contact dermatitis in the US — and it hides under 50+ different names on labels.',
+                tone: 'bad',
+              },
+              {
+                pct: '40%+',
+                fact: 'of "natural" products contain coconut-derived ingredients',
+                context: 'Coconut alkanes, coco-caprylate, caprylic/capric triglyceride — all comedogenic for many skin types. All marketed as gentle.',
+                tone: 'bad',
+              },
+              {
+                pct: '6 weeks',
+                fact: 'average time to notice a skin reaction',
+                context: 'By the time you realize something\'s wrong, you\'ve usually added 2–3 more products. Now you don\'t know which one did it.',
+                tone: 'bad',
+              },
+              {
+                pct: '12+',
+                fact: 'names parabens can appear under on a single label',
+                context: 'Methylparaben, ethylparaben, propylparaben, butylparaben — same family, different names. Easy to miss if you\'re not tracking.',
+                tone: 'neutral',
+              },
+              {
+                pct: '85%',
+                fact: 'of breakout cases involve an ingredient the person already owned',
+                context: 'It\'s rarely the new product. It\'s the old one you never questioned — used daily, assumed safe.',
+                tone: 'bad',
+              },
+              {
+                pct: '0',
+                fact: 'FDA-required compatibility testing between skincare products',
+                context: 'Brands test their products alone. Nobody tests what happens when you layer 5 of them. Your skin does that experiment every morning.',
+                tone: 'neutral',
+              },
+            ].map((item, i) => (
+              <FadeUp key={item.pct + i} delay={i * 60}>
+                <div className={`card p-6 h-full flex flex-col gap-3 border-l-2 ${item.tone === 'bad' ? 'border-l-bad-fg/50' : 'border-l-border'}`}>
+                  <span className={`font-display text-4xl tabular-nums ${item.tone === 'bad' ? 'text-bad-fg' : 'text-muted'}`}>
+                    {item.pct}
+                  </span>
+                  <p className="font-medium text-sm leading-snug">{item.fact}</p>
+                  <p className="text-xs text-muted leading-relaxed mt-auto">{item.context}</p>
+                </div>
+              </FadeUp>
+            ))}
+          </div>
+        </div>
+      </section>
+
       <section
         aria-label="Ingredients ticker"
         className="border-y border-border bg-card/40 overflow-hidden"
