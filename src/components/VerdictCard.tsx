@@ -9,13 +9,13 @@ const TONE: Record<Verdict['tone'], {
   statBorder: string;
 }> = {
   good: {
-    ringColor: '#2D6A2E', ringGlow: 'rgba(45,106,46,0.35)',
-    trackColor: 'rgba(45,106,46,0.08)',
-    bgGrad: 'linear-gradient(135deg, #E8F5E2 0%, #FFFEFA 55%)',
-    border: 'rgba(45,106,46,0.20)',
-    shimmer: 'rgba(45,106,46,0.10)',
-    labelFg: '#2D6A2E', labelBg: 'rgba(45,106,46,0.10)',
-    statBorder: 'rgba(45,106,46,0.15)',
+    ringColor: '#5C7A4F', ringGlow: 'rgba(92,122,79,0.35)',
+    trackColor: 'rgba(92,122,79,0.08)',
+    bgGrad: 'linear-gradient(135deg, #EEF2DD 0%, #FFFEFA 55%)',
+    border: 'rgba(92,122,79,0.20)',
+    shimmer: 'rgba(92,122,79,0.10)',
+    labelFg: '#5C7A4F', labelBg: 'rgba(92,122,79,0.10)',
+    statBorder: 'rgba(92,122,79,0.15)',
   },
   caution: {
     ringColor: '#8B6914', ringGlow: 'rgba(139,105,20,0.30)',
@@ -215,7 +215,7 @@ export function VerdictCard({
             <div className="flex items-center gap-4 shrink-0 text-xs">
               {goodCount > 0 && (
                 <span className="flex items-center gap-1.5">
-                  <span className="size-2 rounded-full bg-good-fg" style={{ boxShadow: '0 0 5px rgba(45,106,46,0.5)' }} />
+                  <span className="size-2 rounded-full bg-good-fg" style={{ boxShadow: '0 0 5px rgba(92,122,79,0.5)' }} />
                   <span className="font-mono font-bold text-good-fg tabular-nums"><AnimCount to={goodCount} delay={480} /></span>
                   <span className="text-muted">safe</span>
                 </span>

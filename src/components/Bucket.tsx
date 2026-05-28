@@ -15,14 +15,14 @@ const CFG: Record<Tone, {
   headerAccent: string;
 }> = {
   good: {
-    accentColor: '#2D6A2E',
-    accentGlow: 'rgba(45,106,46,0.25)',
+    accentColor: '#5C7A4F',
+    accentGlow: 'rgba(92,122,79,0.25)',
     leftGrad: 'rgba(232,245,226,0.7)',
-    iconBg: 'rgba(45,106,46,0.10)', iconFg: '#2D6A2E',
-    badgeBg: '#E8F5E2', badgeFg: '#2D6A2E',
-    cardBorder: 'rgba(45,106,46,0.18)',
+    iconBg: 'rgba(92,122,79,0.10)', iconFg: '#5C7A4F',
+    badgeBg: '#EEF2DD', badgeFg: '#5C7A4F',
+    cardBorder: 'rgba(92,122,79,0.18)',
     headerCls: 'text-good-fg',
-    headerAccent: '#2D6A2E',
+    headerAccent: '#5C7A4F',
   },
   bad: {
     accentColor: '#B22B2B',
