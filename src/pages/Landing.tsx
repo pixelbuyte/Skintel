@@ -2172,6 +2172,73 @@ export default function Landing() {
         </FadeUp>
       </section>
 
+      {/* ── STATS / FEAR SECTION ── */}
+      <section className="py-20 md:py-32 px-6 border-y border-border bg-card/20">
+        <div className="max-w-6xl mx-auto">
+          <FadeUp>
+            <div className="inline-flex items-center gap-2 text-[11px] uppercase tracking-[0.22em] text-primary font-semibold mb-6">
+              <span className="h-px w-8 bg-primary/40" /> The problem nobody talks about
+            </div>
+            <h2 className="font-display text-4xl md:text-6xl leading-[0.95] tracking-tight mb-4 max-w-3xl">
+              Your skin isn't broken.<br />
+              <span className="text-primary italic">Your routine is fighting itself.</span>
+            </h2>
+            <p className="text-muted text-lg max-w-2xl mb-16">
+              Most people spend years switching products, cutting out actives, going fragrance-free — and still breaking out. The real culprit is almost always one ingredient hiding across multiple products.
+            </p>
+          </FadeUp>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-16">
+            {[
+              {
+                stat: '50M',
+                label: 'Americans deal with acne every year',
+                sub: 'American Academy of Dermatology',
+                color: 'text-bad-fg',
+              },
+              {
+                stat: '168',
+                label: 'Unique ingredients the average person applies daily',
+                sub: 'Across cleanser, toner, serum, moisturizer, SPF',
+                color: 'text-primary',
+              },
+              {
+                stat: '$400+',
+                label: 'Spent on products that don\'t work before finding what does',
+                sub: 'U.S. skincare consumer survey avg.',
+                color: 'text-bad-fg',
+              },
+              {
+                stat: '1 in 3',
+                label: 'People can\'t identify which product caused their reaction',
+                sub: 'Because the same ingredient is in multiple products',
+                color: 'text-primary',
+              },
+            ].map((s) => (
+              <FadeUp key={s.stat}>
+                <div className="card p-6 h-full flex flex-col gap-3">
+                  <span className={`font-display text-5xl md:text-6xl tabular-nums ${s.color}`}>{s.stat}</span>
+                  <p className="text-sm font-medium leading-snug">{s.label}</p>
+                  <p className="text-xs text-muted mt-auto">{s.sub}</p>
+                </div>
+              </FadeUp>
+            ))}
+          </div>
+
+          <FadeUp>
+            <div className="card p-8 md:p-12 border-primary/20 bg-primary/5 max-w-4xl">
+              <p className="font-display text-2xl md:text-3xl leading-snug mb-4">
+                "The average breakout product and the average 'safe' product share <span className="text-primary">12 ingredients in common</span> — which means without tracking, you'll never find the one that's actually doing it."
+              </p>
+              <p className="text-muted text-sm">That's what Skintel solves. Not with generic databases. With <strong>your</strong> data.</p>
+              <Link to="/login" className="btn-primary inline-flex items-center gap-2 mt-6">
+                Start tracking free <ArrowRight size={14} />
+              </Link>
+            </div>
+          </FadeUp>
+        </div>
+      </section>
+
       <section
         aria-label="Ingredients ticker"
         className="border-y border-border bg-card/40 overflow-hidden"
