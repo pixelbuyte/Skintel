@@ -22,6 +22,8 @@ export function TryItDemo() {
   const [scanning, setScanning] = useState(false);
   const [showResult, setShowResult] = useState(false);
   const [typingSample, setTypingSample] = useState(false);
+  const [scanCount, setScanCount] = useState(0);
+  const [verdictGlow, setVerdictGlow] = useState(false);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
   const result = useMemo(() => {
@@ -36,11 +38,23 @@ export function TryItDemo() {
   function triggerScan(value: string) {
     setAnalyzed(null);
     setShowResult(false);
+    setVerdictGlow(false);
+    setScanCount(0);
     setScanning(true);
+    const total = value.split(',').length;
+    let c = 0;
+    const countUp = window.setInterval(() => {
+      c = Math.min(c + Math.ceil(total / 12), total);
+      setScanCount(c);
+      if (c >= total) window.clearInterval(countUp);
+    }, 80);
     window.setTimeout(() => {
+      window.clearInterval(countUp);
+      setScanCount(total);
       setAnalyzed(value);
       setScanning(false);
       setShowResult(true);
+      window.setTimeout(() => setVerdictGlow(true), 200);
     }, 1100);
   }
 
@@ -167,9 +181,19 @@ export function TryItDemo() {
                 className="pointer-events-none absolute inset-0 rounded-xl overflow-hidden"
               >
                 <div
-                  className="absolute inset-x-0 h-12 bg-gradient-to-b from-transparent via-primary/30 to-transparent"
+                  className="absolute inset-x-0 h-16 bg-gradient-to-b from-transparent via-primary/40 to-transparent"
                   style={{ animation: 'scanline 1.1s ease-in-out forwards' }}
                 />
+                <div
+                  className="absolute inset-x-0 h-8 bg-gradient-to-b from-transparent via-primary/20 to-transparent"
+                  style={{ animation: 'scanline 1.1s ease-in-out forwards', animationDelay: '0.15s' }}
+                />
+              </div>
+            )}
+            {scanning && (
+              <div className="absolute bottom-2 right-3 flex items-center gap-1.5 text-[10px] font-mono text-primary animate-pulse">
+                <span className="size-1.5 rounded-full bg-primary animate-ping" />
+                Parsing {scanCount} ingredients…
               </div>
             )}
           </div>
@@ -217,8 +241,10 @@ export function TryItDemo() {
 
           {result && showResult && (
             <div className="mt-7 space-y-3">
-              <ResultReveal delay={0}>
-                <VerdictCard verdict={result.verdict} />
+              <ResultReveal delay={0} variant="verdict">
+                <div className={`transition-all duration-700 ${verdictGlow ? 'verdict-glow' : ''}`}>
+                  <VerdictCard verdict={result.verdict} />
+                </div>
               </ResultReveal>
               {result.buckets.watchOut.length > 0 && (
                 <ResultReveal delay={120}>
@@ -278,20 +304,36 @@ export function TryItDemo() {
           100% { transform: translateY(800%); opacity: 0; }
         }
         @keyframes resultReveal {
-          0% { opacity: 0; transform: translateY(14px) scale(0.985); }
+          0% { opacity: 0; transform: translateY(18px) scale(0.97); filter: blur(4px); }
+          60% { filter: blur(0); }
+          100% { opacity: 1; transform: translateY(0) scale(1); filter: blur(0); }
+        }
+        @keyframes verdictPop {
+          0% { opacity: 0; transform: translateY(10px) scale(0.94); filter: blur(6px); }
+          55% { transform: translateY(-3px) scale(1.015); filter: blur(0); }
+          75% { transform: translateY(1px) scale(0.998); }
           100% { opacity: 1; transform: translateY(0) scale(1); }
         }
-        .result-reveal { animation: resultReveal 600ms cubic-bezier(0.22,1,0.36,1) both; }
+        @keyframes glowPulse {
+          0%, 100% { box-shadow: 0 0 0 0 rgba(163,88,72,0); }
+          50% { box-shadow: 0 0 32px 4px rgba(163,88,72,0.35); }
+        }
+        .result-reveal { animation: resultReveal 550ms cubic-bezier(0.22,1,0.36,1) both; }
+        .result-reveal-verdict { animation: verdictPop 700ms cubic-bezier(0.22,1,0.36,1) both; }
+        .verdict-glow { animation: glowPulse 1.2s ease-in-out 1; border-radius: 12px; }
       `}</style>
     </div>
   );
 }
 
-function ResultReveal({ children, delay = 0 }: { children: React.ReactNode; delay?: number }) {
+function ResultReveal({ children, delay = 0, variant = 'default' }: { children: React.ReactNode; delay?: number; variant?: 'default' | 'verdict' }) {
   const [shown, setShown] = useState(false);
   useEffect(() => {
     const t = window.setTimeout(() => setShown(true), delay);
     return () => window.clearTimeout(t);
   }, [delay]);
-  return <div className={shown ? 'result-reveal' : 'opacity-0'}>{children}</div>;
+  const cls = shown
+    ? variant === 'verdict' ? 'result-reveal-verdict' : 'result-reveal'
+    : 'opacity-0 pointer-events-none';
+  return <div className={cls}>{children}</div>;
 }
