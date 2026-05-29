@@ -96,7 +96,10 @@ Return strict JSON only. No prose.`;
       max_tokens: 8192,
       system,
       messages: [{ role: 'user', content: userMsg }],
-    });
+      // Opus 4.8 fast mode: 2.5x output tokens/sec at premium pricing.
+      // Justified for verdict latency — users wait on this in scanner UI.
+      speed: 'fast',
+    } as any);
 
     const text = resp.content
       .filter((b): b is Anthropic.TextBlock => b.type === 'text')
