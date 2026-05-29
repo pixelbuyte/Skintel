@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useLocation, useNavigate, Link } from 'react-router-dom';
-import { ArrowLeft, ChevronDown, Sparkles, Loader2 } from 'lucide-react';
+import { ArrowLeft, ChevronDown, Sparkles, Loader2, Sun, Moon } from 'lucide-react';
 import { useProducts } from '@/hooks/useProducts';
 import { useSubscription } from '@/hooks/useSubscription';
 import { useCulprits } from '@/hooks/useCulprits';
@@ -9,6 +9,29 @@ import type { Outcome } from '@/lib/types';
 import { PaywallBanner } from '@/components/PaywallBanner';
 import { ScanResult } from '@/components/ScanResult';
 import { supabase } from '@/lib/supabase';
+
+const ROUTINE_KEY = 'skintel:routine:v1';
+
+const VERDICT_LABEL: Record<'clean' | 'caution' | 'avoid', { short: string; tag: string }> = {
+  clean:   { short: 'Good',    tag: 'safe to use daily' },
+  caution: { short: 'Caution', tag: 'use with care — has risks' },
+  avoid:   { short: 'Skip',    tag: 'do not use — high risk for your skin' },
+};
+
+function addProductToRoutine(productId: string, slot: 'am' | 'pm') {
+  try {
+    const raw = localStorage.getItem(ROUTINE_KEY);
+    const obj = raw ? (JSON.parse(raw) as { am?: string[]; pm?: string[]; name?: string; savedAt?: number }) : {};
+    const am = Array.isArray(obj.am) ? obj.am : [];
+    const pm = Array.isArray(obj.pm) ? obj.pm : [];
+    if (slot === 'am' && !am.includes(productId)) am.push(productId);
+    if (slot === 'pm' && !pm.includes(productId)) pm.push(productId);
+    localStorage.setItem(
+      ROUTINE_KEY,
+      JSON.stringify({ am, pm, name: obj.name ?? 'My routine', savedAt: Date.now() }),
+    );
+  } catch {}
+}
 
 type PrefillState = {
   prefill?: {
@@ -127,8 +150,7 @@ export default function AddProduct() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [ingredientsRaw, culpritMap]);
 
-  async function submit(e: React.FormEvent) {
-    e.preventDefault();
+  async function doSave(routineSlot?: 'am' | 'pm') {
     setErr(null);
     if (atCap) {
       setErr('Free plan limit reached. Upgrade to add more products.');
@@ -141,7 +163,7 @@ export default function AddProduct() {
     }
     setSubmitting(true);
     try {
-      await addProduct({
+      const savedId = await addProduct({
         brand: brand.trim() || null,
         product_name: productName.trim(),
         category: category.trim() || null,
@@ -149,7 +171,12 @@ export default function AddProduct() {
         notes: notes.trim() || null,
         ingredients: parsed,
       });
-      nav('/app/products');
+      if (routineSlot && savedId) {
+        addProductToRoutine(savedId, routineSlot);
+        nav('/app/routine');
+      } else {
+        nav('/app/products');
+      }
     } catch (e: any) {
       if (e?.message?.includes('FREE_PLAN_LIMIT')) {
         setErr('Free plan limit reached. Upgrade to add more products.');
@@ -159,6 +186,11 @@ export default function AddProduct() {
     } finally {
       setSubmitting(false);
     }
+  }
+
+  function submit(e: React.FormEvent) {
+    e.preventDefault();
+    void doSave();
   }
 
   if (atCap) {
@@ -224,30 +256,62 @@ export default function AddProduct() {
               <span className="font-display text-2xl">AI insight</span>
               {aiLoading && (
                 <span className="inline-flex items-center gap-1.5 text-xs text-muted ml-2">
-                  <Loader2 size={12} className="animate-spin" /> Opus 4.8 analyzing…
+                  <Loader2 size={12} className="animate-spin" /> Analyzing…
                 </span>
               )}
-              {ai && (
-                <>
-                  <span
-                    className={`text-xs font-mono px-2.5 py-1 rounded-full border ${
+            </div>
+
+            {/* Hero verdict band — short label + score, prominent */}
+            {ai && (
+              <div
+                className={`mb-4 rounded-xl px-4 py-3 flex items-center gap-3 border ${
+                  ai.verdict === 'clean'
+                    ? 'bg-good-bg border-good-fg/25'
+                    : ai.verdict === 'caution'
+                    ? 'bg-unsure-bg border-unsure-fg/25'
+                    : 'bg-bad-bg border-bad-fg/25'
+                }`}
+              >
+                <div
+                  className={`font-display text-3xl leading-none ${
+                    ai.verdict === 'clean'
+                      ? 'text-good-fg'
+                      : ai.verdict === 'caution'
+                      ? 'text-unsure-fg'
+                      : 'text-bad-fg'
+                  }`}
+                >
+                  {VERDICT_LABEL[ai.verdict].short}
+                </div>
+                <div className="flex-1 min-w-0">
+                  <div
+                    className={`text-xs uppercase tracking-[0.18em] font-bold ${
                       ai.verdict === 'clean'
-                        ? 'bg-good-bg text-good-fg border-good-fg/30'
+                        ? 'text-good-fg'
                         : ai.verdict === 'caution'
-                        ? 'bg-unsure-bg text-unsure-fg border-unsure-fg/30'
-                        : 'bg-bad-bg text-bad-fg border-bad-fg/30'
+                        ? 'text-unsure-fg'
+                        : 'text-bad-fg'
                     }`}
                   >
-                    {ai.verdict.toUpperCase()}
-                  </span>
-                  {typeof ai.score === 'number' && (
-                    <span className="text-xs font-mono px-2.5 py-1 rounded-full bg-card border border-border">
-                      {ai.score}/100
-                    </span>
-                  )}
-                </>
-              )}
-            </div>
+                    {VERDICT_LABEL[ai.verdict].tag}
+                  </div>
+                </div>
+                {typeof ai.score === 'number' && (
+                  <div
+                    className={`text-right shrink-0 ${
+                      ai.verdict === 'clean'
+                        ? 'text-good-fg'
+                        : ai.verdict === 'caution'
+                        ? 'text-unsure-fg'
+                        : 'text-bad-fg'
+                    }`}
+                  >
+                    <div className="font-display text-3xl leading-none tabular-nums">{ai.score}</div>
+                    <div className="text-[10px] uppercase tracking-wider opacity-75">score</div>
+                  </div>
+                )}
+              </div>
+            )}
 
             {aiLoading && !ai && (
               <div className="space-y-2 animate-pulse">
@@ -355,11 +419,31 @@ export default function AddProduct() {
 
         {err && <div className="text-sm text-bad-fg">{err}</div>}
 
-        <div className="flex gap-2">
-          <button className="btn-primary" disabled={submitting}>
-            {submitting ? 'Saving…' : 'Save product'}
-          </button>
-          <Link to="/app/products" className="btn-secondary">Cancel</Link>
+        <div className="space-y-2">
+          <div className="flex gap-2 flex-wrap">
+            <button className="btn-primary" disabled={submitting}>
+              {submitting ? 'Saving…' : 'Save product'}
+            </button>
+            <Link to="/app/products" className="btn-secondary">Cancel</Link>
+          </div>
+          <div className="flex gap-2 flex-wrap">
+            <button
+              type="button"
+              disabled={submitting}
+              onClick={() => doSave('am')}
+              className="btn-secondary inline-flex items-center gap-1.5 disabled:opacity-60"
+            >
+              <Sun size={14} /> Save + add to AM routine
+            </button>
+            <button
+              type="button"
+              disabled={submitting}
+              onClick={() => doSave('pm')}
+              className="btn-secondary inline-flex items-center gap-1.5 disabled:opacity-60"
+            >
+              <Moon size={14} /> Save + add to PM routine
+            </button>
+          </div>
         </div>
       </form>
     </div>
