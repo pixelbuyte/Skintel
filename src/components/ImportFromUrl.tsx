@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { Loader2 } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 
@@ -12,26 +12,34 @@ type Props = {
   onImported: (data: ImportedData) => void;
 };
 
+function isValidUrl(s: string): boolean {
+  try {
+    const u = new URL(s);
+    return u.protocol === 'http:' || u.protocol === 'https:';
+  } catch {
+    return false;
+  }
+}
+
 export default function ImportFromUrl({ onImported }: Props) {
   const [url, setUrl] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const lastImportedRef = useRef<string>('');
 
-  async function handleImport(e?: React.FormEvent) {
-    if (e) e.preventDefault();
+  async function runImport(target: string) {
     setError(null);
-    const trimmed = url.trim();
+    const trimmed = target.trim();
     if (!trimmed) {
       setError('Enter a product URL.');
       return;
     }
-    try {
-      // eslint-disable-next-line no-new
-      new URL(trimmed);
-    } catch {
+    if (!isValidUrl(trimmed)) {
       setError('That does not look like a valid URL.');
       return;
     }
+    if (loading || lastImportedRef.current === trimmed) return;
+    lastImportedRef.current = trimmed;
 
     setLoading(true);
     try {
@@ -85,6 +93,33 @@ export default function ImportFromUrl({ onImported }: Props) {
     }
   }
 
+  function handleImport(e?: React.FormEvent) {
+    if (e) e.preventDefault();
+    void runImport(url);
+  }
+
+  function handlePaste(e: React.ClipboardEvent<HTMLInputElement>) {
+    const pasted = e.clipboardData.getData('text').trim();
+    if (isValidUrl(pasted)) {
+      e.preventDefault();
+      setUrl(pasted);
+      // fire immediately on paste
+      void runImport(pasted);
+    }
+  }
+
+  function handleChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const v = e.target.value;
+    setUrl(v);
+    // if user typed/pasted full URL via keyboard, fire after a short pause
+    if (isValidUrl(v) && v !== lastImportedRef.current) {
+      const target = v;
+      window.setTimeout(() => {
+        if (target === v) void runImport(target);
+      }, 500);
+    }
+  }
+
   return (
     <form onSubmit={handleImport} className="card p-4 space-y-3">
       <div className="space-y-1">
@@ -96,27 +131,23 @@ export default function ImportFromUrl({ onImported }: Props) {
             id="import-url"
             type="url"
             className="input flex-1"
-            placeholder="https://brand.com/products/moisturizer"
+            placeholder="Paste any product URL — auto-imports"
             value={url}
-            onChange={(e) => setUrl(e.target.value)}
+            onChange={handleChange}
+            onPaste={handlePaste}
             disabled={loading}
             autoComplete="off"
           />
-          <button
-            type="submit"
-            className="btn-primary inline-flex items-center gap-2"
-            disabled={loading || !url.trim()}
-          >
-            {loading ? (
-              <>
-                <Loader2 className="w-4 h-4 animate-spin" aria-hidden="true" />
-                Importing
-              </>
-            ) : (
-              'Import'
-            )}
-          </button>
+          {loading && (
+            <div className="inline-flex items-center gap-2 text-sm text-muted">
+              <Loader2 className="w-4 h-4 animate-spin" aria-hidden="true" />
+              Importing
+            </div>
+          )}
         </div>
+        <p className="text-[11px] text-muted">
+          Paste a link from Sephora, Ulta, Amazon, or any brand site — Skintel fetches ingredients automatically.
+        </p>
       </div>
       {error && (
         <p className="text-sm text-bad-ink" role="alert">

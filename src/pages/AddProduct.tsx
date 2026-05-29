@@ -26,7 +26,7 @@ export default function AddProduct() {
   const [brand, setBrand] = useState(prefill?.brand ?? '');
   const [productName, setProductName] = useState(prefill?.productName ?? '');
   const [category, setCategory] = useState('');
-  const [outcome, setOutcome] = useState<Outcome>('unsure');
+  const outcome: Outcome = 'unsure';
   const [notes, setNotes] = useState('');
   const [ingredientsRaw, setIngredientsRaw] = useState(prefill?.ingredients ?? '');
   const [showDetails, setShowDetails] = useState(!prefill);
@@ -124,35 +124,6 @@ export default function AddProduct() {
             </div>
           </div>
 
-          <div>
-            <label className="label">How did it work for you?</label>
-            <div className="flex gap-2 flex-wrap">
-              {(['good', 'unsure', 'bad'] as Outcome[]).map((o) => (
-                <button
-                  type="button"
-                  key={o}
-                  onClick={() => setOutcome(o)}
-                  className={`px-4 py-2 rounded-2xl text-sm font-medium border min-h-11 ${
-                    outcome === o
-                      ? o === 'good'
-                        ? 'bg-good-bg text-good-fg border-good-fg/30'
-                        : o === 'bad'
-                        ? 'bg-bad-bg text-bad-fg border-bad-fg/30'
-                        : 'bg-unsure-bg text-unsure-fg border-unsure-fg/30'
-                      : 'bg-card text-ink border-border'
-                  }`}
-                >
-                  {o === 'good' ? '✓ Worked great' : o === 'bad' ? '✗ Broke me out' : '? Unsure'}
-                </button>
-              ))}
-            </div>
-          </div>
-
-          {parsed.length > 0 && (
-            <div className="text-xs text-muted">
-              {parsed.length} ingredients parsed
-            </div>
-          )}
         </div>
 
         <button
