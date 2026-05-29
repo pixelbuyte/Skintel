@@ -15,6 +15,7 @@ const AddProduct = lazy(() => import('@/pages/AddProduct'));
 const EditProduct = lazy(() => import('@/pages/EditProduct'));
 const Culprits = lazy(() => import('@/pages/Culprits'));
 const Scanner = lazy(() => import('@/pages/Scanner'));
+const Compare = lazy(() => import('@/pages/Compare'));
 const Settings = lazy(() => import('@/pages/Settings'));
 const Routine = lazy(() => import('@/pages/Routine'));
 const Recommend = lazy(() => import('@/pages/Recommend'));
@@ -105,6 +106,16 @@ function App() {
             <ProtectedRoute>
               <Layout>
                 <Scanner />
+              </Layout>
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/app/compare"
+          element={
+            <ProtectedRoute>
+              <Layout>
+                <Compare />
               </Layout>
             </ProtectedRoute>
           }

@@ -1,10 +1,10 @@
 import { NavLink } from 'react-router-dom';
-import { LayoutDashboard, ScanLine, Sun, BookOpen } from 'lucide-react';
+import { LayoutDashboard, ScanLine, GitCompare, Sun, BookOpen } from 'lucide-react';
 
 const ITEMS = [
   { to: '/app', label: 'Home', icon: LayoutDashboard, end: true },
   { to: '/app/scanner', label: 'Scanner', icon: ScanLine },
-  { to: '/app/routine', label: 'Routine', icon: Sun },
+  { to: '/app/compare', label: 'Compare', icon: GitCompare },
   { to: '/app/journal', label: 'Journal', icon: BookOpen },
 ];
 
@@ -15,7 +15,7 @@ export function BottomNav() {
       style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}
       aria-label="Primary"
     >
-      <div className="grid grid-cols-4">
+      <div className="grid grid-cols-5">
         {ITEMS.map(({ to, label, icon: Icon, end }) => (
           <NavLink
             key={to}
