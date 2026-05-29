@@ -247,14 +247,17 @@ export default function BarcodeScanner({
         haptic.error();
         return;
       }
-      setPreview({
+      const result: BarcodeResult = {
         brand: body.brand ?? null,
         productName: body.productName ?? null,
         ingredients: body.ingredients ?? '',
         upc,
-      });
-      setMode('preview');
+      };
+      setPreview(result);
       haptic.success();
+      // Skip the manual "Use this product" confirmation — go straight to
+      // the review page where insights auto-load. User can still cancel.
+      onScanned(result);
     } catch (e) {
       if ((e as Error).name === 'AbortError') {
         enqueueUpc(upc);
