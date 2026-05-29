@@ -2,7 +2,8 @@ import Anthropic from '@anthropic-ai/sdk';
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { getServiceClient, getUserFromAuthHeader, json } from './_lib.js';
 
-const MODEL = 'claude-opus-4-8';
+const PRIMARY_MODEL = 'claude-opus-4-8';
+const FALLBACK_MODEL = 'claude-sonnet-4-6';
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (req.method !== 'POST') return json(res, { error: 'Method not allowed' }, 405);
@@ -90,40 +91,63 @@ Return strict JSON only. No prose.`;
 
   const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY! });
 
-  try {
-    const resp = await client.messages.create({
-      model: MODEL,
+  async function callModel(model: string) {
+    return client.messages.create({
+      model,
       max_tokens: 8192,
       system,
       messages: [{ role: 'user', content: userMsg }],
     });
-
-    const text = resp.content
-      .filter((b): b is Anthropic.TextBlock => b.type === 'text')
-      .map((b) => b.text)
-      .join('');
-
-    let parsed: unknown;
-    try {
-      const match = text.match(/\{[\s\S]*\}/);
-      parsed = JSON.parse(match ? match[0] : text);
-    } catch {
-      return json(res, { error: 'Model returned invalid JSON', raw: text.slice(0, 500) }, 502);
-    }
-
-    return json(res, { result: parsed, usage: resp.usage });
-  } catch (e: any) {
-    console.error('scan-ai error', {
-      model: MODEL,
-      message: e?.message,
-      status: e?.status,
-      type: e?.type,
-      error: e?.error,
-    });
-    return json(
-      res,
-      { error: 'AI scan failed', detail: String(e?.message ?? e), model: MODEL },
-      500,
-    );
   }
+
+  let resp: Awaited<ReturnType<typeof callModel>>;
+  let usedModel = PRIMARY_MODEL;
+  try {
+    resp = await callModel(PRIMARY_MODEL);
+  } catch (primaryErr: any) {
+    console.error('scan-ai primary model failed', {
+      model: PRIMARY_MODEL,
+      status: primaryErr?.status,
+      message: primaryErr?.message,
+      type: primaryErr?.type,
+    });
+    // Fall back to Sonnet if Opus 4.8 errors (account not yet entitled,
+    // model not yet rolled out to this region, etc.)
+    try {
+      resp = await callModel(FALLBACK_MODEL);
+      usedModel = FALLBACK_MODEL;
+    } catch (fallbackErr: any) {
+      console.error('scan-ai fallback model failed', {
+        model: FALLBACK_MODEL,
+        status: fallbackErr?.status,
+        message: fallbackErr?.message,
+        type: fallbackErr?.type,
+      });
+      return json(
+        res,
+        {
+          error: 'AI scan failed on both models',
+          primary: { model: PRIMARY_MODEL, detail: String(primaryErr?.message ?? primaryErr) },
+          fallback: { model: FALLBACK_MODEL, detail: String(fallbackErr?.message ?? fallbackErr) },
+        },
+        500,
+      );
+    }
+  }
+
+  const text = resp.content
+    .filter((b): b is Anthropic.TextBlock => b.type === 'text')
+    .map((b) => b.text)
+    .join('');
+
+  let parsed: unknown;
+  try {
+    const match = text.match(/\{[\s\S]*\}/);
+    parsed = JSON.parse(match ? match[0] : text);
+  } catch {
+    return json(res, { error: 'Model returned invalid JSON', raw: text.slice(0, 500) }, 502);
+  }
+
+  return json(res, { result: parsed, usage: resp.usage, model: usedModel });
 }
+
