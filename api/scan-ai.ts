@@ -96,10 +96,7 @@ Return strict JSON only. No prose.`;
       max_tokens: 8192,
       system,
       messages: [{ role: 'user', content: userMsg }],
-      // Opus 4.8 fast mode: 2.5x output tokens/sec at premium pricing.
-      // Justified for verdict latency — users wait on this in scanner UI.
-      speed: 'fast',
-    } as any);
+    });
 
     const text = resp.content
       .filter((b): b is Anthropic.TextBlock => b.type === 'text')
@@ -116,6 +113,17 @@ Return strict JSON only. No prose.`;
 
     return json(res, { result: parsed, usage: resp.usage });
   } catch (e: any) {
-    return json(res, { error: 'AI scan failed', detail: String(e?.message ?? e) }, 500);
+    console.error('scan-ai error', {
+      model: MODEL,
+      message: e?.message,
+      status: e?.status,
+      type: e?.type,
+      error: e?.error,
+    });
+    return json(
+      res,
+      { error: 'AI scan failed', detail: String(e?.message ?? e), model: MODEL },
+      500,
+    );
   }
 }
