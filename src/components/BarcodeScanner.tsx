@@ -70,15 +70,39 @@ function CameraView({
   }, [ref]);
 
   return (
-    <div className="fixed inset-0 z-[60] bg-black overflow-hidden">
-      {/* Full-screen camera feed */}
+    <div
+      style={{
+        position: 'fixed',
+        top: 0,
+        left: 0,
+        right: 0,
+        bottom: 0,
+        width: '100vw',
+        height: '100vh',
+        background: '#000',
+        overflow: 'hidden',
+        zIndex: 60,
+      }}
+    >
+      {/* Full-screen camera feed — inline styles to override any zxing or browser defaults */}
       <video
         ref={ref}
         autoPlay
         playsInline
         muted
-        className="absolute inset-0 w-full h-full object-cover"
-        style={{ objectPosition: 'center center' }}
+        style={{
+          position: 'absolute',
+          top: 0,
+          left: 0,
+          width: '100%',
+          height: '100%',
+          minWidth: '100%',
+          minHeight: '100%',
+          objectFit: 'cover',
+          objectPosition: 'center center',
+          transform: 'translateZ(0)',
+          zIndex: 0,
+        }}
       />
 
       {/* Dark vignette outside viewfinder for focus */}
