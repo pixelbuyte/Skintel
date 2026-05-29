@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { Camera, X, ScanLine, ImageIcon, RefreshCw } from 'lucide-react';
 import { useZxing } from 'react-zxing';
 import type { Result } from '@zxing/library';
@@ -69,7 +70,11 @@ function CameraView({
     el.autoplay = true;
   }, [ref]);
 
-  return (
+  // Portal to body so we escape any transformed ancestor (Vaul Drawer,
+  // modal, etc) — `position: fixed` is relative to the nearest transformed
+  // ancestor, not the viewport, otherwise the camera gets trapped inside
+  // the drawer box at the bottom of the screen.
+  return createPortal(
     <div
       style={{
         position: 'fixed',
@@ -81,7 +86,7 @@ function CameraView({
         height: '100vh',
         background: '#000',
         overflow: 'hidden',
-        zIndex: 60,
+        zIndex: 9999,
       }}
     >
       {/* Full-screen camera feed — inline styles to override any zxing or browser defaults */}
@@ -174,7 +179,8 @@ function CameraView({
           100% { top: 92%; opacity: 0.0; }
         }
       `}</style>
-    </div>
+    </div>,
+    document.body,
   );
 }
 
