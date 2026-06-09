@@ -1,5 +1,5 @@
 import { NavLink } from 'react-router-dom';
-import { LayoutDashboard, ScanLine, GitCompare, Sun, BookOpen } from 'lucide-react';
+import { LayoutDashboard, ScanLine, GitCompare, BookOpen } from 'lucide-react';
 
 const ITEMS = [
   { to: '/app', label: 'Home', icon: LayoutDashboard, end: true },
