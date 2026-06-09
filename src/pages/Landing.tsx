@@ -1153,10 +1153,12 @@ function ComingSoonWaitlist() {
     if (!clean) return;
     setSubmitting(true);
     try {
+      let ref: string | null = null;
+      try { ref = localStorage.getItem('skintel_ref'); } catch { /* storage unavailable */ }
       const res = await fetch('/api/waitlist', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email: clean, source: 'landing' }),
+        body: JSON.stringify({ email: clean, source: ref ? `landing:${ref}` : 'landing' }),
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(data?.error ?? 'Signup failed');
@@ -1191,7 +1193,7 @@ function ComingSoonWaitlist() {
         className="absolute -bottom-40 -right-40 size-[520px] bg-primary/20 blur-[140px] rounded-full"
       />
 
-      <div className="relative grid lg:grid-cols-[1.2fr_1fr] gap-10 lg:gap-16 p-8 sm:p-12 lg:p-16 items-center">
+      <div className="relative grid lg:grid-cols-[1.2fr_1fr] gap-10 lg:gap-16 p-6 sm:p-12 lg:p-16 items-center">
         <div>
           <div className="inline-flex items-center gap-2.5 bg-bg/10 backdrop-blur border border-bg/15 px-3.5 py-1.5 rounded-full mb-6">
             <AppleLogo size={13} />
@@ -1205,7 +1207,7 @@ function ComingSoonWaitlist() {
           <h2 className="font-display text-[2.5rem] sm:text-5xl lg:text-[3.75rem] leading-[1.02] tracking-tight mb-5">
             Skintel mobile.
             <br />
-            <span className="italic text-primary">Launching June 2026.</span>
+            <span className="italic text-primary">Launching this summer.</span>
           </h2>
 
           <p className="text-bg/70 text-lg max-w-[52ch] leading-relaxed mb-8">
@@ -1288,7 +1290,7 @@ function ComingSoonWaitlist() {
             </div>
           </div>
 
-          <div className="mt-10 pt-8 border-t border-bg/10 flex items-center gap-3 flex-wrap">
+          <div className="mt-6 pt-6 md:mt-10 md:pt-8 border-t border-bg/10 flex items-center gap-3 flex-wrap">
             <AppStoreBadge />
             <PlayStoreBadge />
             <div className="text-xs text-bg/50 max-w-[24ch] leading-relaxed ml-1">
@@ -2197,6 +2199,14 @@ export default function Landing() {
     return () => window.removeEventListener('scroll', onScroll);
   }, []);
 
+  // channel attribution: ?ref=tt|reddit|x|… survives into waitlist + signup
+  useEffect(() => {
+    try {
+      const ref = new URLSearchParams(window.location.search).get('ref');
+      if (ref) localStorage.setItem('skintel_ref', ref.slice(0, 40));
+    } catch { /* storage unavailable (private mode) — skip attribution */ }
+  }, []);
+
   return (
     <div className="min-h-[100dvh] bg-bg text-ink overflow-x-hidden relative">
       <ScrollProgress />
@@ -2222,13 +2232,13 @@ export default function Landing() {
               to="/login"
               className="btn-primary active:scale-[0.97] transition-transform duration-150 ease-emil"
             >
-              Get started <ArrowRight size={14} />
+              Start free <ArrowRight size={14} />
             </Link>
           </nav>
         </div>
       </header>
 
-      <section className="relative max-w-6xl mx-auto px-6 pt-12 md:pt-20 pb-20 md:pb-28">
+      <section className="relative max-w-6xl mx-auto px-6 pt-8 md:pt-20 pb-12 md:pb-28">
         <div className="grid lg:grid-cols-[1.15fr_1fr] gap-10 lg:gap-16 items-center">
           <div className="animate-rise-in" style={{ animationDelay: '40ms' }}>
             <div className="inline-flex items-center gap-2 text-xs uppercase tracking-[0.14em] text-primary bg-primary/8 border border-primary/15 px-3 py-1.5 rounded-full mb-7">
@@ -2246,8 +2256,9 @@ export default function Landing() {
             </h1>
 
             <p className="text-lg text-muted max-w-[60ch] mb-8 leading-relaxed">
-              Log the 3-5 products in your current routine. Tag what works. Skintel surfaces the
-              exact ingredients showing up across your breakouts, so you can skip them next time.
+              One hidden ingredient is usually behind it. Log the products you already use, tag
+              what broke you out, and Skintel names your personal triggers — so you never buy
+              them again.
             </p>
 
             <div className="flex items-center gap-3 flex-wrap">
@@ -2255,14 +2266,14 @@ export default function Landing() {
                 to="/login"
                 className="btn-primary active:scale-[0.97] transition-transform duration-150 ease-emil"
               >
-                Start tracking free <ArrowRight size={16} />
+                Find my triggers — free <ArrowRight size={16} />
               </Link>
-              <Link
-                to="/pricing"
+              <a
+                href="#demo"
                 className="btn-secondary active:scale-[0.97] transition-transform duration-150 ease-emil"
               >
-                See pricing
-              </Link>
+                Try the live demo ↓
+              </a>
             </div>
 
             <div className="mt-10 flex items-center gap-5 text-xs text-muted flex-wrap">
@@ -2271,7 +2282,7 @@ export default function Landing() {
                 Private by default
               </div>
               <div className="h-3 w-px bg-border" />
-              <div>Cancel anytime</div>
+              <div>First verdict in under a minute</div>
               <div className="h-3 w-px bg-border" />
               <div>No card to start</div>
             </div>
@@ -2355,20 +2366,14 @@ export default function Landing() {
         </div>
       </section>
 
-      <section className="max-w-6xl mx-auto px-6 pb-16 md:pb-20">
-        <FadeUp>
-          <ComingSoonWaitlist />
-        </FadeUp>
-      </section>
-
-      <section className="max-w-3xl mx-auto px-6 pb-16 md:pb-24">
+      <section id="demo" className="max-w-3xl mx-auto px-6 pb-10 md:pb-24 scroll-mt-24">
         <FadeUp>
           <TryItDemo />
         </FadeUp>
       </section>
 
       {/* ── STATS / FEAR SECTION ── */}
-      <section className="py-20 md:py-32 px-6 border-y border-border bg-card/20">
+      <section className="py-12 md:py-32 px-6 border-y border-border bg-card/20">
         <div className="max-w-6xl mx-auto">
           <FadeUp>
             <div className="inline-flex items-center gap-2 text-[11px] uppercase tracking-[0.22em] text-primary font-semibold mb-6">
@@ -2378,12 +2383,12 @@ export default function Landing() {
               Your skin isn't broken.<br />
               <span className="text-primary italic">Your routine is fighting itself.</span>
             </h2>
-            <p className="text-muted text-lg max-w-2xl mb-16">
+            <p className="text-muted text-lg max-w-2xl mb-10 md:mb-16">
               Most people spend years switching products, cutting out actives, going fragrance-free — and still breaking out. The real culprit is almost always one ingredient hiding across multiple products.
             </p>
           </FadeUp>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-16">
+          <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-6 mb-10 md:mb-16">
             {[
               {
                 stat: '50M',
@@ -2411,23 +2416,23 @@ export default function Landing() {
               },
             ].map((s) => (
               <FadeUp key={s.stat}>
-                <div className="card p-6 h-full flex flex-col gap-3">
-                  <span className={`font-display text-5xl md:text-6xl tabular-nums ${s.color}`}>{s.stat}</span>
+                <div className="card p-4 sm:p-6 h-full flex flex-col gap-3">
+                  <span className={`font-display text-4xl sm:text-5xl md:text-6xl tabular-nums ${s.color}`}>{s.stat}</span>
                   <p className="text-sm font-medium leading-snug">{s.label}</p>
-                  <p className="text-xs text-muted mt-auto">{s.sub}</p>
+                  <p className="text-xs text-muted mt-auto hidden sm:block">{s.sub}</p>
                 </div>
               </FadeUp>
             ))}
           </div>
 
           <FadeUp>
-            <div className="card p-8 md:p-12 border-primary/20 bg-primary/5 max-w-4xl">
+            <div className="card p-6 md:p-12 border-primary/20 bg-primary/5 max-w-4xl">
               <p className="font-display text-2xl md:text-3xl leading-snug mb-4">
                 "The average breakout product and the average 'safe' product share <span className="text-primary">12 ingredients in common</span> — which means without tracking, you'll never find the one that's actually doing it."
               </p>
               <p className="text-muted text-sm">That's what Skintel solves. Not with generic databases. With <strong>your</strong> data.</p>
               <Link to="/login" className="btn-primary inline-flex items-center gap-2 mt-6">
-                Start tracking free <ArrowRight size={14} />
+                Find my triggers — free <ArrowRight size={14} />
               </Link>
             </div>
           </FadeUp>
@@ -2435,14 +2440,14 @@ export default function Landing() {
       </section>
 
       {/* ── INGREDIENT REALITY STRIP ── */}
-      <section className="py-16 md:py-24 px-6 bg-bg">
+      <section className="py-10 md:py-24 px-6 bg-bg">
         <div className="max-w-6xl mx-auto">
           <FadeUp>
             <div className="inline-flex items-center gap-2 text-[11px] uppercase tracking-[0.22em] text-muted font-semibold mb-8">
               <span className="h-px w-8 bg-border" /> Ingredient reality check
             </div>
           </FadeUp>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-3 gap-3 md:gap-4">
             {[
               {
                 pct: '67%',
@@ -2482,12 +2487,12 @@ export default function Landing() {
               },
             ].map((item, i) => (
               <FadeUp key={item.pct + i} delay={i * 60}>
-                <div className={`card p-6 h-full flex flex-col gap-3 border-l-2 ${item.tone === 'bad' ? 'border-l-bad-fg/50' : 'border-l-border'}`}>
-                  <span className={`font-display text-4xl tabular-nums ${item.tone === 'bad' ? 'text-bad-fg' : 'text-muted'}`}>
+                <div className={`card p-4 md:p-6 h-full flex flex-col gap-3 border-l-2 ${item.tone === 'bad' ? 'border-l-bad-fg/50' : 'border-l-border'}`}>
+                  <span className={`font-display text-3xl md:text-4xl tabular-nums ${item.tone === 'bad' ? 'text-bad-fg' : 'text-muted'}`}>
                     {item.pct}
                   </span>
                   <p className="font-medium text-sm leading-snug">{item.fact}</p>
-                  <p className="text-xs text-muted leading-relaxed mt-auto">{item.context}</p>
+                  <p className="text-xs text-muted leading-relaxed mt-auto hidden md:block">{item.context}</p>
                 </div>
               </FadeUp>
             ))}
@@ -2525,7 +2530,7 @@ export default function Landing() {
         </div>
       </section>
 
-      <section className="relative max-w-6xl mx-auto px-6 py-20 md:py-32">
+      <section className="relative max-w-6xl mx-auto px-6 py-12 md:py-32">
         <div
           aria-hidden
           className="pointer-events-none absolute -top-10 -left-20 size-72 bg-primary/8 blur-3xl rounded-full parallax-slow"
@@ -2536,7 +2541,7 @@ export default function Landing() {
         />
 
         <FadeUp>
-          <div className="max-w-2xl mb-16 md:mb-24">
+          <div className="max-w-2xl mb-10 md:mb-24">
             <div className="inline-flex items-center gap-2 text-[11px] uppercase tracking-[0.22em] text-primary font-semibold mb-4">
               <span className="h-px w-8 bg-primary/40" /> How it works
             </div>
@@ -2548,7 +2553,7 @@ export default function Landing() {
           </div>
         </FadeUp>
 
-        <ol className="relative space-y-16 md:space-y-28">
+        <ol className="relative space-y-10 md:space-y-28">
           <div
             aria-hidden
             className="hidden md:block absolute left-[60px] top-4 bottom-4 w-px bg-gradient-to-b from-transparent via-primary/30 to-transparent"
@@ -2623,9 +2628,15 @@ export default function Landing() {
         </ol>
       </section>
 
-      <section className="max-w-6xl mx-auto px-6 py-16 md:py-24">
+      <section id="founding" className="max-w-6xl mx-auto px-6 py-10 md:py-12 scroll-mt-24">
         <FadeUp>
-          <div className="max-w-2xl mb-12">
+          <ComingSoonWaitlist />
+        </FadeUp>
+      </section>
+
+      <section className="max-w-6xl mx-auto px-6 py-10 md:py-24">
+        <FadeUp>
+          <div className="max-w-2xl mb-8 md:mb-12">
             <div className="text-xs uppercase tracking-[0.18em] text-muted font-medium mb-3">
               Pricing
             </div>
@@ -2772,7 +2783,7 @@ export default function Landing() {
         <PlanDemoModal planId={demoPlan} onClose={() => setDemoPlan(null)} />
       )}
 
-      <section className="max-w-3xl mx-auto px-6 py-16 md:py-24">
+      <section className="max-w-3xl mx-auto px-6 py-10 md:py-24">
         <FadeUp>
           <div className="mb-10">
             <div className="text-xs uppercase tracking-[0.18em] text-muted font-medium mb-3">
