@@ -37,8 +37,8 @@ const FAQS = [
     a: 'Every row is locked to your account via Postgres row-level security. We never sell your data or share it with brands. Export everything as JSON or wipe your account anytime from Settings.',
   },
   {
-    q: 'Monthly or yearly?',
-    a: 'Pro is $9 a month, or $79 a year. The yearly plan saves you two months. Cancel anytime in either — access continues through the current period.',
+    q: 'What do I get for $20?',
+    a: 'Six months of full Pro access — unlimited products and scans, barcode + label OCR scanner, routine builder, breakout journal, and AI verdicts. One payment, no subscription, no renewal.',
   },
 ];
 
@@ -2188,7 +2188,6 @@ function PlanDemoModal({ planId, onClose }: { planId: string; onClose: () => voi
 
 export default function Landing() {
   const [openFaq, setOpenFaq] = useState<number | null>(0);
-  const [demoPlan, setDemoPlan] = useState<string | null>(null);
   const [scrolled, setScrolled] = useState(false);
   useParallaxRoot();
 
@@ -2634,154 +2633,90 @@ export default function Landing() {
         </FadeUp>
       </section>
 
+      {/* ── $20 FOUNDING DEAL ── */}
       <section className="max-w-6xl mx-auto px-6 py-10 md:py-24">
         <FadeUp>
-          <div className="max-w-2xl mb-8 md:mb-12">
+          <div className="max-w-2xl mb-8 md:mb-16">
             <div className="text-xs uppercase tracking-[0.18em] text-muted font-medium mb-3">
-              Pricing
+              Founding member offer
             </div>
             <h2 className="font-display text-4xl md:text-5xl leading-tight mb-4">
-              One plan. Less than
+              Everything unlocked.
               <br />
-              the serum you just regretted.
+              <span className="text-primary italic">$20, once.</span>
             </h2>
             <p className="text-muted text-lg max-w-[52ch] leading-relaxed">
-              Start free, upgrade when you want the full scanner. No annual lock-in.
+              6 months of full Pro access — unlimited scans, AI verdicts, routine builder — locked in before founding spots run out.
             </p>
           </div>
         </FadeUp>
 
-        <div className="grid md:grid-cols-3 gap-5">
-          {PRICING.map((p, i) => (
-            <FadeUp key={p.id} delay={i * 80}>
-              <Tilt3D max={4} lift={6} shine={false} className="h-full">
-              <div
-                className={`card p-7 h-full relative overflow-hidden flex flex-col transition-shadow duration-300 ease-emil hover:shadow-[0_30px_60px_-20px_rgba(163,88,72,0.25)] ${
-                  p.highlight ? 'border-primary/30 shadow-soft' : ''
-                }`}
-              >
-                {p.highlight && (
-                  <div
-                    aria-hidden
-                    className="absolute -top-12 -right-12 size-44 bg-primary/8 blur-3xl rounded-full"
-                  />
-                )}
-                <div
-                  aria-hidden
-                  className="pointer-events-none absolute inset-0 rounded-card"
-                  style={{ boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.7)' }}
-                />
-                <div className="relative flex-1">
-                  <div
-                    className={`inline-flex items-center gap-1.5 text-[10px] uppercase tracking-[0.18em] px-2.5 py-1 rounded-full mb-4 font-semibold border ${
-                      p.highlight
-                        ? 'text-primary bg-primary/10 border-primary/25 shadow-[0_0_18px_rgba(163,88,72,0.15)]'
-                        : 'text-muted/80 bg-bg/60 border-border'
-                    }`}
-                  >
-                    {p.highlight && <Sparkles size={10} />}
-                    {p.tagline}
-                  </div>
-                  <div className="font-display text-2xl mb-3 leading-none">{p.name}</div>
-                  <div className="flex items-baseline gap-2 mb-3">
-                    <div
-                      className={`font-display text-6xl leading-none ${
-                        p.highlight ? 'text-primary' : 'text-ink'
-                      }`}
-                    >
-                      {p.price}
-                    </div>
-                    <div className="text-muted text-sm font-medium">{p.cadence}</div>
-                  </div>
-                  <div
-                    className={`relative mb-6 pl-4 py-2 rounded-r-lg border-l-2 ${
-                      p.highlight
-                        ? 'border-primary bg-gradient-to-r from-primary/10 to-transparent'
-                        : 'border-primary/40 bg-gradient-to-r from-primary/5 to-transparent'
-                    }`}
-                  >
-                    <span
-                      aria-hidden
-                      className="absolute -left-[6px] top-2 size-2.5 rounded-full bg-primary shadow-[0_0_10px_rgba(163,88,72,0.6)]"
-                    />
-                    <p className="text-[15px] text-ink/85 italic leading-snug font-serif max-w-[34ch]">
-                      "{p.blurb}"
-                    </p>
-                  </div>
+        <FadeUp delay={100}>
+          <Tilt3D max={3} lift={6} shine={false} className="max-w-2xl">
+            <div className="card p-8 md:p-10 relative overflow-hidden border-primary/30 shadow-soft">
+              <div aria-hidden className="absolute -top-20 -right-20 size-64 bg-primary/10 blur-3xl rounded-full" />
+              <div aria-hidden className="absolute -bottom-20 -left-20 size-56 bg-primary/6 blur-3xl rounded-full" />
+              <div aria-hidden className="pointer-events-none absolute inset-0 rounded-card" style={{ boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.7)' }} />
 
-                  <ul className="space-y-3 mb-6 text-sm">
-                    {p.features.map((f, fi) => (
-                      <li
-                        key={f.text}
-                        className="flex items-center gap-3 group/feat"
-                        style={{ transitionDelay: `${fi * 40}ms` }}
-                      >
-                        <span
-                          className={`relative shrink-0 size-5 transition-all duration-300 group-hover/feat:scale-110 ${
-                            p.highlight ? 'rotate-[8deg]' : ''
-                          }`}
-                        >
-                          <span
-                            aria-hidden
-                            className={`absolute inset-0 rounded-md rotate-45 transition-all duration-300 ${
-                              p.highlight
-                                ? 'bg-gradient-to-br from-primary to-primary-hover shadow-[0_4px_14px_-2px_rgba(163,88,72,0.55)]'
-                                : 'bg-gradient-to-br from-primary/15 to-primary/5 border border-primary/25 group-hover/feat:from-primary group-hover/feat:to-primary-hover group-hover/feat:border-transparent group-hover/feat:shadow-[0_4px_14px_-2px_rgba(163,88,72,0.45)]'
-                            }`}
-                          />
-                          <span
-                            className={`relative z-10 flex items-center justify-center h-full w-full transition-colors duration-300 ${
-                              p.highlight
-                                ? 'text-card'
-                                : 'text-primary group-hover/feat:text-card'
-                            }`}
-                          >
-                            <Check size={11} strokeWidth={3.5} />
-                          </span>
-                        </span>
-                        <span className="text-ink/85 leading-snug group-hover/feat:text-ink transition-colors duration-200 flex-1">
-                          {f.text}
-                        </span>
-                        <span className="shrink-0 opacity-90 group-hover/feat:opacity-100 transition-opacity">
-                          <FeatureDemo kind={f.demo} />
-                        </span>
-                      </li>
-                    ))}
-                  </ul>
+              <div className="relative">
+                <div className="inline-flex items-center gap-1.5 text-[10px] uppercase tracking-[0.18em] px-2.5 py-1 rounded-full mb-5 font-semibold border text-primary bg-primary/10 border-primary/25 shadow-[0_0_18px_rgba(163,88,72,0.15)]">
+                  <Sparkles size={10} />
+                  Limited founding offer · 500 spots
                 </div>
 
-                <div className="space-y-2 relative z-20" style={{ transform: 'translateZ(40px)' }}>
+                <div className="flex items-baseline gap-4 mb-3">
+                  <div className="font-display text-7xl leading-none text-primary">$20</div>
+                  <div>
+                    <div className="text-sm font-medium line-through text-muted/60">$54 regular</div>
+                    <div className="text-sm text-muted">6 months of Pro · one payment</div>
+                  </div>
+                </div>
+
+                <div className="relative mb-7 pl-4 py-2 rounded-r-lg border-l-2 border-primary bg-gradient-to-r from-primary/10 to-transparent">
+                  <span aria-hidden className="absolute -left-[6px] top-2 size-2.5 rounded-full bg-primary shadow-[0_0_10px_rgba(163,88,72,0.6)]" />
+                  <p className="text-[15px] text-ink/85 italic leading-snug font-serif max-w-[40ch]">
+                    "Lock in before the app drops. Founding members get in first — and keep this price forever."
+                  </p>
+                </div>
+
+                <div className="grid sm:grid-cols-2 gap-2.5 mb-8">
+                  {[
+                    'Unlimited products + scans',
+                    'Full barcode + label OCR scanner',
+                    'Routine builder + breakout journal',
+                    'AI verdicts on every new launch',
+                    'Personal trigger map, kept private',
+                    'Founding badge + early iOS access',
+                  ].map((f) => (
+                    <div key={f} className="flex items-center gap-3 text-sm">
+                      <span className="relative shrink-0 size-5">
+                        <span aria-hidden className="absolute inset-0 rounded-md rotate-45 bg-gradient-to-br from-primary to-primary-hover shadow-[0_4px_14px_-2px_rgba(163,88,72,0.55)]" />
+                        <span className="relative z-10 flex items-center justify-center h-full w-full text-card">
+                          <Check size={11} strokeWidth={3.5} />
+                        </span>
+                      </span>
+                      <span className="text-ink/85 leading-snug">{f}</span>
+                    </div>
+                  ))}
+                </div>
+
+                <div className="flex flex-col sm:flex-row gap-3 items-start">
                   <Link
-                    to={p.href}
-                    className={`${
-                      p.highlight ? 'btn-primary' : 'btn-secondary'
-                    } w-full active:scale-[0.97] hover:scale-[1.02] transition-transform duration-150 ease-emil relative cursor-pointer`}
+                    to="/pricing#founding"
+                    className="btn-primary active:scale-[0.97] hover:scale-[1.02] transition-transform duration-150 ease-emil"
                   >
-                    {p.cta} <ArrowRight size={14} />
+                    Lock in 6 months — $20 <ArrowRight size={14} />
                   </Link>
-                  <button
-                    type="button"
-                    onClick={() => setDemoPlan(p.id)}
-                    className="w-full inline-flex items-center justify-center gap-2 text-xs uppercase tracking-[0.18em] font-semibold text-primary hover:text-primary-hover hover:scale-[1.03] active:scale-[0.97] transition-all duration-200 ease-emil py-2 group/demo cursor-pointer relative"
-                  >
-                    <span className="relative flex h-1.5 w-1.5">
-                      <span className="absolute inline-flex h-full w-full rounded-full bg-primary animate-ping opacity-75" />
-                      <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-primary" />
-                    </span>
-                    See it in action
-                    <ArrowRight size={12} className="group-hover/demo:translate-x-0.5 transition-transform duration-200" />
-                  </button>
+                  <div className="flex items-center gap-2 text-xs text-muted sm:self-center">
+                    <ShieldCheck size={13} className="text-primary/70" />
+                    One-time · no subscription · no renewal
+                  </div>
                 </div>
               </div>
-              </Tilt3D>
-            </FadeUp>
-          ))}
-        </div>
+            </div>
+          </Tilt3D>
+        </FadeUp>
       </section>
-
-      {demoPlan && (
-        <PlanDemoModal planId={demoPlan} onClose={() => setDemoPlan(null)} />
-      )}
 
       <section className="max-w-3xl mx-auto px-6 py-10 md:py-24">
         <FadeUp>
