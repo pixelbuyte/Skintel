@@ -1,0 +1,30 @@
+<svg width="1024" height="1024" viewBox="0 0 1024 1024" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- Skintel iOS app icon — master 1024px. iOS applies its own squircle mask; art is full-bleed. -->
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1024" y2="1024" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#B2634F"/>
+      <stop offset="0.55" stop-color="#A35848"/>
+      <stop offset="1" stop-color="#8E4538"/>
+    </linearGradient>
+    <linearGradient id="sheen" x1="0" y1="0" x2="0" y2="1024" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#FFFEFA" stop-opacity="0.14"/>
+      <stop offset="0.4" stop-color="#FFFEFA" stop-opacity="0"/>
+    </linearGradient>
+  </defs>
+  <rect width="1024" height="1024" fill="url(#bg)"/>
+  <rect width="1024" height="1024" fill="url(#sheen)"/>
+  <!-- scan line band -->
+  <rect x="0" y="484" width="1024" height="56" fill="#FFFEFA" fill-opacity="0.16"/>
+  <rect x="0" y="508" width="1024" height="8" rx="4" fill="#FFFEFA" fill-opacity="0.55"/>
+  <!-- serif S wordmark -->
+  <text x="512" y="512" text-anchor="middle" dominant-baseline="central"
+        font-family="'Instrument Serif', Georgia, 'Times New Roman', serif"
+        font-size="640" fill="#FFFEFA">S</text>
+  <!-- corner scan brackets -->
+  <g stroke="#FFFEFA" stroke-opacity="0.9" stroke-width="34" stroke-linecap="round" fill="none">
+    <path d="M 196 318 v -66 a 56 56 0 0 1 56 -56 h 66"/>
+    <path d="M 828 318 v -66 a 56 56 0 0 0 -56 -56 h -66"/>
+    <path d="M 196 706 v 66 a 56 56 0 0 0 56 56 h 66"/>
+    <path d="M 828 706 v 66 a 56 56 0 0 1 -56 56 h -66"/>
+  </g>
+</svg>
