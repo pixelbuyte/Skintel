@@ -24,7 +24,7 @@ const FAQS = [
     a: 'This is the founding batch — people who lock in before the iOS app ships. Once 500 seats are claimed, the offer is closed for good. The price after that is $79/year or $9/month.',
   },
   {
-    q: 'What happens after the 6 months?',
+    q: 'What happens after the 3 months?',
     a: 'Nothing automatic. Your Pro access pauses and you keep all your data on Free. You can resubscribe at the regular price whenever — or not. No card on file, no surprise charges.',
   },
   {
@@ -48,12 +48,12 @@ export default function Discount() {
 
   useEffect(() => {
     const prevTitle = document.title;
-    document.title = 'Skintel Founding Deal — 6 months of Pro for $20';
+    document.title = 'Skintel Founding Deal — 3 months of Pro for $20';
     const meta = document.querySelector('meta[name="description"]');
     const prevDesc = meta?.getAttribute('content') ?? null;
     meta?.setAttribute(
       'content',
-      'Founding offer: $20 for 6 months of Skintel Pro. 500 seats, then gone. Locks in before the iOS launch.',
+      'Founding offer: $20 for 3 months of Skintel Pro. 500 seats, then gone. Locks in before the iOS launch.',
     );
     return () => {
       document.title = prevTitle;
@@ -91,7 +91,7 @@ export default function Discount() {
     ? 'Sold out'
     : loading
       ? 'Loading…'
-      : 'Claim 6 months — $20';
+      : 'Claim 3 months — $20';
 
   return (
     <div className="min-h-screen">

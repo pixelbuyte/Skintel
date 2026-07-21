@@ -192,7 +192,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
                 <div style="font-family:sans-serif;max-width:520px;margin:0 auto;color:#1a1a1a">
                   <h2 style="font-size:24px;margin-bottom:8px">You're in. Welcome, Founding Member #${seatNumber}.</h2>
                   <p style="color:#555;line-height:1.6">
-                    Your account now has 6 months of Skintel Pro — ingredient scanning, conflict detection, personalized routine builder, everything.
+                    Your account now has 3 months of Skintel Pro — ingredient scanning, conflict detection, personalized routine builder, everything.
                   </p>
                   <p style="color:#555;line-height:1.6">
                     No subscription. No auto-renew. You're locked in before the iOS launch.

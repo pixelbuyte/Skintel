@@ -2380,7 +2380,7 @@ export default function Landing() {
                   href={checkoutHref}
                   className="btn-primary active:scale-[0.97] transition-transform duration-150 ease-emil"
                 >
-                  Get 6 months of Pro — $20 <ArrowRight size={16} />
+                  Get 3 months of Pro — $20 <ArrowRight size={16} />
                 </a>
               )}
               <a
@@ -2555,7 +2555,7 @@ export default function Landing() {
                     Founding offer · one batch only
                   </div>
                   <h2 className="font-display text-3xl sm:text-4xl leading-tight mb-3">
-                    6 months of Pro for <span className="text-primary">$20.</span>
+                    3 months of Pro for <span className="text-primary">$20.</span>
                     <br />
                     Then it&rsquo;s gone.
                   </h2>
@@ -3161,7 +3161,7 @@ export default function Landing() {
         >
           <div className="flex-1 min-w-0">
             <div className="text-sm font-medium leading-tight">
-              {soldOut ? 'Founding batch sold out' : '6 months of Pro — $20'}
+              {soldOut ? 'Founding batch sold out' : '3 months of Pro — $20'}
             </div>
             <div className="text-[11px] text-muted truncate">
               {soldOut
