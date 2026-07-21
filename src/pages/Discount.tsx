@@ -64,7 +64,7 @@ export default function Discount() {
   async function claim() {
     if (!user || !session) {
       // Guest checkout — pay first, account is created from the Stripe email
-      window.location.href = '/api/checkout-founding';
+      window.location.href = '/api/stripe-checkout?offer=founding';
       return;
     }
     setErr(null);

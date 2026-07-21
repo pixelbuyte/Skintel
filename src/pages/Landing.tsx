@@ -2303,13 +2303,13 @@ export default function Landing() {
   }, []);
 
   // channel attribution: ?ref=tt|reddit|x|… survives into waitlist + checkout
-  const [checkoutHref, setCheckoutHref] = useState('/api/checkout-founding');
+  const [checkoutHref, setCheckoutHref] = useState('/api/stripe-checkout?offer=founding');
   useEffect(() => {
     try {
       const urlRef = new URLSearchParams(window.location.search).get('ref');
       if (urlRef) localStorage.setItem('skintel_ref', urlRef.slice(0, 40));
       const ref = urlRef ?? localStorage.getItem('skintel_ref');
-      if (ref) setCheckoutHref(`/api/checkout-founding?ref=${encodeURIComponent(ref.slice(0, 40))}`);
+      if (ref) setCheckoutHref(`/api/stripe-checkout?offer=founding&ref=${encodeURIComponent(ref.slice(0, 40))}`);
     } catch { /* storage unavailable (private mode) — skip attribution */ }
   }, []);
 
