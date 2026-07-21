@@ -28,6 +28,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       return json(res, { error: 'Invalid email' }, 400);
     }
     const source = (body?.source ?? '').toString().slice(0, 64) || null;
+    const wantsFoundingThreeMonthDeal = source?.includes('founding-3mo') ?? false;
 
     const { error } = await sb
       .from('waitlist')
@@ -50,13 +51,12 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
             <p style="color:#555;line-height:1.6">
               We'll email you the moment Skintel hits the App Store and Google Play.
             </p>
-            <p style="color:#555;line-height:1.6">
-              While you wait — want 6 months of Pro access before the price goes up?
-              Founding spots are limited to 500.
-            </p>
-            <a href="https://skinstel.com/pricing" style="display:inline-block;margin-top:16px;background:#A35848;color:#fff;padding:12px 28px;border-radius:8px;text-decoration:none;font-weight:600;">
-              Claim founding access — $20
-            </a>
+            ${wantsFoundingThreeMonthDeal ? `
+              <p style="color:#555;line-height:1.6">
+                You asked for first access to the $20 / 3-month Pro founding deal.
+                No payment has been taken — we’ll email you before invitations open.
+              </p>
+            ` : ''}
             <p style="margin-top:32px;color:#999;font-size:12px;">
               Skintel · skinstel.com<br>
               You signed up at skinstel.com. Reply to unsubscribe.

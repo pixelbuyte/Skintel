@@ -118,9 +118,41 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     switch (event.type) {
       case 'checkout.session.completed': {
         const session = event.data.object as Stripe.Checkout.Session;
-        const userId =
+        let userId =
           (session.metadata?.supabase_user_id as string | undefined) ??
           (session.client_reference_id as string | undefined);
+        const guestEmail =
+          typeof session.customer_details?.email === 'string'
+            ? session.customer_details.email.toLowerCase()
+            : null;
+        let signInLink: string | null = null;
+
+        // Guest founding purchase: no account yet — create (or match) one from
+        // the email Stripe collected, and mint a magic link for the welcome email.
+        if (
+          !userId &&
+          session.mode === 'payment' &&
+          session.payment_status === 'paid' &&
+          session.metadata?.tier === 'founding' &&
+          guestEmail
+        ) {
+          const sb = getServiceClient();
+          const { data: created, error: createErr } = await sb.auth.admin.createUser({
+            email: guestEmail,
+            email_confirm: true,
+          });
+          if (!createErr && created?.user) {
+            userId = created.user.id;
+          }
+          // New or pre-existing account — either way, resolve the id and a sign-in link
+          const { data: linkData } = await sb.auth.admin.generateLink({
+            type: 'magiclink',
+            email: guestEmail,
+          });
+          if (linkData?.user) userId = userId ?? linkData.user.id;
+          signInLink = linkData?.properties?.action_link ?? null;
+        }
+
         if (session.subscription && userId) {
           const sub = await stripe.subscriptions.retrieve(session.subscription as string);
           await upsertFromSubscription(sub, userId);
@@ -165,8 +197,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
                   <p style="color:#555;line-height:1.6">
                     No subscription. No auto-renew. You're locked in before the iOS launch.
                   </p>
-                  <a href="https://skinstel.com/app" style="display:inline-block;margin-top:16px;background:#A35848;color:#fff;padding:12px 28px;border-radius:8px;text-decoration:none;font-weight:600;">
-                    Open Skintel
+                  <a href="${signInLink ?? 'https://skinstel.com/app'}" style="display:inline-block;margin-top:16px;background:#A35848;color:#fff;padding:12px 28px;border-radius:8px;text-decoration:none;font-weight:600;">
+                    ${signInLink ? 'Sign in to Skintel — one click' : 'Open Skintel'}
                   </a>
                   <p style="margin-top:32px;color:#999;font-size:12px;">
                     Skintel · skinstel.com<br>

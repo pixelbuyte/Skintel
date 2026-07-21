@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import {
   ArrowRight,
   AlertTriangle,
@@ -9,6 +9,7 @@ import {
   Sparkles,
   FlaskConical,
   Check,
+  Play,
 } from 'lucide-react';
 import { TryItDemo } from '@/components/TryItDemo';
 import { useInView } from '@/lib/useInView';
@@ -462,7 +463,8 @@ type Scene =
   | 'journal'
   | 'recommend';
 
-function PhoneMockup() {
+// Kept for reuse in future sections; not currently rendered.
+export function PhoneMockup() {
   const [scene, setScene] = useState<Scene>('scanner');
 
   useEffect(() => {
@@ -1142,6 +1144,7 @@ function SceneRecommend({ active }: { active: boolean }) {
 function ComingSoonWaitlist() {
   const { remaining, total } = useFoundingCount();
   const [email, setEmail] = useState('');
+  const [foundingInterest, setFoundingInterest] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [joined, setJoined] = useState(false);
   const [err, setErr] = useState<string | null>(null);
@@ -1158,7 +1161,16 @@ function ComingSoonWaitlist() {
       const res = await fetch('/api/waitlist', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email: clean, source: ref ? `landing:${ref}` : 'landing' }),
+        body: JSON.stringify({
+          email: clean,
+          source: foundingInterest
+            ? ref
+              ? `landing:founding-3mo:${ref}`
+              : 'landing:founding-3mo'
+            : ref
+              ? `landing:${ref}`
+              : 'landing',
+        }),
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(data?.error ?? 'Signup failed');
@@ -1212,14 +1224,14 @@ function ComingSoonWaitlist() {
 
           <p className="text-bg/70 text-lg max-w-[52ch] leading-relaxed mb-8">
             Scan any product at the store. Live trigger alerts on every label.
-            Be first in line — or lock in <span className="text-bg font-semibold">6 months of Pro for just $20</span>{' '}
-            before the founding spots are gone.
+            Join the early-access list, then get first dibs on the{' '}
+            <span className="text-bg font-semibold">$20 / 3-month Pro founding deal</span> when invitations open.
           </p>
 
           <div className="mb-8">
             <div className="flex items-baseline justify-between mb-2">
               <span className="text-xs uppercase tracking-[0.16em] text-bg/60 font-medium">
-                Founding member spots
+                Founding invitations
               </span>
               <span className="text-sm font-display">
                 {seatsRemaining !== null ? (
@@ -1241,7 +1253,8 @@ function ComingSoonWaitlist() {
           </div>
 
           {!joined ? (
-            <form onSubmit={submit} className="flex flex-col sm:flex-row gap-3 mb-5">
+            <form onSubmit={submit} className="mb-5">
+              <div className="flex flex-col sm:flex-row gap-3">
               <input
                 type="email"
                 required
@@ -1260,13 +1273,26 @@ function ComingSoonWaitlist() {
                 {submitting ? 'Joining…' : 'Notify me at launch'}
                 {!submitting && <ArrowRight size={16} />}
               </button>
+              </div>
+              <label className="mt-4 flex items-start gap-3 cursor-pointer text-sm text-bg/75">
+                <input
+                  type="checkbox"
+                  checked={foundingInterest}
+                  onChange={(e) => setFoundingInterest(e.target.checked)}
+                  className="mt-1 size-4 rounded border-bg/30 bg-bg/10 text-primary focus:ring-primary/50"
+                />
+                <span>
+                  I want first access to the <strong className="text-bg">$20 / 3-month Pro founding deal</strong>.
+                  <span className="block text-xs text-bg/50 mt-1">No payment today. We’ll email you before it opens.</span>
+                </span>
+              </label>
             </form>
           ) : (
             <div className="rounded-xl bg-primary/15 border border-primary/30 p-5 mb-5">
               <div className="font-display text-xl mb-1">✓ You're on the list.</div>
               <div className="text-sm text-bg/80">
                 We'll email you the moment Skintel hits the App Store + Google Play.
-                Want 6 months of Pro before the price goes up?
+                {foundingInterest && ' You’ll also get the $20 / 3-month founding invitation first.'}
               </div>
             </div>
           )}
@@ -1277,17 +1303,9 @@ function ComingSoonWaitlist() {
             </div>
           )}
 
-          <div className="flex items-center gap-4 flex-wrap pt-2">
-            <Link
-              to="/pricing#founding"
-              className="inline-flex items-center gap-2 px-6 py-3.5 rounded-xl bg-primary text-card font-semibold hover:bg-primary-hover active:scale-[0.97] transition-all duration-150 ease-emil shadow-[0_10px_30px_-10px_rgba(163,88,72,0.6)]"
-            >
-              Lock in 6 months — $20 <ArrowRight size={16} />
-            </Link>
-            <div className="flex items-center gap-2 text-xs text-bg/60">
+          <div className="flex items-center gap-2 text-xs text-bg/60 pt-2">
               <ShieldCheck size={13} />
-              One-time payment · 6 months of Pro
-            </div>
+              Launch-list signup · no card required
           </div>
 
           <div className="mt-6 pt-6 md:mt-10 md:pt-8 border-t border-bg/10 flex items-center gap-3 flex-wrap">
@@ -2186,24 +2204,112 @@ function PlanDemoModal({ planId, onClose }: { planId: string; onClose: () => voi
   );
 }
 
+function ScrollPlayedPromo() {
+  const containerRef = useRef<HTMLDivElement>(null);
+  const videoRef = useRef<HTMLVideoElement>(null);
+  const [playCount, setPlayCount] = useState(0);
+  const [showReplay, setShowReplay] = useState(false);
+
+  useEffect(() => {
+    const container = containerRef.current;
+    const video = videoRef.current;
+    if (!container || !video) return;
+
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting && !showReplay && video.paused) {
+          void video.play().catch(() => undefined);
+        } else if (!entry.isIntersecting && !video.paused) {
+          video.pause();
+        }
+      },
+      { threshold: 0.55 },
+    );
+
+    observer.observe(container);
+    return () => observer.disconnect();
+  }, [showReplay]);
+
+  function handleEnded() {
+    const video = videoRef.current;
+    if (!video) return;
+
+    setPlayCount((current) => {
+      const next = current + 1;
+      if (next < 3) {
+        video.currentTime = 0;
+        void video.play().catch(() => undefined);
+      } else {
+        setShowReplay(true);
+      }
+      return next;
+    });
+  }
+
+  function watchAgain() {
+    const video = videoRef.current;
+    if (!video) return;
+    setShowReplay(false);
+    setPlayCount(2);
+    video.currentTime = 0;
+    void video.play().catch(() => undefined);
+  }
+
+  return (
+    <div ref={containerRef} className="relative mx-auto w-full max-w-[300px] overflow-hidden rounded-[30px] border border-border bg-bg shadow-soft">
+      <video
+        ref={videoRef}
+        className="block w-full h-auto"
+        muted
+        playsInline
+        preload="metadata"
+        poster="/skintel-promo-v2-cover.png"
+        onEnded={handleEnded}
+        aria-label="Skintel app walkthrough showing product verdicts, label scanning, and personal trigger matches"
+      >
+        <source src="/skintel-promo-v2.mp4" type="video/mp4" />
+      </video>
+      {showReplay && (
+        <div className="absolute inset-0 flex items-center justify-center bg-ink/55 backdrop-blur-[2px]">
+          <button type="button" onClick={watchAgain} className="btn-primary shadow-soft">
+            <Play size={15} fill="currentColor" /> Watch again
+          </button>
+        </div>
+      )}
+      <span className="sr-only" aria-live="polite">
+        {showReplay ? 'Video finished after three plays.' : `Video play ${Math.min(playCount + 1, 3)} of 3.`}
+      </span>
+    </div>
+  );
+}
+
 export default function Landing() {
   const [openFaq, setOpenFaq] = useState<number | null>(0);
   const [demoPlan, setDemoPlan] = useState<string | null>(null);
   const [scrolled, setScrolled] = useState(false);
+  const { remaining, total } = useFoundingCount();
+  const soldOut = typeof remaining === 'number' && remaining <= 0;
   useParallaxRoot();
 
+  const [showBar, setShowBar] = useState(false);
   useEffect(() => {
-    const onScroll = () => setScrolled(window.scrollY > 8);
+    const onScroll = () => {
+      setScrolled(window.scrollY > 8);
+      setShowBar(window.scrollY > 480);
+    };
     onScroll();
     window.addEventListener('scroll', onScroll, { passive: true });
     return () => window.removeEventListener('scroll', onScroll);
   }, []);
 
-  // channel attribution: ?ref=tt|reddit|x|… survives into waitlist + signup
+  // channel attribution: ?ref=tt|reddit|x|… survives into waitlist + checkout
+  const [checkoutHref, setCheckoutHref] = useState('/api/checkout-founding');
   useEffect(() => {
     try {
-      const ref = new URLSearchParams(window.location.search).get('ref');
-      if (ref) localStorage.setItem('skintel_ref', ref.slice(0, 40));
+      const urlRef = new URLSearchParams(window.location.search).get('ref');
+      if (urlRef) localStorage.setItem('skintel_ref', urlRef.slice(0, 40));
+      const ref = urlRef ?? localStorage.getItem('skintel_ref');
+      if (ref) setCheckoutHref(`/api/checkout-founding?ref=${encodeURIComponent(ref.slice(0, 40))}`);
     } catch { /* storage unavailable (private mode) — skip attribution */ }
   }, []);
 
@@ -2217,31 +2323,31 @@ export default function Landing() {
           scrolled ? 'bg-bg/85 backdrop-blur-xl border-b border-border/70' : 'bg-transparent'
         }`}
       >
-        <div className="max-w-6xl mx-auto px-6 py-4 flex items-center justify-between">
+        <div className="max-w-6xl mx-auto px-4 sm:px-6 py-3 sm:py-4 flex items-center justify-between">
           <Link to="/" className="font-display text-2xl leading-none">
             Skintel<span className="text-primary">.</span>
           </Link>
           <nav className="flex items-center gap-1 text-sm">
-            <Link
-              to="/pricing"
-              className="px-3 py-2 text-muted hover:text-ink transition-colors duration-200 ease-emil rounded-lg"
+            <a
+              href="#founding"
+              className="px-3 py-2 text-muted hover:text-ink transition-colors duration-200 ease-emil rounded-lg hidden sm:block"
             >
-              Pricing
-            </Link>
-            <Link
-              to="/login"
+              Waitlist
+            </a>
+            <a
+              href={checkoutHref}
               className="btn-primary active:scale-[0.97] transition-transform duration-150 ease-emil"
             >
-              Start free <ArrowRight size={14} />
-            </Link>
+              Claim $20 deal <ArrowRight size={14} />
+            </a>
           </nav>
         </div>
       </header>
 
-      <section className="relative max-w-6xl mx-auto px-6 pt-8 md:pt-20 pb-12 md:pb-28">
-        <div className="grid lg:grid-cols-[1.15fr_1fr] gap-10 lg:gap-16 items-center">
+      <section className="relative max-w-6xl mx-auto px-4 sm:px-6 pt-6 sm:pt-8 md:pt-20 pb-8 sm:pb-12 md:pb-28">
+        <div className="grid lg:grid-cols-[1.15fr_1fr] gap-8 lg:gap-16 items-center">
           <div className="animate-rise-in" style={{ animationDelay: '40ms' }}>
-            <div className="inline-flex items-center gap-2 text-xs uppercase tracking-[0.14em] text-primary bg-primary/8 border border-primary/15 px-3 py-1.5 rounded-full mb-7">
+            <div className="inline-flex items-center gap-2 text-[10px] sm:text-xs uppercase tracking-[0.12em] sm:tracking-[0.14em] text-primary bg-primary/8 border border-primary/15 px-3 py-1.5 rounded-full mb-5 sm:mb-7">
               <span className="relative flex h-1.5 w-1.5">
                 <span className="absolute inline-flex h-full w-full rounded-full bg-primary animate-breathe" />
                 <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-primary" />
@@ -2249,46 +2355,67 @@ export default function Landing() {
               Personal ingredient intelligence
             </div>
 
-            <h1 className="font-display text-[2.75rem] sm:text-6xl lg:text-[4.25rem] leading-[1.02] tracking-tight mb-6">
+            <h1 className="font-display text-[2.45rem] sm:text-6xl lg:text-[4.25rem] leading-[1.02] tracking-tight mb-4 sm:mb-6">
               Stop guessing why
               <br />
               your skin <span className="italic text-primary">broke out.</span>
             </h1>
 
-            <p className="text-lg text-muted max-w-[60ch] mb-8 leading-relaxed">
+            <p className="text-base sm:text-lg text-muted max-w-[60ch] mb-6 sm:mb-8 leading-relaxed">
               One hidden ingredient is usually behind it. Log the products you already use, tag
               what broke you out, and Skintel names your personal triggers — so you never buy
               them again.
             </p>
 
-            <div className="flex items-center gap-3 flex-wrap">
-              <Link
-                to="/login"
-                className="btn-primary active:scale-[0.97] transition-transform duration-150 ease-emil"
-              >
-                Find my triggers — free <ArrowRight size={16} />
-              </Link>
+            <div className="grid grid-cols-1 min-[390px]:grid-cols-2 sm:flex items-center gap-3">
+              {soldOut ? (
+                <Link
+                  to="/login"
+                  className="btn-primary active:scale-[0.97] transition-transform duration-150 ease-emil"
+                >
+                  Start free <ArrowRight size={16} />
+                </Link>
+              ) : (
+                <a
+                  href={checkoutHref}
+                  className="btn-primary active:scale-[0.97] transition-transform duration-150 ease-emil"
+                >
+                  Get 6 months of Pro — $20 <ArrowRight size={16} />
+                </a>
+              )}
               <a
-                href="#demo"
+                href="#founding"
                 className="btn-secondary active:scale-[0.97] transition-transform duration-150 ease-emil"
               >
-                Try the live demo ↓
+                Join the waitlist
               </a>
             </div>
 
-            <div className="mt-10 flex items-center gap-5 text-xs text-muted flex-wrap">
+            <div className="mt-6 sm:mt-10 flex items-center gap-3 sm:gap-5 text-[11px] sm:text-xs text-muted flex-wrap">
+              {!soldOut && (
+                <>
+                  <div className="flex items-center gap-1.5 text-primary font-medium">
+                    <span className="relative flex h-1.5 w-1.5">
+                      <span className="absolute inline-flex h-full w-full rounded-full bg-primary animate-breathe" />
+                      <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-primary" />
+                    </span>
+                    {typeof remaining === 'number'
+                      ? `${remaining} of ${total} founding seats left`
+                      : 'Founding seats are limited'}
+                  </div>
+                  <div className="h-3 w-px bg-border" />
+                </>
+              )}
               <div className="flex items-center gap-1.5">
                 <ShieldCheck size={14} className="text-primary/80" />
-                Private by default
+                14-day refund
               </div>
-              <div className="h-3 w-px bg-border" />
-              <div>First verdict in under a minute</div>
-              <div className="h-3 w-px bg-border" />
-              <div>No card to start</div>
+              <div className="hidden sm:block h-3 w-px bg-border" />
+              <div className="hidden sm:block">No auto-renew · pay once</div>
             </div>
           </div>
 
-          <div className="relative animate-rise-in" style={{ animationDelay: '180ms' }}>
+          <div className="relative animate-rise-in hidden sm:block" style={{ animationDelay: '180ms' }}>
             <div
               aria-hidden
               className="absolute -inset-6 bg-primary/8 blur-3xl rounded-[40px] -z-10"
@@ -2366,24 +2493,143 @@ export default function Landing() {
         </div>
       </section>
 
-      <section id="demo" className="max-w-3xl mx-auto px-6 pb-10 md:pb-24 scroll-mt-24">
+      <section id="demo" className="max-w-3xl mx-auto px-4 sm:px-6 pb-8 sm:pb-10 md:pb-24 scroll-mt-24">
         <FadeUp>
           <TryItDemo />
         </FadeUp>
       </section>
 
+      <section id="walkthrough" className="max-w-5xl mx-auto px-4 sm:px-6 pb-10 sm:pb-14 md:pb-24 scroll-mt-24">
+        <FadeUp>
+          <div className="card overflow-hidden shadow-soft p-5 sm:p-8 md:p-10">
+            <div className="grid md:grid-cols-[1fr_320px] gap-7 md:gap-12 items-center">
+              <div>
+                <div className="text-[10px] sm:text-xs uppercase tracking-[0.16em] text-primary mb-4">
+                  See Skintel in 15 seconds
+                </div>
+                <h2 className="font-display text-3xl sm:text-5xl leading-[1.05] mb-4">
+                  Know what <span className="italic text-primary">touches</span> your skin.
+                </h2>
+                <p className="text-sm sm:text-base text-muted leading-relaxed mb-6 max-w-[48ch]">
+                  Scan a label, see your personal match, and catch repeat trigger ingredients
+                  before another product reaches your shelf.
+                </p>
+                <div className="grid gap-3 text-sm mb-6">
+                  {[
+                    'Personal verdicts for every product',
+                    'Repeat-trigger insights from your own history',
+                    'Private skin map that improves as you log',
+                  ].map((feature) => (
+                    <div key={feature} className="flex items-center gap-3">
+                      <span className="size-5 rounded-full bg-good-bg text-good-fg inline-flex items-center justify-center shrink-0">
+                        <Check size={12} strokeWidth={2.5} />
+                      </span>
+                      <span>{feature}</span>
+                    </div>
+                  ))}
+                </div>
+                <a href="#founding" className="btn-primary inline-flex active:scale-[0.97] transition-transform duration-150 ease-emil">
+                  Join the waitlist <ArrowRight size={16} />
+                </a>
+              </div>
+
+              <ScrollPlayedPromo />
+            </div>
+          </div>
+        </FadeUp>
+      </section>
+
+      {/* ── FOUNDING OFFER ── */}
+      {!soldOut && (
+        <section id="offer" className="max-w-4xl mx-auto px-4 sm:px-6 pb-10 sm:pb-14 md:pb-24 scroll-mt-24">
+          <FadeUp>
+            <div className="card relative overflow-hidden p-6 sm:p-10 shadow-soft border-primary/25">
+              <div
+                aria-hidden
+                className="pointer-events-none absolute -top-24 -right-24 h-64 w-64 rounded-full bg-primary/10 blur-3xl"
+              />
+              <div className="grid md:grid-cols-[1.2fr_1fr] gap-8 items-center relative">
+                <div>
+                  <div className="inline-flex items-center gap-2 text-[10px] sm:text-xs uppercase tracking-[0.14em] text-primary bg-primary/8 border border-primary/15 px-3 py-1.5 rounded-full mb-4">
+                    <Sparkles size={12} />
+                    Founding offer · one batch only
+                  </div>
+                  <h2 className="font-display text-3xl sm:text-4xl leading-tight mb-3">
+                    6 months of Pro for <span className="text-primary">$20.</span>
+                    <br />
+                    Then it&rsquo;s gone.
+                  </h2>
+                  <p className="text-muted text-sm sm:text-base leading-relaxed mb-5 max-w-[48ch]">
+                    Everything in Pro — unlimited products, the full INCI scanner, your personal
+                    trigger map. Pay once. No subscription, no auto-renew. Regular price after
+                    the founding batch: <span className="line-through">$79/year</span>.
+                  </p>
+                  <div className="flex flex-col min-[390px]:flex-row items-stretch min-[390px]:items-center gap-3">
+                    <a
+                      href={checkoutHref}
+                      className="btn-primary justify-center active:scale-[0.97] transition-transform duration-150 ease-emil"
+                    >
+                      Claim my seat — $20 <ArrowRight size={16} />
+                    </a>
+                    <div className="text-[11px] sm:text-xs text-muted flex items-center gap-1.5 justify-center">
+                      <ShieldCheck size={14} className="text-primary/80" />
+                      14-day money-back guarantee
+                    </div>
+                  </div>
+                </div>
+
+                <div className="rounded-2xl bg-bg/60 border border-border p-5">
+                  <div className="flex items-baseline justify-between mb-2">
+                    <span className="text-xs uppercase tracking-[0.14em] text-muted font-medium">
+                      Seats claimed
+                    </span>
+                    <span className="font-mono text-sm">
+                      {typeof remaining === 'number' ? `${total - remaining} / ${total}` : `— / ${total}`}
+                    </span>
+                  </div>
+                  <div className="h-2 rounded-full bg-border overflow-hidden mb-4">
+                    <div
+                      className="h-full rounded-full bg-primary transition-[width] duration-700 ease-emil"
+                      style={{
+                        width:
+                          typeof remaining === 'number'
+                            ? `${Math.max(2, Math.min(100, ((total - remaining) / total) * 100))}%`
+                            : '2%',
+                      }}
+                    />
+                  </div>
+                  <ul className="space-y-2 text-sm">
+                    {[
+                      'Unlimited tracked products',
+                      'Full INCI scanner — paste, snap, barcode',
+                      'Personal trigger map',
+                      'Founding badge + early iOS access',
+                    ].map((f) => (
+                      <li key={f} className="flex items-start gap-2 text-ink/90">
+                        <Check size={15} className="text-primary shrink-0 mt-0.5" />
+                        {f}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              </div>
+            </div>
+          </FadeUp>
+        </section>
+      )}
+
       {/* ── STATS / FEAR SECTION ── */}
-      <section className="py-12 md:py-32 px-6 border-y border-border bg-card/20">
+      <section className="py-10 sm:py-12 md:py-32 px-4 sm:px-6 border-y border-border bg-card/20">
         <div className="max-w-6xl mx-auto">
           <FadeUp>
             <div className="inline-flex items-center gap-2 text-[11px] uppercase tracking-[0.22em] text-primary font-semibold mb-6">
               <span className="h-px w-8 bg-primary/40" /> The problem nobody talks about
             </div>
-            <h2 className="font-display text-4xl md:text-6xl leading-[0.95] tracking-tight mb-4 max-w-3xl">
+            <h2 className="font-display text-[2.15rem] sm:text-4xl md:text-6xl leading-[0.98] md:leading-[0.95] tracking-tight mb-4 max-w-3xl">
               Your skin isn't broken.<br />
               <span className="text-primary italic">Your routine is fighting itself.</span>
             </h2>
-            <p className="text-muted text-lg max-w-2xl mb-10 md:mb-16">
+            <p className="text-muted text-base sm:text-lg max-w-2xl mb-8 sm:mb-10 md:mb-16">
               Most people spend years switching products, cutting out actives, going fragrance-free — and still breaking out. The real culprit is almost always one ingredient hiding across multiple products.
             </p>
           </FadeUp>
@@ -2414,17 +2660,20 @@ export default function Landing() {
                 sub: 'Because the same ingredient is in multiple products',
                 color: 'text-primary',
               },
-            ].map((s) => (
-              <FadeUp key={s.stat}>
+            ].map((s, i) => (
+              <div key={s.stat} className={i > 1 ? 'hidden sm:block' : ''}>
+              <FadeUp>
                 <div className="card p-4 sm:p-6 h-full flex flex-col gap-3">
                   <span className={`font-display text-4xl sm:text-5xl md:text-6xl tabular-nums ${s.color}`}>{s.stat}</span>
                   <p className="text-sm font-medium leading-snug">{s.label}</p>
                   <p className="text-xs text-muted mt-auto hidden sm:block">{s.sub}</p>
                 </div>
               </FadeUp>
+              </div>
             ))}
           </div>
 
+          <div className="hidden md:block">
           <FadeUp>
             <div className="card p-6 md:p-12 border-primary/20 bg-primary/5 max-w-4xl">
               <p className="font-display text-2xl md:text-3xl leading-snug mb-4">
@@ -2436,11 +2685,12 @@ export default function Landing() {
               </Link>
             </div>
           </FadeUp>
+          </div>
         </div>
       </section>
 
       {/* ── INGREDIENT REALITY STRIP ── */}
-      <section className="py-10 md:py-24 px-6 bg-bg">
+      <section className="hidden md:block py-10 md:py-24 px-6 bg-bg">
         <div className="max-w-6xl mx-auto">
           <FadeUp>
             <div className="inline-flex items-center gap-2 text-[11px] uppercase tracking-[0.22em] text-muted font-semibold mb-8">
@@ -2502,7 +2752,7 @@ export default function Landing() {
 
       <section
         aria-label="Ingredients ticker"
-        className="border-y border-border bg-card/40 overflow-hidden"
+        className="hidden md:block border-y border-border bg-card/40 overflow-hidden"
       >
         <div className="relative py-5 group">
           <div
@@ -2530,7 +2780,7 @@ export default function Landing() {
         </div>
       </section>
 
-      <section className="relative max-w-6xl mx-auto px-6 py-12 md:py-32">
+      <section className="relative max-w-6xl mx-auto px-4 sm:px-6 py-10 sm:py-12 md:py-32">
         <div
           aria-hidden
           className="pointer-events-none absolute -top-10 -left-20 size-72 bg-primary/8 blur-3xl rounded-full parallax-slow"
@@ -2541,11 +2791,11 @@ export default function Landing() {
         />
 
         <FadeUp>
-          <div className="max-w-2xl mb-10 md:mb-24">
+          <div className="max-w-2xl mb-8 sm:mb-10 md:mb-24">
             <div className="inline-flex items-center gap-2 text-[11px] uppercase tracking-[0.22em] text-primary font-semibold mb-4">
               <span className="h-px w-8 bg-primary/40" /> How it works
             </div>
-            <h2 className="font-display text-5xl md:text-7xl leading-[0.95] tracking-tight">
+            <h2 className="font-display text-[2.6rem] sm:text-5xl md:text-7xl leading-[0.98] md:leading-[0.95] tracking-tight">
               Three steps.
               <br />
               <span className="italic font-light text-primary">Zero detective work.</span>
@@ -2553,7 +2803,7 @@ export default function Landing() {
           </div>
         </FadeUp>
 
-        <ol className="relative space-y-10 md:space-y-28">
+        <ol className="relative space-y-7 sm:space-y-10 md:space-y-28">
           <div
             aria-hidden
             className="hidden md:block absolute left-[60px] top-4 bottom-4 w-px bg-gradient-to-b from-transparent via-primary/30 to-transparent"
@@ -2561,11 +2811,11 @@ export default function Landing() {
 
           {STEPS.map((s, i) => (
             <FadeUp key={s.n} delay={i * 80} variant={i % 2 === 0 ? 'left' : 'right'}>
-              <li className="group relative grid md:grid-cols-[120px_1fr_minmax(0,360px)] gap-x-10 gap-y-6 items-start">
+              <li className="group relative grid grid-cols-[56px_1fr] md:grid-cols-[120px_1fr_minmax(0,360px)] gap-x-4 md:gap-x-10 gap-y-4 md:gap-y-6 items-start">
                 <div className="relative flex items-baseline gap-3 md:block">
                   <div className="relative">
                     <div
-                      className="font-display text-7xl md:text-8xl leading-none bg-clip-text text-transparent transition-all duration-500 ease-emil group-hover:scale-105"
+                      className="font-display text-5xl sm:text-7xl md:text-8xl leading-none bg-clip-text text-transparent transition-all duration-500 ease-emil group-hover:scale-105"
                       style={{
                         backgroundImage:
                           'linear-gradient(135deg, rgba(163,88,72,0.9) 0%, rgba(163,88,72,0.25) 60%, rgba(163,88,72,0.05) 100%)',
@@ -2575,24 +2825,24 @@ export default function Landing() {
                     </div>
                     <div
                       aria-hidden
-                      className="absolute inset-0 font-display text-7xl md:text-8xl leading-none text-primary/5 select-none translate-x-1 translate-y-1 -z-10"
+                      className="absolute inset-0 font-display text-5xl sm:text-7xl md:text-8xl leading-none text-primary/5 select-none translate-x-1 translate-y-1 -z-10"
                     >
                       {s.n}
                     </div>
                   </div>
-                  <div className="md:mt-3 inline-flex items-center justify-center size-9 rounded-full bg-primary/10 border border-primary/20 text-primary shadow-[0_0_20px_rgba(163,88,72,0.15)] group-hover:bg-primary group-hover:text-card transition-all duration-400 ease-emil">
+                  <div className="hidden md:inline-flex md:mt-3 items-center justify-center size-9 rounded-full bg-primary/10 border border-primary/20 text-primary shadow-[0_0_20px_rgba(163,88,72,0.15)] group-hover:bg-primary group-hover:text-card transition-all duration-400 ease-emil">
                     {s.icon}
                   </div>
                 </div>
 
                 <div className="max-w-[55ch] md:pt-3">
-                  <h3 className="font-display text-3xl md:text-4xl mb-4 leading-[1.05] tracking-tight">
+                  <h3 className="font-display text-2xl sm:text-3xl md:text-4xl mb-2 sm:mb-4 leading-[1.05] tracking-tight">
                     {s.title}
                   </h3>
-                  <p className="text-muted text-base md:text-lg leading-relaxed">{s.body}</p>
+                  <p className="text-muted text-sm sm:text-base md:text-lg leading-relaxed">{s.body}</p>
                 </div>
 
-                <div className="md:pt-3">
+                <div className="hidden md:block md:pt-3">
                   <div className="relative card p-5 overflow-hidden bg-gradient-to-br from-card to-bg/50 border-primary/10 transition-all duration-500 ease-emil group-hover:border-primary/30 group-hover:shadow-[0_20px_60px_-20px_rgba(163,88,72,0.4)] group-hover:-translate-y-1">
                     <div
                       aria-hidden
@@ -2628,13 +2878,13 @@ export default function Landing() {
         </ol>
       </section>
 
-      <section id="founding" className="max-w-6xl mx-auto px-6 py-10 md:py-12 scroll-mt-24">
+      <section id="founding" className="max-w-6xl mx-auto px-4 sm:px-6 py-8 sm:py-10 md:py-12 scroll-mt-24">
         <FadeUp>
           <ComingSoonWaitlist />
         </FadeUp>
       </section>
 
-      <section className="max-w-6xl mx-auto px-6 py-10 md:py-24">
+      <section className="max-w-6xl mx-auto px-4 sm:px-6 py-10 md:py-24">
         <FadeUp>
           <div className="max-w-2xl mb-8 md:mb-12">
             <div className="text-xs uppercase tracking-[0.18em] text-muted font-medium mb-3">
@@ -2653,7 +2903,8 @@ export default function Landing() {
 
         <div className="grid md:grid-cols-3 gap-5">
           {PRICING.map((p, i) => (
-            <FadeUp key={p.id} delay={i * 80}>
+            <div key={p.id} className={p.highlight ? '' : 'hidden md:block'}>
+            <FadeUp delay={i * 80}>
               <Tilt3D max={4} lift={6} shine={false} className="h-full">
               <div
                 className={`card p-7 h-full relative overflow-hidden flex flex-col transition-shadow duration-300 ease-emil hover:shadow-[0_30px_60px_-20px_rgba(163,88,72,0.25)] ${
@@ -2775,15 +3026,19 @@ export default function Landing() {
               </div>
               </Tilt3D>
             </FadeUp>
+            </div>
           ))}
         </div>
+        <Link to="/pricing" className="btn-secondary w-full mt-4 md:hidden">
+          Compare all plans <ArrowRight size={14} />
+        </Link>
       </section>
 
       {demoPlan && (
         <PlanDemoModal planId={demoPlan} onClose={() => setDemoPlan(null)} />
       )}
 
-      <section className="max-w-3xl mx-auto px-6 py-10 md:py-24">
+      <section className="max-w-3xl mx-auto px-4 sm:px-6 py-10 md:py-24">
         <FadeUp>
           <div className="mb-10">
             <div className="text-xs uppercase tracking-[0.18em] text-muted font-medium mb-3">
@@ -2797,7 +3052,7 @@ export default function Landing() {
           {FAQS.map((f, i) => {
             const open = openFaq === i;
             return (
-              <div key={i}>
+              <div key={i} className={i > 3 ? 'hidden sm:block' : ''}>
                 <button
                   className="w-full py-5 flex items-start gap-4 text-left group min-h-11"
                   onClick={() => setOpenFaq(open ? null : i)}
@@ -2827,7 +3082,7 @@ export default function Landing() {
         </div>
       </section>
 
-      <footer className="max-w-6xl mx-auto px-6 py-12 border-t border-border text-sm text-muted relative">
+      <footer className="max-w-6xl mx-auto px-4 sm:px-6 py-10 sm:py-12 border-t border-border text-sm text-muted relative">
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-8 mb-10">
           <div className="sm:col-span-2 md:col-span-1">
             <Link to="/" className="font-display text-2xl text-ink leading-none">
@@ -2888,11 +3143,45 @@ export default function Landing() {
             </ul>
           </div>
         </div>
-        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 pt-6 border-t border-border">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 pt-6 border-t border-border pb-24 sm:pb-0">
           <span>© {new Date().getFullYear()} Skintel. All rights reserved.</span>
           <span className="text-xs">Not medical advice. Patterns, not prescriptions.</span>
         </div>
       </footer>
+
+      {/* ── STICKY MOBILE CTA ── */}
+      <div
+        className={`sm:hidden fixed bottom-0 inset-x-0 z-40 transition-transform duration-300 ease-emil ${
+          showBar ? 'translate-y-0' : 'translate-y-full'
+        }`}
+      >
+        <div
+          className="bg-bg/95 backdrop-blur-xl border-t border-border px-4 pt-3 flex items-center gap-3"
+          style={{ paddingBottom: 'calc(0.75rem + env(safe-area-inset-bottom))' }}
+        >
+          <div className="flex-1 min-w-0">
+            <div className="text-sm font-medium leading-tight">
+              {soldOut ? 'Founding batch sold out' : '6 months of Pro — $20'}
+            </div>
+            <div className="text-[11px] text-muted truncate">
+              {soldOut
+                ? 'Join the waitlist for launch'
+                : typeof remaining === 'number'
+                  ? `${remaining} of ${total} seats left · no auto-renew`
+                  : 'Limited founding seats · no auto-renew'}
+            </div>
+          </div>
+          {soldOut ? (
+            <a href="#founding" className="btn-primary shrink-0 active:scale-[0.97] transition-transform duration-150 ease-emil">
+              Waitlist <ArrowRight size={14} />
+            </a>
+          ) : (
+            <a href={checkoutHref} className="btn-primary shrink-0 active:scale-[0.97] transition-transform duration-150 ease-emil">
+              Claim <ArrowRight size={14} />
+            </a>
+          )}
+        </div>
+      </div>
     </div>
   );
 }

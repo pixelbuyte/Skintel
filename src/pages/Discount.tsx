@@ -1,4 +1,4 @@
-import { Link, useNavigate } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 import { useEffect, useState } from 'react';
 import { ArrowRight, ChevronDown, Check, Sparkles, ShieldCheck } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
@@ -35,7 +35,6 @@ const FAQS = [
 
 export default function Discount() {
   const { user, session } = useAuth();
-  const nav = useNavigate();
   const { remaining, total } = useFoundingCount();
   const [loading, setLoading] = useState(false);
   const [err, setErr] = useState<string | null>(null);
@@ -64,7 +63,8 @@ export default function Discount() {
 
   async function claim() {
     if (!user || !session) {
-      nav('/login?next=/discount');
+      // Guest checkout — pay first, account is created from the Stripe email
+      window.location.href = '/api/checkout-founding';
       return;
     }
     setErr(null);
