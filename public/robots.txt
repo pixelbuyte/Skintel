@@ -1,0 +1,26 @@
+# Public pages may be indexed. Account, checkout, and API routes are not
+# useful discovery surfaces and can contain user-specific interactions.
+User-agent: *
+Allow: /
+Disallow: /api/
+Disallow: /app/
+Disallow: /auth/
+Disallow: /checkout/
+
+# OpenAI's search crawler powers discovery and citations in ChatGPT search.
+User-agent: OAI-SearchBot
+Allow: /
+Disallow: /api/
+Disallow: /app/
+Disallow: /auth/
+Disallow: /checkout/
+
+# User-requested page visits from ChatGPT.
+User-agent: ChatGPT-User
+Allow: /
+Disallow: /api/
+Disallow: /app/
+Disallow: /auth/
+Disallow: /checkout/
+
+Sitemap: https://www.skinstel.com/sitemap.xml
