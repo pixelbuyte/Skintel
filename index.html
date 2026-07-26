@@ -9,17 +9,218 @@
     <link rel="apple-touch-icon" sizes="192x192" href="/icons/icon-192.png" />
     <link rel="apple-touch-icon" sizes="512x512" href="/icons/icon-512.png" />
     <link rel="manifest" href="/manifest.json" />
+    <link rel="canonical" href="https://www.skinstel.com/" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
-    <meta name="description" content="Skintel — stop buying products that destroy your skin. Track ingredients, find your personal triggers." />
+    <meta name="description" content="Skintel is a skincare ingredient tracking and comparison app that helps you log products, compare INCI lists, spot personal patterns, and check products before you buy. Not medical advice." />
+    <meta name="robots" content="index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1" />
+    <meta name="googlebot" content="index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1" />
     <meta name="theme-color" content="#A35848" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
     <meta name="apple-mobile-web-app-title" content="Skintel" />
     <meta name="mobile-web-app-capable" content="yes" />
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="Skintel" />
+    <meta property="og:title" content="Skintel — skincare ingredient intelligence" />
+    <meta property="og:description" content="Track skincare products, compare INCI lists, spot personal ingredient patterns, and check products before you buy." />
+    <meta property="og:url" content="https://www.skinstel.com/" />
+    <meta property="og:image" content="https://www.skinstel.com/icons/icon-512.png" />
+    <meta property="og:image:width" content="512" />
+    <meta property="og:image:height" content="512" />
+    <meta property="og:image:alt" content="Skintel app icon" />
+    <meta name="twitter:card" content="summary" />
+    <meta name="twitter:title" content="Skintel — skincare ingredient intelligence" />
+    <meta name="twitter:description" content="Track skincare products, compare INCI lists, spot personal ingredient patterns, and check products before you buy." />
+    <meta name="twitter:image" content="https://www.skinstel.com/icons/icon-512.png" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=DM+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
-    <title>Skintel — your skincare ingredient intelligence</title>
+    <title>Skintel — skincare ingredient tracker & product checker</title>
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@graph": [
+          {
+            "@type": "Organization",
+            "@id": "https://www.skinstel.com/#organization",
+            "name": "Skintel",
+            "alternateName": "Skinstel",
+            "url": "https://www.skinstel.com/",
+            "logo": {
+              "@type": "ImageObject",
+              "url": "https://www.skinstel.com/icons/icon-512.png",
+              "width": 512,
+              "height": 512
+            },
+            "description": "Skintel builds tools for tracking skincare ingredients and personal product-reaction patterns."
+          },
+          {
+            "@type": "WebSite",
+            "@id": "https://www.skinstel.com/#website",
+            "url": "https://www.skinstel.com/",
+            "name": "Skintel",
+            "alternateName": "Skinstel",
+            "description": "Skincare ingredient tracking, INCI comparison, routine tracking, and personalized product-pattern insights.",
+            "inLanguage": "en-US",
+            "publisher": {
+              "@id": "https://www.skinstel.com/#organization"
+            }
+          },
+          {
+            "@type": "WebPage",
+            "@id": "https://www.skinstel.com/#webpage",
+            "url": "https://www.skinstel.com/",
+            "name": "Skintel — skincare ingredient tracker and product checker",
+            "description": "Learn how Skintel helps people log skincare products, compare ingredient lists, identify personal correlations, and check products before buying.",
+            "isPartOf": {
+              "@id": "https://www.skinstel.com/#website"
+            },
+            "about": {
+              "@id": "https://www.skinstel.com/#app"
+            },
+            "mainEntity": {
+              "@id": "https://www.skinstel.com/#app"
+            },
+            "inLanguage": "en-US"
+          },
+          {
+            "@type": "SoftwareApplication",
+            "@id": "https://www.skinstel.com/#app",
+            "name": "Skintel",
+            "alternateName": "Skinstel",
+            "url": "https://www.skinstel.com/",
+            "image": "https://www.skinstel.com/icons/icon-512.png",
+            "description": "A skincare ingredient tracking and comparison app for logging products, comparing INCI lists, building AM and PM routines, recording product outcomes, and surfacing personal ingredient correlations. Skintel is an informational tracking tool, not a medical device or diagnostic service.",
+            "applicationCategory": "LifestyleApplication",
+            "applicationSubCategory": "Skincare ingredient tracker",
+            "operatingSystem": "Any operating system with a modern web browser",
+            "browserRequirements": "Requires JavaScript and a modern web browser",
+            "isAccessibleForFree": true,
+            "featureList": [
+              "Skincare product and INCI ingredient logging",
+              "Personal product-outcome tracking",
+              "Ingredient pattern and correlation detection",
+              "Barcode and product-label scanning",
+              "AM and PM skincare routine builder",
+              "Breakout journal",
+              "Product ingredient comparison",
+              "Data export and account deletion controls"
+            ],
+            "audience": {
+              "@type": "Audience",
+              "audienceType": "People who want to track skincare ingredients, routines, and personal product-reaction patterns"
+            },
+            "provider": {
+              "@id": "https://www.skinstel.com/#organization"
+            },
+            "offers": [
+              {
+                "@type": "Offer",
+                "name": "Skintel Free",
+                "url": "https://www.skinstel.com/login",
+                "price": "0",
+                "priceCurrency": "USD",
+                "availability": "https://schema.org/InStock",
+                "description": "Free plan for logging up to five products and finding initial ingredient patterns."
+              },
+              {
+                "@type": "Offer",
+                "name": "Skintel founding offer",
+                "url": "https://www.skinstel.com/#founding",
+                "price": "20",
+                "priceCurrency": "USD",
+                "availability": "https://schema.org/PreOrder",
+                "description": "Pre-launch founding offer for three months of Skintel Pro with no automatic renewal."
+              },
+              {
+                "@type": "Offer",
+                "name": "Skintel Pro monthly",
+                "url": "https://www.skinstel.com/pricing#pro-monthly",
+                "price": "9",
+                "priceCurrency": "USD",
+                "availability": "https://schema.org/InStock",
+                "priceSpecification": {
+                  "@type": "UnitPriceSpecification",
+                  "price": "9",
+                  "priceCurrency": "USD",
+                  "unitText": "MONTH"
+                }
+              },
+              {
+                "@type": "Offer",
+                "name": "Skintel Pro yearly",
+                "url": "https://www.skinstel.com/pricing#pro-yearly",
+                "price": "79",
+                "priceCurrency": "USD",
+                "availability": "https://schema.org/InStock",
+                "priceSpecification": {
+                  "@type": "UnitPriceSpecification",
+                  "price": "79",
+                  "priceCurrency": "USD",
+                  "unitText": "YEAR"
+                }
+              }
+            ]
+          },
+          {
+            "@type": "FAQPage",
+            "@id": "https://www.skinstel.com/#faq",
+            "url": "https://www.skinstel.com/#faq",
+            "inLanguage": "en-US",
+            "mainEntity": [
+              {
+                "@type": "Question",
+                "name": "How does Skintel know what breaks me out?",
+                "acceptedAnswer": {
+                  "@type": "Answer",
+                  "text": "Tag each product as worked or broke me out and add its INCI list. Skintel cross-references ingredients to surface correlations that appear in your breakout products but not your safe products. Patterns sharpen as you log more."
+                }
+              },
+              {
+                "@type": "Question",
+                "name": "How many products do I need to log before Skintel works?",
+                "acceptedAnswer": {
+                  "@type": "Answer",
+                  "text": "Three to five products is a useful starting point. Skintel needs at least two products tagged as breakouts before it can look for common ingredient patterns."
+                }
+              },
+              {
+                "@type": "Question",
+                "name": "Do I need to scan a barcode or take photos?",
+                "acceptedAnswer": {
+                  "@type": "Answer",
+                  "text": "No. You can paste an ingredient list from a product page or package. Barcode and product-label scanning are available as optional Pro features."
+                }
+              },
+              {
+                "@type": "Question",
+                "name": "Is Skintel medical advice?",
+                "acceptedAnswer": {
+                  "@type": "Answer",
+                  "text": "No. Skintel surfaces correlations from products you tag. It is a tracking tool, not a diagnosis, medical device, or substitute for a dermatologist. Seek professional care for persistent or severe reactions."
+                }
+              },
+              {
+                "@type": "Question",
+                "name": "Is my Skintel data private?",
+                "acceptedAnswer": {
+                  "@type": "Answer",
+                  "text": "Account data is protected with row-level access controls. Skintel states that it does not sell personal data to brands. Users can export their data or delete their account from Settings."
+                }
+              },
+              {
+                "@type": "Question",
+                "name": "What does Skintel cost?",
+                "acceptedAnswer": {
+                  "@type": "Answer",
+                  "text": "Skintel has a free plan. Pro is listed at $9 per month or $79 per year. A limited pre-launch founding offer provides three months of Pro for $20 with no automatic renewal."
+                }
+              }
+            ]
+          }
+        ]
+      }
+    </script>
   </head>
   <body>
     <div id="root"></div>
