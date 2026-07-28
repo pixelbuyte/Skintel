@@ -13,7 +13,7 @@ const Dashboard = lazy(() => import('@/pages/Dashboard'));
 const ProductsList = lazy(() => import('@/pages/ProductsList'));
 const AddProduct = lazy(() => import('@/pages/AddProduct'));
 const EditProduct = lazy(() => import('@/pages/EditProduct'));
-const Culprits = lazy(() => import('@/pages/Culprits'));
+const Triggers = lazy(() => import('@/pages/Triggers'));
 const Scanner = lazy(() => import('@/pages/Scanner'));
 const Compare = lazy(() => import('@/pages/Compare'));
 const Settings = lazy(() => import('@/pages/Settings'));
@@ -91,15 +91,16 @@ function App() {
           }
         />
         <Route
-          path="/app/culprits"
+          path="/app/triggers"
           element={
             <ProtectedRoute>
               <Layout>
-                <Culprits />
+                <Triggers />
               </Layout>
             </ProtectedRoute>
           }
         />
+        <Route path="/app/culprits" element={<Navigate to="/app/triggers" replace />} />
         <Route
           path="/app/scanner"
           element={

@@ -2630,7 +2630,7 @@ export default function Landing() {
               <span className="text-primary italic">Your routine is fighting itself.</span>
             </h2>
             <p className="text-muted text-base sm:text-lg max-w-2xl mb-8 sm:mb-10 md:mb-16">
-              Most people spend years switching products, cutting out actives, going fragrance-free — and still breaking out. The real culprit is almost always one ingredient hiding across multiple products.
+              Most people spend years switching products, cutting out actives, going fragrance-free — and still breaking out. The real trigger is almost always one ingredient hiding across multiple products.
             </p>
           </FadeUp>
 
