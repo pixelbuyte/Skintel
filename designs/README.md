@@ -18,7 +18,8 @@ master built from the same geometry (iOS applies the squircle mask).
 | 03 | Onboarding 2 — skin profile | `previews/ob2.png` |
 | 04 | Onboarding 3 — camera permission | `previews/ob3.png` |
 | 05 | Sign in (Apple / Google / magic link) | `previews/login.png` |
-| 06 | Home / Dashboard | `previews/home.png` |
+| 06 | Home / Dashboard — A: stat grid | `previews/home.png` |
+| 06b | Home / Dashboard — B: skin-score ring | `previews/home-b.png` |
 | 07 | Scanner — viewfinder | `previews/scan.png` |
 | 08 | Scanner — match & auto-analyze sheet | `previews/found.png` |
 | 09 | Analysis — verdict | `previews/verdict.png` |
@@ -28,7 +29,8 @@ master built from the same geometry (iOS applies the squircle mask).
 | 13 | Journal | `previews/journal.png` |
 | 14 | Triggers — what actually breaks you out | `previews/triggers.png` |
 | 15 | Paywall — launch pricing ($8.99/mo · $79/yr) | `previews/paywall.png` |
-| 16 | Settings | `previews/settings.png` |
+| 16 | Settings — A: current (profile, membership, preferences, data) | `previews/settings.png` |
+| 16b | Settings — B: full app settings (adds notifications, appearance, support, delete account) | `previews/settings-b.png` + `previews/settings-b-bottom.png` |
 | 17 | WidgetKit — small & medium | `previews/widgets.png` |
 
 ## Naming

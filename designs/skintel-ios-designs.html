@@ -393,7 +393,7 @@ body.freeze .anim-ring{animation-delay:-1.1s;animation-play-state:paused}
 
 <!-- ================= 03 HOME ================= -->
 <section id="home">
-  <div class="sect-head"><span class="num">03</span><h2>Home</h2><p>One glance answers three things: how is my skin trending, is anything suspicious, and what’s next in my routine.</p></div>
+  <div class="sect-head"><span class="num">03</span><h2>Home</h2><p>One glance answers three things: how is my skin trending, is anything suspicious, and what's next in my routine. Two variants below — same tokens, different hierarchy.</p></div>
   <div class="row">
     <div class="shot" id="s-home">
       <div class="phone"><div class="screen">
@@ -469,7 +469,79 @@ body.freeze .anim-ring{animation-delay:-1.1s;animation-play-state:paused}
         <div class="bnav" data-active="home"></div>
         <div class="homebar"></div>
       </div></div>
-      <div class="cap"><b>Home / Dashboard</b><span>Journal stats up top (Logged / Worked / Unsure / Broke out), trigger alert when correlation crosses threshold, routine progress, recent scans. Center FAB opens the scanner from anywhere.</span></div>
+      <div class="cap"><b>Home / Dashboard — A: stat grid</b><span>Journal stats up top (Logged / Worked / Unsure / Broke out), trigger alert when correlation crosses threshold, routine progress, recent scans. Center FAB opens the scanner from anywhere.</span></div>
+    </div>
+
+    <div class="shot" id="s-home-b">
+      <div class="phone"><div class="screen">
+        <div class="island"></div>
+        <div class="sbar"><span class="time">9:41</span><span class="sicons" data-auto></span></div>
+        <div class="pad">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-top:16px">
+            <div class="mono" style="font-size:11px;letter-spacing:.14em;color:var(--muted);text-transform:uppercase">Thu · Jul 16</div>
+            <div style="width:38px;height:38px;border-radius:50%;background:linear-gradient(135deg,#D9917F,#A35848);display:flex;align-items:center;justify-content:center;color:#FFFEFA;font-weight:700;font-size:14px">R</div>
+          </div>
+
+          <!-- hero: single composite skin score, Apple-Health-ring style -->
+          <div class="card" style="margin-top:14px;padding:22px;display:flex;flex-direction:column;align-items:center;background:linear-gradient(180deg,#FFFEFA,#FBF6EC)">
+            <div class="ring">
+              <svg width="128" height="128" viewBox="0 0 128 128"><circle cx="64" cy="64" r="55" stroke="#EFEAE2" stroke-width="10" fill="none"/><circle cx="64" cy="64" r="55" stroke="#5C7A4F" stroke-width="10" fill="none" stroke-linecap="round" stroke-dasharray="345.6" stroke-dashoffset="72.6" style="filter:drop-shadow(0 0 6px rgba(92,122,79,.3))"/></svg>
+              <div class="rv"><b style="font-size:36px">79</b><i>skin score</i></div>
+            </div>
+            <div style="display:flex;gap:18px;margin-top:16px;font-size:11px">
+              <span style="display:flex;align-items:center;gap:5px"><span class="dot" style="background:#5C7A4F"></span>62 worked</span>
+              <span style="display:flex;align-items:center;gap:5px"><span class="dot" style="background:#8B6914"></span>41 unsure</span>
+              <span style="display:flex;align-items:center;gap:5px"><span class="dot" style="background:#B22B2B"></span>25 broke out</span>
+            </div>
+          </div>
+
+          <div class="card" style="margin-top:12px;padding:16px;background:linear-gradient(135deg,#FDEAEA 0%,#FFFEFA 60%);border-color:rgba(178,43,43,.2)">
+            <div style="display:flex;align-items:center;gap:10px">
+              <div style="width:36px;height:36px;border-radius:10px;background:rgba(178,43,43,.1);display:flex;align-items:center;justify-content:center"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#B22B2B" stroke-width="2" stroke-linecap="round"><path d="M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z"/><path d="M12 9v4M12 17h.01"/></svg></div>
+              <div style="flex:1">
+                <div style="font-weight:700;font-size:14.5px">1 trigger found</div>
+                <div style="font-size:12.5px;color:var(--muted);margin-top:1px">Fragrance-heavy lotion precedes 3 of 4 breakouts</div>
+              </div>
+              <span style="color:var(--bad-fg);font-weight:700;font-size:13px">Review ›</span>
+            </div>
+          </div>
+
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-top:20px">
+            <div class="h-serif" style="font-size:19px">Tonight's routine</div>
+            <span class="mono" style="font-size:11px;color:var(--muted)">2/5</span>
+          </div>
+          <!-- horizontal step chips instead of a stacked progress card -->
+          <div style="display:flex;gap:8px;margin-top:10px;overflow-x:auto;padding-bottom:2px">
+            <div class="card" style="flex:none;padding:10px 14px;display:flex;align-items:center;gap:6px;background:var(--good-bg);border-color:transparent"><span style="color:var(--good-fg)">✓</span><span style="font-size:12.5px;font-weight:600;color:var(--good-fg)">Cleanser</span></div>
+            <div class="card" style="flex:none;padding:10px 14px;display:flex;align-items:center;gap:6px;background:var(--good-bg);border-color:transparent"><span style="color:var(--good-fg)">✓</span><span style="font-size:12.5px;font-weight:600;color:var(--good-fg)">Toner</span></div>
+            <div class="card" style="flex:none;padding:10px 14px;"><span style="font-size:12.5px;font-weight:600">Retinol 0.5%</span></div>
+            <div class="card" style="flex:none;padding:10px 14px;"><span style="font-size:12.5px;font-weight:600">Moisturizer</span></div>
+          </div>
+
+          <div style="display:flex;align-items:baseline;justify-content:space-between;margin-top:22px">
+            <div class="h-serif" style="font-size:20px">Recent scans</div>
+            <span style="font-size:12.5px;color:var(--primary);font-weight:600">Shelf ›</span>
+          </div>
+          <!-- horizontal scroll cards instead of a vertical list -->
+          <div style="display:flex;gap:10px;margin-top:10px;overflow-x:auto;padding-bottom:2px">
+            <div class="card" style="flex:none;width:104px;padding:12px;display:flex;flex-direction:column;align-items:center;gap:8px">
+              <div class="pthumb" style="width:56px;height:56px;border-radius:12px"><svg class="prod" width="32" height="45" viewBox="0 0 60 84"><use href="#pPump"/></svg></div>
+              <span class="chip good" style="font-size:11px">82</span>
+            </div>
+            <div class="card" style="flex:none;width:104px;padding:12px;display:flex;flex-direction:column;align-items:center;gap:8px">
+              <div class="pthumb" style="width:56px;height:56px;border-radius:12px"><svg class="prod amber" width="32" height="45" viewBox="0 0 60 84"><use href="#pDrop"/></svg></div>
+              <span class="chip unsure" style="font-size:11px">64</span>
+            </div>
+            <div class="card" style="flex:none;width:104px;padding:12px;display:flex;flex-direction:column;align-items:center;gap:8px">
+              <div class="pthumb" style="width:56px;height:56px;border-radius:12px"><svg class="prod rose" width="32" height="45" viewBox="0 0 60 84"><use href="#pPump"/></svg></div>
+              <span class="chip bad" style="font-size:11px">31</span>
+            </div>
+          </div>
+        </div>
+        <div class="bnav" data-active="home"></div>
+        <div class="homebar"></div>
+      </div></div>
+      <div class="cap"><b>Home / Dashboard — B: skin-score ring</b><span>One composite score up front instead of four count boxes — glanceable, fitness-app-style. Routine and scans shift to horizontal scroll rows to make room. Same tokens and components, different information hierarchy.</span></div>
     </div>
   </div>
 </section>
@@ -877,7 +949,7 @@ body.freeze .anim-ring{animation-delay:-1.1s;animation-play-state:paused}
 
 <!-- ================= 07 MONETIZATION & SETTINGS ================= -->
 <section id="growth">
-  <div class="sect-head"><span class="num">07</span><h2>Paywall &amp; settings</h2><p>Founding-member scarcity, Apple-first checkout. Settings stays boring on purpose.</p></div>
+  <div class="sect-head"><span class="num">07</span><h2>Paywall &amp; settings</h2><p>Launch pricing, Apple-first checkout. Settings stays boring on purpose — two variants below, from bare-bones to the full set a normal app ships with.</p></div>
   <div class="row">
 
     <div class="shot" id="s-paywall">
@@ -950,7 +1022,7 @@ body.freeze .anim-ring{animation-delay:-1.1s;animation-play-state:paused}
           <div class="mono" style="font-size:10.5px;letter-spacing:.16em;text-transform:uppercase;color:var(--muted);margin:20px 0 8px 4px">Membership</div>
           <div class="card">
             <div style="padding:14px 16px;display:flex;align-items:center;gap:12px;border-bottom:1px solid var(--line)">
-              <span style="font-size:14px;font-weight:600;flex:1">Skintel Pro</span><span class="chip" style="background:#FBF3EE;color:var(--primary);font-size:10.5px">Founding · $29/yr</span><span class="muted">›</span>
+              <span style="font-size:14px;font-weight:600;flex:1">Skintel Pro</span><span class="chip" style="background:#FBF3EE;color:var(--primary);font-size:10.5px">Yearly · $79/yr</span><span class="muted">›</span>
             </div>
             <div style="padding:14px 16px;display:flex;align-items:center;gap:12px">
               <span style="font-size:14px;font-weight:600;flex:1">Restore purchases</span><span class="muted">›</span>
@@ -982,7 +1054,90 @@ body.freeze .anim-ring{animation-delay:-1.1s;animation-play-state:paused}
         <div class="bnav" data-active="home"></div>
         <div class="homebar"></div>
       </div></div>
-      <div class="cap"><b>Settings</b><span>Skin profile at the top since it drives every verdict. Grouped iOS lists, mono section labels, destructive action in verdict-red.</span></div>
+      <div class="cap"><b>Settings — A: current</b><span>Skin profile at the top since it drives every verdict. Grouped iOS lists, mono section labels, destructive action in verdict-red.</span></div>
+    </div>
+
+    <div class="shot" id="s-settings-b">
+      <div class="phone"><div class="screen">
+        <div class="island"></div>
+        <div class="sbar"><span class="time">9:41</span><span class="sicons" data-auto></span></div>
+        <div class="pad" style="padding-bottom:0;height:100%;overflow-y:auto">
+          <h1 class="h-serif" style="font-size:28px;margin-top:16px">Settings</h1>
+          <div class="card" style="margin-top:14px;padding:16px;display:flex;align-items:center;gap:14px">
+            <div style="width:48px;height:48px;border-radius:50%;background:linear-gradient(135deg,#D9917F,#A35848);display:flex;align-items:center;justify-content:center;color:#FFFEFA;font-weight:700;font-size:17px">R</div>
+            <div style="flex:1">
+              <div style="font-weight:700;font-size:15px">Riya</div>
+              <div style="font-size:12px;color:var(--muted);margin-top:1px">riya@email.com</div>
+            </div>
+            <span class="muted">›</span>
+          </div>
+
+          <div class="mono" style="font-size:10px;letter-spacing:.16em;text-transform:uppercase;color:var(--muted);margin:18px 0 6px 4px">Skin profile</div>
+          <div class="card">
+            <div style="padding:12px 16px;display:flex;align-items:center;gap:12px;border-bottom:1px solid var(--line)"><span style="font-size:13.5px;flex:1">Skin type</span><span class="muted" style="font-size:13px">Combination</span><span class="muted">›</span></div>
+            <div style="padding:12px 16px;display:flex;align-items:center;gap:12px"><span style="font-size:13.5px;flex:1">Concerns</span><span class="muted" style="font-size:13px">Breakouts, dark spots</span><span class="muted">›</span></div>
+          </div>
+
+          <div class="mono" style="font-size:10px;letter-spacing:.16em;text-transform:uppercase;color:var(--muted);margin:18px 0 6px 4px">Membership</div>
+          <div class="card">
+            <div style="padding:12px 16px;display:flex;align-items:center;gap:12px;border-bottom:1px solid var(--line)"><span style="font-size:13.5px;flex:1">Skintel Pro</span><span class="chip" style="background:#FBF3EE;color:var(--primary);font-size:10px">Yearly · $79/yr</span><span class="muted">›</span></div>
+            <div style="padding:12px 16px;display:flex;align-items:center;gap:12px;border-bottom:1px solid var(--line)"><span style="font-size:13.5px;flex:1">Manage subscription</span><span class="muted">›</span></div>
+            <div style="padding:12px 16px;display:flex;align-items:center;gap:12px"><span style="font-size:13.5px;flex:1">Restore purchases</span><span class="muted">›</span></div>
+          </div>
+
+          <div class="mono" style="font-size:10px;letter-spacing:.16em;text-transform:uppercase;color:var(--muted);margin:18px 0 6px 4px">Notifications</div>
+          <div class="card">
+            <div style="padding:12px 16px;display:flex;align-items:center;gap:12px;border-bottom:1px solid var(--line)">
+              <span style="font-size:13.5px;flex:1">Push notifications</span>
+              <span style="width:40px;height:24px;border-radius:12px;background:var(--good-fg);position:relative"><i style="position:absolute;right:2px;top:2px;width:20px;height:20px;border-radius:50%;background:#FFFEFA;box-shadow:0 1px 3px rgba(0,0,0,.2)"></i></span>
+            </div>
+            <div style="padding:12px 16px;display:flex;align-items:center;gap:12px;border-bottom:1px solid var(--line)">
+              <span style="font-size:13.5px;flex:1">Routine reminders</span>
+              <span style="width:40px;height:24px;border-radius:12px;background:var(--good-fg);position:relative"><i style="position:absolute;right:2px;top:2px;width:20px;height:20px;border-radius:50%;background:#FFFEFA;box-shadow:0 1px 3px rgba(0,0,0,.2)"></i></span>
+            </div>
+            <div style="padding:12px 16px;display:flex;align-items:center;gap:12px;border-bottom:1px solid var(--line)">
+              <span style="font-size:13.5px;flex:1">Trigger alerts</span>
+              <span style="width:40px;height:24px;border-radius:12px;background:var(--good-fg);position:relative"><i style="position:absolute;right:2px;top:2px;width:20px;height:20px;border-radius:50%;background:#FFFEFA;box-shadow:0 1px 3px rgba(0,0,0,.2)"></i></span>
+            </div>
+            <div style="padding:12px 16px;display:flex;align-items:center;gap:12px"><span style="font-size:13.5px;flex:1">Weekly email digest</span><span class="muted">›</span></div>
+          </div>
+
+          <div class="mono" style="font-size:10px;letter-spacing:.16em;text-transform:uppercase;color:var(--muted);margin:18px 0 6px 4px">Preferences</div>
+          <div class="card">
+            <div style="padding:12px 16px;display:flex;align-items:center;gap:12px;border-bottom:1px solid var(--line)">
+              <span style="font-size:13.5px;flex:1">Appearance</span><span class="muted" style="font-size:13px">System</span><span class="muted">›</span>
+            </div>
+            <div style="padding:12px 16px;display:flex;align-items:center;gap:12px">
+              <span style="font-size:13.5px;flex:1">Haptics</span>
+              <span style="width:40px;height:24px;border-radius:12px;background:#DDD6C9;position:relative"><i style="position:absolute;left:2px;top:2px;width:20px;height:20px;border-radius:50%;background:#FFFEFA;box-shadow:0 1px 3px rgba(0,0,0,.2)"></i></span>
+            </div>
+          </div>
+
+          <div class="mono" style="font-size:10px;letter-spacing:.16em;text-transform:uppercase;color:var(--muted);margin:18px 0 6px 4px">Data &amp; privacy</div>
+          <div class="card">
+            <div style="padding:12px 16px;display:flex;border-bottom:1px solid var(--line)"><span style="font-size:13.5px;flex:1">Export my data</span><span class="muted">›</span></div>
+            <div style="padding:12px 16px;display:flex;border-bottom:1px solid var(--line)"><span style="font-size:13.5px;flex:1">Privacy policy</span><span class="muted">›</span></div>
+            <div style="padding:12px 16px;display:flex"><span style="font-size:13.5px;flex:1">Terms of service</span><span class="muted">›</span></div>
+          </div>
+
+          <div class="mono" style="font-size:10px;letter-spacing:.16em;text-transform:uppercase;color:var(--muted);margin:18px 0 6px 4px">Support</div>
+          <div class="card">
+            <div style="padding:12px 16px;display:flex;border-bottom:1px solid var(--line)"><span style="font-size:13.5px;flex:1">Help center</span><span class="muted">›</span></div>
+            <div style="padding:12px 16px;display:flex;border-bottom:1px solid var(--line)"><span style="font-size:13.5px;flex:1">Contact us</span><span class="muted">›</span></div>
+            <div style="padding:12px 16px;display:flex"><span style="font-size:13.5px;flex:1">Rate Skintel</span><span class="muted">›</span></div>
+          </div>
+
+          <div class="card" style="margin-top:18px">
+            <div style="padding:12px 16px;display:flex;border-bottom:1px solid var(--line)"><span style="font-size:13.5px;flex:1;color:var(--bad-fg);font-weight:600">Sign out</span></div>
+            <div style="padding:12px 16px;display:flex"><span style="font-size:13.5px;flex:1;color:var(--bad-fg);font-weight:600">Delete account</span></div>
+          </div>
+
+          <div class="mono" style="text-align:center;font-size:10.5px;color:#B5AE9F;margin:18px 0 90px">Skintel for iOS · 1.0.0 (42)</div>
+        </div>
+        <div class="bnav" data-active="home"></div>
+        <div class="homebar"></div>
+      </div></div>
+      <div class="cap"><b>Settings — B: full app settings</b><span>The set a normal iOS app ships with: Account/skin profile, Membership with a manage-subscription row, Notifications broken into its own toggled section, Appearance, Data &amp; privacy, Support, then Sign out and Delete account split apart so the two destructive actions don't get confused for each other.</span></div>
     </div>
   </div>
 </section>
