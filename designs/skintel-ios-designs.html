@@ -83,25 +83,38 @@ section{margin-top:110px}
 .ring .rv b{font-family:var(--serif);font-weight:400;display:block}
 .ring .rv i{font-style:normal;font-size:10px;font-weight:600;letter-spacing:.14em;text-transform:uppercase;color:var(--muted)}
 
-/* app icon */
+/* brand mark */
+/* ---- Brand mark: the Skintel star (mirrors public/icons/skintel.svg) ---- */
 .appicon{position:relative;overflow:hidden;background:linear-gradient(135deg,#B2634F 0%,#A35848 55%,#8E4538 100%);display:flex;align-items:center;justify-content:center}
 .appicon:after{content:"";position:absolute;inset:0;background:linear-gradient(180deg,rgba(255,254,250,.14),rgba(255,254,250,0) 40%)}
-.appicon .scanband{position:absolute;left:0;right:0;top:47.3%;height:5.5%;background:rgba(255,254,250,.16)}
-.appicon .scanline{position:absolute;left:0;right:0;top:49.6%;height:.9%;border-radius:99px;background:rgba(255,254,250,.55)}
-.appicon .s{font-family:var(--serif);color:#FFFEFA;line-height:1;position:relative;z-index:2;transform:translateY(-2%)}
-.appicon .brk{position:absolute;inset:19%;z-index:3}
-.appicon .brk svg{width:100%;height:100%}
+.appicon .mark{position:relative;z-index:2;width:64%;height:64%}
 .appicon.dark{background:linear-gradient(135deg,#26211B 0%,#1A1814 60%,#12100D 100%)}
-.appicon.dark .s{color:#D9917F}
-.appicon.dark .scanband{background:rgba(217,145,127,.14)}
-.appicon.dark .scanline{background:rgba(217,145,127,.5)}
 .appicon.tint{background:linear-gradient(135deg,#3A3630 0%,#232019 100%)}
-.appicon.tint .s{color:#C8C0B2}
-.appicon.tint .scanband{background:rgba(200,192,178,.12)}
-.appicon.tint .scanline{background:rgba(200,192,178,.45)}
-.iconboard{background:#211D18;border:1px solid #2E2922;border-radius:28px;padding:44px;display:flex;flex-direction:column;gap:36px}
-.iconrow{display:flex;align-items:flex-end;gap:36px;flex-wrap:wrap}
-.iclabel{font-family:var(--mono);font-size:10.5px;color:#A79F91;text-align:center;margin-top:10px;letter-spacing:.06em}
+
+/* ---- Product illustrations (replace the old blank gradient blocks) ---- */
+.prod{display:block;--pb:url(#pbBlue);--pl:#FFFEFA;--pc:#3A342C}
+.prod.cream{--pb:url(#pbCream)}
+.prod.rose {--pb:url(#pbRose)}
+.prod.amber{--pb:url(#pbAmber);--pc:#2F2A24}
+.prod.glass{--pb:url(#pbGlass)}
+/* thumbnail tile the illustration sits in */
+.pthumb{border-radius:10px;background:linear-gradient(180deg,#FBF6EC,#F1E9DA);display:flex;align-items:center;justify-content:center;flex:none}
+
+/* ---- Motion: specs are live in the browser, frozen for stills ---- */
+@keyframes scanSweep{0%{transform:translateY(-46px)}50%{transform:translateY(46px)}100%{transform:translateY(-46px)}}
+@keyframes markRise{0%{opacity:0;transform:translateY(10px) scale(.94)}100%{opacity:1;transform:none}}
+@keyframes sparkle{0%,100%{opacity:.55;transform:scale(.9)}50%{opacity:1;transform:scale(1.06)}}
+@keyframes ringDraw{from{stroke-dashoffset:var(--circ)}to{stroke-dashoffset:var(--target)}}
+.anim-scan{animation:scanSweep 2.4s cubic-bezier(.32,.72,0,1) infinite}
+.anim-mark{animation:markRise .6s cubic-bezier(.32,.72,0,1) both}
+.anim-sparkle{animation:sparkle 2.8s ease-in-out infinite}
+.anim-ring{animation:ringDraw 1.1s cubic-bezier(.32,.72,0,1) both}
+@media (prefers-reduced-motion:reduce){.anim-scan,.anim-mark,.anim-sparkle,.anim-ring{animation:none}}
+/* Stills: park each loop on a representative frame instead of frame 0. */
+body.freeze .anim-scan{animation-delay:-.6s;animation-play-state:paused}
+body.freeze .anim-sparkle{animation-delay:-1.4s;animation-play-state:paused}
+body.freeze .anim-mark{animation-delay:-.6s;animation-play-state:paused}
+body.freeze .anim-ring{animation-delay:-1.1s;animation-play-state:paused}
 
 /* widgets */
 .wallpaper{width:820px;max-width:100%;border-radius:36px;padding:56px;background:
@@ -114,12 +127,88 @@ section{margin-top:110px}
 </style>
 </head>
 <body>
+
+<!-- ===== Shared defs: brand star + product bottle illustrations ===== -->
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <defs>
+    <!-- Skintel star, 100x100 box. Geometry matches public/icons/skintel.svg. -->
+    <symbol id="star" viewBox="0 0 100 100">
+      <path d="M50 23 L56 44 L77 50 L56 56 L50 77 L44 56 L23 50 L44 44 Z" fill="currentColor"/>
+      <path d="M71 63.6 L72.6 69.4 L78.4 71 L72.6 72.6 L71 78.4 L69.4 72.6 L63.6 71 L69.4 69.4 Z" fill="currentColor" opacity=".9"/>
+      <path d="M70.4 17 L71.6 21.2 L75.8 22.4 L71.6 23.6 L70.4 27.8 L69.2 23.6 L65 22.4 L69.2 21.2 Z" fill="currentColor" opacity=".75"/>
+    </symbol>
+
+    <linearGradient id="pbBlue" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#E4EDF6"/><stop offset="1" stop-color="#AEC3D8"/></linearGradient>
+    <linearGradient id="pbCream" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#F6EFE1"/><stop offset="1" stop-color="#D9C7A4"/></linearGradient>
+    <linearGradient id="pbRose" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#F7E2D8"/><stop offset="1" stop-color="#DDB4A2"/></linearGradient>
+    <linearGradient id="pbAmber" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#F2E3C8"/><stop offset="1" stop-color="#CBA96C"/></linearGradient>
+    <linearGradient id="pbGlass" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#DCD9CF"/><stop offset="1" stop-color="#A9A79C"/></linearGradient>
+
+    <!-- Pump bottle (lotions, cleansers) -->
+    <symbol id="pPump" viewBox="0 0 60 84">
+      <rect x="27" y="3" width="15" height="4.6" rx="2.3" fill="var(--pc)"/>
+      <rect x="26.4" y="6" width="4" height="8" fill="var(--pc)"/>
+      <rect x="22.5" y="12.5" width="15" height="6" rx="1.6" fill="var(--pc)"/>
+      <rect x="9" y="17.5" width="42" height="64" rx="7" fill="var(--pb)"/>
+      <rect x="14" y="35" width="32" height="30" rx="2.4" fill="var(--pl)" opacity=".92"/>
+      <rect x="12.5" y="21" width="5" height="56" rx="2.5" fill="#FFFEFA" opacity=".28"/>
+    </symbol>
+
+    <!-- Dropper bottle (serums) -->
+    <symbol id="pDrop" viewBox="0 0 60 84">
+      <rect x="24" y="2" width="12" height="11" rx="2.4" fill="var(--pc)"/>
+      <rect x="26.5" y="12" width="7" height="4" fill="var(--pc)"/>
+      <rect x="13" y="15.5" width="34" height="66" rx="4.5" fill="var(--pb)"/>
+      <rect x="17.5" y="33" width="25" height="34" rx="2.2" fill="var(--pl)" opacity=".92"/>
+      <rect x="16" y="20" width="4.2" height="56" rx="2.1" fill="#FFFEFA" opacity=".25"/>
+    </symbol>
+
+    <!-- Squeeze tube (cleansers, SPF) -->
+    <symbol id="pTube" viewBox="0 0 60 84">
+      <rect x="24" y="2" width="12" height="8.5" rx="2.4" fill="var(--pc)"/>
+      <path d="M16 10.5 h28 v58 a5 5 0 0 1 -5 5 h-18 a5 5 0 0 1 -5 -5 z" fill="var(--pb)"/>
+      <rect x="15" y="72" width="30" height="8" rx="2" fill="var(--pb)"/>
+      <path d="M17 74 h26 M17 77.5 h26" stroke="#FFFEFA" stroke-opacity=".45" stroke-width="1.2"/>
+      <rect x="20" y="26" width="20" height="34" rx="2.2" fill="var(--pl)" opacity=".92"/>
+    </symbol>
+
+    <!-- Jar (moisturizers, masks) -->
+    <symbol id="pJar" viewBox="0 0 60 84">
+      <rect x="8" y="17" width="44" height="11" rx="3.5" fill="var(--pc)"/>
+      <rect x="10" y="26" width="40" height="49" rx="5" fill="var(--pb)"/>
+      <rect x="15" y="39" width="30" height="25" rx="2.2" fill="var(--pl)" opacity=".92"/>
+      <rect x="13" y="31" width="4.5" height="39" rx="2.2" fill="#FFFEFA" opacity=".3"/>
+    </symbol>
+
+    <!-- Barcode, drawn to real EAN-ish rhythm instead of hand-placed bars -->
+    <symbol id="barcode" viewBox="0 0 120 40" preserveAspectRatio="none">
+      <g fill="#14120F">
+        <rect x="2" y="0" width="1.6" height="40"/><rect x="6" y="0" width="1" height="40"/>
+        <rect x="9" y="0" width="3" height="40"/><rect x="14" y="0" width="1" height="40"/>
+        <rect x="17" y="0" width="2" height="40"/><rect x="21" y="0" width="1.4" height="40"/>
+        <rect x="25" y="0" width="1" height="40"/><rect x="28" y="0" width="3.4" height="40"/>
+        <rect x="34" y="0" width="1" height="40"/><rect x="37" y="0" width="2" height="40"/>
+        <rect x="41.5" y="0" width="1.2" height="40"/><rect x="45" y="0" width="2.6" height="40"/>
+        <rect x="50" y="0" width="1" height="40"/><rect x="53" y="0" width="1.6" height="40"/>
+        <rect x="57" y="0" width="3" height="40"/><rect x="62" y="0" width="1" height="40"/>
+        <rect x="65" y="0" width="2.2" height="40"/><rect x="70" y="0" width="1.4" height="40"/>
+        <rect x="74" y="0" width="1" height="40"/><rect x="77" y="0" width="3.2" height="40"/>
+        <rect x="83" y="0" width="1.2" height="40"/><rect x="87" y="0" width="2" height="40"/>
+        <rect x="91" y="0" width="1" height="40"/><rect x="94" y="0" width="2.8" height="40"/>
+        <rect x="99" y="0" width="1.4" height="40"/><rect x="103" y="0" width="1" height="40"/>
+        <rect x="106" y="0" width="3" height="40"/><rect x="111" y="0" width="1.2" height="40"/>
+        <rect x="115" y="0" width="1.8" height="40"/>
+      </g>
+    </symbol>
+  </defs>
+</svg>
+
 <div class="studio">
 
 <header class="dhead">
   <div class="kicker">Skintel · iOS Design Spec · v1.0</div>
   <h1>Every screen of <em>Skintel</em>, designed.</h1>
-  <p class="sub">Complete iOS app design: app icon, splash, onboarding, auth, home, the scanning flow, AI analysis, compare, routine, journal, culprit detection, paywall, settings and home-screen widgets. Warm editorial skin — Instrument Serif headlines, DM Sans UI, JetBrains Mono for data.</p>
+  <p class="sub">Complete iOS app design: splash, onboarding, auth, home, the scanning flow, AI analysis, compare, routine, journal, trigger detection, paywall, settings and home-screen widgets. Warm editorial skin — Instrument Serif headlines, DM Sans UI, JetBrains Mono for data.</p>
   <div class="tokens">
     <span class="tok"><i style="background:#F4EDE0"></i>bg #F4EDE0</span>
     <span class="tok"><i style="background:#FFFEFA"></i>card #FFFEFA</span>
@@ -134,63 +223,16 @@ section{margin-top:110px}
 
 <!-- ================= 01 BRAND ================= -->
 <section id="brand">
-  <div class="sect-head"><span class="num">01</span><h2>App icon &amp; brand</h2><p>Serif “S” inside scan brackets on terracotta — skin + intelligence in one mark. Full-bleed 1024 master; iOS masks the squircle.</p></div>
+  <div class="sect-head"><span class="num">01</span><h2>Brand</h2><p>The Skintel star — the shipping mark from <code>public/icons/skintel.svg</code>. One large four-point sparkle with two companions, white on terracotta.</p></div>
   <div class="row">
-    <div class="shot" id="s-icon">
-      <div class="iconboard">
-        <div class="iconrow">
-          <div>
-            <div class="appicon" style="width:240px;height:240px;border-radius:54px">
-              <span class="s" style="font-size:150px">S</span>
-              <div class="scanband"></div><div class="scanline"></div>
-              <div class="brk"><svg viewBox="0 0 100 100" fill="none" stroke="#FFFEFA" stroke-opacity=".9" stroke-width="5.4" stroke-linecap="round"><path d="M2 22 v-9 a11 11 0 0 1 11-11 h9"/><path d="M98 22 v-9 a11 11 0 0 0 -11-11 h-9"/><path d="M2 78 v9 a11 11 0 0 0 11 11 h9"/><path d="M98 78 v9 a11 11 0 0 1 -11 11 h-9"/></svg></div>
-            </div>
-            <div class="iclabel">master · 1024pt</div>
-          </div>
-          <div>
-            <div class="appicon" style="width:120px;height:120px;border-radius:27px">
-              <span class="s" style="font-size:75px">S</span><div class="scanband"></div><div class="scanline"></div>
-              <div class="brk"><svg viewBox="0 0 100 100" fill="none" stroke="#FFFEFA" stroke-opacity=".9" stroke-width="5.4" stroke-linecap="round"><path d="M2 22 v-9 a11 11 0 0 1 11-11 h9"/><path d="M98 22 v-9 a11 11 0 0 0 -11-11 h-9"/><path d="M2 78 v9 a11 11 0 0 0 11 11 h9"/><path d="M98 78 v9 a11 11 0 0 1 -11 11 h-9"/></svg></div>
-            </div>
-            <div class="iclabel">home · 60pt@2x/3x</div>
-          </div>
-          <div>
-            <div class="appicon" style="width:80px;height:80px;border-radius:18px">
-              <span class="s" style="font-size:50px">S</span><div class="scanband"></div><div class="scanline"></div>
-            </div>
-            <div class="iclabel">spotlight · 40pt</div>
-          </div>
-          <div>
-            <div class="appicon" style="width:58px;height:58px;border-radius:13px">
-              <span class="s" style="font-size:36px">S</span><div class="scanband"></div><div class="scanline"></div>
-            </div>
-            <div class="iclabel">settings · 29pt</div>
-          </div>
-          <div>
-            <div class="appicon dark" style="width:120px;height:120px;border-radius:27px">
-              <span class="s" style="font-size:75px">S</span><div class="scanband"></div><div class="scanline"></div>
-              <div class="brk"><svg viewBox="0 0 100 100" fill="none" stroke="#D9917F" stroke-opacity=".85" stroke-width="5.4" stroke-linecap="round"><path d="M2 22 v-9 a11 11 0 0 1 11-11 h9"/><path d="M98 22 v-9 a11 11 0 0 0 -11-11 h-9"/><path d="M2 78 v9 a11 11 0 0 0 11 11 h9"/><path d="M98 78 v9 a11 11 0 0 1 -11 11 h-9"/></svg></div>
-            </div>
-            <div class="iclabel">dark mode</div>
-          </div>
-          <div>
-            <div class="appicon tint" style="width:120px;height:120px;border-radius:27px">
-              <span class="s" style="font-size:75px">S</span><div class="scanband"></div><div class="scanline"></div>
-            </div>
-            <div class="iclabel">tinted</div>
-          </div>
-        </div>
-      </div>
-      <div class="cap"><b>App icon system</b><span>Master 1024 with corner scan-brackets; brackets drop at small sizes so the “S” stays legible. Dark and tinted variants for iOS 18 icon appearance modes.</span></div>
-    </div>
 
     <div class="shot" id="s-splash">
       <div class="phone"><div class="screen" style="background:linear-gradient(180deg,#F7F1E6 0%,#F4EDE0 100%)">
         <div class="island"></div>
         <div class="sbar"><span class="time">9:41</span><span class="sicons"><svg width="18" height="12" viewBox="0 0 18 12" fill="#1A1814"><rect x="0" y="7" width="3" height="5" rx="1"/><rect x="5" y="5" width="3" height="7" rx="1"/><rect x="10" y="2.5" width="3" height="9.5" rx="1"/><rect x="15" y="0" width="3" height="12" rx="1" opacity=".35"/></svg><svg width="17" height="12" viewBox="0 0 17 12" fill="#1A1814"><path d="M8.5 9.6a2 2 0 0 1 2 1.9L8.5 13l-2-1.5a2 2 0 0 1 2-1.9z"/><path d="M8.5 5.4c1.9 0 3.6.7 4.9 1.9l-1.4 1.5a5 5 0 0 0-7 0L3.6 7.3a7 7 0 0 1 4.9-1.9z" opacity=".85"/><path d="M8.5 1c3 0 5.8 1.2 7.9 3.1L15 5.6A9 9 0 0 0 2 5.6L.6 4.1A11.4 11.4 0 0 1 8.5 1z" opacity=".7"/></svg><svg width="27" height="13" viewBox="0 0 27 13" fill="none"><rect x=".5" y=".5" width="23" height="12" rx="3.5" stroke="#1A1814" opacity=".4"/><rect x="2" y="2" width="18" height="9" rx="2" fill="#1A1814"/><path d="M25.5 4.5v4a2.2 2.2 0 0 0 0-4z" fill="#1A1814" opacity=".4"/></svg></span></div>
         <div style="position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:22px">
-          <div class="appicon" style="width:96px;height:96px;border-radius:24px;box-shadow:0 18px 40px rgba(163,88,72,.35)">
-            <span class="s" style="font-size:60px">S</span><div class="scanband"></div><div class="scanline"></div>
+          <div class="appicon anim-mark" style="width:96px;height:96px;border-radius:24px;box-shadow:0 18px 40px rgba(163,88,72,.35)">
+            <svg class="mark anim-sparkle" style="color:#FFFEFA"><use href="#star"/></svg>
           </div>
           <div class="h-serif" style="font-size:46px">Skintel</div>
           <div style="width:44px;height:3px;border-radius:2px;background:linear-gradient(90deg,rgba(163,88,72,0),#A35848,rgba(163,88,72,0))"></div>
@@ -198,7 +240,7 @@ section{margin-top:110px}
         <div style="position:absolute;bottom:56px;left:0;right:0;text-align:center;color:var(--muted);font-size:13px">Know what touches your skin.</div>
         <div class="homebar"></div>
       </div></div>
-      <div class="cap"><b>Splash</b><span>Capacitor splash: icon settles, wordmark fades in with a single scan-line shimmer. No spinner — cold start hides behind it.</span></div>
+      <div class="cap"><b>Splash</b><span>Capacitor splash: the star settles and pulses once, wordmark rises behind it. No spinner — cold start hides behind it.</span></div>
     </div>
   </div>
 </section>
@@ -215,17 +257,17 @@ section{margin-top:110px}
         <div class="pad" style="display:flex;flex-direction:column;height:100%">
           <div style="margin-top:36px;position:relative;height:300px">
             <div class="card" style="position:absolute;left:6px;top:26px;width:150px;padding:14px;transform:rotate(-5deg)">
-              <div style="width:44px;height:64px;border-radius:10px;background:linear-gradient(180deg,#DCE7F2,#B9CBDE);margin-bottom:10px"></div>
+              <div class="pthumb" style="width:44px;height:64px;margin-bottom:10px"><svg class="prod" width="34" height="48" viewBox="0 0 60 84"><use href="#pJar"/></svg></div>
               <div style="font-weight:600;font-size:12.5px">CeraVe Moisturizer</div>
               <span class="chip good" style="margin-top:8px"><span class="dot" style="background:#5C7A4F"></span>86 · Good</span>
             </div>
             <div class="card" style="position:absolute;right:2px;top:0;width:150px;padding:14px;transform:rotate(4deg)">
-              <div style="width:44px;height:64px;border-radius:10px;background:linear-gradient(180deg,#F3DDD3,#E0B8A8);margin-bottom:10px"></div>
+              <div class="pthumb" style="width:44px;height:64px;margin-bottom:10px"><svg class="prod rose" width="34" height="48" viewBox="0 0 60 84"><use href="#pPump"/></svg></div>
               <div style="font-weight:600;font-size:12.5px">Fragrance-heavy lotion</div>
               <span class="chip bad" style="margin-top:8px"><span class="dot" style="background:#B22B2B"></span>31 · Skip it</span>
             </div>
             <div class="card" style="position:absolute;left:96px;top:150px;width:158px;padding:14px;transform:rotate(-1deg);box-shadow:0 16px 36px rgba(26,24,20,.14)">
-              <div style="width:44px;height:64px;border-radius:10px;background:linear-gradient(180deg,#EFE4D2,#D8C5A6);margin-bottom:10px"></div>
+              <div class="pthumb" style="width:44px;height:64px;margin-bottom:10px"><svg class="prod amber" width="34" height="48" viewBox="0 0 60 84"><use href="#pDrop"/></svg></div>
               <div style="font-weight:600;font-size:12.5px">Paula’s Choice 2% BHA</div>
               <span class="chip unsure" style="margin-top:8px"><span class="dot" style="background:#8B6914"></span>64 · Caution</span>
             </div>
@@ -298,12 +340,14 @@ section{margin-top:110px}
           <h1 class="h-serif" style="font-size:36px;line-height:1.08;margin-top:30px">Scan your first product.</h1>
           <div class="card" style="margin-top:26px;padding:26px;display:flex;flex-direction:column;align-items:center;background:linear-gradient(180deg,#FFFEFA,#FBF6EC)">
             <div style="position:relative;width:190px;height:150px">
-              <div style="position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);width:84px;height:120px;border-radius:12px;background:linear-gradient(180deg,#DCE7F2,#B9CBDE)"></div>
-              <div style="position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);width:56px;height:26px;border-radius:4px;background:#FFFEFA;display:flex;align-items:center;justify-content:center;gap:1.5px">
-                <i style="width:2px;height:14px;background:#1A1814"></i><i style="width:1px;height:14px;background:#1A1814"></i><i style="width:3px;height:14px;background:#1A1814"></i><i style="width:1.5px;height:14px;background:#1A1814"></i><i style="width:2px;height:14px;background:#1A1814"></i><i style="width:3px;height:14px;background:#1A1814"></i><i style="width:1px;height:14px;background:#1A1814"></i>
+              <!-- the product being scanned, back label facing the lens -->
+              <svg class="prod cream" style="position:absolute;left:50%;top:50%;transform:translate(-50%,-50%)" width="86" height="120" viewBox="0 0 60 84"><use href="#pPump"/></svg>
+              <!-- barcode sitting on that back label -->
+              <div style="position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);width:58px;height:30px;border-radius:3px;background:#FFFEFA;padding:4px 5px;box-shadow:0 1px 4px rgba(26,24,20,.18)">
+                <svg width="100%" height="100%" viewBox="0 0 120 40" preserveAspectRatio="none"><use href="#barcode"/></svg>
               </div>
               <svg style="position:absolute;inset:0" viewBox="0 0 190 150" fill="none" stroke="#A35848" stroke-width="4" stroke-linecap="round"><path d="M14 34 v-12 a10 10 0 0 1 10-10 h12"/><path d="M176 34 v-12 a10 10 0 0 0 -10-10 h-12"/><path d="M14 116 v12 a10 10 0 0 0 10 10 h12"/><path d="M176 116 v12 a10 10 0 0 1 -10 10 h-12"/></svg>
-              <div style="position:absolute;left:16px;right:16px;top:72px;height:2.5px;border-radius:2px;background:linear-gradient(90deg,rgba(163,88,72,0),#A35848 30%,#A35848 70%,rgba(163,88,72,0));box-shadow:0 0 12px rgba(163,88,72,.5)"></div>
+              <div class="anim-scan" style="position:absolute;left:16px;right:16px;top:73px;height:2.5px;border-radius:2px;background:linear-gradient(90deg,rgba(163,88,72,0),#A35848 30%,#A35848 70%,rgba(163,88,72,0));box-shadow:0 0 12px rgba(163,88,72,.5)"></div>
             </div>
           </div>
           <div style="margin-top:24px;display:flex;flex-direction:column;gap:14px;font-size:14.5px">
@@ -327,7 +371,7 @@ section{margin-top:110px}
         <div class="sbar"><span class="time">9:41</span><span class="sicons" data-auto></span></div>
         <div class="pad" style="display:flex;flex-direction:column;height:100%">
           <div style="margin-top:64px;display:flex;flex-direction:column;align-items:flex-start">
-            <div class="appicon" style="width:64px;height:64px;border-radius:16px;box-shadow:0 10px 24px rgba(163,88,72,.3)"><span class="s" style="font-size:40px">S</span><div class="scanband"></div><div class="scanline"></div></div>
+            <div class="appicon" style="width:64px;height:64px;border-radius:16px;box-shadow:0 10px 24px rgba(163,88,72,.3)"><svg class="mark" style="color:#FFFEFA"><use href="#star"/></svg></div>
             <h1 class="h-serif" style="font-size:40px;margin-top:26px">Welcome back.</h1>
             <p class="muted" style="font-size:15px;margin-top:8px">Your shelf, routines and journal are synced.</p>
           </div>
@@ -375,7 +419,7 @@ section{margin-top:110px}
             <div style="display:flex;align-items:center;gap:10px">
               <div style="width:36px;height:36px;border-radius:10px;background:rgba(178,43,43,.1);display:flex;align-items:center;justify-content:center"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#B22B2B" stroke-width="2" stroke-linecap="round"><path d="M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z"/><path d="M12 9v4M12 17h.01"/></svg></div>
               <div style="flex:1">
-                <div style="font-weight:700;font-size:14.5px">1 suspect found</div>
+                <div style="font-weight:700;font-size:14.5px">1 trigger found</div>
                 <div style="font-size:12.5px;color:var(--muted);margin-top:1px">Fragrance-heavy lotion precedes 3 of 4 breakouts</div>
               </div>
               <span style="color:var(--bad-fg);font-weight:700;font-size:13px">Review ›</span>
@@ -406,17 +450,17 @@ section{margin-top:110px}
           </div>
           <div style="display:flex;flex-direction:column;gap:8px;margin-top:10px">
             <div class="card" style="padding:12px 14px;display:flex;align-items:center;gap:12px">
-              <div style="width:40px;height:40px;border-radius:10px;background:linear-gradient(180deg,#DCE7F2,#B9CBDE);display:flex;align-items:center;justify-content:center;font-weight:700;color:#3E5A75;font-size:13px">C</div>
+              <div class="pthumb" style="width:40px;height:40px;border-radius:10px"><svg class="prod" width="23" height="32" viewBox="0 0 60 84"><use href="#pPump"/></svg></div>
               <div style="flex:1"><div style="font-weight:600;font-size:13.5px">CeraVe Foaming Cleanser</div><div style="font-size:11.5px;color:var(--muted)">Scanned today · Cleanser</div></div>
               <span class="chip good">82</span>
             </div>
             <div class="card" style="padding:12px 14px;display:flex;align-items:center;gap:12px">
-              <div style="width:40px;height:40px;border-radius:10px;background:linear-gradient(180deg,#EFE4D2,#D8C5A6);display:flex;align-items:center;justify-content:center;font-weight:700;color:#7A5F33;font-size:13px">O</div>
+              <div class="pthumb" style="width:40px;height:40px;border-radius:10px"><svg class="prod amber" width="23" height="32" viewBox="0 0 60 84"><use href="#pDrop"/></svg></div>
               <div style="flex:1"><div style="font-weight:600;font-size:13.5px">The Ordinary Retinol 0.5%</div><div style="font-size:11.5px;color:var(--muted)">Yesterday · Treatment</div></div>
               <span class="chip unsure">64</span>
             </div>
             <div class="card" style="padding:12px 14px;display:flex;align-items:center;gap:12px">
-              <div style="width:40px;height:40px;border-radius:10px;background:linear-gradient(180deg,#F3DDD3,#E0B8A8);display:flex;align-items:center;justify-content:center;font-weight:700;color:#8E4538;font-size:13px">F</div>
+              <div class="pthumb" style="width:40px;height:40px;border-radius:10px"><svg class="prod rose" width="23" height="32" viewBox="0 0 60 84"><use href="#pPump"/></svg></div>
               <div style="flex:1"><div style="font-weight:600;font-size:13.5px">Fragrance-heavy lotion</div><div style="font-size:11.5px;color:var(--muted)">Mon · Body</div></div>
               <span class="chip bad">31</span>
             </div>
@@ -425,7 +469,7 @@ section{margin-top:110px}
         <div class="bnav" data-active="home"></div>
         <div class="homebar"></div>
       </div></div>
-      <div class="cap"><b>Home / Dashboard</b><span>Journal stats up top (Logged / Worked / Unsure / Broke out), culprit alert when correlation crosses threshold, routine progress, recent scans. Center FAB opens the scanner from anywhere.</span></div>
+      <div class="cap"><b>Home / Dashboard</b><span>Journal stats up top (Logged / Worked / Unsure / Broke out), trigger alert when correlation crosses threshold, routine progress, recent scans. Center FAB opens the scanner from anywhere.</span></div>
     </div>
   </div>
 </section>
@@ -443,15 +487,26 @@ section{margin-top:110px}
           <div style="width:40px;height:40px;border-radius:50%;background:rgba(255,254,250,.12);backdrop-filter:blur(8px);display:flex;align-items:center;justify-content:center"><svg width="16" height="16" viewBox="0 0 24 24" stroke="#FFFEFA" stroke-width="2.4" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg></div>
           <div style="width:40px;height:40px;border-radius:50%;background:rgba(255,254,250,.12);backdrop-filter:blur(8px);display:flex;align-items:center;justify-content:center"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#FFFEFA" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M13 2 4.9 12.5H11L9.5 22 19 10.5h-6.5z"/></svg></div>
         </div>
-        <!-- faint product silhouette -->
-        <div style="position:absolute;left:50%;top:47%;transform:translate(-50%,-50%);width:150px;height:270px;border-radius:22px;background:linear-gradient(180deg,rgba(220,231,242,.16),rgba(185,203,222,.1));filter:blur(2px)"></div>
-        <div style="position:absolute;left:50%;top:47%;transform:translate(-50%,-50%);width:110px;height:52px;border-radius:6px;background:rgba(255,254,250,.85);display:flex;align-items:center;justify-content:center;gap:3px">
-          <i style="width:3px;height:30px;background:#1A1814"></i><i style="width:1.5px;height:30px;background:#1A1814"></i><i style="width:5px;height:30px;background:#1A1814"></i><i style="width:2px;height:30px;background:#1A1814"></i><i style="width:3.5px;height:30px;background:#1A1814"></i><i style="width:1.5px;height:30px;background:#1A1814"></i><i style="width:4.5px;height:30px;background:#1A1814"></i><i style="width:2px;height:30px;background:#1A1814"></i><i style="width:3px;height:30px;background:#1A1814"></i><i style="width:5px;height:30px;background:#1A1814"></i>
+        <!-- the product actually in frame: lit from top-left, tilted, with contact shadow -->
+        <div style="position:absolute;left:50%;top:46%;transform:translate(-50%,calc(-50% - 22px)) rotate(-4deg);filter:drop-shadow(0 26px 34px rgba(0,0,0,.5))">
+          <svg class="prod glass" width="132" height="232" viewBox="0 0 60 84"><use href="#pPump"/></svg>
         </div>
-        <!-- brackets -->
-        <svg style="position:absolute;left:50%;top:47%;transform:translate(-50%,-50%)" width="290" height="200" viewBox="0 0 290 200" fill="none" stroke="#FFFEFA" stroke-width="4.5" stroke-linecap="round"><path d="M4 46 v-22 a20 20 0 0 1 20-20 h22"/><path d="M286 46 v-22 a20 20 0 0 0 -20-20 h-22"/><path d="M4 154 v22 a20 20 0 0 0 20 20 h22"/><path d="M286 154 v22 a20 20 0 0 1 -20 20 h-22"/></svg>
-        <div style="position:absolute;left:calc(50% - 129px);width:258px;top:47%;height:3px;border-radius:2px;background:linear-gradient(90deg,rgba(217,145,127,0),#D9917F 25%,#D9917F 75%,rgba(217,145,127,0));box-shadow:0 0 18px rgba(217,145,127,.75)"></div>
-        <div style="position:absolute;left:50%;transform:translateX(-50%);top:63%;background:rgba(11,10,8,.55);backdrop-filter:blur(10px);border-radius:999px;padding:9px 18px;color:#FFFEFA;font-size:13px;font-weight:500;white-space:nowrap">Point at the barcode on the back</div>
+        <!-- barcode on the back label -->
+        <div style="position:absolute;left:50%;top:46%;transform:translate(-50%,-50%) rotate(-4deg);width:104px;height:46px;border-radius:4px;background:#FBF9F4;padding:6px 8px;box-shadow:0 2px 10px rgba(0,0,0,.3)">
+          <svg width="100%" height="100%" viewBox="0 0 120 40" preserveAspectRatio="none"><use href="#barcode"/></svg>
+        </div>
+        <!-- scrim: everything outside the capture window falls away (iOS code-scanner behaviour) -->
+        <div style="position:absolute;left:50%;top:46%;transform:translate(-50%,-50%);width:266px;height:184px;border-radius:28px;box-shadow:0 0 0 2000px rgba(8,7,6,.58)"></div>
+        <!-- capture window: hairline edge + heavy corner brackets -->
+        <div style="position:absolute;left:50%;top:46%;transform:translate(-50%,-50%);width:266px;height:184px;border-radius:28px;border:1px solid rgba(255,254,250,.22)"></div>
+        <svg style="position:absolute;left:50%;top:46%;transform:translate(-50%,-50%)" width="278" height="196" viewBox="0 0 278 196" fill="none" stroke="#FFFEFA" stroke-width="5" stroke-linecap="round"><path d="M6 52 v-24 a22 22 0 0 1 22-22 h24"/><path d="M272 52 v-24 a22 22 0 0 0 -22-22 h-24"/><path d="M6 144 v24 a22 22 0 0 0 22 22 h24"/><path d="M272 144 v24 a22 22 0 0 1 -22 22 h-24"/></svg>
+        <!-- scan line sweeps inside the window -->
+        <div style="position:absolute;left:50%;top:46%;transform:translate(-50%,-50%);width:266px;height:184px;border-radius:28px;overflow:hidden">
+          <div class="anim-scan" style="position:absolute;left:14px;right:14px;top:calc(50% - 1.5px);height:3px;border-radius:2px;background:linear-gradient(90deg,rgba(217,145,127,0),#D9917F 22%,#F0B9A6 50%,#D9917F 78%,rgba(217,145,127,0));box-shadow:0 0 22px rgba(217,145,127,.9)"></div>
+        </div>
+        <div style="position:absolute;left:50%;transform:translateX(-50%);top:64%;display:flex;align-items:center;gap:8px;background:rgba(11,10,8,.6);backdrop-filter:blur(12px);border-radius:999px;padding:9px 16px 9px 12px;color:#FFFEFA;font-size:13px;font-weight:500;white-space:nowrap">
+          <span style="width:7px;height:7px;border-radius:50%;background:#D9917F;box-shadow:0 0 8px #D9917F" class="anim-sparkle"></span>Hold steady — reading barcode
+        </div>
         <div style="position:absolute;bottom:56px;left:22px;right:22px;display:flex;gap:10px">
           <div style="flex:1;height:48px;border-radius:14px;background:rgba(255,254,250,.12);backdrop-filter:blur(10px);display:flex;align-items:center;justify-content:center;gap:8px;color:#FFFEFA;font-size:13.5px;font-weight:600"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#FFFEFA" stroke-width="2" stroke-linecap="round"><rect x="2" y="6" width="20" height="12" rx="2"/><path d="M6 10h.01M10 10h.01M14 10h.01M18 10h.01M7 14h10"/></svg>Type it</div>
           <div style="flex:1.4;height:48px;border-radius:14px;background:rgba(255,254,250,.12);backdrop-filter:blur(10px);display:flex;align-items:center;justify-content:center;gap:8px;color:#FFFEFA;font-size:13.5px;font-weight:600"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#FFFEFA" stroke-width="2" stroke-linecap="round"><rect x="3" y="3" width="18" height="18" rx="3"/><path d="M7 8h10M7 12h10M7 16h6"/></svg>Photo of ingredients</div>
@@ -469,7 +524,7 @@ section{margin-top:110px}
         <div style="position:absolute;left:0;right:0;bottom:0;background:var(--cream);border-radius:26px 26px 0 0;box-shadow:0 -12px 32px rgba(26,24,20,.3);padding:10px 22px 44px">
           <div style="width:40px;height:5px;border-radius:3px;background:#DDD6C9;margin:4px auto 18px"></div>
           <div style="display:flex;align-items:center;gap:14px">
-            <div style="width:58px;height:58px;border-radius:14px;background:linear-gradient(180deg,#DCE7F2,#B9CBDE);display:flex;align-items:center;justify-content:center;font-weight:700;color:#3E5A75;font-size:19px">C</div>
+            <div class="pthumb" style="width:58px;height:58px;border-radius:14px"><svg class="prod" width="33" height="46" viewBox="0 0 60 84"><use href="#pPump"/></svg></div>
             <div style="flex:1">
               <div style="font-weight:700;font-size:16.5px;color:var(--ink)">CeraVe Foaming Facial Cleanser</div>
               <div class="mono" style="font-size:11px;color:var(--muted);margin-top:3px">3 606000 537400 · matched ✓</div>
@@ -561,7 +616,7 @@ section{margin-top:110px}
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#1A1814" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/><circle cx="5" cy="12" r="1"/></svg>
           </div>
           <div style="display:flex;gap:14px;align-items:center;margin-top:18px">
-            <div style="width:64px;height:64px;border-radius:16px;background:linear-gradient(180deg,#DCE7F2,#B9CBDE);display:flex;align-items:center;justify-content:center;font-weight:700;color:#3E5A75;font-size:22px">C</div>
+            <div class="pthumb" style="width:64px;height:64px;border-radius:16px"><svg class="prod" width="36" height="51" viewBox="0 0 60 84"><use href="#pPump"/></svg></div>
             <div style="flex:1">
               <div class="mono" style="font-size:10.5px;letter-spacing:.16em;color:var(--muted)">CERAVE</div>
               <div class="h-serif" style="font-size:22px;line-height:1.1;margin-top:2px">Foaming Facial Cleanser</div>
@@ -612,7 +667,7 @@ section{margin-top:110px}
 
           <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:14px">
             <div class="card" style="padding:16px 14px;border:1.5px solid rgba(92,122,79,.35)">
-              <div style="width:40px;height:40px;border-radius:10px;background:linear-gradient(180deg,#DCE7F2,#B9CBDE);display:flex;align-items:center;justify-content:center;font-weight:700;color:#3E5A75">C</div>
+              <div class="pthumb" style="width:40px;height:40px;border-radius:10px"><svg class="prod" width="23" height="32" viewBox="0 0 60 84"><use href="#pPump"/></svg></div>
               <div style="font-weight:700;font-size:13.5px;margin-top:10px;line-height:1.25">CeraVe Moisturizer</div>
               <div class="ring" style="margin:14px auto 0;width:74px">
                 <svg width="74" height="74" viewBox="0 0 74 74"><circle cx="37" cy="37" r="31" stroke="rgba(92,122,79,.1)" stroke-width="7" fill="none"/><circle cx="37" cy="37" r="31" stroke="#5C7A4F" stroke-width="7" fill="none" stroke-linecap="round" stroke-dasharray="194.8" stroke-dashoffset="27.3"/></svg>
@@ -626,7 +681,7 @@ section{margin-top:110px}
               </div>
             </div>
             <div class="card" style="padding:16px 14px">
-              <div style="width:40px;height:40px;border-radius:10px;background:linear-gradient(180deg,#F3DDD3,#E0B8A8);display:flex;align-items:center;justify-content:center;font-weight:700;color:#8E4538">F</div>
+              <div class="pthumb" style="width:40px;height:40px;border-radius:10px"><svg class="prod rose" width="23" height="32" viewBox="0 0 60 84"><use href="#pPump"/></svg></div>
               <div style="font-weight:700;font-size:13.5px;margin-top:10px;line-height:1.25">Fenty Hydra Vizor</div>
               <div class="ring" style="margin:14px auto 0;width:74px">
                 <svg width="74" height="74" viewBox="0 0 74 74"><circle cx="37" cy="37" r="31" stroke="rgba(139,105,20,.1)" stroke-width="7" fill="none"/><circle cx="37" cy="37" r="31" stroke="#8B6914" stroke-width="7" fill="none" stroke-linecap="round" stroke-dasharray="194.8" stroke-dashoffset="89.6"/></svg>
@@ -708,7 +763,7 @@ section{margin-top:110px}
 
 <!-- ================= 06 TRACKING ================= -->
 <section id="tracking">
-  <div class="sect-head"><span class="num">06</span><h2>Journal &amp; culprits</h2><p>Log outcomes in two taps; the correlation engine turns those logs into named suspects.</p></div>
+  <div class="sect-head"><span class="num">06</span><h2>Journal &amp; triggers</h2><p>Log outcomes in two taps; the correlation engine turns those logs into named triggers.</p></div>
   <div class="row">
 
     <div class="shot" id="s-journal">
@@ -764,21 +819,21 @@ section{margin-top:110px}
       <div class="cap"><b>Journal</b><span>Worked / Unsure / Broke out — the same three states the dashboard counts. Products used auto-fill from the routine, so a full entry is two taps.</span></div>
     </div>
 
-    <div class="shot" id="s-culprits">
+    <div class="shot" id="s-triggers">
       <div class="phone"><div class="screen">
         <div class="island"></div>
         <div class="sbar"><span class="time">9:41</span><span class="sicons" data-auto></span></div>
         <div class="pad">
-          <h1 class="h-serif" style="font-size:30px;margin-top:16px">Culprits</h1>
+          <h1 class="h-serif" style="font-size:30px;margin-top:16px">Triggers</h1>
           <p class="muted" style="font-size:13px;margin-top:4px">Journal × shelf correlation, updated nightly</p>
 
           <div class="card" style="margin-top:16px;padding:18px;background:linear-gradient(135deg,#FDEAEA 0%,#FFFEFA 55%);border-color:rgba(178,43,43,.22)">
             <div style="display:flex;justify-content:space-between;align-items:center">
-              <span class="chip bad" style="letter-spacing:.1em;text-transform:uppercase;font-size:10.5px">Top suspect</span>
+              <span class="chip bad" style="letter-spacing:.1em;text-transform:uppercase;font-size:10.5px">Top trigger</span>
               <span class="mono" style="font-size:11px;color:var(--bad-fg)">87% confidence</span>
             </div>
             <div style="display:flex;gap:13px;align-items:center;margin-top:14px">
-              <div style="width:52px;height:52px;border-radius:13px;background:linear-gradient(180deg,#F3DDD3,#E0B8A8);display:flex;align-items:center;justify-content:center;font-weight:700;color:#8E4538;font-size:18px">F</div>
+              <div class="pthumb" style="width:52px;height:52px;border-radius:13px"><svg class="prod rose" width="30" height="42" viewBox="0 0 60 84"><use href="#pPump"/></svg></div>
               <div style="flex:1">
                 <div style="font-weight:700;font-size:15.5px">Fragrance-heavy lotion</div>
                 <div style="font-size:12.5px;color:var(--muted);margin-top:2px">Used ≤48h before 3 of your last 4 breakouts</div>
@@ -800,7 +855,7 @@ section{margin-top:110px}
               <span class="mono" style="font-size:11px;color:var(--unsure-fg)">54% confidence</span>
             </div>
             <div style="display:flex;gap:12px;align-items:center;margin-top:12px">
-              <div style="width:44px;height:44px;border-radius:11px;background:linear-gradient(180deg,#EFE4D2,#D8C5A6);display:flex;align-items:center;justify-content:center;font-weight:700;color:#7A5F33;font-size:15px">O</div>
+              <div class="pthumb" style="width:44px;height:44px;border-radius:11px"><svg class="prod amber" width="25" height="35" viewBox="0 0 60 84"><use href="#pDrop"/></svg></div>
               <div style="flex:1">
                 <div style="font-weight:700;font-size:14px">The Ordinary Retinol 0.5%</div>
                 <div style="font-size:12px;color:var(--muted);margin-top:2px">Could be a purge — started 3 weeks ago. Re-check at week 6.</div>
@@ -815,7 +870,7 @@ section{margin-top:110px}
         <div class="bnav" data-active="journal"></div>
         <div class="homebar"></div>
       </div></div>
-      <div class="cap"><b>Culprits — suspect detection</b><span>The hero feature. Timeline bars mark use→breakout pairs; confidence is stated in mono, and “Not it” feeds the model back. Purge-vs-reaction nuance gets the caution tone, not red.</span></div>
+      <div class="cap"><b>Triggers — what actually breaks you out</b><span>The hero feature. Timeline bars mark use→breakout pairs; confidence is stated in mono, and “Not it” feeds the model back. Purge-vs-reaction nuance gets the caution tone, not red.</span></div>
     </div>
   </div>
 </section>
@@ -833,32 +888,49 @@ section{margin-top:110px}
           <div style="display:flex;justify-content:flex-end;margin-top:14px"><svg width="20" height="20" viewBox="0 0 24 24" stroke="#6B6760" stroke-width="2.2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg></div>
           <div style="text-align:center;margin-top:8px">
             <span class="chip" style="background:#FBF3EE;color:var(--primary);font-size:11px;letter-spacing:.12em;text-transform:uppercase">Skintel Pro</span>
-            <h1 class="h-serif" style="font-size:38px;line-height:1.06;margin-top:14px">The founding<br>member deal.</h1>
+            <h1 class="h-serif" style="font-size:38px;line-height:1.06;margin-top:14px">Know every<br>ingredient.</h1>
           </div>
-          <div class="card" style="margin-top:22px;padding:20px;border:1.5px solid var(--primary);background:linear-gradient(180deg,#FFFEFA,#FBF3EE)">
-            <div style="display:flex;align-items:baseline;gap:10px;justify-content:center">
-              <span class="h-serif" style="font-size:46px">$29</span>
-              <span style="color:var(--muted);font-size:15px">/year</span>
-              <span style="color:var(--muted);text-decoration:line-through;font-size:15px">$59</span>
+          <!-- Yearly is preselected; monthly stays one tap away. -->
+          <div style="margin-top:20px;display:flex;flex-direction:column;gap:10px">
+            <div class="card" style="padding:15px 16px;border:1.5px solid var(--primary);background:linear-gradient(180deg,#FFFEFA,#FBF3EE);display:flex;align-items:center;gap:13px;position:relative">
+              <span style="position:absolute;top:-9px;right:14px;background:var(--primary);color:#FFFEFA;font-size:10px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;padding:3px 9px;border-radius:99px">Save 27%</span>
+              <span style="width:20px;height:20px;border-radius:50%;border:6px solid var(--primary);background:#FFFEFA;flex:none"></span>
+              <div style="flex:1">
+                <div style="font-weight:700;font-size:15px">Yearly</div>
+                <div class="mono" style="font-size:11px;color:var(--muted);margin-top:2px">$6.58 / month, billed once</div>
+              </div>
+              <div style="text-align:right">
+                <span class="h-serif" style="font-size:30px">$79</span>
+                <span style="color:var(--muted);font-size:13px">/yr</span>
+              </div>
             </div>
-            <div style="text-align:center;font-size:12.5px;color:var(--primary);font-weight:700;margin-top:2px">Price locked forever</div>
-            <div style="margin-top:14px;height:7px;border-radius:4px;background:#EFEAE2;overflow:hidden"><i style="display:block;width:77%;height:100%;background:linear-gradient(90deg,#A35848,#D9917F);border-radius:4px"></i></div>
-            <div class="mono" style="text-align:center;font-size:11px;color:var(--muted);margin-top:7px">77 of 100 founding spots taken</div>
+            <div class="card" style="padding:15px 16px;display:flex;align-items:center;gap:13px">
+              <span style="width:20px;height:20px;border-radius:50%;border:1.6px solid #D6CFC2;flex:none"></span>
+              <div style="flex:1">
+                <div style="font-weight:700;font-size:15px">Monthly</div>
+                <div class="mono" style="font-size:11px;color:var(--muted);margin-top:2px">Cancel anytime</div>
+              </div>
+              <div style="text-align:right">
+                <span class="h-serif" style="font-size:30px">$8.99</span>
+                <span style="color:var(--muted);font-size:13px">/mo</span>
+              </div>
+            </div>
           </div>
-          <div style="margin-top:18px;display:flex;flex-direction:column;gap:11px;font-size:14px">
+          <div style="margin-top:16px;display:flex;flex-direction:column;gap:10px;font-size:14px">
             <div style="display:flex;gap:11px;align-items:center"><span style="color:var(--good-fg);font-weight:700">✓</span>Unlimited scans &amp; AI verdicts</div>
-            <div style="display:flex;gap:11px;align-items:center"><span style="color:var(--good-fg);font-weight:700">✓</span>Culprit detection on your full history</div>
+            <div style="display:flex;gap:11px;align-items:center"><span style="color:var(--good-fg);font-weight:700">✓</span>Trigger detection on your full history</div>
             <div style="display:flex;gap:11px;align-items:center"><span style="color:var(--good-fg);font-weight:700">✓</span>Compare, routines &amp; conflict alerts</div>
             <div style="display:flex;gap:11px;align-items:center"><span style="color:var(--good-fg);font-weight:700">✓</span>Priority AI — newest models first</div>
           </div>
           <div style="margin-top:auto;padding-bottom:44px">
-            <div class="btn" style="background:#1A1814;color:#FFFEFA"> Pay · Subscribe $29/yr</div>
-            <div style="display:flex;justify-content:center;gap:22px;margin-top:14px;font-size:12px;color:var(--muted)"><u>Restore</u><u>Terms</u><u>Privacy</u></div>
+            <div class="btn" style="background:#1A1814;color:#FFFEFA"> Pay · Subscribe $79/yr</div>
+            <div style="text-align:center;font-size:11.5px;color:var(--muted);margin-top:10px">Manage or cancel anytime at skintel.com</div>
+            <div style="display:flex;justify-content:center;gap:22px;margin-top:10px;font-size:12px;color:var(--muted)"><u>Restore</u><u>Terms</u><u>Privacy</u></div>
           </div>
         </div>
         <div class="homebar"></div>
       </div></div>
-      <div class="cap"><b>Paywall — founding member</b><span>Mirrors the /discount web page: strike-through anchor, live founding-spot counter, price-locked-forever promise. Apple Pay is the only button.</span></div>
+      <div class="cap"><b>Paywall — launch pricing</b><span>Two plans, yearly preselected: $8.99/mo or $79/yr (27% off). The founding-member counter is retired — no scarcity mechanic at launch. Apple Pay is the only button; billing is managed at skintel.com.</span></div>
     </div>
 
     <div class="shot" id="s-settings">
@@ -891,7 +963,7 @@ section{margin-top:110px}
               <span style="width:44px;height:26px;border-radius:14px;background:var(--good-fg);position:relative"><i style="position:absolute;right:2px;top:2px;width:22px;height:22px;border-radius:50%;background:#FFFEFA;box-shadow:0 1px 3px rgba(0,0,0,.2)"></i></span>
             </div>
             <div style="padding:14px 16px;display:flex;align-items:center;gap:12px;border-bottom:1px solid var(--line)">
-              <span style="font-size:14px;font-weight:600;flex:1">Culprit alerts</span>
+              <span style="font-size:14px;font-weight:600;flex:1">Trigger alerts</span>
               <span style="width:44px;height:26px;border-radius:14px;background:var(--good-fg);position:relative"><i style="position:absolute;right:2px;top:2px;width:22px;height:22px;border-radius:50%;background:#FFFEFA;box-shadow:0 1px 3px rgba(0,0,0,.2)"></i></span>
             </div>
             <div style="padding:14px 16px;display:flex;align-items:center;gap:12px">
@@ -934,7 +1006,7 @@ section{margin-top:110px}
             <div style="flex:1;display:flex;flex-direction:column">
               <div class="mono" style="font-size:9.5px;letter-spacing:.14em;color:var(--muted);text-transform:uppercase">Skintel · last scan</div>
               <div style="display:flex;gap:10px;align-items:center;margin-top:12px">
-                <div style="width:38px;height:38px;border-radius:10px;background:linear-gradient(180deg,#DCE7F2,#B9CBDE);display:flex;align-items:center;justify-content:center;font-weight:700;color:#3E5A75;font-size:13px">C</div>
+                <div class="pthumb" style="width:38px;height:38px;border-radius:10px"><svg class="prod" width="21" height="30" viewBox="0 0 60 84"><use href="#pPump"/></svg></div>
                 <div>
                   <div style="font-weight:700;font-size:12.5px;line-height:1.2">CeraVe Foaming<br>Cleanser</div>
                 </div>
