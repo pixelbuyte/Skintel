@@ -25,6 +25,9 @@ master built from the same geometry (iOS applies the squircle mask).
 | 06e | Home / Dashboard — E: editorial minimal | `previews/home-e.png` |
 | 06f | Home / Dashboard — F: bento grid | `previews/home-f.png` |
 | 06g | Home / Dashboard — G: timeline / agenda | `previews/home-g.png` |
+| 06h | Home / Dashboard — H: bento, sharpened ★ | `previews/home-h.png` |
+| 06i | Home / Dashboard — I: dark bento, Bevel-style | `previews/home-i.png` |
+| 06j | Home / Dashboard — J: editorial + bento hybrid | `previews/home-j.png` |
 | 07 | Scanner — viewfinder | `previews/scan.png` |
 | 08 | Scanner — match & auto-analyze sheet | `previews/found.png` |
 | 09 | Analysis — verdict | `previews/verdict.png` |
