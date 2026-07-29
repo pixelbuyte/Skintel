@@ -125,6 +125,25 @@ section{margin-top:110px}
 .sheen{position:absolute;inset:0;pointer-events:none;background:linear-gradient(180deg,rgba(255,255,255,.17) 0%,rgba(255,255,255,0) 44%)}
 .delta{display:inline-flex;align-items:center;gap:3px;font-size:11.5px;font-weight:700;padding:4px 9px;border-radius:99px}
 
+/* segmented control — iOS range picker (Robinhood / Health) */
+.seg{display:flex;background:#E9E2D6;border-radius:11px;padding:3px;gap:2px}
+.seg span{flex:1;text-align:center;font-size:11.5px;font-weight:600;padding:6px 0;border-radius:8px;color:var(--muted)}
+.seg span.on{background:var(--cream);color:var(--ink);box-shadow:0 1px 3px rgba(26,24,20,.12)}
+
+/* Apple-Health-style section label */
+.hsec{display:flex;align-items:baseline;justify-content:space-between;margin:22px 0 9px}
+.hsec b{font-family:var(--serif);font-weight:400;font-size:21px}
+.hsec span{font-size:12.5px;color:var(--primary);font-weight:600}
+
+/* Wallet-style stacked cards */
+.stack{position:relative;height:462px;margin-top:16px}
+.stack .sc{position:absolute;left:0;right:0;border-radius:22px;padding:17px;box-shadow:0 -3px 14px rgba(26,24,20,.10),0 12px 26px -14px rgba(26,24,20,.4)}
+
+/* shelf grid — product-library layout */
+.shelf{display:grid;grid-template-columns:repeat(2,1fr);gap:11px}
+.shelf .p{background:var(--cream);border:1px solid var(--line);border-radius:18px;padding:12px;display:flex;flex-direction:column;gap:9px}
+.fchip{font-size:11.5px;font-weight:600;padding:6px 13px;border-radius:99px;white-space:nowrap}
+
 /* brand mark */
 /* ---- Brand mark: the Skintel star (mirrors public/icons/skintel.svg) ---- */
 .appicon{position:relative;overflow:hidden;background:linear-gradient(135deg,#B2634F 0%,#A35848 55%,#8E4538 100%);display:flex;align-items:center;justify-content:center}
@@ -1220,6 +1239,342 @@ body.freeze .anim-ring{animation-delay:-1.1s;animation-play-state:paused}
         <div class="homebar"></div>
       </div></div>
       <div class="cap"><b>Home / Dashboard — J: editorial + bento hybrid</b><span>Splits the difference between E and H. The score isn't in a tile at all — the page is its canvas, with a gradient-filled area chart beside it, then a rule, then bento tiles for everything supporting. Keeps the Instrument Serif brand voice at the top where it counts and the scannable grid where it earns its keep.</span></div>
+    </div>
+
+    <!-- ===== K: AI-first (Perplexity / ChatGPT home) ===== -->
+    <div class="shot" id="s-home-k">
+      <div class="phone"><div class="screen">
+        <div class="island"></div>
+        <div class="sbar"><span class="time">9:41</span><span class="sicons" data-auto></span></div>
+        <div class="pad">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-top:14px">
+            <div class="mono" style="font-size:9.5px;letter-spacing:.18em;color:var(--muted);text-transform:uppercase">Thu · Jul 16</div>
+            <div style="width:34px;height:34px;border-radius:50%;background:linear-gradient(135deg,#D9917F,#A35848);display:flex;align-items:center;justify-content:center;color:#FFFEFA;font-weight:700;font-size:13px">R</div>
+          </div>
+
+          <h1 class="h-serif" style="font-size:34px;line-height:1.08;margin-top:24px;letter-spacing:-.015em">What's on your<br>shelf today?</h1>
+
+          <!-- the ask bar is the primary affordance, not a stat -->
+          <div class="card" style="margin-top:18px;padding:15px 16px;display:flex;align-items:center;gap:11px;border-color:rgba(163,88,72,.35);box-shadow:0 6px 18px -8px rgba(163,88,72,.3)">
+            <svg width="19" height="19" viewBox="0 0 100 100" style="color:var(--primary);flex:none"><use href="#star"/></svg>
+            <span style="flex:1;font-size:14px;color:var(--muted)">Ask about any ingredient…</span>
+            <div style="width:30px;height:30px;border-radius:50%;background:var(--primary);display:flex;align-items:center;justify-content:center;flex:none">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#FFFEFA" stroke-width="2.4" stroke-linecap="round"><path d="M5 12h13M13 6l6 6-6 6"/></svg>
+            </div>
+          </div>
+
+          <div style="display:flex;flex-wrap:wrap;gap:7px;margin-top:12px">
+            <span class="fchip" style="background:var(--cream);border:1px solid var(--line);color:var(--ink)">Can I mix retinol + AHA?</span>
+            <span class="fchip" style="background:var(--cream);border:1px solid var(--line);color:var(--ink)">Why did I break out?</span>
+            <span class="fchip" style="background:var(--cream);border:1px solid var(--line);color:var(--ink)">Dupe for my serum</span>
+          </div>
+
+          <div class="mono" style="font-size:9.5px;letter-spacing:.16em;text-transform:uppercase;color:var(--muted);margin:26px 0 9px">Today at a glance</div>
+
+          <div style="display:flex;gap:9px">
+            <div class="card" style="flex:1;padding:13px 14px">
+              <div style="display:flex;align-items:baseline;gap:4px"><span class="h-serif" style="font-size:30px">79</span><span style="font-size:11px;color:var(--muted);font-weight:600">score</span></div>
+              <div style="font-size:11px;color:var(--good-fg);font-weight:700;margin-top:2px">↑ 4 this week</div>
+            </div>
+            <div class="card" style="flex:1;padding:13px 14px">
+              <div style="display:flex;align-items:baseline;gap:4px"><span class="h-serif" style="font-size:30px">2</span><span style="font-size:11px;color:var(--muted);font-weight:600">/5 tonight</span></div>
+              <div style="font-size:11px;color:var(--muted);font-weight:600;margin-top:2px">Retinol next</div>
+            </div>
+          </div>
+
+          <div class="card" style="margin-top:9px;padding:13px 16px 13px 18px;background:var(--bad-bg);border-color:rgba(178,43,43,.2);position:relative;overflow:hidden">
+            <div aria-hidden style="position:absolute;left:0;top:0;bottom:0;width:4px;background:var(--bad-fg)"></div>
+            <div style="display:flex;align-items:center;gap:11px">
+              <div style="flex:1;font-size:12.5px;font-weight:700;color:var(--bad-fg)">1 trigger found — fragrance</div>
+              <span style="color:var(--bad-fg);font-weight:700">›</span>
+            </div>
+          </div>
+        </div>
+        <div class="bnav" data-active="home"></div>
+        <div class="homebar"></div>
+      </div></div>
+      <div class="cap"><b>Home / Dashboard — K: AI-first</b><span>Skintel already runs on Claude, so this makes the ask bar the primary affordance — Perplexity's home, not a health app's. Suggested prompts do the onboarding work, and metrics demote to a two-tile glance strip. The one direction here that competitors can't copy without an AI backend.</span></div>
+    </div>
+
+    <!-- ===== L: shelf-first (Spotify / library grid) ===== -->
+    <div class="shot" id="s-home-l">
+      <div class="phone"><div class="screen">
+        <div class="island"></div>
+        <div class="sbar"><span class="time">9:41</span><span class="sicons" data-auto></span></div>
+        <div class="pad">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-top:14px">
+            <div>
+              <h1 class="h-serif" style="font-size:28px;letter-spacing:-.015em">Your shelf</h1>
+              <div class="mono" style="font-size:10px;letter-spacing:.14em;color:var(--muted);text-transform:uppercase;margin-top:2px">24 products · score 79</div>
+            </div>
+            <div style="width:34px;height:34px;border-radius:50%;background:linear-gradient(135deg,#D9917F,#A35848);display:flex;align-items:center;justify-content:center;color:#FFFEFA;font-weight:700;font-size:13px">R</div>
+          </div>
+
+          <div style="display:flex;gap:7px;margin-top:16px;overflow-x:auto;padding-bottom:2px">
+            <span class="fchip" style="background:var(--ink);color:var(--cream);flex:none">All 24</span>
+            <span class="fchip" style="background:var(--good-bg);color:var(--good-fg);flex:none">Good 14</span>
+            <span class="fchip" style="background:var(--unsure-bg);color:var(--unsure-fg);flex:none">Caution 7</span>
+            <span class="fchip" style="background:var(--bad-bg);color:var(--bad-fg);flex:none">Skip 3</span>
+          </div>
+
+          <div class="card" style="margin-top:12px;padding:12px 16px 12px 18px;background:var(--bad-bg);border-color:rgba(178,43,43,.2);position:relative;overflow:hidden">
+            <div aria-hidden style="position:absolute;left:0;top:0;bottom:0;width:4px;background:var(--bad-fg)"></div>
+            <div style="display:flex;align-items:center;gap:11px">
+              <div style="flex:1;font-size:12.5px;font-weight:700;color:var(--bad-fg)">3 products share your top trigger</div>
+              <span style="color:var(--bad-fg);font-weight:700">›</span>
+            </div>
+          </div>
+
+          <div class="shelf" style="margin-top:12px">
+            <div class="p">
+              <div style="display:flex;align-items:flex-start;justify-content:space-between">
+                <div class="pthumb" style="width:46px;height:60px;border-radius:11px"><svg class="prod" width="26" height="37" viewBox="0 0 60 84"><use href="#pPump"/></svg></div>
+                <span class="chip good" style="font-size:11px">82</span>
+              </div>
+              <div>
+                <div style="font-size:12.5px;font-weight:700;line-height:1.25">CeraVe Foaming Cleanser</div>
+                <div style="font-size:10.5px;color:var(--muted);margin-top:2px">Cleanser</div>
+              </div>
+            </div>
+            <div class="p">
+              <div style="display:flex;align-items:flex-start;justify-content:space-between">
+                <div class="pthumb" style="width:46px;height:60px;border-radius:11px"><svg class="prod amber" width="26" height="37" viewBox="0 0 60 84"><use href="#pDrop"/></svg></div>
+                <span class="chip unsure" style="font-size:11px">64</span>
+              </div>
+              <div>
+                <div style="font-size:12.5px;font-weight:700;line-height:1.25">The Ordinary Retinol 0.5%</div>
+                <div style="font-size:10.5px;color:var(--muted);margin-top:2px">Treatment</div>
+              </div>
+            </div>
+            <div class="p" style="border-color:rgba(178,43,43,.4)">
+              <div style="display:flex;align-items:flex-start;justify-content:space-between">
+                <div class="pthumb" style="width:46px;height:60px;border-radius:11px"><svg class="prod rose" width="26" height="37" viewBox="0 0 60 84"><use href="#pPump"/></svg></div>
+                <span class="chip bad" style="font-size:11px">31</span>
+              </div>
+              <div>
+                <div style="font-size:12.5px;font-weight:700;line-height:1.25">Fragrance-heavy lotion</div>
+                <div style="font-size:10.5px;color:var(--bad-fg);margin-top:2px;font-weight:600">Your top trigger</div>
+              </div>
+            </div>
+            <div class="p">
+              <div style="display:flex;align-items:flex-start;justify-content:space-between">
+                <div class="pthumb" style="width:46px;height:60px;border-radius:11px"><svg class="prod cream" width="26" height="37" viewBox="0 0 60 84"><use href="#pJar"/></svg></div>
+                <span class="chip good" style="font-size:11px">86</span>
+              </div>
+              <div>
+                <div style="font-size:12.5px;font-weight:700;line-height:1.25">CeraVe Moisturizer</div>
+                <div style="font-size:10.5px;color:var(--muted);margin-top:2px">Moisturizer</div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="bnav" data-active="home"></div>
+        <div class="homebar"></div>
+      </div></div>
+      <div class="cap"><b>Home / Dashboard — L: shelf-first</b><span>Inverts the premise: home is your product library, not a metrics report. Filter chips carry the counts, the trigger warning sits inline above the grid, and the offending product is outlined in red inside its own card. Closest to how people actually think about their routine — by product, not by score.</span></div>
+    </div>
+
+    <!-- ===== M: Apple Health "Summary" feed ===== -->
+    <div class="shot" id="s-home-m">
+      <div class="phone"><div class="screen">
+        <div class="island"></div>
+        <div class="sbar"><span class="time">9:41</span><span class="sicons" data-auto></span></div>
+        <div class="pad">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-top:14px">
+            <h1 class="h-serif" style="font-size:30px;letter-spacing:-.015em">Summary</h1>
+            <div style="width:34px;height:34px;border-radius:50%;background:linear-gradient(135deg,#D9917F,#A35848);display:flex;align-items:center;justify-content:center;color:#FFFEFA;font-weight:700;font-size:13px">R</div>
+          </div>
+
+          <div class="card" style="margin-top:14px;padding:13px 16px 13px 18px;background:var(--bad-bg);border-color:rgba(178,43,43,.2);position:relative;overflow:hidden">
+            <div aria-hidden style="position:absolute;left:0;top:0;bottom:0;width:4px;background:var(--bad-fg)"></div>
+            <div style="display:flex;align-items:center;gap:11px">
+              <div style="flex:1">
+                <div style="font-size:13px;font-weight:700;color:var(--bad-fg)">1 trigger found</div>
+                <div style="font-size:11.5px;color:#8A6A63;margin-top:1px">Fragrance-heavy lotion · 3 of 4</div>
+              </div>
+              <span style="color:var(--bad-fg);font-weight:700;font-size:15px">›</span>
+            </div>
+          </div>
+
+          <div class="hsec"><b>Pinned</b></div>
+          <div style="display:flex;gap:10px">
+            <div class="card" style="flex:1;padding:13px 14px">
+              <div class="mono" style="font-size:9px;letter-spacing:.14em;text-transform:uppercase;color:var(--muted)">Skin score</div>
+              <div style="display:flex;align-items:baseline;gap:5px;margin-top:5px"><span class="h-serif" style="font-size:32px">79</span><span style="font-size:11.5px;font-weight:700;color:var(--good-fg)">↑4</span></div>
+              <svg width="100%" height="26" viewBox="0 0 120 26" preserveAspectRatio="none" style="margin-top:6px;display:block">
+                <polyline points="2,19 22,16 42,21 62,24 82,11 102,6 118,3" fill="none" stroke="#A35848" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+            </div>
+            <div class="card" style="flex:1;padding:13px 14px">
+              <div class="mono" style="font-size:9px;letter-spacing:.14em;text-transform:uppercase;color:var(--muted)">Clear days</div>
+              <div style="display:flex;align-items:baseline;gap:4px;margin-top:5px"><span class="h-serif" style="font-size:32px;color:var(--good-fg)">12</span><span style="font-size:11px;color:var(--muted);font-weight:600">days</span></div>
+              <div class="trend-strip" style="height:26px;margin-top:6px;gap:4px">
+                <div class="bar" style="height:40%;background:#C9D6B4"></div><div class="bar" style="height:62%;background:#C9D6B4"></div><div class="bar" style="height:52%;background:#C9D6B4"></div><div class="bar" style="height:78%;background:#8BA36F"></div><div class="bar" style="height:66%;background:#8BA36F"></div><div class="bar" style="height:88%;background:#5C7A4F"></div><div class="bar" style="height:100%;background:#5C7A4F"></div>
+              </div>
+            </div>
+          </div>
+
+          <div class="hsec"><b>Trends</b><span>Show all</span></div>
+          <div class="card">
+            <div style="padding:12px 15px;display:flex;align-items:center;gap:12px;border-bottom:1px solid var(--line)">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#5C7A4F" stroke-width="2.6" stroke-linecap="round" style="flex:none"><path d="M4 17l7-7 4 4 6-7"/><path d="M15 7h6v6"/></svg>
+              <div style="flex:1;font-size:13px;font-weight:600">Routine adherence up</div>
+              <span class="mono" style="font-size:11.5px;color:var(--muted)">86%</span>
+            </div>
+            <div style="padding:12px 15px;display:flex;align-items:center;gap:12px;border-bottom:1px solid var(--line)">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#8B6914" stroke-width="2.6" stroke-linecap="round" style="flex:none"><path d="M5 12h14"/></svg>
+              <div style="flex:1;font-size:13px;font-weight:600">Fragrance exposure flat</div>
+              <span class="mono" style="font-size:11.5px;color:var(--muted)">4 prod</span>
+            </div>
+            <div style="padding:12px 15px;display:flex;align-items:center;gap:12px">
+              <!-- down-and-to-the-right: fewer breakouts is the good direction -->
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#5C7A4F" stroke-width="2.6" stroke-linecap="round" style="flex:none"><path d="M4 7l7 7 4-4 6 7"/><path d="M15 17h6v-6"/></svg>
+              <div style="flex:1;font-size:13px;font-weight:600">Breakouts down</div>
+              <span class="mono" style="font-size:11.5px;color:var(--muted)">−2</span>
+            </div>
+          </div>
+
+          <div class="hsec"><b>Tonight</b></div>
+          <div class="card" style="padding:14px 15px">
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
+              <span style="font-size:13px;font-weight:700">Retinol 0.5% is next</span>
+              <span class="mono" style="font-size:11px;color:var(--muted)">2 / 5</span>
+            </div>
+            <div style="display:flex;gap:4px">
+              <i style="flex:1;height:5px;border-radius:3px;background:var(--primary)"></i><i style="flex:1;height:5px;border-radius:3px;background:var(--primary)"></i><i style="flex:1;height:5px;border-radius:3px;background:#E9E2D6"></i><i style="flex:1;height:5px;border-radius:3px;background:#E9E2D6"></i><i style="flex:1;height:5px;border-radius:3px;background:#E9E2D6"></i>
+            </div>
+          </div>
+        </div>
+        <div class="bnav" data-active="home"></div>
+        <div class="homebar"></div>
+      </div></div>
+      <div class="cap"><b>Home / Dashboard — M: Apple Health Summary feed</b><span>Apple Health's real home isn't rings — it's a scrolling feed of Pinned / Trends / Highlights sections. That structure ports well: pinned tiles carry their own micro-charts, Trends becomes a plain-language row list with direction arrows, and the alert floats above everything. The most "familiar iOS health app" of the set.</span></div>
+    </div>
+
+    <!-- ===== N: Wallet-style card stack ===== -->
+    <div class="shot" id="s-home-n">
+      <div class="phone"><div class="screen">
+        <div class="island"></div>
+        <div class="sbar"><span class="time">9:41</span><span class="sicons" data-auto></span></div>
+        <div class="pad">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-top:14px">
+            <h1 class="h-serif" style="font-size:28px;letter-spacing:-.015em">Good morning</h1>
+            <div style="width:34px;height:34px;border-radius:50%;background:linear-gradient(135deg,#D9917F,#A35848);display:flex;align-items:center;justify-content:center;color:#FFFEFA;font-weight:700;font-size:13px">R</div>
+          </div>
+
+          <!-- stacked cards: front card full, others peeking behind -->
+          <div class="stack">
+            <div class="sc" style="top:0;z-index:4;background:linear-gradient(142deg,#B2634F 0%,#A35848 48%,#823E32 100%);color:#FFFEFA;height:176px;overflow:hidden">
+              <div aria-hidden style="position:absolute;top:-40px;right:-24px;width:150px;height:150px;border-radius:50%;background:radial-gradient(circle,rgba(255,220,205,.3) 0%,rgba(255,220,205,0) 68%)"></div>
+              <div class="sheen"></div>
+              <div style="position:relative;display:flex;align-items:center;justify-content:space-between">
+                <span class="lbl" style="font-size:9.5px;letter-spacing:.15em;text-transform:uppercase;font-weight:700;opacity:.6">Skin score</span>
+                <span class="delta" style="background:rgba(255,254,250,.18);color:#FFFEFA">↑ 4</span>
+              </div>
+              <div style="position:relative;display:flex;align-items:flex-end;justify-content:space-between;margin-top:14px">
+                <div style="display:flex;align-items:baseline">
+                  <span class="h-serif" style="font-size:70px;line-height:.88;letter-spacing:-.025em;color:#FFFEFA">79</span>
+                  <span class="mono" style="font-size:11.5px;opacity:.55;margin-left:6px;padding-bottom:6px">/100</span>
+                </div>
+                <svg width="100" height="38" viewBox="0 0 100 38" fill="none" style="margin-bottom:5px">
+                  <polyline points="2,28 18,24 34,31 50,35 66,18 82,11 98,5" stroke="rgba(255,254,250,.55)" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
+                  <circle cx="98" cy="5" r="3.2" fill="#FFFEFA"/>
+                </svg>
+              </div>
+            </div>
+
+            <div class="sc" style="top:164px;z-index:3;background:var(--bad-bg);border:1px solid rgba(178,43,43,.25);height:104px">
+              <div style="display:flex;align-items:center;justify-content:space-between">
+                <span class="mono" style="font-size:9.5px;letter-spacing:.15em;text-transform:uppercase;font-weight:700;color:var(--bad-fg)">Triggers</span>
+                <span class="chip bad" style="font-size:10.5px">1 found</span>
+              </div>
+              <div style="font-size:14px;font-weight:700;margin-top:9px;color:var(--ink)">Fragrance-heavy lotion</div>
+            </div>
+
+            <div class="sc" style="top:264px;z-index:2;background:var(--cream);border:1px solid var(--line);height:104px">
+              <div style="display:flex;align-items:center;justify-content:space-between">
+                <span class="mono" style="font-size:9.5px;letter-spacing:.15em;text-transform:uppercase;font-weight:700;color:var(--muted)">Tonight</span>
+                <span class="mono" style="font-size:11px;color:var(--muted)">2 / 5</span>
+              </div>
+              <div style="font-size:14px;font-weight:700;margin-top:9px">Retinol 0.5% is next</div>
+            </div>
+
+            <div class="sc" style="top:364px;z-index:1;background:var(--good-bg);border:1px solid rgba(92,122,79,.25);height:96px">
+              <div style="display:flex;align-items:center;justify-content:space-between">
+                <span class="mono" style="font-size:9.5px;letter-spacing:.15em;text-transform:uppercase;font-weight:700;color:var(--good-fg)">Shelf</span>
+                <span class="mono" style="font-size:11px;color:var(--good-fg)">24 products</span>
+              </div>
+            </div>
+          </div>
+
+          <div style="text-align:center;margin-top:18px" class="mono">
+            <span style="font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:var(--muted)">Swipe a card to expand</span>
+          </div>
+        </div>
+        <div class="bnav" data-active="home"></div>
+        <div class="homebar"></div>
+      </div></div>
+      <div class="cap"><b>Home / Dashboard — N: Wallet card stack</b><span>Apple Wallet's stack, applied to four domains: score, triggers, tonight, shelf. Each card is color-coded and tappable to expand; the front card carries full detail while the rest peek. Very tactile on a phone and it scales — a fifth concern is just another card, no layout rework.</span></div>
+    </div>
+
+    <!-- ===== O: chart-forward analytics (Robinhood / Stripe) ===== -->
+    <div class="shot" id="s-home-o">
+      <div class="phone"><div class="screen">
+        <div class="island"></div>
+        <div class="sbar"><span class="time">9:41</span><span class="sicons" data-auto></span></div>
+        <div class="pad">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-top:14px">
+            <div class="mono" style="font-size:9.5px;letter-spacing:.18em;color:var(--muted);text-transform:uppercase">Skin score</div>
+            <div style="width:34px;height:34px;border-radius:50%;background:linear-gradient(135deg,#D9917F,#A35848);display:flex;align-items:center;justify-content:center;color:#FFFEFA;font-weight:700;font-size:13px">R</div>
+          </div>
+
+          <div style="display:flex;align-items:baseline;gap:10px;margin-top:6px">
+            <span class="h-serif" style="font-size:60px;line-height:.9;letter-spacing:-.025em">79</span>
+            <span class="delta" style="background:var(--good-bg);color:var(--good-fg);margin-bottom:8px">↑ 4 · 5.3%</span>
+          </div>
+
+          <!-- big area chart with gridlines and an axis, the analytics move -->
+          <svg width="100%" height="152" viewBox="0 0 330 152" preserveAspectRatio="none" style="margin-top:16px;display:block">
+            <defs><linearGradient id="oFill" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#A35848" stop-opacity=".26"/><stop offset="1" stop-color="#A35848" stop-opacity="0"/></linearGradient></defs>
+            <line x1="0" y1="34" x2="330" y2="34" stroke="#E4DCCD" stroke-width="1" stroke-dasharray="3 4"/>
+            <line x1="0" y1="76" x2="330" y2="76" stroke="#E4DCCD" stroke-width="1" stroke-dasharray="3 4"/>
+            <line x1="0" y1="118" x2="330" y2="118" stroke="#E4DCCD" stroke-width="1" stroke-dasharray="3 4"/>
+            <path d="M4,104 L50,92 L96,116 L142,130 L188,68 L234,44 L280,28 L326,16 L326,152 L4,152 Z" fill="url(#oFill)"/>
+            <polyline points="4,104 50,92 96,116 142,130 188,68 234,44 280,28 326,16" fill="none" stroke="#A35848" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/>
+            <circle cx="326" cy="16" r="4.5" fill="#A35848"/>
+            <circle cx="326" cy="16" r="9" fill="#A35848" fill-opacity=".18"/>
+          </svg>
+          <div style="display:flex;justify-content:space-between;margin-top:5px" class="mono">
+            <span style="font-size:9px;color:#B5AE9F">JUN 18</span><span style="font-size:9px;color:#B5AE9F">TODAY</span>
+          </div>
+
+          <div class="seg" style="margin-top:16px">
+            <span>1W</span><span class="on">1M</span><span>3M</span><span>6M</span><span>ALL</span>
+          </div>
+
+          <div class="mono" style="font-size:9.5px;letter-spacing:.16em;text-transform:uppercase;color:var(--muted);margin:22px 0 8px">What moved it</div>
+          <div class="card">
+            <div style="padding:12px 15px;display:flex;align-items:center;gap:12px;border-bottom:1px solid var(--line)">
+              <span class="dot" style="background:var(--good-fg);flex:none"></span>
+              <div style="flex:1;font-size:13px;font-weight:600">Dropped fragrance lotion</div>
+              <span class="mono" style="font-size:12px;color:var(--good-fg);font-weight:600">+6</span>
+            </div>
+            <div style="padding:12px 15px;display:flex;align-items:center;gap:12px;border-bottom:1px solid var(--line)">
+              <span class="dot" style="background:var(--good-fg);flex:none"></span>
+              <div style="flex:1;font-size:13px;font-weight:600">12-day routine streak</div>
+              <span class="mono" style="font-size:12px;color:var(--good-fg);font-weight:600">+3</span>
+            </div>
+            <div style="padding:12px 15px;display:flex;align-items:center;gap:12px">
+              <span class="dot" style="background:var(--bad-fg);flex:none"></span>
+              <div style="flex:1;font-size:13px;font-weight:600">New retinol — purge phase</div>
+              <span class="mono" style="font-size:12px;color:var(--bad-fg);font-weight:600">−5</span>
+            </div>
+          </div>
+        </div>
+        <div class="bnav" data-active="home"></div>
+        <div class="homebar"></div>
+      </div></div>
+      <div class="cap"><b>Home / Dashboard — O: chart-forward analytics</b><span>Robinhood's structure: number, delta, big chart, range selector, then a breakdown of what caused the move. The "What moved it" list is the interesting part for Skintel — it attributes score changes to specific product decisions, which turns a vanity metric into a causal one.</span></div>
     </div>
   </div>
 </section>

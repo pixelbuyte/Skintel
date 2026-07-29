@@ -28,6 +28,11 @@ master built from the same geometry (iOS applies the squircle mask).
 | 06h | Home / Dashboard — H: bento, sharpened ★ | `previews/home-h.png` |
 | 06i | Home / Dashboard — I: dark bento, Bevel-style | `previews/home-i.png` |
 | 06j | Home / Dashboard — J: editorial + bento hybrid | `previews/home-j.png` |
+| 06k | Home / Dashboard — K: AI-first (ask bar) | `previews/home-k.png` |
+| 06l | Home / Dashboard — L: shelf-first (product library) | `previews/home-l.png` |
+| 06m | Home / Dashboard — M: Apple Health Summary feed | `previews/home-m.png` |
+| 06n | Home / Dashboard — N: Wallet card stack | `previews/home-n.png` |
+| 06o | Home / Dashboard — O: chart-forward analytics | `previews/home-o.png` |
 | 07 | Scanner — viewfinder | `previews/scan.png` |
 | 08 | Scanner — match & auto-analyze sheet | `previews/found.png` |
 | 09 | Analysis — verdict | `previews/verdict.png` |
