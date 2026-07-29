@@ -96,6 +96,22 @@ section{margin-top:110px}
 .trend-strip .bar{flex:1;border-radius:5px;position:relative;min-height:8px}
 .trend-strip .day{font-size:9.5px;color:var(--muted);text-align:center;margin-top:6px;font-weight:600}
 
+/* dark surfaces — Whoop's real app is near-black, not cream */
+.screen.dark{background:linear-gradient(180deg,#141210 0%,#0C0B09 100%);color:#F2EDE4}
+.screen.dark .muted{color:#8A8177}
+.card-d{background:#1C1916;border:1px solid #2A2621;border-radius:16px}
+.screen.dark .h-serif{color:#F7F3EA}
+/* the FAB's cutout ring matches the page, so it has to flip on dark too */
+.screen.dark .fab{border-color:#141210}
+.screen.dark .bnav .ni{color:#8A8177}
+.screen.dark .bnav .ni.on{color:#D9917F}
+
+/* bento grid — asymmetric tiles */
+.bento{display:grid;grid-template-columns:repeat(2,1fr);gap:10px}
+.bento .t{border-radius:18px;padding:14px;display:flex;flex-direction:column;justify-content:space-between;min-height:96px}
+.bento .wide{grid-column:span 2}
+.bento .lbl{font-size:10px;letter-spacing:.12em;text-transform:uppercase;font-weight:700;opacity:.65}
+
 /* brand mark */
 /* ---- Brand mark: the Skintel star (mirrors public/icons/skintel.svg) ---- */
 .appicon{position:relative;overflow:hidden;background:linear-gradient(135deg,#B2634F 0%,#A35848 55%,#8E4538 100%);display:flex;align-items:center;justify-content:center}
@@ -659,6 +675,278 @@ body.freeze .anim-ring{animation-delay:-1.1s;animation-play-state:paused}
         <div class="homebar"></div>
       </div></div>
       <div class="cap"><b>Home / Dashboard — C: Whoop / Apple Health style</b><span>Bigger beveled hero ring with a glossy top-left highlight (à la Apple Watch rings), a secondary trio of mini metric rings, and a 7-day trend bar strip — today outlined, like a recovery graph. Same terracotta/cream palette and Instrument Serif/JetBrains Mono type as the rest of the spec, borrowed layout language from Whoop/Apple Health/Google Fit rather than their color systems.</span></div>
+    </div>
+
+    <!-- ===== D: dark, the way Whoop's app actually looks ===== -->
+    <div class="shot" id="s-home-d">
+      <div class="phone"><div class="screen dark">
+        <div class="island"></div>
+        <div class="sbar light"><span class="time">9:41</span><span class="sicons" data-auto></span></div>
+        <div class="pad">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-top:12px">
+            <div class="mono" style="font-size:10.5px;letter-spacing:.16em;color:#8A8177;text-transform:uppercase">Thu · Jul 16</div>
+            <div style="width:32px;height:32px;border-radius:50%;background:linear-gradient(135deg,#D9917F,#A35848);display:flex;align-items:center;justify-content:center;color:#FFFEFA;font-weight:700;font-size:12.5px">R</div>
+          </div>
+
+          <div style="display:flex;flex-direction:column;align-items:center;margin-top:14px">
+            <div class="ring" style="width:196px;height:196px">
+              <svg width="196" height="196" viewBox="0 0 196 196">
+                <circle cx="98" cy="98" r="84" stroke="#232019" stroke-width="16" fill="none"/>
+                <circle cx="98" cy="98" r="84" stroke="#6E9455" stroke-width="16" fill="none" stroke-linecap="round"
+                        stroke-dasharray="527.8" stroke-dashoffset="110.8"
+                        style="filter:drop-shadow(0 0 14px rgba(110,148,85,.75))"/>
+              </svg>
+              <div class="rv">
+                <b class="h-serif" style="font-size:64px;line-height:1;color:#F7F3EA">79</b>
+                <i style="display:block;text-align:center;margin-top:2px;color:#8A8177">skin score</i>
+              </div>
+            </div>
+            <div class="mono" style="margin-top:12px;font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:#6E9455">Trending up · +4 this week</div>
+          </div>
+
+          <!-- horizontal metric bars, Whoop's secondary-stat pattern -->
+          <div style="margin-top:26px;display:flex;flex-direction:column;gap:14px">
+            <div>
+              <div style="display:flex;justify-content:space-between;font-size:11.5px;margin-bottom:6px">
+                <span style="color:#8A8177;font-weight:600">Routine adherence</span><span class="mono" style="color:#F2EDE4">86%</span>
+              </div>
+              <div style="height:5px;border-radius:3px;background:#232019;overflow:hidden"><i style="display:block;width:86%;height:100%;border-radius:3px;background:#A35848"></i></div>
+            </div>
+            <div>
+              <div style="display:flex;justify-content:space-between;font-size:11.5px;margin-bottom:6px">
+                <span style="color:#8A8177;font-weight:600">Trigger-free streak</span><span class="mono" style="color:#F2EDE4">12 days</span>
+              </div>
+              <div style="height:5px;border-radius:3px;background:#232019;overflow:hidden"><i style="display:block;width:57%;height:100%;border-radius:3px;background:#C99A3F"></i></div>
+            </div>
+            <div>
+              <div style="display:flex;justify-content:space-between;font-size:11.5px;margin-bottom:6px">
+                <span style="color:#8A8177;font-weight:600">Logged this week</span><span class="mono" style="color:#F2EDE4">5 / 7</span>
+              </div>
+              <div style="height:5px;border-radius:3px;background:#232019;overflow:hidden"><i style="display:block;width:71%;height:100%;border-radius:3px;background:#6E9455"></i></div>
+            </div>
+          </div>
+
+          <div class="card-d" style="margin-top:22px;padding:14px 16px;display:flex;align-items:center;gap:11px;border-color:rgba(178,43,43,.35)">
+            <span style="width:7px;height:7px;border-radius:50%;background:#E4574B;box-shadow:0 0 8px #E4574B;flex:none"></span>
+            <div style="flex:1;font-size:12.5px;font-weight:600;color:#F2EDE4">1 trigger found — fragrance-heavy lotion</div>
+            <span style="color:#E4574B;font-weight:700">›</span>
+          </div>
+        </div>
+        <div class="bnav" data-active="home" style="background:rgba(20,18,16,.94);border-color:#2A2621"></div>
+        <div class="homebar light"></div>
+      </div></div>
+      <div class="cap"><b>Home / Dashboard — D: dark (true Whoop)</b><span>Whoop's real app is near-black with a single glowing ring, so this is the honest read of that reference. Ring gets an outer glow instead of a bevel; secondary stats become thin horizontal bars rather than more rings. Terracotta survives as an accent, not the background.</span></div>
+    </div>
+
+    <!-- ===== E: clean editorial minimal ===== -->
+    <div class="shot" id="s-home-e">
+      <div class="phone"><div class="screen">
+        <div class="island"></div>
+        <div class="sbar"><span class="time">9:41</span><span class="sicons" data-auto></span></div>
+        <div class="pad">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-top:18px">
+            <div class="mono" style="font-size:10.5px;letter-spacing:.18em;color:var(--muted);text-transform:uppercase">Thursday</div>
+            <div style="width:32px;height:32px;border-radius:50%;background:linear-gradient(135deg,#D9917F,#A35848);display:flex;align-items:center;justify-content:center;color:#FFFEFA;font-weight:700;font-size:12.5px">R</div>
+          </div>
+
+          <!-- one enormous number, a lot of air, no chrome -->
+          <div style="margin-top:44px">
+            <div class="h-serif" style="font-size:104px;line-height:.86;letter-spacing:-.02em">79</div>
+            <div style="display:flex;align-items:baseline;gap:9px;margin-top:14px">
+              <span class="mono" style="font-size:11px;letter-spacing:.16em;text-transform:uppercase;color:var(--muted)">Skin score</span>
+              <span style="font-size:12.5px;font-weight:700;color:var(--good-fg)">↑ 4</span>
+            </div>
+          </div>
+
+          <!-- quiet sparkline instead of a chart card -->
+          <svg width="100%" height="46" viewBox="0 0 320 46" preserveAspectRatio="none" style="margin-top:26px;display:block">
+            <polyline points="0,32 53,26 106,36 160,41 213,22 266,14 320,8" fill="none" stroke="#A35848" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+            <circle cx="320" cy="8" r="4.5" fill="#A35848"/>
+          </svg>
+          <div style="display:flex;justify-content:space-between;margin-top:6px" class="mono">
+            <span style="font-size:9.5px;color:#B5AE9F">JUL 10</span><span style="font-size:9.5px;color:#B5AE9F">TODAY</span>
+          </div>
+
+          <div style="height:1px;background:var(--line);margin:30px 0 4px"></div>
+
+          <!-- three quiet rows, no cards at all -->
+          <div style="display:flex;align-items:center;justify-content:space-between;padding:16px 0;border-bottom:1px solid var(--line)">
+            <div>
+              <div style="font-size:14px;font-weight:600">Tonight's routine</div>
+              <div style="font-size:12px;color:var(--muted);margin-top:2px">Retinol is next</div>
+            </div>
+            <span class="mono" style="font-size:13px;color:var(--muted)">2/5</span>
+          </div>
+          <div style="display:flex;align-items:center;justify-content:space-between;padding:16px 0;border-bottom:1px solid var(--line)">
+            <div>
+              <div style="font-size:14px;font-weight:600;color:var(--bad-fg)">1 trigger found</div>
+              <div style="font-size:12px;color:var(--muted);margin-top:2px">Fragrance-heavy lotion</div>
+            </div>
+            <span style="color:var(--muted)">›</span>
+          </div>
+          <div style="display:flex;align-items:center;justify-content:space-between;padding:16px 0">
+            <div>
+              <div style="font-size:14px;font-weight:600">Recent scans</div>
+              <div style="font-size:12px;color:var(--muted);margin-top:2px">3 this week</div>
+            </div>
+            <span style="color:var(--muted)">›</span>
+          </div>
+        </div>
+        <div class="bnav" data-active="home"></div>
+        <div class="homebar"></div>
+      </div></div>
+      <div class="cap"><b>Home / Dashboard — E: editorial minimal</b><span>The opposite bet: almost no chrome. One enormous serif number, a hairline sparkline, and three borderless rows. Leans on the Instrument Serif brand rather than dashboard furniture — closest to the marketing site's voice.</span></div>
+    </div>
+
+    <!-- ===== F: bento grid ===== -->
+    <div class="shot" id="s-home-f">
+      <div class="phone"><div class="screen">
+        <div class="island"></div>
+        <div class="sbar"><span class="time">9:41</span><span class="sicons" data-auto></span></div>
+        <div class="pad">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-top:14px;margin-bottom:16px">
+            <h1 class="h-serif" style="font-size:26px">Good morning</h1>
+            <div style="width:34px;height:34px;border-radius:50%;background:linear-gradient(135deg,#D9917F,#A35848);display:flex;align-items:center;justify-content:center;color:#FFFEFA;font-weight:700;font-size:13px">R</div>
+          </div>
+
+          <div class="bento">
+            <!-- hero tile spans full width -->
+            <div class="t wide" style="background:linear-gradient(135deg,#A35848 0%,#8E4538 100%);color:#FFFEFA;min-height:120px">
+              <span class="lbl">Skin score</span>
+              <div style="display:flex;align-items:flex-end;justify-content:space-between">
+                <span class="h-serif" style="font-size:56px;line-height:1;color:#FFFEFA">79</span>
+                <span style="font-size:12.5px;font-weight:700;opacity:.9;padding-bottom:8px">↑ 4 this week</span>
+              </div>
+            </div>
+
+            <div class="t" style="background:var(--good-bg)">
+              <span class="lbl" style="color:var(--good-fg)">Streak</span>
+              <div><span class="h-serif" style="font-size:34px;color:var(--good-fg)">12</span><span style="font-size:12px;color:var(--good-fg);margin-left:4px;font-weight:600">days clear</span></div>
+            </div>
+            <div class="t" style="background:var(--cream);border:1px solid var(--line)">
+              <span class="lbl" style="color:var(--muted)">Adherence</span>
+              <div><span class="h-serif" style="font-size:34px">86</span><span style="font-size:13px;color:var(--muted);margin-left:2px">%</span></div>
+            </div>
+
+            <div class="t wide" style="background:var(--bad-bg);border:1px solid rgba(178,43,43,.2);min-height:auto">
+              <div style="display:flex;align-items:center;gap:11px">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#B22B2B" stroke-width="2" stroke-linecap="round" style="flex:none"><path d="M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z"/><path d="M12 9v4M12 17h.01"/></svg>
+                <div style="flex:1">
+                  <div style="font-size:13px;font-weight:700;color:var(--bad-fg)">1 trigger found</div>
+                  <div style="font-size:11.5px;color:var(--muted);margin-top:1px">Fragrance-heavy lotion</div>
+                </div>
+                <span style="color:var(--bad-fg);font-weight:700">›</span>
+              </div>
+            </div>
+
+            <div class="t" style="background:var(--cream);border:1px solid var(--line)">
+              <span class="lbl" style="color:var(--muted)">Tonight</span>
+              <div>
+                <div style="display:flex;gap:3px;margin-bottom:7px">
+                  <i style="flex:1;height:4px;border-radius:2px;background:var(--primary)"></i><i style="flex:1;height:4px;border-radius:2px;background:var(--primary)"></i><i style="flex:1;height:4px;border-radius:2px;background:#EFEAE2"></i><i style="flex:1;height:4px;border-radius:2px;background:#EFEAE2"></i><i style="flex:1;height:4px;border-radius:2px;background:#EFEAE2"></i>
+                </div>
+                <span style="font-size:12px;font-weight:600">Retinol next</span>
+              </div>
+            </div>
+            <div class="t" style="background:var(--cream);border:1px solid var(--line);align-items:flex-start">
+              <span class="lbl" style="color:var(--muted)">Last scan</span>
+              <div style="display:flex;align-items:center;gap:9px">
+                <div class="pthumb" style="width:34px;height:34px;border-radius:9px"><svg class="prod" width="19" height="27" viewBox="0 0 60 84"><use href="#pPump"/></svg></div>
+                <span class="chip good" style="font-size:11px">82</span>
+              </div>
+            </div>
+
+            <div class="t wide" style="background:var(--cream);border:1px solid var(--line);min-height:auto">
+              <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
+                <span class="lbl" style="color:var(--muted)">This week</span>
+                <span class="mono" style="font-size:10px;color:var(--muted)">SKIN SCORE</span>
+              </div>
+              <div class="trend-strip" style="height:38px">
+                <div class="bar" style="height:52%;background:#5C7A4F"></div>
+                <div class="bar" style="height:70%;background:#5C7A4F"></div>
+                <div class="bar" style="height:38%;background:#8B6914"></div>
+                <div class="bar" style="height:22%;background:#B22B2B"></div>
+                <div class="bar" style="height:64%;background:#5C7A4F"></div>
+                <div class="bar" style="height:80%;background:#5C7A4F"></div>
+                <div class="bar" style="height:100%;background:var(--primary);outline:2px solid #1A1814;outline-offset:2px"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="bnav" data-active="home"></div>
+        <div class="homebar"></div>
+      </div></div>
+      <div class="cap"><b>Home / Dashboard — F: bento grid</b><span>Asymmetric tiles, each one metric, color-coded by verdict tone. Terracotta hero tile anchors the top; the trigger alert spans full width so it can't be missed. Scans best on a phone — every tile is a tap target, nothing needs scrolling.</span></div>
+    </div>
+
+    <!-- ===== G: timeline / agenda ===== -->
+    <div class="shot" id="s-home-g">
+      <div class="phone"><div class="screen">
+        <div class="island"></div>
+        <div class="sbar"><span class="time">9:41</span><span class="sicons" data-auto></span></div>
+        <div class="pad">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-top:14px">
+            <div>
+              <h1 class="h-serif" style="font-size:27px">Today</h1>
+              <div class="mono" style="font-size:10.5px;letter-spacing:.14em;color:var(--muted);text-transform:uppercase;margin-top:2px">Thu · Jul 16 · score 79</div>
+            </div>
+            <div style="width:34px;height:34px;border-radius:50%;background:linear-gradient(135deg,#D9917F,#A35848);display:flex;align-items:center;justify-content:center;color:#FFFEFA;font-weight:700;font-size:13px">R</div>
+          </div>
+
+          <!-- vertical timeline with a spine -->
+          <div style="position:relative;margin-top:22px;padding-left:26px">
+            <div style="position:absolute;left:7px;top:6px;bottom:14px;width:2px;background:var(--line)"></div>
+
+            <div style="position:relative;margin-bottom:18px">
+              <span style="position:absolute;left:-26px;top:3px;width:16px;height:16px;border-radius:50%;background:var(--good-fg);display:flex;align-items:center;justify-content:center"><svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="#FFFEFA" stroke-width="3.5" stroke-linecap="round"><path d="M5 12l5 5L20 7"/></svg></span>
+              <div class="mono" style="font-size:10px;letter-spacing:.14em;color:var(--muted);text-transform:uppercase">7:30 AM · done</div>
+              <div class="card" style="margin-top:7px;padding:13px 14px">
+                <div style="font-size:13.5px;font-weight:700">Morning routine</div>
+                <div style="display:flex;gap:5px;margin-top:8px;flex-wrap:wrap">
+                  <span class="chip good" style="font-size:10.5px">✓ Cleanser</span><span class="chip good" style="font-size:10.5px">✓ Vitamin C</span><span class="chip good" style="font-size:10.5px">✓ SPF</span>
+                </div>
+              </div>
+            </div>
+
+            <div style="position:relative;margin-bottom:18px">
+              <span style="position:absolute;left:-26px;top:3px;width:16px;height:16px;border-radius:50%;background:var(--bad-fg);display:flex;align-items:center;justify-content:center;color:#FFFEFA;font-size:10px;font-weight:800">!</span>
+              <div class="mono" style="font-size:10px;letter-spacing:.14em;color:var(--muted);text-transform:uppercase">11:04 AM · flagged</div>
+              <div class="card" style="margin-top:7px;padding:13px 14px;background:linear-gradient(135deg,#FDEAEA 0%,#FFFEFA 65%);border-color:rgba(178,43,43,.2)">
+                <div style="font-size:13.5px;font-weight:700;color:var(--bad-fg)">New trigger found</div>
+                <div style="font-size:12px;color:var(--muted);margin-top:3px">Fragrance-heavy lotion precedes 3 of your last 4 breakouts.</div>
+                <div style="font-size:12px;color:var(--bad-fg);font-weight:700;margin-top:8px">Review →</div>
+              </div>
+            </div>
+
+            <div style="position:relative;margin-bottom:18px">
+              <span style="position:absolute;left:-26px;top:3px;width:16px;height:16px;border-radius:50%;background:var(--cream);border:2px solid var(--primary)"></span>
+              <div class="mono" style="font-size:10px;letter-spacing:.14em;color:var(--muted);text-transform:uppercase">9:00 PM · up next</div>
+              <div class="card" style="margin-top:7px;padding:13px 14px;border-color:rgba(163,88,72,.35)">
+                <div style="display:flex;align-items:center;justify-content:space-between">
+                  <div style="font-size:13.5px;font-weight:700">Evening routine</div>
+                  <span class="mono" style="font-size:11px;color:var(--muted)">2/5</span>
+                </div>
+                <div style="display:flex;align-items:center;gap:9px;margin-top:9px">
+                  <div style="flex:1;height:5px;border-radius:3px;background:#EFEAE2;overflow:hidden"><i style="display:block;width:40%;height:100%;background:var(--primary);border-radius:3px"></i></div>
+                </div>
+                <div style="font-size:12px;color:var(--muted);margin-top:8px">Retinol 0.5% is next — wait 2 min after toner.</div>
+              </div>
+            </div>
+
+            <div style="position:relative">
+              <span style="position:absolute;left:-26px;top:3px;width:16px;height:16px;border-radius:50%;background:#EFEAE2"></span>
+              <div class="mono" style="font-size:10px;letter-spacing:.14em;color:var(--muted);text-transform:uppercase">Before bed</div>
+              <div class="card" style="margin-top:7px;padding:13px 14px;display:flex;align-items:center;gap:11px">
+                <div style="flex:1;font-size:13.5px;font-weight:700">Log how your skin felt</div>
+                <span class="chip neutral" style="font-size:11px">2 taps</span>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="bnav" data-active="home"></div>
+        <div class="homebar"></div>
+      </div></div>
+      <div class="cap"><b>Home / Dashboard — G: timeline / agenda</b><span>Answers "what do I do now" instead of "how am I doing". A day spine runs top to bottom: what's done, what got flagged, what's next, what to log tonight. The score demotes to a line under the date — the app becomes a coach rather than a report.</span></div>
     </div>
   </div>
 </section>

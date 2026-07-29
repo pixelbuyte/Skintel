@@ -20,7 +20,11 @@ master built from the same geometry (iOS applies the squircle mask).
 | 05 | Sign in (Apple / Google / magic link) | `previews/login.png` |
 | 06 | Home / Dashboard — A: stat grid | `previews/home.png` |
 | 06b | Home / Dashboard — B: skin-score ring | `previews/home-b.png` |
-| 06c | Home / Dashboard — C: Whoop / Apple Health style | `previews/home-c.png` |
+| 06c | Home / Dashboard — C: Whoop / Apple Health style (light) | `previews/home-c.png` |
+| 06d | Home / Dashboard — D: dark, true Whoop | `previews/home-d.png` |
+| 06e | Home / Dashboard — E: editorial minimal | `previews/home-e.png` |
+| 06f | Home / Dashboard — F: bento grid | `previews/home-f.png` |
+| 06g | Home / Dashboard — G: timeline / agenda | `previews/home-g.png` |
 | 07 | Scanner — viewfinder | `previews/scan.png` |
 | 08 | Scanner — match & auto-analyze sheet | `previews/found.png` |
 | 09 | Analysis — verdict | `previews/verdict.png` |
