@@ -33,6 +33,10 @@ master built from the same geometry (iOS applies the squircle mask).
 | 06m | Home / Dashboard — M: Apple Health Summary feed | `previews/home-m.png` |
 | 06n | Home / Dashboard — N: Wallet card stack | `previews/home-n.png` |
 | 06o | Home / Dashboard — O: chart-forward analytics | `previews/home-o.png` |
+| 06p | Home / Dashboard — P: photo progress (before/after) | `previews/home-p.png` |
+| 06q | Home / Dashboard — Q: calendar heatmap | `previews/home-q.png` |
+| 06r | Home / Dashboard — R: aurora hero | `previews/home-r.png` |
+| 06s | Home / Dashboard — S: weekly recap (shareable) | `previews/home-s.png` |
 | 07 | Scanner — viewfinder | `previews/scan.png` |
 | 08 | Scanner — match & auto-analyze sheet | `previews/found.png` |
 | 09 | Analysis — verdict | `previews/verdict.png` |
