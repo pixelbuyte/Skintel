@@ -225,6 +225,47 @@ body.freeze .anim-ring{animation-delay:-1.1s;animation-play-state:paused}
     <linearGradient id="pbAmber" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#F2E3C8"/><stop offset="1" stop-color="#CBA96C"/></linearGradient>
     <linearGradient id="pbGlass" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#DCD9CF"/><stop offset="1" stop-color="#A9A79C"/></linearGradient>
 
+    <!-- Shading passes for the product illustrations. Light sits top-left, so every
+         bottle gets: a horizontal wrap (bright left edge → dark right edge) that turns
+         a flat silhouette into a cylinder, a soft specular running down the lit side,
+         and a base shade for the thickness of the glass where it meets the surface. -->
+    <linearGradient id="pWrap" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#FFFFFF" stop-opacity=".50"/>
+      <stop offset=".2" stop-color="#FFFFFF" stop-opacity="0"/>
+      <stop offset=".6" stop-color="#000000" stop-opacity="0"/>
+      <stop offset="1" stop-color="#000000" stop-opacity=".24"/>
+    </linearGradient>
+    <linearGradient id="pGloss" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#FFFFFF" stop-opacity="0"/>
+      <stop offset=".16" stop-color="#FFFFFF" stop-opacity=".66"/>
+      <stop offset=".74" stop-color="#FFFFFF" stop-opacity=".34"/>
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0"/>
+    </linearGradient>
+    <linearGradient id="pBase" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#000000" stop-opacity="0"/>
+      <stop offset="1" stop-color="#000000" stop-opacity=".22"/>
+    </linearGradient>
+    <linearGradient id="pCapShine" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#FFFFFF" stop-opacity=".38"/>
+      <stop offset=".3" stop-color="#FFFFFF" stop-opacity=".08"/>
+      <stop offset="1" stop-color="#000000" stop-opacity=".26"/>
+    </linearGradient>
+    <linearGradient id="pLabelWrap" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#000000" stop-opacity=".11"/>
+      <stop offset=".13" stop-color="#000000" stop-opacity="0"/>
+      <stop offset=".68" stop-color="#000000" stop-opacity="0"/>
+      <stop offset="1" stop-color="#000000" stop-opacity=".15"/>
+    </linearGradient>
+    <linearGradient id="pLiquid" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#3A2E22" stop-opacity=".10"/>
+      <stop offset="1" stop-color="#3A2E22" stop-opacity=".20"/>
+    </linearGradient>
+
+    <clipPath id="cPump"><path d="M10 74c0 4.4 2.6 7 7 7h26c4.4 0 7-2.6 7-7V33c0-3.4-1.5-5.3-4.5-6.7l-7.6-3.6c-1.3-.6-1.9-1.6-1.9-3V17H24v2.7c0 1.4-.6 2.4-1.9 3l-7.6 3.6c-3 1.4-4.5 3.3-4.5 6.7z"/></clipPath>
+    <clipPath id="cDrop"><path d="M15 77c0 2.2 1.8 4 4 4h22c2.2 0 4-1.8 4-4V29.4c0-2.1-.9-3.5-2.7-4.5l-4.5-2.5c-1-.5-1.5-1.3-1.5-2.4V18H23.7v2c0 1.1-.5 1.9-1.5 2.4l-4.5 2.5c-1.8 1-2.7 2.4-2.7 4.5z"/></clipPath>
+    <clipPath id="cTube"><path d="M16.4 30c0-5.6 3.6-10 9.4-12.8h8.4c5.8 2.8 9.4 7.2 9.4 12.8v42.6H16.4z"/></clipPath>
+    <clipPath id="cJar"><path d="M11 31h38v42c0 4.4-3.5 8-8 8H19c-4.4 0-8-3.6-8-8z"/></clipPath>
+
     <!-- Beveled ring strokes: dark-to-light-to-dark along the stroke, simulating
          a glossy 3D tube lit from the top-left, à la Apple Watch activity rings. -->
     <linearGradient id="ringBevelPrimary" x1="0" y1="0" x2="1" y2="1">
@@ -247,40 +288,108 @@ body.freeze .anim-ring{animation-delay:-1.1s;animation-play-state:paused}
       <circle cx="50" cy="40" r="23"/>
       <path d="M6 124 C6 97 25 76 50 76 C75 76 94 97 94 124 Z"/>
     </symbol>
-    <!-- Pump bottle (lotions, cleansers) -->
+    <!-- Pump bottle (lotions, cleansers). Actuator + side spout, knurled collar,
+         sloped shoulder into a neck, then a cylinder shaded to read as glass. -->
     <symbol id="pPump" viewBox="0 0 60 84">
-      <rect x="27" y="3" width="15" height="4.6" rx="2.3" fill="var(--pc)"/>
-      <rect x="26.4" y="6" width="4" height="8" fill="var(--pc)"/>
-      <rect x="22.5" y="12.5" width="15" height="6" rx="1.6" fill="var(--pc)"/>
-      <rect x="9" y="17.5" width="42" height="64" rx="7" fill="var(--pb)"/>
-      <rect x="14" y="35" width="32" height="30" rx="2.4" fill="var(--pl)" opacity=".92"/>
-      <rect x="12.5" y="21" width="5" height="56" rx="2.5" fill="#FFFEFA" opacity=".28"/>
+      <!-- actuator head with the spout kicking out to the right -->
+      <path d="M25.4 13.4V9c0-2.2 1.8-4 4-4h3.2c2.2 0 4 1.8 4 4v1.5h5.2c1.5 0 2.7 1.2 2.7 2.7v3.2h-4v-2.7h-3.9v-.3z" fill="var(--pc)"/>
+      <path d="M25.4 13.4V9c0-2.2 1.8-4 4-4h3.2c2.2 0 4 1.8 4 4v1.5h5.2c1.5 0 2.7 1.2 2.7 2.7v3.2h-4v-2.7h-3.9v-.3z" fill="url(#pCapShine)"/>
+      <!-- collar / screw ferrule -->
+      <rect x="22.6" y="12.6" width="14.8" height="5.4" rx="1.7" fill="var(--pc)"/>
+      <path d="M26 13.6v3.4M30 13.6v3.4M34 13.6v3.4" stroke="#FFFFFF" stroke-opacity=".16" stroke-width="1.1"/>
+      <rect x="22.6" y="12.6" width="14.8" height="5.4" rx="1.7" fill="url(#pCapShine)"/>
+      <!-- body -->
+      <path d="M10 74c0 4.4 2.6 7 7 7h26c4.4 0 7-2.6 7-7V33c0-3.4-1.5-5.3-4.5-6.7l-7.6-3.6c-1.3-.6-1.9-1.6-1.9-3V17H24v2.7c0 1.4-.6 2.4-1.9 3l-7.6 3.6c-3 1.4-4.5 3.3-4.5 6.7z" fill="var(--pb)"/>
+      <g clip-path="url(#cPump)">
+        <rect x="8" y="15" width="44" height="68" fill="url(#pWrap)"/>
+        <rect x="8" y="64" width="44" height="19" fill="url(#pBase)"/>
+        <rect x="14" y="40" width="32" height="27" rx="2.6" fill="var(--pl)" stroke="#000000" stroke-opacity=".07" stroke-width=".6"/>
+        <g fill="#1A1814">
+          <rect x="18" y="45.4" width="11" height="1.8" rx=".9" opacity=".3"/>
+          <rect x="18" y="50.2" width="24" height="2.6" rx="1.3" opacity=".52"/>
+          <rect x="18" y="54.8" width="17" height="2.6" rx="1.3" opacity=".52"/>
+          <rect x="18" y="61" width="24" height="1" rx=".5" opacity=".16"/>
+        </g>
+        <rect x="14" y="40" width="32" height="27" rx="2.6" fill="url(#pLabelWrap)"/>
+        <rect x="13.4" y="29" width="5.2" height="45" rx="2.6" fill="url(#pGloss)"/>
+      </g>
     </symbol>
 
-    <!-- Dropper bottle (serums) -->
+    <!-- Dropper bottle (serums). Rubber teat, ribbed collar, glass barrel with a
+         visible fill line — the detail that reads "serum" at thumbnail size. -->
     <symbol id="pDrop" viewBox="0 0 60 84">
-      <rect x="24" y="2" width="12" height="11" rx="2.4" fill="var(--pc)"/>
-      <rect x="26.5" y="12" width="7" height="4" fill="var(--pc)"/>
-      <rect x="13" y="15.5" width="34" height="66" rx="4.5" fill="var(--pb)"/>
-      <rect x="17.5" y="33" width="25" height="34" rx="2.2" fill="var(--pl)" opacity=".92"/>
-      <rect x="16" y="20" width="4.2" height="56" rx="2.1" fill="#FFFEFA" opacity=".25"/>
+      <!-- rubber teat -->
+      <path d="M25.6 13.6V9.2c0-2.4 2-4.4 4.4-4.4s4.4 2 4.4 4.4v4.4z" fill="var(--pc)"/>
+      <path d="M25.6 13.6V9.2c0-2.4 2-4.4 4.4-4.4s4.4 2 4.4 4.4v4.4z" fill="url(#pCapShine)"/>
+      <!-- ribbed collar -->
+      <rect x="22.4" y="13.2" width="15.2" height="5.2" rx="1.6" fill="var(--pc)"/>
+      <path d="M25.6 14.2v3.2M30 14.2v3.2M34.4 14.2v3.2" stroke="#FFFFFF" stroke-opacity=".16" stroke-width="1.1"/>
+      <rect x="22.4" y="13.2" width="15.2" height="5.2" rx="1.6" fill="url(#pCapShine)"/>
+      <!-- glass barrel -->
+      <path d="M15 77c0 2.2 1.8 4 4 4h22c2.2 0 4-1.8 4-4V29.4c0-2.1-.9-3.5-2.7-4.5l-4.5-2.5c-1-.5-1.5-1.3-1.5-2.4V18H23.7v2c0 1.1-.5 1.9-1.5 2.4l-4.5 2.5c-1.8 1-2.7 2.4-2.7 4.5z" fill="var(--pb)"/>
+      <g clip-path="url(#cDrop)">
+        <rect x="13" y="16" width="34" height="67" fill="url(#pWrap)"/>
+        <rect x="13" y="34" width="34" height="49" fill="url(#pLiquid)"/>
+        <rect x="13" y="68" width="34" height="15" fill="url(#pBase)"/>
+        <rect x="19" y="39" width="22" height="29" rx="2.4" fill="var(--pl)" stroke="#000000" stroke-opacity=".07" stroke-width=".6"/>
+        <g fill="#1A1814">
+          <rect x="22.4" y="43.8" width="8" height="1.6" rx=".8" opacity=".3"/>
+          <rect x="22.4" y="48.2" width="15" height="2.4" rx="1.2" opacity=".52"/>
+          <rect x="22.4" y="52.4" width="10.5" height="2.4" rx="1.2" opacity=".52"/>
+          <rect x="22.4" y="58" width="15" height="1" rx=".5" opacity=".16"/>
+        </g>
+        <rect x="19" y="39" width="22" height="29" rx="2.4" fill="url(#pLabelWrap)"/>
+        <rect x="17.6" y="28" width="4.4" height="46" rx="2.2" fill="url(#pGloss)"/>
+      </g>
     </symbol>
 
-    <!-- Squeeze tube (cleansers, SPF) -->
+    <!-- Squeeze tube (cleansers, SPF). Ridged screw cap, coned shoulder, flat body,
+         crimped and seamed at the bottom the way a real tube is sealed. -->
     <symbol id="pTube" viewBox="0 0 60 84">
-      <rect x="24" y="2" width="12" height="8.5" rx="2.4" fill="var(--pc)"/>
-      <path d="M16 10.5 h28 v58 a5 5 0 0 1 -5 5 h-18 a5 5 0 0 1 -5 -5 z" fill="var(--pb)"/>
-      <rect x="15" y="72" width="30" height="8" rx="2" fill="var(--pb)"/>
-      <path d="M17 74 h26 M17 77.5 h26" stroke="#FFFEFA" stroke-opacity=".45" stroke-width="1.2"/>
-      <rect x="20" y="26" width="20" height="34" rx="2.2" fill="var(--pl)" opacity=".92"/>
+      <rect x="24.6" y="5" width="10.8" height="9.6" rx="2.2" fill="var(--pc)"/>
+      <path d="M27.4 7v5.6M30 7v5.6M32.6 7v5.6" stroke="#FFFFFF" stroke-opacity=".16" stroke-width="1"/>
+      <rect x="24.6" y="5" width="10.8" height="9.6" rx="2.2" fill="url(#pCapShine)"/>
+      <rect x="26.6" y="14.2" width="6.8" height="3.4" fill="var(--pc)" opacity=".85"/>
+      <!-- coned shoulder + flat body -->
+      <path d="M16.4 30c0-5.6 3.6-10 9.4-12.8h8.4c5.8 2.8 9.4 7.2 9.4 12.8v42.6H16.4z" fill="var(--pb)"/>
+      <g clip-path="url(#cTube)">
+        <rect x="14" y="16" width="32" height="58" fill="url(#pWrap)"/>
+        <rect x="20" y="36" width="20" height="29" rx="2.4" fill="var(--pl)" stroke="#000000" stroke-opacity=".07" stroke-width=".6"/>
+        <g fill="#1A1814">
+          <rect x="23.2" y="40.8" width="7.5" height="1.6" rx=".8" opacity=".3"/>
+          <rect x="23.2" y="45.2" width="13.5" height="2.4" rx="1.2" opacity=".52"/>
+          <rect x="23.2" y="49.4" width="9" height="2.4" rx="1.2" opacity=".52"/>
+          <rect x="23.2" y="55" width="13.5" height="1" rx=".5" opacity=".16"/>
+        </g>
+        <rect x="20" y="36" width="20" height="29" rx="2.4" fill="url(#pLabelWrap)"/>
+        <rect x="19.6" y="27" width="4.4" height="44" rx="2.2" fill="url(#pGloss)"/>
+      </g>
+      <!-- crimped seal -->
+      <rect x="14.8" y="71.6" width="30.4" height="9.4" rx="1.8" fill="var(--pb)"/>
+      <rect x="14.8" y="71.6" width="30.4" height="9.4" rx="1.8" fill="url(#pWrap)"/>
+      <path d="M17.6 74.6h24.8M17.6 78h24.8" stroke="#000000" stroke-opacity=".16" stroke-width="1.1"/>
     </symbol>
 
-    <!-- Jar (moisturizers, masks) -->
+    <!-- Jar (moisturizers, masks). Knurled lid with a bevel, then a squat glass base. -->
     <symbol id="pJar" viewBox="0 0 60 84">
-      <rect x="8" y="17" width="44" height="11" rx="3.5" fill="var(--pc)"/>
-      <rect x="10" y="26" width="40" height="49" rx="5" fill="var(--pb)"/>
-      <rect x="15" y="39" width="30" height="25" rx="2.2" fill="var(--pl)" opacity=".92"/>
-      <rect x="13" y="31" width="4.5" height="39" rx="2.2" fill="#FFFEFA" opacity=".3"/>
+      <rect x="8" y="18" width="44" height="13.6" rx="4.4" fill="var(--pc)"/>
+      <path d="M14 21.4v6.8M19 21.4v6.8M24 21.4v6.8M29 21.4v6.8M34 21.4v6.8M39 21.4v6.8M44 21.4v6.8" stroke="#FFFFFF" stroke-opacity=".14" stroke-width="1.2"/>
+      <rect x="8" y="18" width="44" height="13.6" rx="4.4" fill="url(#pCapShine)"/>
+      <!-- glass base -->
+      <path d="M11 31h38v42c0 4.4-3.5 8-8 8H19c-4.4 0-8-3.6-8-8z" fill="var(--pb)"/>
+      <g clip-path="url(#cJar)">
+        <rect x="9" y="29" width="42" height="54" fill="url(#pWrap)"/>
+        <rect x="9" y="66" width="42" height="17" fill="url(#pBase)"/>
+        <rect x="16" y="42" width="28" height="24" rx="2.4" fill="var(--pl)" stroke="#000000" stroke-opacity=".07" stroke-width=".6"/>
+        <g fill="#1A1814">
+          <rect x="19.6" y="46.2" width="9.5" height="1.6" rx=".8" opacity=".3"/>
+          <rect x="19.6" y="50.4" width="20.5" height="2.4" rx="1.2" opacity=".52"/>
+          <rect x="19.6" y="54.6" width="14" height="2.4" rx="1.2" opacity=".52"/>
+          <rect x="19.6" y="60" width="20.5" height="1" rx=".5" opacity=".16"/>
+        </g>
+        <rect x="16" y="42" width="28" height="24" rx="2.4" fill="url(#pLabelWrap)"/>
+        <rect x="14.4" y="35" width="4.6" height="40" rx="2.3" fill="url(#pGloss)"/>
+      </g>
     </symbol>
 
     <!-- Barcode, drawn to real EAN-ish rhythm instead of hand-placed bars -->
