@@ -1,7 +1,7 @@
 # Skintel — iOS App Design Spec
 
 Complete visual design for the Skintel iOS app (Capacitor build). Open
-**`skintel-ios-designs.html`** in a browser to view the full spec: 17 surfaces
+**`skintel-ios-designs.html`** in a browser to view the full spec: 18 surfaces
 in iPhone 15 Pro frames with design notes under each one.
 
 Rendered previews live in [`previews/`](previews/). The brand mark is the
@@ -18,37 +18,31 @@ master built from the same geometry (iOS applies the squircle mask).
 | 03 | Onboarding 2 — skin profile | `previews/ob2.png` |
 | 04 | Onboarding 3 — camera permission | `previews/ob3.png` |
 | 05 | Sign in (Apple / Google / magic link) | `previews/login.png` |
-| 06 | Home / Dashboard — A: stat grid | `previews/home.png` |
-| 06b | Home / Dashboard — B: skin-score ring | `previews/home-b.png` |
-| 06c | Home / Dashboard — C: Whoop / Apple Health style (light) | `previews/home-c.png` |
-| 06d | Home / Dashboard — D: dark, true Whoop | `previews/home-d.png` |
-| 06e | Home / Dashboard — E: editorial minimal | `previews/home-e.png` |
-| 06f | Home / Dashboard — F: bento grid | `previews/home-f.png` |
-| 06g | Home / Dashboard — G: timeline / agenda | `previews/home-g.png` |
-| 06h | Home / Dashboard — H: bento, sharpened ★ | `previews/home-h.png` |
-| 06i | Home / Dashboard — I: dark bento, Bevel-style | `previews/home-i.png` |
-| 06j | Home / Dashboard — J: editorial + bento hybrid | `previews/home-j.png` |
-| 06k | Home / Dashboard — K: AI-first (ask bar) | `previews/home-k.png` |
-| 06l | Home / Dashboard — L: shelf-first (product library) | `previews/home-l.png` |
-| 06m | Home / Dashboard — M: Apple Health Summary feed | `previews/home-m.png` |
-| 06n | Home / Dashboard — N: Wallet card stack | `previews/home-n.png` |
-| 06o | Home / Dashboard — O: chart-forward analytics | `previews/home-o.png` |
-| 06p | Home / Dashboard — P: photo progress (before/after) | `previews/home-p.png` |
-| 06q | Home / Dashboard — Q: calendar heatmap | `previews/home-q.png` |
-| 06r | Home / Dashboard — R: aurora hero | `previews/home-r.png` |
-| 06s | Home / Dashboard — S: weekly recap (shareable) | `previews/home-s.png` |
+| 06 | Home / Dashboard — bento grid | `previews/home.png` |
 | 07 | Scanner — viewfinder | `previews/scan.png` |
 | 08 | Scanner — match & auto-analyze sheet | `previews/found.png` |
 | 09 | Analysis — verdict | `previews/verdict.png` |
 | 10 | Product detail — INCI list | `previews/product.png` |
 | 11 | Compare | `previews/compare.png` |
 | 12 | Routine (PM) with conflict alert | `previews/routine.png` |
-| 13 | Journal | `previews/journal.png` |
+| 13 | Journal — month heatmap | `previews/journal.png` |
 | 14 | Triggers — what actually breaks you out | `previews/triggers.png` |
 | 15 | Paywall — launch pricing ($8.99/mo · $79/yr) | `previews/paywall.png` |
 | 16 | Settings — A: current (profile, membership, preferences, data) | `previews/settings.png` |
 | 16b | Settings — B: full app settings (adds notifications, appearance, support, delete account) | `previews/settings-b.png` + `previews/settings-b-bottom.png` |
-| 17 | WidgetKit — small & medium | `previews/widgets.png` |
+| 17 | WidgetKit — small & medium | `previews/widgets.png` | `previews/widgets.png` |
+
+## Chosen directions
+
+The dashboard and journal were explored as ~19 competing variants; the two that
+won are now the only ones in the spec:
+
+- **Home** — the sharpened bento grid (hero with depth + sparkline, paired metric
+  tiles, accent-barred trigger alert, 7-day strip).
+- **Journal** — the month heatmap, which reads patterns at a glance and names the
+  bad stretch alongside the product that caused it.
+
+The rejected variants are in this branch's history if any need revisiting.
 
 ## Naming
 
