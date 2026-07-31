@@ -173,11 +173,11 @@ section{margin-top:110px}
 .appicon.tint{background:linear-gradient(135deg,#3A3630 0%,#232019 100%)}
 
 /* ---- Product illustrations (replace the old blank gradient blocks) ---- */
-.prod{display:block;--pb:url(#pbBlue);--pl:#FFFEFA;--pc:#3A342C}
-.prod.cream{--pb:url(#pbCream)}
-.prod.rose {--pb:url(#pbRose)}
-.prod.amber{--pb:url(#pbAmber);--pc:#2F2A24}
-.prod.glass{--pb:url(#pbGlass)}
+.prod{display:block;--pb:url(#pbBlue);--pl:#FFFEFA;--pc:#3A342C;--pa:#6E93B4}
+.prod.cream{--pb:url(#pbCream);--pa:#A35848}
+.prod.rose {--pb:url(#pbRose);--pa:#B96B54}
+.prod.amber{--pb:url(#pbAmber);--pc:#2F2A24;--pa:#8B6914}
+.prod.glass{--pb:url(#pbGlass);--pa:#8A9490}
 /* thumbnail tile the illustration sits in */
 .pthumb{border-radius:10px;background:linear-gradient(180deg,#FBF6EC,#F1E9DA);display:flex;align-items:center;justify-content:center;flex:none}
 
@@ -265,6 +265,13 @@ body.freeze .anim-ring{animation-delay:-1.1s;animation-play-state:paused}
     <clipPath id="cDrop"><path d="M15 77c0 2.2 1.8 4 4 4h22c2.2 0 4-1.8 4-4V29.4c0-2.1-.9-3.5-2.7-4.5l-4.5-2.5c-1-.5-1.5-1.3-1.5-2.4V18H23.7v2c0 1.1-.5 1.9-1.5 2.4l-4.5 2.5c-1.8 1-2.7 2.4-2.7 4.5z"/></clipPath>
     <clipPath id="cTube"><path d="M16.4 30c0-5.6 3.6-10 9.4-12.8h8.4c5.8 2.8 9.4 7.2 9.4 12.8v42.6H16.4z"/></clipPath>
     <clipPath id="cJar"><path d="M11 31h38v42c0 4.4-3.5 8-8 8H19c-4.4 0-8-3.6-8-8z"/></clipPath>
+    <!-- Label badge clips: a rounded card cut to just the label footprint, so the
+         two-tone accent block + seam circle (an abstract mark, not fake text)
+         stays contained per bottle. -->
+    <clipPath id="cPumpLabel"><rect x="14" y="40" width="32" height="27" rx="2.6"/></clipPath>
+    <clipPath id="cDropLabel"><rect x="19" y="39" width="22" height="29" rx="2.4"/></clipPath>
+    <clipPath id="cTubeLabel"><rect x="20" y="36" width="20" height="29" rx="2.4"/></clipPath>
+    <clipPath id="cJarLabel"><rect x="16" y="42" width="28" height="24" rx="2.4"/></clipPath>
 
     <!-- Beveled ring strokes: dark-to-light-to-dark along the stroke, simulating
          a glossy 3D tube lit from the top-left, à la Apple Watch activity rings. -->
@@ -304,11 +311,9 @@ body.freeze .anim-ring{animation-delay:-1.1s;animation-play-state:paused}
         <rect x="8" y="15" width="44" height="68" fill="url(#pWrap)"/>
         <rect x="8" y="64" width="44" height="19" fill="url(#pBase)"/>
         <rect x="14" y="40" width="32" height="27" rx="2.6" fill="var(--pl)" stroke="#000000" stroke-opacity=".07" stroke-width=".6"/>
-        <g fill="#1A1814">
-          <rect x="18" y="45.4" width="11" height="1.8" rx=".9" opacity=".3"/>
-          <rect x="18" y="50.2" width="24" height="2.6" rx="1.3" opacity=".52"/>
-          <rect x="18" y="54.8" width="17" height="2.6" rx="1.3" opacity=".52"/>
-          <rect x="18" y="61" width="24" height="1" rx=".5" opacity=".16"/>
+        <g clip-path="url(#cPumpLabel)">
+          <rect x="14" y="55.5" width="32" height="11.5" fill="var(--pa)"/>
+          <circle cx="30" cy="55.5" r="7" fill="var(--pl)"/>
         </g>
         <rect x="14" y="40" width="32" height="27" rx="2.6" fill="url(#pLabelWrap)"/>
         <rect x="13.4" y="29" width="5.2" height="45" rx="2.6" fill="url(#pGloss)"/>
@@ -332,11 +337,9 @@ body.freeze .anim-ring{animation-delay:-1.1s;animation-play-state:paused}
         <rect x="13" y="34" width="34" height="49" fill="url(#pLiquid)"/>
         <rect x="13" y="68" width="34" height="15" fill="url(#pBase)"/>
         <rect x="19" y="39" width="22" height="29" rx="2.4" fill="var(--pl)" stroke="#000000" stroke-opacity=".07" stroke-width=".6"/>
-        <g fill="#1A1814">
-          <rect x="22.4" y="43.8" width="8" height="1.6" rx=".8" opacity=".3"/>
-          <rect x="22.4" y="48.2" width="15" height="2.4" rx="1.2" opacity=".52"/>
-          <rect x="22.4" y="52.4" width="10.5" height="2.4" rx="1.2" opacity=".52"/>
-          <rect x="22.4" y="58" width="15" height="1" rx=".5" opacity=".16"/>
+        <g clip-path="url(#cDropLabel)">
+          <rect x="19" y="55.8" width="22" height="12.2" fill="var(--pa)"/>
+          <circle cx="30" cy="55.8" r="4.8" fill="var(--pl)"/>
         </g>
         <rect x="19" y="39" width="22" height="29" rx="2.4" fill="url(#pLabelWrap)"/>
         <rect x="17.6" y="28" width="4.4" height="46" rx="2.2" fill="url(#pGloss)"/>
@@ -355,11 +358,9 @@ body.freeze .anim-ring{animation-delay:-1.1s;animation-play-state:paused}
       <g clip-path="url(#cTube)">
         <rect x="14" y="16" width="32" height="58" fill="url(#pWrap)"/>
         <rect x="20" y="36" width="20" height="29" rx="2.4" fill="var(--pl)" stroke="#000000" stroke-opacity=".07" stroke-width=".6"/>
-        <g fill="#1A1814">
-          <rect x="23.2" y="40.8" width="7.5" height="1.6" rx=".8" opacity=".3"/>
-          <rect x="23.2" y="45.2" width="13.5" height="2.4" rx="1.2" opacity=".52"/>
-          <rect x="23.2" y="49.4" width="9" height="2.4" rx="1.2" opacity=".52"/>
-          <rect x="23.2" y="55" width="13.5" height="1" rx=".5" opacity=".16"/>
+        <g clip-path="url(#cTubeLabel)">
+          <rect x="20" y="52.8" width="20" height="12.2" fill="var(--pa)"/>
+          <circle cx="30" cy="52.8" r="4.4" fill="var(--pl)"/>
         </g>
         <rect x="20" y="36" width="20" height="29" rx="2.4" fill="url(#pLabelWrap)"/>
         <rect x="19.6" y="27" width="4.4" height="44" rx="2.2" fill="url(#pGloss)"/>
@@ -381,11 +382,9 @@ body.freeze .anim-ring{animation-delay:-1.1s;animation-play-state:paused}
         <rect x="9" y="29" width="42" height="54" fill="url(#pWrap)"/>
         <rect x="9" y="66" width="42" height="17" fill="url(#pBase)"/>
         <rect x="16" y="42" width="28" height="24" rx="2.4" fill="var(--pl)" stroke="#000000" stroke-opacity=".07" stroke-width=".6"/>
-        <g fill="#1A1814">
-          <rect x="19.6" y="46.2" width="9.5" height="1.6" rx=".8" opacity=".3"/>
-          <rect x="19.6" y="50.4" width="20.5" height="2.4" rx="1.2" opacity=".52"/>
-          <rect x="19.6" y="54.6" width="14" height="2.4" rx="1.2" opacity=".52"/>
-          <rect x="19.6" y="60" width="20.5" height="1" rx=".5" opacity=".16"/>
+        <g clip-path="url(#cJarLabel)">
+          <rect x="16" y="55.9" width="28" height="10.1" fill="var(--pa)"/>
+          <circle cx="30" cy="55.9" r="6.2" fill="var(--pl)"/>
         </g>
         <rect x="16" y="42" width="28" height="24" rx="2.4" fill="url(#pLabelWrap)"/>
         <rect x="14.4" y="35" width="4.6" height="40" rx="2.3" fill="url(#pGloss)"/>
@@ -753,16 +752,17 @@ body.freeze .anim-ring{animation-delay:-1.1s;animation-play-state:paused}
   <div class="row">
 
     <div class="shot" id="s-scan">
-      <div class="phone"><div class="screen" style="background:radial-gradient(130% 80% at 25% 10%,#3A322B 0%,rgba(58,50,43,0) 55%),radial-gradient(120% 90% at 85% 90%,#4A3B2E 0%,rgba(74,59,46,0) 50%),linear-gradient(170deg,#23201B 0%,#12100D 80%)">
+      <div class="phone"><div class="screen" style="background:radial-gradient(46% 40% at 50% 44%,rgba(163,88,72,.38) 0%,rgba(163,88,72,0) 72%),radial-gradient(130% 80% at 25% 10%,#4A2E28 0%,rgba(74,46,40,0) 55%),radial-gradient(120% 90% at 85% 90%,#5A3529 0%,rgba(90,53,41,0) 50%),linear-gradient(170deg,#241713 0%,#150D0A 80%)">
         <div class="island"></div>
         <div class="sbar light"><span class="time">9:41</span><span class="sicons" data-auto></span></div>
         <div style="position:absolute;top:66px;left:22px;right:22px;display:flex;justify-content:space-between;z-index:20">
           <div style="width:40px;height:40px;border-radius:50%;background:rgba(255,254,250,.12);backdrop-filter:blur(8px);display:flex;align-items:center;justify-content:center"><svg width="16" height="16" viewBox="0 0 24 24" stroke="#FFFEFA" stroke-width="2.4" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg></div>
           <div style="width:40px;height:40px;border-radius:50%;background:rgba(255,254,250,.12);backdrop-filter:blur(8px);display:flex;align-items:center;justify-content:center"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#FFFEFA" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M13 2 4.9 12.5H11L9.5 22 19 10.5h-6.5z"/></svg></div>
         </div>
-        <!-- the product actually in frame: lit from top-left, tilted, with contact shadow -->
+        <!-- the product actually in frame: lit from top-left, tilted, with contact shadow.
+             Blue matches the same CeraVe cleanser as it appears on the Found sheet right after. -->
         <div style="position:absolute;left:50%;top:46%;transform:translate(-50%,calc(-50% - 22px)) rotate(-4deg);filter:drop-shadow(0 26px 34px rgba(0,0,0,.5))">
-          <svg class="prod glass" width="132" height="232" viewBox="0 0 60 84"><use href="#pPump"/></svg>
+          <svg class="prod" width="132" height="232" viewBox="0 0 60 84"><use href="#pPump"/></svg>
         </div>
         <!-- barcode on the back label -->
         <div style="position:absolute;left:50%;top:46%;transform:translate(-50%,-50%) rotate(-4deg);width:104px;height:46px;border-radius:4px;background:#FBF9F4;padding:6px 8px;box-shadow:0 2px 10px rgba(0,0,0,.3)">

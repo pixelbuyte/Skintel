@@ -31,7 +31,7 @@ body{font-family:var(--sans);color:var(--ink)}
 .ring .rv b{font-family:var(--serif);font-weight:400;display:block}
 .ring .rv i{font-style:normal;font-size:10px;font-weight:600;letter-spacing:.14em;text-transform:uppercase;color:var(--muted)}
 .pthumb{border-radius:10px;background:linear-gradient(180deg,#FBF6EC,#F1E9DA);display:flex;align-items:center;justify-content:center;flex:none}
-.prod{display:block;--pb:url(#pbBlue);--pl:#FFFEFA;--pc:#3A342C}
+.prod{display:block;--pb:url(#pbBlue);--pl:#FFFEFA;--pc:#3A342C;--pa:#6E93B4}
 
 /* -------- stage: 5 full-bleed scenes, crossfaded -------- */
 .stage{position:relative;width:393px;height:852px}
@@ -95,6 +95,7 @@ body{font-family:var(--sans);color:var(--ink)}
       <stop offset="1" stop-color="#000000" stop-opacity=".15"/>
     </linearGradient>
     <clipPath id="cPump"><path d="M10 74c0 4.4 2.6 7 7 7h26c4.4 0 7-2.6 7-7V33c0-3.4-1.5-5.3-4.5-6.7l-7.6-3.6c-1.3-.6-1.9-1.6-1.9-3V17H24v2.7c0 1.4-.6 2.4-1.9 3l-7.6 3.6c-3 1.4-4.5 3.3-4.5 6.7z"/></clipPath>
+    <clipPath id="cPumpLabel"><rect x="14" y="40" width="32" height="27" rx="2.6"/></clipPath>
     <symbol id="pPump" viewBox="0 0 60 84">
       <path d="M25.4 13.4V9c0-2.2 1.8-4 4-4h3.2c2.2 0 4 1.8 4 4v1.5h5.2c1.5 0 2.7 1.2 2.7 2.7v3.2h-4v-2.7h-3.9v-.3z" fill="var(--pc)"/>
       <path d="M25.4 13.4V9c0-2.2 1.8-4 4-4h3.2c2.2 0 4 1.8 4 4v1.5h5.2c1.5 0 2.7 1.2 2.7 2.7v3.2h-4v-2.7h-3.9v-.3z" fill="url(#pCapShine)"/>
@@ -106,11 +107,9 @@ body{font-family:var(--sans);color:var(--ink)}
         <rect x="8" y="15" width="44" height="68" fill="url(#pWrap)"/>
         <rect x="8" y="64" width="44" height="19" fill="url(#pBase)"/>
         <rect x="14" y="40" width="32" height="27" rx="2.6" fill="var(--pl)" stroke="#000000" stroke-opacity=".07" stroke-width=".6"/>
-        <g fill="#1A1814">
-          <rect x="18" y="45.4" width="11" height="1.8" rx=".9" opacity=".3"/>
-          <rect x="18" y="50.2" width="24" height="2.6" rx="1.3" opacity=".52"/>
-          <rect x="18" y="54.8" width="17" height="2.6" rx="1.3" opacity=".52"/>
-          <rect x="18" y="61" width="24" height="1" rx=".5" opacity=".16"/>
+        <g clip-path="url(#cPumpLabel)">
+          <rect x="14" y="55.5" width="32" height="11.5" fill="var(--pa)"/>
+          <circle cx="30" cy="55.5" r="7" fill="var(--pl)"/>
         </g>
         <rect x="14" y="40" width="32" height="27" rx="2.6" fill="url(#pLabelWrap)"/>
         <rect x="13.4" y="29" width="5.2" height="45" rx="2.6" fill="url(#pGloss)"/>
@@ -141,7 +140,7 @@ body{font-family:var(--sans);color:var(--ink)}
 <div class="stage" id="stage">
 
   <!-- SCENE 1 — scanning -->
-  <div class="scene on" id="sc-scan" style="background:radial-gradient(130% 80% at 25% 10%,#3A322B 0%,rgba(58,50,43,0) 55%),radial-gradient(120% 90% at 85% 90%,#4A3B2E 0%,rgba(74,59,46,0) 50%),linear-gradient(170deg,#23201B 0%,#12100D 80%)">
+  <div class="scene on" id="sc-scan" style="background:radial-gradient(46% 40% at 50% 44%,rgba(163,88,72,.38) 0%,rgba(163,88,72,0) 72%),radial-gradient(130% 80% at 25% 10%,#4A2E28 0%,rgba(74,46,40,0) 55%),radial-gradient(120% 90% at 85% 90%,#5A3529 0%,rgba(90,53,41,0) 50%),linear-gradient(170deg,#241713 0%,#150D0A 80%)">
     <div style="position:absolute;left:50%;top:46%;top:46%;transform:translate(-50%,calc(-50% - 22px)) rotate(-4deg);filter:drop-shadow(0 26px 34px rgba(0,0,0,.5))">
       <svg class="prod" width="132" height="232" viewBox="0 0 60 84"><use href="#pPump"/></svg>
     </div>
