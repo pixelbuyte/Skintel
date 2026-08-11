@@ -8,7 +8,6 @@ import {
   GitCompare,
   Settings,
   LogOut,
-  Sparkles,
   Sun,
   Lightbulb,
   BookOpen,
@@ -24,7 +23,7 @@ import { Avatar } from '@/components/Avatar';
 const NAV = [
   { to: '/app', label: 'Dashboard', icon: LayoutDashboard, end: true },
   { to: '/app/products', label: 'Products', icon: Package },
-  { to: '/app/culprits', label: 'Triggers', icon: AlertTriangle },
+  { to: '/app/triggers', label: 'Triggers', icon: AlertTriangle },
   { to: '/app/scanner', label: 'Scanner', icon: ScanLine },
   { to: '/app/compare', label: 'Compare', icon: GitCompare },
   { to: '/app/journal', label: 'Journal', icon: BookOpen },
@@ -82,7 +81,7 @@ export function Sidebar({
       <div className={`flex items-center ${collapsed ? 'justify-center' : 'justify-between'} px-2 py-3 mb-3`}>
         {!collapsed && (
           <div className="flex items-center gap-2">
-            <Sparkles className="text-primary" size={22} />
+            <img src="/icons/skintel.svg" alt="" width={24} height={24} className="shrink-0" />
             <span className="font-display text-2xl">Skintel</span>
           </div>
         )}

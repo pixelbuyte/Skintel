@@ -1,11 +1,11 @@
 import { Link } from 'react-router-dom';
 import { AlertTriangle, AlertCircle } from 'lucide-react';
 import { useProducts } from '@/hooks/useProducts';
-import { useCulprits } from '@/hooks/useCulprits';
+import { useTriggers } from '@/hooks/useTriggers';
 import { EmptyState } from '@/components/EmptyState';
-import type { Culprit } from '@/lib/types';
+import type { Trigger } from '@/lib/types';
 
-function CulpritCard({ c, severity }: { c: Culprit; severity: 'high' | 'medium' }) {
+function TriggerCard({ c, severity }: { c: Trigger; severity: 'high' | 'medium' }) {
   const bgHeader = severity === 'high' ? 'bg-bad-bg' : 'bg-unsure-bg';
   const fgHeader = severity === 'high' ? 'text-bad-fg' : 'text-unsure-fg';
   return (
@@ -36,9 +36,9 @@ function CulpritCard({ c, severity }: { c: Culprit; severity: 'high' | 'medium' 
   );
 }
 
-export default function Culprits() {
+export default function Triggers() {
   const { products, loading } = useProducts();
-  const { high, medium } = useCulprits(products);
+  const { high, medium } = useTriggers(products);
   const badCount = products.filter((p) => p.outcome === 'bad').length;
 
   if (loading) return <div className="text-muted">Loading…</div>;
@@ -46,10 +46,10 @@ export default function Culprits() {
   if (badCount < 2) {
     return (
       <div>
-        <h1 className="font-display text-4xl mb-6">Suspect ingredients</h1>
+        <h1 className="font-display text-4xl mb-6">Triggers</h1>
         <EmptyState
           title="Not enough data yet"
-          body="Tag at least 2 products as 'broke me out' to start seeing your suspect ingredients."
+          body="Tag at least 2 products as 'broke me out' to start seeing your triggers."
           cta={
             <Link to="/app/products/new" className="btn-primary">
               Add a product
@@ -63,7 +63,7 @@ export default function Culprits() {
   return (
     <div>
       <div className="mb-6">
-        <h1 className="font-display text-4xl">Suspect ingredients</h1>
+        <h1 className="font-display text-4xl">Triggers</h1>
         <p className="text-muted text-sm mt-1">
           Ingredients showing up across your breakout products, ranked by how often.
         </p>
@@ -80,7 +80,7 @@ export default function Culprits() {
         ) : (
           <div className="grid md:grid-cols-2 gap-4">
             {high.map((c) => (
-              <CulpritCard key={c.normalized} c={c} severity="high" />
+              <TriggerCard key={c.normalized} c={c} severity="high" />
             ))}
           </div>
         )}
@@ -97,7 +97,7 @@ export default function Culprits() {
         ) : (
           <div className="grid md:grid-cols-2 gap-4">
             {medium.map((c) => (
-              <CulpritCard key={c.normalized} c={c} severity="medium" />
+              <TriggerCard key={c.normalized} c={c} severity="medium" />
             ))}
           </div>
         )}

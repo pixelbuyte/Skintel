@@ -195,12 +195,12 @@ export function isFragrance(rawName: string): boolean {
   return FRAGRANCE_TOKENS.has(key);
 }
 
-export type Culprit = { name: string; risk: 'high' | 'medium'; badCount: number };
+export type Trigger = { name: string; risk: 'high' | 'medium'; badCount: number };
 
 export type BucketRow = {
   raw: string;
   info?: IngredientInfo;
-  culprit?: Culprit;
+  trigger?: Trigger;
   isFragrance?: boolean;
 };
 
@@ -212,16 +212,16 @@ export type Buckets = {
 
 export function categorizeIngredients(
   parsed: { raw: string; normalized: string }[],
-  culpritByNorm: Map<string, Culprit>
+  triggerByNorm: Map<string, Trigger>
 ): Buckets {
   const watchOut: BucketRow[] = [];
   const good: BucketRow[] = [];
   const rest: BucketRow[] = [];
 
   for (const i of parsed) {
-    const culprit = culpritByNorm.get(i.normalized);
-    if (culprit) {
-      watchOut.push({ raw: i.raw, culprit });
+    const trigger = triggerByNorm.get(i.normalized);
+    if (trigger) {
+      watchOut.push({ raw: i.raw, trigger });
       continue;
     }
     const info = lookupIngredient(i.raw);

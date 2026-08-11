@@ -319,7 +319,7 @@ export default function Journal() {
           <span className="font-display text-xl">Analyze patterns</span>
         </div>
         <p className="text-sm text-muted mb-3">
-          Pro feature. Claude cross-references your journal with product introduction dates and ingredients to flag likely culprits.
+          Pro feature. Claude cross-references your journal with product introduction dates and ingredients to flag likely triggers.
         </p>
         <button
           className="btn-primary"
@@ -340,7 +340,7 @@ export default function Journal() {
 
             {analysis.suspects.length > 0 && (
               <div>
-                <div className="font-display text-lg mb-2">Likely culprits</div>
+                <div className="font-display text-lg mb-2">Likely triggers</div>
                 <ul className="space-y-2">
                   {analysis.suspects.map((s, i) => (
                     <li
