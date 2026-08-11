@@ -25,6 +25,7 @@
     "@capacitor/status-bar": "^8.0.2",
     "@stripe/stripe-js": "^9.6.0",
     "@supabase/supabase-js": "^2.106.0",
+    "@vercel/analytics": "^2.0.1",
     "browser-image-compression": "^2.0.2",
     "cheerio": "^1.2.0",
     "lucide-react": "^1.16.0",
