@@ -17,7 +17,7 @@ const INCLUDED = [
 const FAQS = [
   {
     q: 'What exactly do I get for $20?',
-    a: 'Six months of Skintel Pro — everything in the yearly plan, prorated. No subscription, no auto-renew. You pay once, use it for six months, then decide if you want to keep going at the regular Pro price.',
+    a: 'Three months of Skintel Pro — everything in the yearly plan, prorated. No subscription, no auto-renew. You pay once, use it for three months, then decide if you want to keep going at the regular Pro price.',
   },
   {
     q: 'Why only 500 spots?',
@@ -113,7 +113,7 @@ export default function Discount() {
 
         {/* Headline */}
         <h1 className="font-display text-5xl md:text-7xl leading-[1.02] tracking-tight mb-6">
-          Six months of <em className="text-primary">Skintel Pro</em>
+          Three months of <em className="text-primary">Skintel Pro</em>
           {' '}
           for the price of one bad serum.
         </h1>
