@@ -1,344 +1,348 @@
-# Skintel — 500 Founding Seats / $10,000 / $500 Budget
+# Skintel — Founding Batch Launch Plan
 
 **Window:** Wed 12 Aug → Sun 16 Aug 2026 (4.5 days)
 **Offer:** 3 months of Pro for $20, one-time, no auto-renew. 500 seats.
-**Target:** 500 × $20 = $10,000
+**Stretch target:** 500 × $20 = $10,000
+**Realistic target:** ~115 seats / ~$2,300
 **Budget:** $500
 
+> **Revision note.** The first draft of this plan was built backwards from $10,000 and assumed ~60 posts in four days. That volume is not achievable solo, and the tiers below have been revised down accordingly. The strategy is unchanged; the scale is honest now.
+
 ---
 
-## 1. The honest math first
+## 1. The honest math
 
-Read this before spending a dollar, because it determines where the $500 goes.
+### $10,000 from $500 is 20× ROAS — a $1.00 CPA
 
-### $10,000 from $500 is 20× ROAS. That is a $1.00 CPA.
+Benchmarks for this exact vertical:
 
-Current benchmarks for this exact vertical:
+| Metric | Benchmark |
+|---|---|
+| DTC beauty median CPA, TikTok | **$12.80** (IQR $7.40–$21.10) |
+| Beauty CPC, TikTok | $0.60–$0.90 |
+| Cold Spark Ads | $1.41 CPC @ 2.6% CVR = **~$54 CPA** |
+| Skincare CPM | $5–$10 |
 
-| Metric | Benchmark | Source |
+Against a **$20** product: $500 at median CPA buys ~39 sales (**$780**, 1.56× ROAS). Cold Spark Ads lose $34 per sale.
+
+**Cold paid advertising cannot produce $10,000 from $500.** The arithmetic does not bend. Paid is an amplifier here, not an engine.
+
+### What actually happens this week
+
+Built up from realistic per-channel contribution rather than backwards from a target:
+
+| Source | Seats | Notes |
 |---|---|---|
-| DTC beauty median CPA, TikTok | **$12.80** (IQR $7.40–$21.10) | AdLiftr 2026 |
-| Beauty CPC, TikTok | $0.60–$0.90 | 2026 benchmarks, down 22% YoY |
-| Spark Ads (boosted creator content) | $1.41 CPC @ 2.6% CVR = **~$54 CPA** | 2026 benchmarks |
-| Skincare CPM | $5–$10 | 2026 benchmarks |
+| Waitlist email | ~50 | **Depends entirely on list size — the dominant unknown** |
+| Organic posts | ~30 | 20–25 posts shipped, one modest hit |
+| Creators | ~20 | 5 of 10 deliver in-window, better CVR than cold |
+| Paid reserve | ~15 | Deployed on a proven winner |
+| **Total** | **~115** | **≈$2,300** |
 
-Against a **$20** product:
+| Scenario | Seats | Revenue | Notes |
+|---|---|---|---|
+| **Floor** — execution slips, no hits | ~40 | **$800** | |
+| **Likely** | **~115** | **$2,300** | 4.6× ROAS |
+| **Upside** — one mid hit (100k+) or a large waitlist | ~250 | **$5,000** | |
+| **Stretch** — true breakout (1M+) | 500 | **$10,000** | Possible, not plannable |
 
-- $500 at median $12.80 CPA → **39 sales → $780**. ROAS 1.56×.
-- $500 at best-case $7.40 CPA → **67 sales → $1,350**. ROAS 2.7×.
-- Cold Spark Ads at $54 CPA → **you lose $34 per sale**.
+### Why the earlier $3k floor was too generous
 
-**Cold paid advertising cannot produce $10,000 from $500.** Not with better creative, not with better targeting. The arithmetic does not bend. Anyone promising otherwise is selling something.
+- **Cold accounts underperform the benchmark.** "1 in 20–30 posts clears 100k" describes accounts the algorithm has already classified. Accounts created Wednesday sit at 200–500 views while it figures out who to show them to. Day 1–2 buys classification, not reach.
+- **Volume was the mechanism, and volume is capped by one pair of hands.** 55–60 posts is a team's week. §5 fixes this by cutting to a number that actually ships.
+- **Creators are slow.** DM → negotiate → brief → film → post. Most land Saturday at the earliest; expect 4–6 of 10 in-window at all.
 
-### So what does produce $10,000?
+The distribution is heavily right-skewed. One breakout relocates the entire outcome — that's a real possibility, just not the modal one.
 
-Organic short-form video, at volume, with paid used only as an amplifier on proven winners.
-
-Work the funnel backwards:
+### Funnel reference
 
 ```
-500 seats needed
- −  45 from paid/creator-attributed        (realistic paid contribution)
- = 455 from organic
-
-455 sales ÷ 4.5% landing conversion         = ~10,100 landing sessions
-10,100 sessions ÷ 1.0% view→click rate      = ~1,000,000 views
+115 seats ÷ 4.5% landing CVR    = ~2,550 landing sessions
+2,550 ÷ 1.0% view→click         = ~255,000 views
 ```
 
-**The real target is ~1,000,000 organic views in 4.5 days.** Every tactic below is judged against that single number.
+For the $10k stretch the view requirement is ~1,000,000 — useful mainly as a reminder of what a breakout has to look like.
 
-The 4.5% landing CVR is defensible for you specifically — guest checkout with no signup (`api/stripe-checkout.ts:6`), $20 impulse price, demo-first landing, 14-day guarantee. Most $20 offers convert 2–3%; yours should beat that. Each +1% of CVR is worth **~$2,200** at these traffic volumes, which is why §7 matters as much as §5.
-
-### Realistic outcome tiers
-
-State these up front so the week is judged fairly:
-
-| Scenario | Views | Seats | Revenue | Probability |
-|---|---|---|---|---|
-| **Floor** — plan executed, no breakout | ~250k | ~150 | **$3,000** | ~60% |
-| **Base** — 2–3 posts clear 100k | ~500k | ~265 | **$5,300** | ~30% |
-| **Goal** — one true breakout (≥1M) or several 300k+ | 1M+ | 500 | **$10,000** | ~10% |
-
-$10k requires a breakout. Breakouts cannot be summoned, only made more likely — by shipping enough shots on goal, with hooks engineered to trigger the algorithm. The plan below maximizes the number and quality of those shots.
-
-Note the floor case is still **6× ROAS and 150 founding users**. That is a good week by any normal standard. Do not let the $10k number make a $3k week feel like failure.
+4.5% CVR is defensible for you: guest checkout with no signup (`api/stripe-checkout.ts:6`), $20 impulse price, demo-first landing, 14-day guarantee. **Each +1% of CVR ≈ $500 at likely volume**, which is why §7 still earns its place.
 
 ---
 
-## 2. Day 0 blockers — fix before spending anything
+## 2. Day 0 blockers
 
-These are not optimizations. Each one silently caps revenue.
+### ✅ B1 — Seat counter honesty *(fixed)*
 
-### 🔴 B1 — The seat counter caps you at $7,240
+`src/hooks/useFoundingCount.ts` previously carried `DISPLAY_BASELINE_CLAIMED = 138`, adding 138 phantom claimed seats to the display. Now removed; the counter shows the true RPC value.
 
-`src/hooks/useFoundingCount.ts:4`
+Two notes on why this mattered:
 
-```ts
-const DISPLAY_BASELINE_CLAIMED = 138;
-```
+- **The revenue argument is moot at likely volume.** The display would have hit 500 after 362 real sales, flipping `soldOut` (`Landing.tsx:2291`) and unmounting the offer section (`:2543`), hero CTA (`:2371`) and sticky bar (`:3164`) — a hard $7,240 ceiling. At ~115 seats that cap never binds.
+- **The honesty argument stands, and is stronger.** A counter reading 253/500 when 115 people bought is a claim a customer can catch, and your first hundred buyers are exactly who watch it move. Fixed on those grounds.
 
-The displayed count is `138 + actual_claimed`. It reaches 500 after **362 real sales**. At that moment `soldOut` becomes true (`Landing.tsx:2291`) and:
+Consequence: the counter now reads low early. That's expected — urgency moves to the price step (B4), which is true and doesn't require inventing buyers.
 
-- the entire founding offer section unmounts — `Landing.tsx:2543`
-- the hero CTA flips to sold-out copy — `Landing.tsx:2371`
-- the sticky bottom bar says "Founding batch sold out" — `Landing.tsx:3164`
+### 🔴 B2 — Buy a real domain
 
-Checkout still functions (the API reads the true RPC value), but no visitor can reach it. **Hard ceiling: 362 × $20 = $7,240.** The last $2,760 of your goal is unreachable.
+Highest-leverage $15 in the plan. `skintel-six.vercel.app` in a TikTok comment reads as a scam link, and §6 depends on people searching the name and finding a company.
 
-It is also a fabricated claim to consumers — 138 people who did not buy, presented as buyers. That is a straightforward deception risk, and it is the kind of thing that becomes a story if a customer screenshots the counter on day 1 and day 3 and sees it move wrong.
+- Buy `skintel.app` / `getskintel.com` / `skintel.io` — today, ~$12–15
+- Point at Vercel; update `appUrl()` and Supabase Auth redirect URLs
 
-**Fix:** set the baseline to `0`. Replace the lost urgency with things that are true:
+### 🔴 B3 — Claim the name, check for collisions
 
-- a real deadline — "founding batch closes Sunday 11:59pm" (see B4)
-- your real waitlist size — "1,4XX on the list · 500 seats" is stronger than a fake counter, and true
-- real velocity once it exists — "37 claimed in the last 24h"
+Before driving searches at a name, confirm it's yours:
 
-An honest counter that starts slow is a smaller problem than a dishonest one that stops your revenue at 72% of goal.
+- Search "Skintel" on TikTok, IG, YouTube, Google, App Store — note what ranks now
+- Register one handle and use it identically everywhere
+- If a bigger brand owns the term, you'd be driving traffic to a competitor. Find out Wednesday, not Saturday.
 
-### 🔴 B2 — `skintel-six.vercel.app` breaks the entire "make them search it" strategy
+### 🟡 B4 — Price step, not a closing deadline
 
-This is the highest-leverage $15 in the plan. §6 depends on ~1M people hearing the name and searching it. When they do, they must land on something that looks like a company.
+**Do not announce "the founding batch closes Sunday."** That was built for a sell-out scenario. At ~115 seats it forces a bad choice: kill a working offer at 23% sold, or reopen after publicly committing to close and destroy the credibility the deadline was meant to create.
 
-- Buy `skintel.app` / `getskintel.com` / `skintel.io` — whichever is free, today, ~$12–15
-- Point it at Vercel, update `appUrl()` and Supabase Auth redirect URLs
-- A `.vercel.app` subdomain in a TikTok comment reads as a scam link. It will cost you more than 1% CVR, which is more than $2,000.
+Use a price step instead:
 
-### 🔴 B3 — Claim the name everywhere, and check for collisions
+> **$20 through Sunday. $29 after.**
 
-Before you drive a million searches to a name, spend 10 minutes confirming the name is yours to own:
-
-- Search "Skintel" on TikTok, Instagram, YouTube, Google, App Store. Note what currently ranks.
-- Register `@skintel` (or `@skintelapp` / `@getskintel` — pick one and use it identically everywhere) on TikTok, IG, YouTube, Reddit, Pinterest.
-- If a bigger brand already owns the term, that changes your hook — you'd drive searches straight to a competitor. Find out now, not on Saturday.
-
-### 🟡 B4 — Add a real deadline
-
-The offer currently has seat scarcity but no time pressure, so there is no reason to buy *today*. A week-long sprint needs a week-shaped deadline.
-
-Add "Founding batch closes Sunday 11:59pm PT" to the hero, offer section, and sticky bar. Seat scarcity plus time scarcity converts far better than either alone.
-
-**Then actually honor it.** If you extend it, the scarcity was a lie and you have taught your first 200 customers not to believe you. Either close it Sunday or don't claim you will.
+Same urgency, honorable indefinitely, and the batch stays open. Keep the 500-seat cap as the scarcity story and let price be the clock. Then hold the step — if it's still $20 on Monday, you've taught your first hundred customers your deadlines are decorative.
 
 ### 🟡 B5 — Capture every non-buyer
 
-At 10,000 sessions and 4.5% CVR, **9,550 people leave without buying**. The waitlist endpoint already exists (`api/waitlist.ts`). Make sure the exit path captures email, and send one Sunday-morning "last call" email. Email to a warm list converts at 5–15%. If you capture even 1,500 emails, that final send is worth **$1,500–$4,500** on its own — the single highest-ROI action of the week, at $0 cost.
+At likely volume ~2,400 people leave without buying. `api/waitlist.ts` already exists. Capture email on exit, send one Sunday "price goes up tonight" email. Warm lists convert 5–15%.
 
 ### 🟢 B6 — Already good, don't touch
 
-Worth knowing what's working so you don't "improve" it mid-sprint:
-
-- Guest founding checkout with no signup wall — `api/stripe-checkout.ts:6`. Removes the biggest drop-off in the funnel. Keep it.
-- `?ref=` attribution already flows into Stripe metadata — `api/stripe-checkout.ts:27,35`. Creator tracking is already built (see §4).
-- 14-day money-back guarantee, prominently placed. Keeps CVR up on cold traffic.
-- Demo-first landing layout. Correct for this product.
+- Guest founding checkout, no signup wall — `api/stripe-checkout.ts:6`
+- `?ref=` attribution into Stripe metadata — `api/stripe-checkout.ts:27,35`
+- 14-day guarantee, prominently placed
+- Demo-first landing layout
 
 ---
 
-## 3. Where the $500 actually goes
-
-Not into cold ads. Into leverage.
+## 3. Where the $500 goes
 
 | # | Line item | Amount | Rationale |
 |---|---|---|---|
-| 1 | **Domain** | **$15** | B2. Highest ROI dollar in the plan. |
-| 2 | **Nano-creator seeding** — 8–10 creators @ $30–50 | **$300** | Nano rates (1–10k followers) are $20–100/TikTok video in 2026. Their audiences are pre-qualified and trust them. Best views-per-dollar available. |
-| 3 | **Winner amplification reserve** | **$150** | Hold it. Spark-boost *only* posts that already cleared ~20k views organically in 24h. Never boost cold creative. |
-| 4 | **Buffer** | **$35** | Scheduling tool, thumbnail assets, contingency. |
+| 1 | **Domain** | **$15** | B2 |
+| 2 | **Nano-creator seeding** — 8–10 @ $30–50 | **$300** | 2026 nano rates are $20–100/TikTok video. Pre-qualified audiences, best views-per-dollar available. |
+| 3 | **Winner amplification reserve** | **$150** | Hold it. Spark-boost *only* posts already past ~20k views organically. |
+| 4 | **Buffer** | **$35** | Contingency |
 
-**Why the reserve matters:** boosting a proven organic winner is the one paid play with genuinely good odds, because the algorithm has already told you the creative works. Boosting cold creative at $54 CPA loses money on a $20 product. Spend the $150 on Friday or Saturday, on evidence — not on Wednesday, on hope.
+Boosting a proven organic winner is the one paid play with good odds — the algorithm has already told you the creative works. Spend the reserve Friday or Saturday on evidence, not Wednesday on hope.
 
-**Creator brief** (send verbatim, it's what makes $30 posts perform):
+**Creator brief** (send verbatim):
 
-> Record your actual routine on camera. Scan it with Skintel. React honestly to what it finds — especially if it flags something you love. Do not script it, do not read a list of features, do not say "link in bio." Say the name once: "Skintel." If it finds nothing interesting, tell me and we won't run it.
+> Record your actual routine on camera. Scan it with Skintel. React honestly to what it finds — especially if it flags something you love. Don't script it, don't list features, don't say "link in bio." Say the name once: "Skintel." If it finds nothing interesting, tell me and we won't run it.
 
-Give each creator their own `?ref=` code so you can see exactly who delivered. That data is worth more than this week's sales — it tells you who to scale with next month.
+Give each creator their own `?ref=` code.
 
 ---
 
-## 4. The organic engine — how 1M views gets made
+## 4. How to actually make this much content
 
-### Volume plan
+The honest answer: **you are not making 25 videos. You are making 5 templates and refilling them.**
 
-**3 accounts × 4–5 posts/day × 4 days ≈ 55–60 posts.**
+### Batch by stage, never by video
 
-Why three accounts: the algorithm's per-post variance is enormous and largely independent. Sixty posts is sixty lottery tickets. A single account posting 4×/day also risks looking spammy; three themed accounts (main brand, "routine reviews," "ingredient facts") each look native.
+Never take one video end-to-end. Do all filming in one block, all assembly in another. Context-switching between "performer" and "editor" is what kills solo content output.
 
-Expected distribution on a well-targeted niche account: median post 200–2,000 views, roughly 1 in 20–30 posts clears 100k. Sixty posts should yield **2–3 posts over 100k** and one real shot at 500k+.
+### The five templates
+
+Three of these require **no filming at all** — screen recording only. That's the unlock.
+
+| Template | Filming? | How fast |
+|---|---|---|
+| **The Scan** — hold product, scan, react to verdict | Yes | 10 in one 40-min sitting |
+| **The Stitch** — react to someone else's routine video | Screen + face | 5 in an hour |
+| **The Culprit Reveal** — "these 3 products all contain X" | No | 15 min each |
+| **The Comment Reply** — video reply to "what's in my moisturizer?" | No | 10 min each |
+| **The Tier List** — rank products on screen | No | 15 min each |
+
+### One filming session produces the week
+
+Wednesday: put 15 products from your own bathroom on the counter, phone propped on a stack of books, film yourself scanning each one in a single continuous session. That's your entire Scan inventory. No script, no retakes unless unusable.
+
+### Hooks are the only thing you write
+
+Write **25 hooks** — just the first 1.5 seconds — in one 30-minute sitting. Highest-leverage half hour of the week. The body of every video is just the scan; the hook is the variable the algorithm actually tests. Same footage + different hook is legitimately a different video.
+
+### Reuse ruthlessly
+
+Any post past ~30k views gets re-cut with 3 new hooks and reposted. That's not lazy, it's the playbook: winning creative deserves more shots, and each recut takes 5 minutes.
+
+### Don't edit
+
+Native camera. Auto-captions (CapCut or TikTok built-in). No music beds, no transitions, no B-roll. Editing is where solo content plans die, and polished content underperforms native content in this niche anyway. **The demo is the content.**
+
+### Cross-post mechanically
+
+Every asset → TikTok, Reels, Shorts, Pinterest. Same file, four placements. Turns 25 videos into 100 placements for zero extra production.
+
+### The real time budget
+
+```
+1 filming session          90 min
+1 hook-writing session     30 min
+25 × ~10 min assembly     250 min
+                          ─────────
+                          ~6.2 hours across 4 days
+```
+
+Achievable solo. Sixty videos was not.
+
+---
+
+## 5. The organic engine
+
+### Volume: 20–25 posts, executed properly
+
+Not 60 half-made ones. A smaller plan shipped fully beats a large plan shipped at 40% — you get more comment replies, better hooks, and the algorithm rewards engagement depth over raw count on a young account.
+
+### Prioritise two formats only
+
+1. **Stitch / duet a large skincare creator's routine** — borrows their entire audience. Highest leverage available to you. Do this daily.
+2. **"I scanned my routine and found the ingredient breaking me out"** — the core demo, personal POV.
+
+The other three templates are there to keep accounts active between swings. Drop the generic ingredient explainers entirely — they were padding for a volume strategy you're no longer running.
 
 ### The hook that does the work
 
-Your product has a genuinely non-obvious, emotionally loaded insight, and the landing page already states it well:
+Your landing already states the insight well:
 
 > *"Your skin isn't broken. Your routine is fighting itself."*
-> *"The same ingredient is hiding across multiple products — that's what's breaking you out."*
 
-This is perfect short-form material because it (a) reframes blame away from the viewer, (b) is surprising, (c) is immediately checkable against their own bathroom shelf, and (d) demands a comment: *"what's in mine?"*
-
-### Nine formats, ranked by expected reach
-
-1. **Stitch / duet a big skincare creator's routine video** — scan their products live, react. Borrows their entire audience. *Highest leverage available to you. Do this daily.*
-2. **"I scanned my whole routine and found the one ingredient breaking me out"** — screen recording, personal, POV.
-3. **"Your $200 routine is fighting itself"** — scan an expensive influencer routine, show the conflict.
-4. **"Rate my routine"** — reply to comments *as video replies*. Each reply is a new post with the original's engagement attached. Compounding.
-5. **Red flag / green flag product tier list** — endlessly remixable, high save rate.
-6. **"3 products everyone owns that share the same pore-clogging ingredient"** — listicle, high completion rate.
-7. **"This 'clean' product contains ___"** — myth-bust. Controversial, drives comments.
-8. **Before/after culprit reveal** — needs a real user story. Highest converting, lowest supply.
-9. **Ingredient-fact micro-explainers** — filler content that keeps accounts active between swings.
+Perfect short-form material: it reframes blame away from the viewer, is surprising, is checkable against their own bathroom shelf, and demands the comment *"what's in mine?"*
 
 ### Non-negotiable production rules
 
-- **Hook in the first 1.5 seconds.** No logo, no intro, no "hey guys." Start mid-sentence on the most surprising claim.
-- **Show the scan on screen.** The demo *is* the ad. Product-in-hand → scan → verdict is the whole story.
-- **Native, not produced.** Phone camera, real bathroom, real products. Polished ads get scrolled past; this is the single most common failure mode for a founder-made skincare video.
+- **Hook in the first 1.5 seconds.** No logo, no intro, no "hey guys."
+- **Show the scan on screen.** Product → scan → verdict is the whole story.
+- **Native, not produced.** Phone camera, real bathroom, real products.
 - **Say the name out loud once.** See §6.
-- **Reply to every comment for the first 2 hours.** Comment velocity is a ranking input, and every reply is free reach.
+- **Reply to every comment for 2h after posting.** Comment velocity is a ranking input and every reply is free reach. This is why 25 posts beats 60.
 
-### Where else to post
+### ⚠️ Reddit: high value, high risk
 
-- **Instagram Reels + YouTube Shorts** — same vertical asset, zero extra production cost. Always cross-post.
-- **Pinterest** — skincare performs unusually well and traffic is evergreen, unlike TikTok. Low effort, keeps paying after Sunday.
-- **Reddit** — see the warning below.
+r/SkincareAddiction, r/AsianBeauty, r/acne, r/30PlusSkinCare are exactly your buyers, and nearly all ban self-promotion.
 
-### ⚠️ Reddit: high value, high risk of backfire
-
-r/SkincareAddiction, r/AsianBeauty, r/acne, r/30PlusSkinCare, r/tretinoin are exactly your buyers, and nearly all of them ban self-promotion.
-
-**Do not drop links.** A promo post gets removed in minutes, and a founder caught astroturfing a skincare sub becomes a screenshot that outlives the campaign — that risk is asymmetric and permanent.
-
-**Do this instead:** answer "what's breaking me out?" threads with genuine, specific ingredient analysis. Be actually useful with no mention of the product. Name the tool only when someone asks what you used. Read each sub's rules first; several permit a flaired self-promo day. This is slow and won't move the needle by Sunday — treat it as a real channel you're starting, not a growth hack.
+**Do not drop links.** A founder caught astroturfing a skincare sub becomes a screenshot that outlives the campaign — asymmetric and permanent. Instead: answer "what's breaking me out?" threads with genuine ingredient analysis, no product mention. Name the tool only when asked. Read each sub's rules. This won't move the needle by Sunday — it's a channel you're starting, not a growth hack.
 
 ---
 
-## 5. Making them search it up
+## 6. Making them search it up
 
-This is the mechanic you specifically asked about, and it's the right instinct — short-form video is now the #1 ROI format marketers report, and consumers increasingly treat TikTok as a search engine. TikTok's own 2026 data showed brands bundling search-side placements saw a **58% increase in search page views** and **42% better CTR**.
+Short-form is the #1 ROI format marketers report, and consumers increasingly treat TikTok as a search engine. TikTok's 2026 data showed brands bundling search-side placements saw a **58% increase in search page views** and **42% better CTR**.
 
 ### The mechanic
 
-Off-platform links are suppressed and cost you reach. A spoken brand name costs nothing, and a viewer who searches your name is a far warmer visitor than one who taps a link.
+Off-platform links are suppressed and cost reach. A spoken name costs nothing, and a viewer who searches you is far warmer than one who taps a link.
 
-1. **Say the name clearly, once, mid-video.** Never "link in bio" as the call to action.
-2. **Let the comments do the asking.** "What app is that?" is the highest-value comment you can get — it drives engagement *and* signals intent. Reply to every one with just the name.
-3. **Put the name on screen** as a plain text overlay for 2 seconds.
-4. **Keep the bio link live anyway** for the minority who look.
+1. **Say the name clearly, once, mid-video.** Never "link in bio" as the CTA.
+2. **Let comments do the asking.** "What app is that?" is the highest-value comment you can get.
+3. **Put the name on screen** as plain text for 2 seconds.
+4. **Keep the bio link live** for the minority who look.
 
-### The dependency nobody remembers until it's too late
+### The dependency people forget
 
-**If 1M people search "Skintel" and find nothing, you have burned the entire campaign.** Before any volume posting starts, all of the following must return you:
+**If people search "Skintel" and find nothing, the campaign is burned.** Before the first post:
 
-- [ ] TikTok search "skintel" → your account, verified-looking, with content
-- [ ] Instagram + YouTube search → same handle, same avatar, same bio
-- [ ] Google "skintel" → your real domain (**B2**), indexable, with a title tag that says what it is
-- [ ] TikTok in-app search → several of your own videos, so the results page looks populated
-- [ ] App Store "skintel" → currently **nothing ships here.** The iOS designs exist (`designs/`) but there's no app. Anyone searching the App Store finds nothing. Make sure the web app is what you name in videos, or point explicitly at the site.
-
-This checklist is Day 0, before the first post. Driving a million searches into an empty results page is the most expensive mistake available this week.
+- [ ] TikTok search → your account, populated with content
+- [ ] IG + YouTube → same handle, same avatar
+- [ ] Google → your real domain (**B2**), indexable, title tag says what it is
+- [ ] TikTok in-app search → several of your own videos, so results look populated
+- [ ] App Store → **nothing ships here.** The iOS designs exist (`designs/`) but there's no app. Name the web app in videos, or point explicitly at the site.
 
 ---
 
-## 6. Day-by-day
+## 7. Day-by-day
 
-### Wednesday 12 Aug — Day 0: unblock (no posting yet)
+### Wednesday — Day 0: unblock, film, email
 
-Nothing on this list is optional, and all of it is same-day work.
-
-- [ ] Fix `DISPLAY_BASELINE_CLAIMED = 138` → `0` (**B1**)
+- [ ] **Check the waitlist size first.** It's the branch point for the entire week (§9)
+- [ ] **Email the waitlist.** Highest-ROI action available, $0 cost
 - [ ] Buy + wire domain (**B2**)
-- [ ] Claim handles, run collision check, populate search results (**B3**, **§5 checklist**)
-- [ ] Add Sunday deadline to hero / offer / sticky bar (**B4**)
-- [ ] **Email the existing waitlist.** Highest-ROI action of the week, $0 cost, do it first.
-- [ ] DM 20–30 nano creators; aim to close 8–10 at $30–50
-- [ ] Batch-film 20 videos. Front-load production so posting never blocks on filming.
-- [ ] Confirm analytics: Vercel Analytics is live (commit `793fde0`); verify `?ref=` lands in Stripe metadata
+- [ ] Claim handles, collision check, populate search results (**B3**, §6)
+- [ ] Add price-step copy to hero / offer / sticky bar (**B4**)
+- [ ] DM 20–30 nano creators, close 8–10
+- [ ] **One filming session** (90 min) + **hook-writing session** (30 min) → §4
+- [ ] Test checkout end-to-end with real money, then refund it
 
-### Thursday 13 Aug — Day 1: blitz
+### Thursday — Day 1: launch
 
-- [ ] 12–15 posts across 3 accounts, cross-posted to Reels + Shorts
+- [ ] 6–7 posts, cross-posted to Reels + Shorts + Pinterest
 - [ ] 2 stitches of large skincare creators
-- [ ] Reply to every comment for 2h after each post
+- [ ] Comment replies for 2h after each post
 - [ ] Creator briefs + ref codes out
-- [ ] **Evening: identify anything over 20k views**
+- [ ] Evening: flag anything past 20k views
 
-### Friday 14 Aug — Day 2: double down
+### Friday — Day 2: double down
 
-- [ ] Re-cut the top performer into 3 variants — same hook, different openings. If a hook works, mine it.
-- [ ] 12–15 posts
-- [ ] First creator posts land
+- [ ] Re-cut top performer into 3 hook variants
+- [ ] 6–7 posts
 - [ ] **Deploy $150 reserve on proven winners only**
-- [ ] Mid-day revenue check against §8 kill criteria
+- [ ] Mid-day check against §8
 
-### Saturday 15 Aug — Day 3: peak
+### Saturday — Day 3: peak
 
-Weekend is peak skincare engagement. Highest-volume day.
+Weekend is peak skincare engagement.
 
-- [ ] 15 posts, heaviest push
+- [ ] 6–7 posts, heaviest day
 - [ ] Video replies to top comments (compounding format)
-- [ ] Push seat count in copy if — and only if — the real number is genuinely compelling
 - [ ] Remaining creators post
 
-### Sunday 16 Aug — Day 4: close
+### Sunday — Day 4: close the price
 
-- [ ] **Last-call email to every captured non-buyer** (B5) — biggest single revenue event of the day
-- [ ] "Closes tonight" content all day
+- [ ] **Last-call email to every captured non-buyer** — biggest single event of the day
+- [ ] "Price goes up tonight" content
 - [ ] Final push 6–10pm
-- [ ] **Close the offer at 11:59pm as promised**
-
----
-
-## 7. Conversion work — worth more than the ad budget
-
-At ~10,000 sessions, **every +1% of CVR ≈ $2,200**. That is 4× your entire budget, which is why these are not afterthoughts.
-
-- **Match the landing to the video.** Traffic from "the ingredient breaking you out" must land on that exact claim above the fold. Message-match is the largest single CVR lever.
-- **Keep guest checkout.** No signup before payment. Already correct — protect it.
-- **Guarantee stays visible** at the CTA, not in the footer.
-- **Mobile-first.** ~95% of this traffic is a phone in one hand. Test the full flow on a real phone before Thursday.
-- **Test checkout end-to-end with real money today.** A broken Stripe flow on Saturday night is the only failure that costs you the entire week. Buy one seat yourself and refund it.
+- [ ] **Step the price to $29 at midnight, as promised**
 
 ---
 
 ## 8. Tracking and kill criteria
 
-Check twice daily: **views → landing sessions → checkout starts → completed sales**, split by `?ref=`.
-
-Diagnose by where the funnel actually breaks:
+Check twice daily: **views → sessions → checkout starts → sales**, split by `?ref=`.
 
 | Symptom | Read | Action |
 |---|---|---|
-| Views low (<20k/day) | Hooks aren't landing | Rewrite first 1.5s. New hooks, not new edits. |
-| Views fine, clicks low | Name/CTA unclear | Say name earlier; add on-screen text |
-| Clicks fine, sales low | Landing or price mismatch | Fix message-match first, then offer framing |
-| Paid CPA > $15 | Cold ads underwater | Kill immediately. Move budget to creators. |
+| Views low (<10k/day) | Hooks aren't landing | Rewrite first 1.5s — new hooks, not new edits |
+| Views fine, clicks low | Name/CTA unclear | Say name earlier, add on-screen text |
+| Clicks fine, sales low | Landing mismatch | Fix message-match first |
+| Paid CPA > $15 | Cold ads underwater | Kill same day |
 
-**Hard rule:** if paid CPA exceeds $15 for 24h, stop that spend the same day. On a $20 product it is losing money, and the reserve is worth more held than spent.
+**Hard rule:** paid CPA over $15 for 24h → stop that spend immediately. On a $20 product it's losing money, and the reserve is worth more held than spent.
 
 ---
 
-## 9. What I'd tell you if you only read one section
+## 9. The week's real KPI
 
-1. **Fix the 138 counter today.** It caps you at $7,240 and it's a fabricated claim. Everything else is moot until this is done.
-2. **Buy the domain today.** $15. The whole search strategy fails on a `.vercel.app`.
-3. **Don't put $500 into cold ads.** The vertical's median CPA is $12.80 against a $20 product. Creators + a held amplification reserve beat it decisively.
-4. **The number that matters is ~1M organic views.** Post 55–60 times, stitch big creators daily, and treat every post as a lottery ticket.
-5. **Email the waitlist first and last.** Free, warm, highest-converting traffic you have — Wednesday morning and Sunday morning.
-6. **Expect $3–5k, play for $10k.** $10k needs a breakout. The plan maximizes the odds of one; it cannot guarantee it. A $3k floor on $500 spend is still a 6× week and 150 founding users.
+500 seats was always a stretch. What's reliably obtainable for $500 in four days is **knowing which hook converts** — and that's the asset that makes next month's launch work.
+
+Tag every post and creator with `?ref=`; the plumbing already exists. By Sunday you'll know which angle earns attention and which earns money.
+
+115 founding users is not a failed week for a pre-launch product. It's ~4.6× ROAS, and the cohort is worth more than the $2,300: it tells you which ingredients and triggers people care about, which hooks convert, and it sets up a renewal decision in November at $9/mo worth multiples of the founding revenue.
+
+### If you only do six things
+
+1. **Check the waitlist size before anything else** — it changes how you spend the week. Large list: front-load email, treat content as upside. Small list: content is the only engine.
+2. **Buy the domain today.** $15. The search strategy fails on a `.vercel.app`.
+3. **Price step, not a closing deadline.** Never announce a close you'd have to walk back.
+4. **Don't put $500 into cold ads.** Median CPA is $12.80 against a $20 product.
+5. **5 templates, not 25 videos.** One filming session, 25 hooks, no editing.
+6. **Expect ~$2,300, stay ready for more.** A breakout is possible, not plannable.
 
 ---
 
 ## Appendix — assumptions
 
-Stated so you can challenge them rather than inherit them:
-
 | Assumption | Value | Basis |
 |---|---|---|
-| Landing CVR (warm short-form traffic) | 4.5% | Guest checkout, $20 impulse price, guarantee. Typical range 2–6%. |
+| Landing CVR (warm short-form) | 4.5% | Guest checkout, $20 price, guarantee. Range 2–6%. |
 | View → click rate | 1.0% | Typical 0.5–1.5% for spoken-name + bio-link |
-| Posts clearing 100k views | 1 in 20–30 | Niche account with strong hooks |
-| Paid contribution | ~45 sales | $500 at benchmark CPA, creator-weighted |
-| Nano creator rate | $30–50/post | 2026 nano range $20–100 |
+| Posts actually shipped | 20–25 | Solo capacity over 4 days (§4) |
+| Creators delivering in-window | 5 of 10 | Nano creator latency |
+| Nano creator rate | $30–50/post | 2026 range $20–100 |
 
-**Unverified — check before relying on these:** current waitlist size (couldn't query Supabase from this session; the MCP connection needs authorization), real founding seats sold to date, and whether "Skintel" collides with an existing brand.
+**Unverified — check before relying on these:** current waitlist size (Supabase couldn't be queried from the authoring session; the MCP connection needs authorization), real founding seats sold to date, and whether "Skintel" collides with an existing brand.
 
 ---
 
