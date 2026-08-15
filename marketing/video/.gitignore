@@ -1,0 +1,15 @@
+# Derived — regenerate with ./prepare-assets.sh
+assets/
+
+# Rendered output and intermediates
+out/
+frames_*/
+probe_*/
+verify/
+*.mp4
+*.mp3
+*.wav
+*.m4a
+
+node_modules/
+*.log

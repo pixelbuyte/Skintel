@@ -1,0 +1,178 @@
+@font-face {
+  font-family: 'Instrument Serif';
+  font-style: normal; font-weight: 400; font-display: block;
+  src: url('./node_modules/@fontsource/instrument-serif/files/instrument-serif-latin-400-normal.woff2') format('woff2');
+}
+@font-face {
+  font-family: 'Instrument Serif';
+  font-style: italic; font-weight: 400; font-display: block;
+  src: url('./node_modules/@fontsource/instrument-serif/files/instrument-serif-latin-400-italic.woff2') format('woff2');
+}
+@font-face {
+  font-family: 'DM Sans';
+  font-style: normal; font-weight: 400; font-display: block;
+  src: url('./node_modules/@fontsource/dm-sans/files/dm-sans-latin-400-normal.woff2') format('woff2');
+}
+@font-face {
+  font-family: 'DM Sans';
+  font-style: normal; font-weight: 500; font-display: block;
+  src: url('./node_modules/@fontsource/dm-sans/files/dm-sans-latin-500-normal.woff2') format('woff2');
+}
+@font-face {
+  font-family: 'DM Sans';
+  font-style: normal; font-weight: 700; font-display: block;
+  src: url('./node_modules/@fontsource/dm-sans/files/dm-sans-latin-700-normal.woff2') format('woff2');
+}
+
+:root {
+  --bg: #F4EDE0;
+  --cream: #FFFEFA;
+  --primary: #A35848;
+  --primary-hover: #8E4538;
+  --ink: #1A1814;
+  --muted: #6B6760;
+  --border: #EAE6DF;
+  --good-bg: #EEF2DD;
+  --good-fg: #5C7A4F;
+  --bad-bg: #FDEAEA;
+  --bad-fg: #B22B2B;
+  --unsure-bg: #FFF4E0;
+  --unsure-fg: #8B6914;
+}
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+html, body {
+  width: 1080px; height: 1920px;
+  overflow: hidden;
+  background: #F1E8D7;
+}
+
+body {
+  font-family: 'DM Sans', sans-serif;
+  color: var(--ink);
+  -webkit-font-smoothing: antialiased;
+  text-rendering: geometricPrecision;
+}
+
+#stage {
+  position: relative;
+  width: 1080px; height: 1920px;
+  overflow: hidden;
+  background:
+    radial-gradient(900px circle at 12% -6%, rgba(255,200,180,0.55), transparent 55%),
+    radial-gradient(760px circle at 96% 10%, rgba(186,210,220,0.40), transparent 60%),
+    radial-gradient(860px circle at 88% 102%, rgba(232,198,162,0.48), transparent 55%),
+    linear-gradient(180deg, #F4ECDC 0%, #EFE4D0 100%);
+}
+
+/* film grain — matches the site's texture */
+#grain {
+  position: absolute; inset: 0; z-index: 60; pointer-events: none;
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='180' height='180'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0.18 0'/></filter><rect width='100%25' height='100%25' filter='url(%23n)'/></svg>");
+  background-size: 180px 180px;
+  opacity: 0.5;
+  mix-blend-mode: multiply;
+}
+
+#vignette {
+  position: absolute; inset: 0; z-index: 55; pointer-events: none;
+  background: radial-gradient(120% 78% at 50% 45%, transparent 55%, rgba(26,24,20,0.13) 100%);
+}
+
+.scene {
+  position: absolute; inset: 0;
+  display: flex; flex-direction: column;
+  justify-content: center;
+  padding: 0 96px;
+  will-change: opacity, transform;
+}
+
+.serif { font-family: 'Instrument Serif', Georgia, serif; font-weight: 400; letter-spacing: -0.018em; }
+
+.eyebrow {
+  font-size: 26px; font-weight: 500;
+  letter-spacing: 0.22em; text-transform: uppercase;
+  color: var(--primary);
+}
+
+.h1 { font-size: 128px; line-height: 0.96; }
+.h2 { font-size: 100px; line-height: 1.0; }
+.h3 { font-size: 74px;  line-height: 1.08; }
+
+.body {
+  font-size: 40px; line-height: 1.45; color: var(--muted);
+  max-width: 22ch;
+}
+
+.pri { color: var(--primary); }
+.ital { font-style: italic; }
+
+/* word-level reveal */
+.w { display: inline-block; will-change: transform, opacity; }
+
+/* phone */
+.phone-wrap {
+  position: absolute; left: 50%; top: 50%;
+  will-change: transform, opacity;
+}
+.phone {
+  display: block;
+  width: 770px; height: 1710px;
+  border-radius: 92px;
+  box-shadow:
+    0 60px 120px -30px rgba(26,24,20,0.42),
+    0 20px 44px -18px rgba(26,24,20,0.28);
+}
+.phone-clip { overflow: hidden; border-radius: 92px; }
+
+/* callout card lifted out of the UI */
+.callout {
+  background: var(--bad-bg);
+  border: 2px solid rgba(178,43,43,0.18);
+  border-radius: 34px;
+  padding: 52px 56px;
+  box-shadow: 0 44px 90px -28px rgba(26,24,20,0.40);
+  will-change: transform, opacity;
+}
+
+.pill {
+  display: inline-flex; align-items: center; gap: 16px;
+  border-radius: 999px;
+  padding: 20px 32px;
+  font-size: 32px; font-weight: 500;
+  white-space: nowrap;
+  will-change: transform, opacity;
+}
+.pill .dot { width: 15px; height: 15px; border-radius: 999px; }
+.pill.good   { background: var(--good-bg);   color: var(--good-fg); }
+.pill.good .dot   { background: var(--good-fg); }
+.pill.unsure { background: var(--unsure-bg); color: var(--unsure-fg); }
+.pill.unsure .dot { background: var(--unsure-fg); }
+.pill.bad    { background: var(--bad-bg);    color: var(--bad-fg); }
+.pill.bad .dot    { background: var(--bad-fg); }
+
+.card {
+  background: var(--cream);
+  border: 1px solid var(--border);
+  border-radius: 28px;
+  box-shadow: 0 24px 60px -26px rgba(26,24,20,0.26);
+}
+
+.btn {
+  display: inline-flex; align-items: center; justify-content: center; gap: 18px;
+  background: var(--primary); color: var(--cream);
+  border-radius: 22px;
+  padding: 38px 64px;
+  font-size: 46px; font-weight: 700;
+  box-shadow: 0 30px 64px -22px rgba(163,88,72,0.75);
+}
+
+.mark {
+  width: 168px; height: 168px; border-radius: 42px;
+  background: linear-gradient(160deg, #B4695A 0%, #A35848 46%, #8E4538 100%);
+  display: flex; align-items: center; justify-content: center;
+  box-shadow: 0 34px 70px -24px rgba(163,88,72,0.7);
+  position: relative;
+}
+.mark svg { width: 92px; height: 92px; }

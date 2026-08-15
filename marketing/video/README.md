@@ -1,0 +1,86 @@
+# Skintel marketing video
+
+Four vertical (1080×1920) videos rendered from the same design tokens as the app —
+`#A35848` terracotta, Instrument Serif / DM Sans, the site's grain and radial
+gradients — composed over the iPhone mockups in `designs/previews/`.
+
+| Composition | Length | Job |
+|---|---|---|
+| `v1.html` | 32s | **Culprit reveal.** Pushes into the home screen, then a crisp callout lifts out of the UI: *"Fragrance-heavy lotion precedes 3 of 4 breakouts."* The strongest hook — organic top-of-funnel. |
+| `v2.html` | 27s | **Scan → verdict.** Demo: scanner, the 82 score card, ingredient breakdown. |
+| `v3.html` | 21s | **The offer.** Price, feature list, terms, CTA. Built for paid and Stories. |
+| `launch.html` | 50s | **Launch film.** The full story — problem, brand reveal, scan, culprit, what compounds, offer. |
+
+Captions, hashtags and a posting sequence: [`CAPTIONS.md`](./CAPTIONS.md).
+Voiceover scripts timed to the scene cuts: [`VOICEOVER.md`](./VOICEOVER.md).
+
+## How it works
+
+Each composition is an HTML page with a **deterministic timeline**: every element's
+opacity, position, scale and blur is a pure function of `t` in seconds. There are no
+CSS animations and no realtime playback — `render.mjs` drives Chromium to seek to
+each exact frame time and screenshots it, then ffmpeg assembles the frames.
+
+That means renders are reproducible frame-for-frame, and text stays genuinely sharp
+rather than smeared by video capture. `engine.js` holds the shared easing curves and
+the word-stagger, scene cross-fade and Ken Burns helpers.
+
+## Setup
+
+```bash
+npm install
+./prepare-assets.sh        # crops designs/previews/*.png into ./assets/
+npx playwright install chromium
+```
+
+`assets/` is derived and gitignored. `ffmpeg` must be on PATH (with libx264 —
+`ffmpeg -encoders | grep libx264`).
+
+If you already have a Chromium you'd rather use, point `CHROME_PATH` at it and
+Playwright will use that instead of downloading its own.
+
+## Rendering
+
+```bash
+npm run render:launch                # → out/skintel-launch.mp4
+node render.mjs v1 30                # name, fps
+node render.mjs v3 30 1.146899 -long # + timeScale, output suffix
+```
+
+`timeScale` stretches (>1) or compresses (<1) the whole timeline without editing the
+composition — the frame at time `t` renders the state at `t / scale`. It exists to fit
+the **picture to a voiceover** rather than speeding a voiceover up to fit the picture,
+which is always the worse trade. `skintel-v3-vo.mp4` was cut this way: Bella's read came
+in at 24.1s against a 21s edit, so the video was stretched by 1.1469 instead.
+
+Roughly 0.7s per frame, so a 30s video is about 10 minutes.
+
+Preview single moments without a full render:
+
+```bash
+node probe.mjs launch 2.5 14 31 46   # → probe_launch/t14.png etc.
+```
+
+## Voiceover
+
+```bash
+./add-vo.sh out/skintel-v1.mp4 vo.m4a out/skintel-v1-vo.mp4          # mic recording
+TTS=1 ./add-vo.sh out/skintel-v3.mp4 vo.wav out/skintel-v3-vo.mp4    # ElevenLabs etc.
+./add-vo.sh out/skintel-v1.mp4 vo.m4a out.mp4 music.mp3              # + ducked bed
+```
+
+Mic recordings get a repair chain (high-pass, de-ess, compression) then loudness
+normalisation to **-14 LUFS**, which is what TikTok, Instagram and YouTube all
+normalise to — hitting it yourself stops the platforms adjusting you unpredictably.
+`TTS=1` skips the repair chain: synthetic speech is already clean and evenly levelled,
+and compressing it again only flattens it further.
+
+Audio shorter than the picture is padded rather than truncating the video, so a
+voiceover that finishes early can never cut the CTA off the end.
+
+## Editing
+
+Copy is in the HTML; timing is in the `S` scene table and the `render(t)` function at
+the bottom of each file. The offer terms appear in `v3.html`, `launch.html` and the two
+markdown docs — if the price, duration or seat count changes, all four need updating,
+and `src/pages/Discount.tsx` is the source of truth for what they should say.

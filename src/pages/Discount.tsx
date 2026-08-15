@@ -1,6 +1,7 @@
 import { Link } from 'react-router-dom';
 import { useEffect, useState } from 'react';
 import { ArrowRight, ChevronDown, Check, Sparkles, ShieldCheck } from 'lucide-react';
+import { track } from '@vercel/analytics';
 import { useAuth } from '@/hooks/useAuth';
 import { useFoundingCount } from '@/hooks/useFoundingCount';
 import { STRIPE_PRICES } from '@/lib/stripe-prices';
@@ -17,7 +18,7 @@ const INCLUDED = [
 const FAQS = [
   {
     q: 'What exactly do I get for $20?',
-    a: 'Six months of Skintel Pro — everything in the yearly plan, prorated. No subscription, no auto-renew. You pay once, use it for six months, then decide if you want to keep going at the regular Pro price.',
+    a: 'Three months of Skintel Pro — everything in the yearly plan, prorated. No subscription, no auto-renew. You pay once, use it for three months, then decide if you want to keep going at the regular Pro price.',
   },
   {
     q: 'Why only 500 spots?',
@@ -62,6 +63,10 @@ export default function Discount() {
   }, []);
 
   async function claim() {
+    // Funnel: /discount pageview → claim_click → checkout redirect. The gap between
+    // pageviews and claim_click is a copy problem; a gap after it is a checkout problem.
+    track('founding_claim_click', { guest: !user || !session });
+
     if (!user || !session) {
       // Guest checkout — pay first, account is created from the Stripe email
       window.location.href = '/api/stripe-checkout?offer=founding';
@@ -82,6 +87,7 @@ export default function Discount() {
       if (!res.ok) throw new Error(data?.error ?? 'Checkout failed');
       window.location.href = data.url;
     } catch (e: any) {
+      track('founding_checkout_error');
       setErr(e?.message ?? 'Something went wrong');
       setLoading(false);
     }
@@ -113,7 +119,7 @@ export default function Discount() {
 
         {/* Headline */}
         <h1 className="font-display text-5xl md:text-7xl leading-[1.02] tracking-tight mb-6">
-          Six months of <em className="text-primary">Skintel Pro</em>
+          Three months of <em className="text-primary">Skintel Pro</em>
           {' '}
           for the price of one bad serum.
         </h1>

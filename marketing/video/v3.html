@@ -1,0 +1,181 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<link rel="stylesheet" href="./style.css">
+</head>
+<body>
+<div id="stage">
+
+  <!-- S1 · the number -->
+  <div class="scene" id="s1">
+    <div class="eyebrow" id="s1e">Skintel · founding offer</div>
+    <div class="serif" id="s1a" style="font-size:300px;line-height:0.86;margin-top:30px">500</div>
+    <div class="serif h2" id="s1b" style="margin-top:12px">founding spots.<br>Then it closes.</div>
+  </div>
+
+  <!-- S2 · the price -->
+  <div class="scene" id="s2">
+    <div class="serif" id="s2a" style="font-size:300px;line-height:0.86">$20</div>
+    <div class="serif h2 pri ital" id="s2b" style="margin-top:16px">once.</div>
+    <div class="body" id="s2c" style="margin-top:40px;font-size:44px;max-width:24ch">
+      Three months of Skintel Pro — about the price of one serum that didn't work.
+    </div>
+  </div>
+
+  <!-- S3 · what's inside (montage) -->
+  <div class="scene" id="s3" style="padding:0">
+    <div class="phone-wrap" id="m1" style="z-index:4">
+      <div class="phone-clip"><img class="phone" src="./assets/home.png"></div>
+    </div>
+    <div class="phone-wrap" id="m2" style="z-index:5">
+      <div class="phone-clip"><img class="phone" src="./assets/culprits.png"></div>
+    </div>
+    <div class="phone-wrap" id="m3" style="z-index:6">
+      <div class="phone-clip"><img class="phone" src="./assets/routine.png"></div>
+    </div>
+    <div id="s3scrim" style="position:absolute;inset:0;z-index:10;
+         background:linear-gradient(180deg, rgba(244,236,220,0.92) 0%, rgba(244,236,220,0.86) 13%,
+                    rgba(244,236,220,0.10) 30%, rgba(244,236,220,0.10) 55%,
+                    rgba(244,236,220,0.88) 72%, rgba(244,236,220,0.96) 100%)"></div>
+    <div style="position:absolute;left:96px;right:96px;top:104px;z-index:20">
+      <div class="serif h3" id="s3a">Everything unlocked.</div>
+    </div>
+    <div id="s3list" style="position:absolute;left:96px;right:96px;bottom:128px;z-index:20">
+      <div class="feat" id="f1">Unlimited tracked products</div>
+      <div class="feat" id="f2">Personal trigger map across your routine</div>
+      <div class="feat" id="f3">Full INCI scanner — paste, snap, or barcode</div>
+      <div class="feat" id="f4">Suspect ingredients surfaced across breakouts</div>
+      <div class="feat" id="f5">Founding badge + early iOS access</div>
+    </div>
+  </div>
+
+  <!-- S4 · the terms -->
+  <div class="scene" id="s4">
+    <div class="serif h2" id="s4a">No subscription.<br>No auto-renew.<br>No card on file.</div>
+    <div class="body" id="s4b" style="margin-top:46px;font-size:42px;max-width:26ch">
+      Pay once. Use it for three months. Decide later — or don't. 14-day refund either way.
+    </div>
+  </div>
+
+  <!-- S5 · CTA -->
+  <div class="scene" id="s5">
+    <div id="s5mark" class="mark" style="margin-bottom:50px">
+      <svg viewBox="0 0 24 24" fill="#FFFEFA">
+        <path d="M12 0.6 13.85 9.6 23 11.6 13.85 13.6 12 22.6 10.15 13.6 1 11.6 10.15 9.6Z"/>
+        <path d="M18.6 2.2 19.35 5.1 22.2 5.9 19.35 6.7 18.6 9.6 17.85 6.7 15 5.9 17.85 5.1Z" opacity="0.95"/>
+      </svg>
+    </div>
+    <div class="serif" id="s5a" style="font-size:128px;line-height:1">Skintel</div>
+    <div class="body" id="s5b" style="margin-top:20px;font-size:44px;max-width:30ch">
+      Know what touches your skin.
+    </div>
+    <div class="serif" id="s5c" style="font-size:62px;line-height:1.2;margin-top:54px">
+      <span class="pri">$20</span> · 3 months · 500 spots
+    </div>
+    <div class="btn" id="s5d" style="margin-top:46px;align-self:flex-start">
+      skinstel.com/discount
+      <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#FFFEFA"
+           stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round">
+        <line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/>
+      </svg>
+    </div>
+  </div>
+
+  <div id="vignette"></div>
+  <div id="grain"></div>
+</div>
+
+<style>
+.feat {
+  font-size: 37px; font-weight: 500; line-height: 1.3;
+  padding: 22px 30px; margin-top: 14px;
+  background: rgba(255,254,250,0.92);
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  box-shadow: 0 14px 34px -20px rgba(26,24,20,0.4);
+  will-change: transform, opacity;
+}
+</style>
+
+<script src="./engine.js"></script>
+<script>
+const E = window.__E;
+const $ = id => document.getElementById(id);
+const DURATION = 21.0;
+
+const S = {
+  s1: [0.00,  3.80],
+  s2: [3.60,  8.00],
+  s3: [7.80, 14.60],
+  s4: [14.40, 17.60],
+  s5: [17.40, 21.00],
+};
+
+function render(t) {
+  // S1 — 500
+  if (E.applyScene($('s1'), t, S.s1[0], S.s1[1], { drift: 18 }) > 0) {
+    E.riseIn($('s1e'), t, 0.12, { rise: 20 });
+    const n = E.easeEmil(E.seg(t, 0.35, 1.25));
+    $('s1a').style.opacity = n;
+    $('s1a').style.transform = `scale(${E.lerp(0.82, 1, n)})`;
+    E.revealWords($('s1b'), t, 1.15, { step: 0.055 });
+  }
+
+  // S2 — $20
+  if (E.applyScene($('s2'), t, S.s2[0], S.s2[1], { drift: 18 }) > 0) {
+    const n = E.easeEmil(E.seg(t, 3.85, 4.75));
+    $('s2a').style.opacity = n;
+    $('s2a').style.transform = `scale(${E.lerp(0.82, 1, n)})`;
+    E.riseIn($('s2b'), t, 4.55, { rise: 26 });
+    E.riseIn($('s2c'), t, 5.15, { rise: 32 });
+  }
+
+  // S3 — montage + feature list
+  if (E.applyScene($('s3'), t, S.s3[0], S.s3[1], { drift: 0, scale: 0 }) > 0) {
+    // three mockups cross-fade behind the scrim
+    const shots = [['m1', 7.85, 10.4], ['m2', 10.1, 12.4], ['m3', 12.1, 14.6]];
+    shots.forEach(([id, a, b], i) => {
+      const alpha = Math.min(
+        E.easeInOut(E.seg(t, a, a + 0.55)),
+        1 - E.easeInOut(E.seg(t, b - 0.55, b))
+      );
+      const k = E.lerp(0.80, 0.88, E.easeInOut(E.seg(t, a, b)));
+      $(id).style.opacity = alpha;
+      $(id).style.transform = `translate(-50%,-50%) translateY(60px) scale(${k})`;
+    });
+    E.revealWords($('s3a'), t, 8.15, { step: 0.05 });
+    ['f1', 'f2', 'f3', 'f4', 'f5'].forEach((id, i) => {
+      const at = 9.15 + i * 0.42;
+      const p = E.easeEmil(E.seg(t, at, at + 0.62));
+      $(id).style.opacity = p;
+      $(id).style.transform = `translateX(${(1 - p) * -36}px) scale(${E.lerp(0.97, 1, p)})`;
+    });
+  }
+
+  // S4 — terms
+  if (E.applyScene($('s4'), t, S.s4[0], S.s4[1], { drift: 18 }) > 0) {
+    E.revealWords($('s4a'), t, 14.6, { step: 0.05 });
+    E.riseIn($('s4b'), t, 15.9, { rise: 30 });
+  }
+
+  // S5 — CTA
+  if (E.applyScene($('s5'), t, S.s5[0], S.s5[1], { drift: 12, scale: 0.008 }) > 0) {
+    const m = E.easeEmil(E.seg(t, 17.55, 18.3));
+    $('s5mark').style.opacity = m;
+    $('s5mark').style.transform = `scale(${E.lerp(0.72, 1, m)}) rotate(${(1 - m) * -14}deg)`;
+    E.revealWords($('s5a'), t, 17.95, { step: 0.05 });
+    E.riseIn($('s5b'), t, 18.4, { rise: 24 });
+    E.riseIn($('s5c'), t, 18.85, { rise: 30 });
+    const b = E.easeEmil(E.seg(t, 19.45, 20.15));
+    $('s5d').style.opacity = b;
+    $('s5d').style.transform = `translateY(${(1 - b) * 30}px) scale(${E.lerp(0.94, 1, b)})`;
+  }
+}
+
+window.__seek = t => { render(t); return true; };
+window.__duration = DURATION;
+render(0);
+</script>
+</body>
+</html>

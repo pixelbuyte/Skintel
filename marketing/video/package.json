@@ -1,0 +1,20 @@
+{
+  "name": "skintel-marketing-video",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Renders Skintel's vertical marketing videos from the iOS design spec.",
+  "scripts": {
+    "assets": "./prepare-assets.sh",
+    "render:v1": "node render.mjs v1 30",
+    "render:v2": "node render.mjs v2 30",
+    "render:v3": "node render.mjs v3 30",
+    "render:launch": "node render.mjs launch 30",
+    "render:all": "npm run render:v1 && npm run render:v2 && npm run render:v3 && npm run render:launch"
+  },
+  "dependencies": {
+    "@fontsource/dm-sans": "^5.3.0",
+    "@fontsource/instrument-serif": "^5.3.0",
+    "playwright": "^1.62.1"
+  }
+}
