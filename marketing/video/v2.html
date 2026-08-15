@@ -1,0 +1,197 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<link rel="stylesheet" href="./style.css">
+</head>
+<body>
+<div id="stage">
+
+  <!-- S1 · hook -->
+  <div class="scene" id="s1">
+    <div class="eyebrow" id="s1e">Skintel</div>
+    <div class="serif h1" id="s1a" style="margin-top:34px">Twenty-six ingredients.</div>
+    <div class="serif h1 pri ital" id="s1b" style="margin-top:6px">None in plain English.</div>
+  </div>
+
+  <!-- S2 · scan -->
+  <div class="scene" id="s2" style="padding:0">
+    <div class="phone-wrap" id="s2p">
+      <div class="phone-clip"><img class="phone" src="./assets/scan.png"></div>
+    </div>
+    <div style="position:absolute;left:96px;right:96px;top:120px;z-index:20">
+      <div class="serif h3" id="s2a">Point the camera<br>at the label.</div>
+      <div class="body" id="s2b" style="margin-top:26px;max-width:28ch;font-size:36px">
+        Barcode or ingredient list — it reads both.
+      </div>
+    </div>
+  </div>
+
+  <!-- S3 · the verdict -->
+  <div class="scene" id="s3" style="padding:0">
+    <div class="phone-wrap" id="s3p">
+      <div class="phone-clip"><img class="phone" src="./assets/verdict.png"></div>
+    </div>
+    <div id="s3dim" style="position:absolute;inset:0;background:#141210;z-index:15"></div>
+    <div id="s3c" style="position:absolute;left:76px;right:76px;top:50%;z-index:20">
+      <div class="eyebrow" id="s3e"
+           style="margin-bottom:38px;color:rgba(255,251,244,0.92);
+                  text-shadow:0 2px 24px rgba(0,0,0,0.5)">Matched to your skin profile</div>
+      <div class="card" id="s3card" style="padding:56px;background:var(--good-bg);border-color:rgba(92,122,79,0.22)">
+        <div style="display:flex;align-items:center;gap:34px">
+          <div class="serif" style="font-size:150px;line-height:0.9;color:var(--good-fg)">82</div>
+          <div>
+            <div style="font-size:30px;font-weight:700;letter-spacing:0.14em;
+                        text-transform:uppercase;color:var(--good-fg)">Good match</div>
+            <div style="font-size:32px;color:var(--muted);margin-top:12px">confidence high</div>
+          </div>
+        </div>
+        <div class="serif" id="s3q" style="font-size:58px;line-height:1.18;margin-top:38px;color:var(--ink)">
+          Fits combination, breakout-prone skin. Nothing here should clog or sting.
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- S4 · the why -->
+  <div class="scene" id="s4" style="padding:0">
+    <div class="phone-wrap" id="s4p">
+      <div class="phone-clip"><img class="phone" src="./assets/product.png"></div>
+    </div>
+    <div style="position:absolute;left:96px;right:96px;top:112px;z-index:20">
+      <div class="serif h3" id="s4a">And it shows you<br><em class="pri ital">why</em>.</div>
+    </div>
+    <div id="s4row" style="position:absolute;left:96px;right:96px;bottom:118px;z-index:20;
+                           display:flex;gap:20px;flex-wrap:nowrap;justify-content:space-between">
+      <div class="pill good"   id="q1"><span class="dot"></span>Good for you</div>
+      <div class="pill unsure" id="q2"><span class="dot"></span>Watch</div>
+      <div class="pill bad"    id="q3"><span class="dot"></span>Red flags</div>
+    </div>
+  </div>
+
+  <!-- S5 · CTA -->
+  <div class="scene" id="s5">
+    <div id="s5mark" class="mark" style="margin-bottom:52px">
+      <svg viewBox="0 0 24 24" fill="#FFFEFA">
+        <path d="M12 0.6 13.85 9.6 23 11.6 13.85 13.6 12 22.6 10.15 13.6 1 11.6 10.15 9.6Z"/>
+        <path d="M18.6 2.2 19.35 5.1 22.2 5.9 19.35 6.7 18.6 9.6 17.85 6.7 15 5.9 17.85 5.1Z" opacity="0.95"/>
+      </svg>
+    </div>
+    <div class="serif" id="s5a" style="font-size:96px;line-height:1.04">Stop buying blind.</div>
+    <div class="body" id="s5b" style="margin-top:24px;font-size:42px;max-width:30ch">
+      Scan your whole shelf before you spend another $60 guessing.
+    </div>
+
+    <div class="card" id="s5c" style="margin-top:58px;padding:50px 54px">
+      <div class="eyebrow" style="font-size:24px">Founding offer · 500 spots</div>
+      <div class="serif" style="font-size:100px;line-height:1;margin-top:22px">
+        $20<span style="font-size:44px;color:var(--muted);margin-left:14px">once</span>
+      </div>
+      <div style="font-size:40px;font-weight:500;margin-top:16px">3 months of Skintel Pro</div>
+      <div style="font-size:31px;color:var(--muted);margin-top:18px;line-height:1.4">
+        No subscription · No auto-renew · 14-day refund
+      </div>
+    </div>
+
+    <div class="btn" id="s5d" style="margin-top:52px;align-self:flex-start">
+      skinstel.com/discount
+      <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#FFFEFA"
+           stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round">
+        <line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/>
+      </svg>
+    </div>
+  </div>
+
+  <div id="vignette"></div>
+  <div id="grain"></div>
+</div>
+
+<script src="./engine.js"></script>
+<script>
+const E = window.__E;
+const $ = id => document.getElementById(id);
+const DURATION = 27.0;
+
+const S = {
+  s1: [0.00,  4.40],
+  s2: [4.20,  9.80],
+  s3: [9.60, 17.20],
+  s4: [17.00, 21.80],
+  s5: [21.60, 27.00],
+};
+
+function render(t) {
+  // S1 hook
+  if (E.applyScene($('s1'), t, S.s1[0], S.s1[1], { drift: 20 }) > 0) {
+    E.riseIn($('s1e'), t, 0.15, { rise: 22 });
+    E.revealWords($('s1a'), t, 0.45, { step: 0.07, blur: true });
+    E.revealWords($('s1b'), t, 1.15, { step: 0.07, blur: true });
+  }
+
+  // S2 scan
+  if (E.applyScene($('s2'), t, S.s2[0], S.s2[1], { drift: 0, scale: 0 }) > 0) {
+    const rise = E.easeOutQuint(E.seg(t, 4.25, 5.5));
+    const k = E.kenBurns(t, 4.2, 9.8, 0.78, 0.84);
+    $('s2p').style.opacity = rise;
+    $('s2p').style.transform =
+      `translate(-50%,-50%) translateY(${E.lerp(340, 214, rise)}px) scale(${k})`;
+    E.revealWords($('s2a'), t, 5.05, { step: 0.05 });
+    E.riseIn($('s2b'), t, 6.15, { rise: 28 });
+  }
+
+  // S3 verdict — push in on the score ring, then hand off to a crisp card
+  if (E.applyScene($('s3'), t, S.s3[0], S.s3[1], { drift: 0, scale: 0 }) > 0) {
+    const enter = E.easeOutQuint(E.seg(t, 9.65, 10.7));
+    const zoom  = E.easeInOut(E.seg(t, 11.2, 13.8));
+    const k     = E.lerp(0.78, 1.62, zoom);
+    // score ring sits up-left of the phone centre
+    const dx = 163 * zoom, dy = 306 * zoom;
+    const dimP = E.easeInOut(E.seg(t, 13.3, 14.4));
+    $('s3p').style.opacity = enter;
+    $('s3p').style.transform =
+      `translate(-50%,-50%) scale(${k}) translate(${dx}px, ${dy}px)`;
+    $('s3p').style.filter = dimP > 0 ? `blur(${10 * dimP}px)` : 'none';
+    $('s3dim').style.opacity = 0.76 * dimP;
+
+    const cIn = E.easeOutQuint(E.seg(t, 13.7, 14.6));
+    $('s3c').style.opacity = cIn;
+    $('s3c').style.transform = `translateY(-50%) scale(${E.lerp(0.94, 1, cIn)})`;
+    E.riseIn($('s3e'), t, 13.85, { rise: 18 });
+    E.revealWords($('s3q'), t, 14.35, { step: 0.04 });
+  }
+
+  // S4 the why
+  if (E.applyScene($('s4'), t, S.s4[0], S.s4[1], { drift: 0, scale: 0 }) > 0) {
+    const enter = E.easeOutQuint(E.seg(t, 17.05, 18.1));
+    const k = E.kenBurns(t, 17.0, 21.8, 0.74, 0.785);
+    $('s4p').style.opacity = enter;
+    $('s4p').style.transform =
+      `translate(-50%,-50%) translateY(${E.lerp(110, 48, enter)}px) scale(${k})`;
+    E.revealWords($('s4a'), t, 17.55, { step: 0.06 });
+    [['q1', 19.15], ['q2', 19.38], ['q3', 19.61]].forEach(([id, at]) => {
+      const p = E.easeEmil(E.seg(t, at, at + 0.6));
+      $(id).style.opacity = p;
+      $(id).style.transform = `translateY(${(1 - p) * 32}px) scale(${E.lerp(0.9, 1, p)})`;
+    });
+  }
+
+  // S5 CTA
+  if (E.applyScene($('s5'), t, S.s5[0], S.s5[1], { drift: 14, scale: 0.008 }) > 0) {
+    const m = E.easeEmil(E.seg(t, 21.75, 22.5));
+    $('s5mark').style.opacity = m;
+    $('s5mark').style.transform = `scale(${E.lerp(0.72, 1, m)}) rotate(${(1 - m) * -14}deg)`;
+    E.revealWords($('s5a'), t, 22.15, { step: 0.055 });
+    E.riseIn($('s5b'), t, 22.75, { rise: 26 });
+    E.riseIn($('s5c'), t, 23.25, { rise: 44 });
+    const b = E.easeEmil(E.seg(t, 24.15, 24.85));
+    $('s5d').style.opacity = b;
+    $('s5d').style.transform = `translateY(${(1 - b) * 32}px) scale(${E.lerp(0.94, 1, b)})`;
+  }
+}
+
+window.__seek = t => { render(t); return true; };
+window.__duration = DURATION;
+render(0);
+</script>
+</body>
+</html>

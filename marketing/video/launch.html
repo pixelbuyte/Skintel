@@ -1,0 +1,257 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<link rel="stylesheet" href="./style.css">
+</head>
+<body>
+<div id="stage">
+
+  <!-- S1 · the premise -->
+  <div class="scene" id="s1">
+    <div class="eyebrow" id="s1e">Introducing</div>
+    <div class="serif h1" id="s1a" style="margin-top:34px">Something on your shelf</div>
+    <div class="serif h1 pri ital" id="s1b" style="margin-top:6px">is doing this.</div>
+  </div>
+
+  <!-- S2 · why you can't tell -->
+  <div class="scene" id="s2">
+    <div class="serif h2" id="s2a">
+      Twenty-six ingredients<br>a bottle.<br>Six bottles a routine.
+    </div>
+    <div class="body" id="s2b" style="margin-top:46px;max-width:26ch">
+      Nobody isolates that by guessing. Not in three weeks, not in three years.
+    </div>
+  </div>
+
+  <!-- S3 · the brand -->
+  <div class="scene" id="s3" style="align-items:flex-start">
+    <div id="s3mark" class="mark" style="width:200px;height:200px;border-radius:50px;margin-bottom:56px">
+      <svg viewBox="0 0 24 24" fill="#FFFEFA" style="width:112px;height:112px">
+        <path d="M12 0.6 13.85 9.6 23 11.6 13.85 13.6 12 22.6 10.15 13.6 1 11.6 10.15 9.6Z"/>
+        <path d="M18.6 2.2 19.35 5.1 22.2 5.9 19.35 6.7 18.6 9.6 17.85 6.7 15 5.9 17.85 5.1Z" opacity="0.95"/>
+      </svg>
+    </div>
+    <div class="serif" id="s3a" style="font-size:160px;line-height:1">Skintel</div>
+    <div class="body" id="s3b" style="margin-top:26px;font-size:46px;max-width:30ch">
+      Know what touches your skin.
+    </div>
+  </div>
+
+  <!-- S4 · scan → verdict -->
+  <div class="scene" id="s4" style="padding:0">
+    <div class="phone-wrap" id="s4p">
+      <div class="phone-clip"><img class="phone" src="./assets/verdict.png"></div>
+    </div>
+    <div style="position:absolute;left:96px;right:96px;top:110px;z-index:20">
+      <div class="serif h3" id="s4a">Scan it. Get the truth<br>for <em class="pri ital">your</em> skin.</div>
+    </div>
+    <div id="s4row" style="position:absolute;left:96px;right:96px;bottom:112px;z-index:20;
+                           display:flex;gap:20px;flex-wrap:nowrap;justify-content:space-between">
+      <div class="pill good"   id="r1"><span class="dot"></span>86 · Good</div>
+      <div class="pill unsure" id="r2"><span class="dot"></span>64 · Caution</div>
+      <div class="pill bad"    id="r3"><span class="dot"></span>31 · Skip it</div>
+    </div>
+  </div>
+
+  <!-- S5 · the thing nothing else does -->
+  <div class="scene" id="s5" style="padding:0">
+    <div class="phone-wrap" id="s5p">
+      <div class="phone-clip"><img class="phone" src="./assets/home.png"></div>
+    </div>
+    <div id="s5dim" style="position:absolute;inset:0;background:#141210;z-index:15"></div>
+    <div id="s5c" style="position:absolute;left:76px;right:76px;top:50%;z-index:20">
+      <div class="eyebrow" id="s5e"
+           style="margin-bottom:38px;color:rgba(255,251,244,0.92);
+                  text-shadow:0 2px 24px rgba(0,0,0,0.5)">Then it finds the pattern</div>
+      <div class="callout" id="s5card">
+        <div style="display:flex;align-items:center;gap:30px">
+          <div style="width:96px;height:96px;border-radius:26px;background:rgba(178,43,43,0.12);
+                      display:flex;align-items:center;justify-content:center;flex:none">
+            <svg width="52" height="52" viewBox="0 0 24 24" fill="none" stroke="#B22B2B"
+                 stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>
+              <line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/>
+            </svg>
+          </div>
+          <div style="font-size:52px;font-weight:700;color:var(--ink)">1 suspect found</div>
+        </div>
+        <div class="serif" id="s5q" style="font-size:76px;line-height:1.12;margin-top:36px;color:var(--ink)">
+          Fragrance-heavy lotion precedes <span class="pri">3 of 4</span> breakouts.
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- S6 · it compounds -->
+  <div class="scene" id="s6" style="padding:0">
+    <div class="phone-wrap" id="n1" style="z-index:4">
+      <div class="phone-clip"><img class="phone" src="./assets/journal.png"></div>
+    </div>
+    <div class="phone-wrap" id="n2" style="z-index:5">
+      <div class="phone-clip"><img class="phone" src="./assets/routine.png"></div>
+    </div>
+    <div id="s6scrim" style="position:absolute;inset:0;z-index:10;
+         background:linear-gradient(180deg, rgba(244,236,220,0.94) 0%, rgba(244,236,220,0.88) 15%,
+                    rgba(244,236,220,0.10) 32%, rgba(244,236,220,0.10) 58%,
+                    rgba(244,236,220,0.90) 74%, rgba(244,236,220,0.96) 100%)"></div>
+    <div style="position:absolute;left:96px;right:96px;top:104px;z-index:20">
+      <div class="serif h3" id="s6a">It gets sharper<br>every week.</div>
+    </div>
+    <div id="s6list" style="position:absolute;left:96px;right:96px;bottom:124px;z-index:20">
+      <div class="feat" id="g1">Ingredient conflicts in your routine</div>
+      <div class="feat" id="g2">Suspects surfaced across your breakouts</div>
+      <div class="feat" id="g3">Every product you own, scored</div>
+    </div>
+  </div>
+
+  <!-- S7 · the offer -->
+  <div class="scene" id="s7">
+    <div class="eyebrow" id="s7e">Founding offer · 500 spots</div>
+    <div class="serif" id="s7a" style="font-size:210px;line-height:0.9;margin-top:26px">
+      $20<span style="font-size:70px;color:var(--muted);margin-left:20px">once</span>
+    </div>
+    <div class="serif h3" id="s7b" style="margin-top:18px">Three months of Pro.</div>
+    <div class="body" id="s7c" style="margin-top:28px;font-size:38px;max-width:30ch">
+      No subscription. Nothing renews. 14-day refund.
+    </div>
+    <div class="btn" id="s7d" style="margin-top:58px;align-self:flex-start">
+      skinstel.com/discount
+      <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#FFFEFA"
+           stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round">
+        <line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/>
+      </svg>
+    </div>
+  </div>
+
+  <div id="vignette"></div>
+  <div id="grain"></div>
+</div>
+
+<style>
+.feat {
+  font-size: 38px; font-weight: 500; line-height: 1.3;
+  padding: 24px 32px; margin-top: 16px;
+  background: rgba(255,254,250,0.93);
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  box-shadow: 0 14px 34px -20px rgba(26,24,20,0.4);
+  will-change: transform, opacity;
+}
+</style>
+
+<script src="./engine.js"></script>
+<script>
+const E = window.__E;
+const $ = id => document.getElementById(id);
+const DURATION = 50.0;
+
+const S = {
+  s1: [0.00,  5.20],
+  s2: [5.00, 11.00],
+  s3: [10.80, 17.00],
+  s4: [16.80, 25.00],
+  s5: [24.80, 34.00],
+  s6: [33.80, 41.50],
+  s7: [41.30, 50.00],
+};
+
+function render(t) {
+  // S1 — premise
+  if (E.applyScene($('s1'), t, S.s1[0], S.s1[1], { drift: 20 }) > 0) {
+    E.riseIn($('s1e'), t, 0.15, { rise: 22 });
+    E.revealWords($('s1a'), t, 0.50, { step: 0.06, blur: true });
+    E.revealWords($('s1b'), t, 1.35, { step: 0.06, blur: true });
+  }
+
+  // S2 — why guessing fails
+  if (E.applyScene($('s2'), t, S.s2[0], S.s2[1], { drift: 22 }) > 0) {
+    E.revealWords($('s2a'), t, 5.35, { step: 0.05 });
+    E.riseIn($('s2b'), t, 7.90, { rise: 30 });
+  }
+
+  // S3 — brand
+  if (E.applyScene($('s3'), t, S.s3[0], S.s3[1], { drift: 14, scale: 0.006 }) > 0) {
+    const m = E.easeEmil(E.seg(t, 11.05, 11.95));
+    $('s3mark').style.opacity = m;
+    $('s3mark').style.transform = `scale(${E.lerp(0.66, 1, m)}) rotate(${(1 - m) * -16}deg)`;
+    E.revealWords($('s3a'), t, 11.75, { step: 0.06 });
+    E.riseIn($('s3b'), t, 12.60, { rise: 28 });
+  }
+
+  // S4 — scan → verdict
+  if (E.applyScene($('s4'), t, S.s4[0], S.s4[1], { drift: 0, scale: 0 }) > 0) {
+    const enter = E.easeOutQuint(E.seg(t, 16.85, 18.1));
+    const k = E.kenBurns(t, 16.8, 25.0, 0.74, 0.80);
+    $('s4p').style.opacity = enter;
+    $('s4p').style.transform =
+      `translate(-50%,-50%) translateY(${E.lerp(120, 52, enter)}px) scale(${k})`;
+    E.revealWords($('s4a'), t, 17.45, { step: 0.05 });
+    [['r1', 21.4], ['r2', 21.65], ['r3', 21.9]].forEach(([id, at]) => {
+      const p = E.easeEmil(E.seg(t, at, at + 0.62));
+      $(id).style.opacity = p;
+      $(id).style.transform = `translateY(${(1 - p) * 34}px) scale(${E.lerp(0.9, 1, p)})`;
+    });
+  }
+
+  // S5 — the differentiator
+  if (E.applyScene($('s5'), t, S.s5[0], S.s5[1], { drift: 0, scale: 0 }) > 0) {
+    const enter = E.easeOutQuint(E.seg(t, 24.85, 26.0));
+    const zoom  = E.easeInOut(E.seg(t, 26.6, 29.6));
+    const k     = E.lerp(0.80, 1.58, zoom);
+    const cardY = 261 * zoom;
+    const dimP  = E.easeInOut(E.seg(t, 29.1, 30.2));
+    $('s5p').style.opacity = enter;
+    $('s5p').style.transform =
+      `translate(-50%,-50%) scale(${k}) translate(0px, ${cardY}px)`;
+    $('s5p').style.filter = dimP > 0 ? `blur(${10 * dimP}px)` : 'none';
+    $('s5dim').style.opacity = 0.76 * dimP;
+
+    const cIn = E.easeOutQuint(E.seg(t, 29.5, 30.4));
+    $('s5c').style.opacity = cIn;
+    $('s5c').style.transform = `translateY(-50%) scale(${E.lerp(0.94, 1, cIn)})`;
+    E.riseIn($('s5e'), t, 29.65, { rise: 18 });
+    E.revealWords($('s5q'), t, 30.05, { step: 0.045 });
+  }
+
+  // S6 — compounds
+  if (E.applyScene($('s6'), t, S.s6[0], S.s6[1], { drift: 0, scale: 0 }) > 0) {
+    const shots = [['n1', 33.85, 37.9], ['n2', 37.6, 41.5]];
+    shots.forEach(([id, a, b]) => {
+      const alpha = Math.min(
+        E.easeInOut(E.seg(t, a, a + 0.55)),
+        1 - E.easeInOut(E.seg(t, b - 0.55, b))
+      );
+      const k = E.lerp(0.80, 0.87, E.easeInOut(E.seg(t, a, b)));
+      $(id).style.opacity = alpha;
+      $(id).style.transform = `translate(-50%,-50%) translateY(56px) scale(${k})`;
+    });
+    E.revealWords($('s6a'), t, 34.15, { step: 0.05 });
+    ['g1', 'g2', 'g3'].forEach((id, i) => {
+      const at = 35.5 + i * 0.5;
+      const p = E.easeEmil(E.seg(t, at, at + 0.65));
+      $(id).style.opacity = p;
+      $(id).style.transform = `translateX(${(1 - p) * -36}px) scale(${E.lerp(0.97, 1, p)})`;
+    });
+  }
+
+  // S7 — offer
+  if (E.applyScene($('s7'), t, S.s7[0], S.s7[1], { drift: 14, scale: 0.008 }) > 0) {
+    E.riseIn($('s7e'), t, 41.45, { rise: 20 });
+    const n = E.easeEmil(E.seg(t, 41.75, 42.7));
+    $('s7a').style.opacity = n;
+    $('s7a').style.transform = `scale(${E.lerp(0.84, 1, n)})`;
+    E.riseIn($('s7b'), t, 42.65, { rise: 26 });
+    E.riseIn($('s7c'), t, 43.20, { rise: 28 });
+    const b = E.easeEmil(E.seg(t, 44.10, 44.85));
+    $('s7d').style.opacity = b;
+    $('s7d').style.transform = `translateY(${(1 - b) * 32}px) scale(${E.lerp(0.94, 1, b)})`;
+  }
+}
+
+window.__seek = t => { render(t); return true; };
+window.__duration = DURATION;
+render(0);
+</script>
+</body>
+</html>
