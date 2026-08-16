@@ -8,6 +8,44 @@ Each script has a shot list, on-screen text, and a clean voiceover block. **For 
 
 ---
 
+## Hook bank — use our own, not borrowed
+
+**Why not borrow someone else's viral hook:** a viewer who stopped for someone else's topic isn't your buyer. When the video switches to skincare they feel baited — they scroll, and some of them comment negatively, which teaches the algorithm the video is bad. Borrowed attention converts worse than no attention.
+
+A native hook has no switch in it. Everyone who stops is already the right person.
+
+Swap any of these into the first 1.5 seconds of any script below. Say it before the shot settles — no greeting, no intro.
+
+### Go-check-your-shelf — strongest
+These make the viewer physically get up, which drives watch time and produces the comment you want ("wait, mine has it too").
+
+- "Go get your moisturizer. I'll wait. Turn it around and look for the word myristate."
+- "How many things in your bathroom have coconut oil in them? Go count. It's more than you think."
+- "Pick up whatever you put on your face last night. I'll tell you what's wrong with it."
+
+### Reframe
+- "Your skin isn't broken. Your routine is fighting itself."
+- "You don't have sensitive skin. You have one ingredient in five products."
+- "You've been blaming the wrong product this entire time."
+
+### Numbers — concrete reads as credible
+- "168 ingredients go on your face before you leave the house."
+- "Your breakout product and your safe product share twelve ingredients."
+- "Four hundred dollars on skincare before most people find what works."
+
+### Callout — these start arguments, and arguments are reach
+- "That 'clean' moisturizer has three fragrance allergens in it."
+- "Fragrance free doesn't mean allergen free, and they know that."
+- "Dermatologist tested means nothing. Here's what to actually read."
+
+### Been-there — highest buying intent
+- "You cut actives. Went fragrance free. Still breaking out. Here's why that didn't work."
+- "Three dermatologists and you still don't know what's doing it."
+
+**Testing them:** the hook is the only variable worth A/B-ing. Same footage, new first line, repost. If a video clears ~20k views, re-cut it with three more hooks from this list.
+
+---
+
 ## Script 1 — "Three products, one ingredient"
 
 The strongest of the three. Surprising, instantly checkable against the viewer's own shelf, and it's the core product insight.
