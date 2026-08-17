@@ -10,7 +10,41 @@
     <link rel="apple-touch-icon" sizes="512x512" href="/icons/icon-512.png" />
     <link rel="manifest" href="/manifest.json" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
-    <meta name="description" content="Skintel — stop buying products that destroy your skin. Track ingredients, find your personal triggers." />
+
+    <!-- ── SEO ──────────────────────────────────────────────────────────────
+         NOTE: when the custom domain goes live, find-and-replace every
+         occurrence of https://skintel-six.vercel.app in this file, in
+         public/robots.txt and in public/sitemap.xml. Absolute URLs are
+         required here — social crawlers do not resolve relative paths.
+    ─────────────────────────────────────────────────────────────────────── -->
+    <title>Skintel — find the ingredient that's breaking you out</title>
+    <meta name="description" content="Your skin isn't broken — your routine is fighting itself. Skintel scans every product you own, cross-references the ingredient lists, and finds the one ingredient hiding across all of them." />
+    <link rel="canonical" href="https://skintel-six.vercel.app/" />
+    <meta name="robots" content="index, follow, max-image-preview:large, max-snippet:-1" />
+    <meta name="author" content="Skintel" />
+    <meta name="keywords" content="skincare ingredients, INCI scanner, comedogenic ingredients, breakout triggers, fragrance allergens, skincare tracker, ingredient checker" />
+
+    <!-- ── Open Graph (Facebook, LinkedIn, iMessage, WhatsApp, Discord) ──── -->
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="Skintel" />
+    <meta property="og:locale" content="en_US" />
+    <meta property="og:url" content="https://skintel-six.vercel.app/" />
+    <meta property="og:title" content="Skintel — find the ingredient that's breaking you out" />
+    <meta property="og:description" content="Your skin isn't broken — your routine is fighting itself. Scan every product you own and find the one ingredient hiding across all of them." />
+    <meta property="og:image" content="https://skintel-six.vercel.app/og-image.png" />
+    <meta property="og:image:secure_url" content="https://skintel-six.vercel.app/og-image.png" />
+    <meta property="og:image:type" content="image/png" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:image:alt" content="Skintel — your skin isn't broken, your routine is fighting itself." />
+
+    <!-- ── Twitter / X ───────────────────────────────────────────────────── -->
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="Skintel — find the ingredient that's breaking you out" />
+    <meta name="twitter:description" content="Your skin isn't broken — your routine is fighting itself. Scan every product you own and find the one ingredient hiding across all of them." />
+    <meta name="twitter:image" content="https://skintel-six.vercel.app/og-image.png" />
+    <meta name="twitter:image:alt" content="Skintel — your skin isn't broken, your routine is fighting itself." />
+
     <meta name="theme-color" content="#A35848" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
@@ -19,7 +53,47 @@
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=DM+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
-    <title>Skintel — your skincare ingredient intelligence</title>
+
+    <!-- ── Structured data: lets Google show a rich result for "Skintel" ─── -->
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "WebApplication",
+      "name": "Skintel",
+      "url": "https://skintel-six.vercel.app/",
+      "description": "Skintel scans the ingredient list of every skincare product you own and finds the ingredient that correlates with your breakouts.",
+      "applicationCategory": "HealthApplication",
+      "operatingSystem": "Web",
+      "browserRequirements": "Requires JavaScript",
+      "image": "https://skintel-six.vercel.app/og-image.png",
+      "featureList": [
+        "Full INCI ingredient scanner — paste, photo, or barcode",
+        "Personal trigger map across every product you own",
+        "Side-by-side product comparison",
+        "Routine analysis and breakout journal"
+      ],
+      "offers": [
+        {
+          "@type": "Offer",
+          "name": "Free",
+          "price": "0",
+          "priceCurrency": "USD"
+        },
+        {
+          "@type": "Offer",
+          "name": "Pro Monthly",
+          "price": "9",
+          "priceCurrency": "USD"
+        },
+        {
+          "@type": "Offer",
+          "name": "Pro Yearly",
+          "price": "79",
+          "priceCurrency": "USD"
+        }
+      ]
+    }
+    </script>
   </head>
   <body>
     <div id="root"></div>
