@@ -21,7 +21,7 @@ async function main() {
   console.log('Got JWT (len)', token.length);
 
   // 1b. Hit vercel share URL to get bypass cookie
-  const shareUrl = 'https://skintel-six.vercel.app/?_vercel_share=yoyMlPI2grvJjh1QKXd57hLWjZDrzNBT';
+  const shareUrl = 'https://www.skinstel.com/?_vercel_share=yoyMlPI2grvJjh1QKXd57hLWjZDrzNBT';
   const shareResp = await fetch(shareUrl, { redirect: 'manual' });
   console.log('Share URL status:', shareResp.status);
   const setCookies = shareResp.headers.getSetCookie?.() ?? [shareResp.headers.get('set-cookie')].filter(Boolean);
@@ -32,7 +32,7 @@ async function main() {
   const upcs = ['3337875597197', '0072140017769', '3600523971084'];
   for (const upc of upcs) {
     console.log(`\n--- UPC ${upc} ---`);
-    const r = await fetch(`https://skintel-six.vercel.app/api/lookup?mode=barcode&upc=${upc}`, {
+    const r = await fetch(`https://www.skinstel.com/api/lookup?mode=barcode&upc=${upc}`, {
       method: 'GET',
       headers: {
         Authorization: `Bearer ${token}`,

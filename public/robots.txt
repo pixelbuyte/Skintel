@@ -1,5 +1,5 @@
 # Skintel
-# NOTE: update the Sitemap URL below when the custom domain goes live.
+# Canonical origin: https://www.skinstel.com (apex 308-redirects to www).
 
 User-agent: *
 Allow: /
@@ -11,4 +11,4 @@ Disallow: /app/
 Disallow: /auth/
 Disallow: /checkout/
 
-Sitemap: https://skintel-six.vercel.app/sitemap.xml
+Sitemap: https://www.skinstel.com/sitemap.xml

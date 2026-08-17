@@ -1,47 +1,47 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!--
-  NOTE: update every <loc> when the custom domain goes live.
+  Canonical origin: https://www.skinstel.com (apex 308-redirects to www).
   Only public, indexable routes belong here — /app/*, /auth/* and
   /checkout/* are excluded and are also blocked in robots.txt.
 -->
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
   <url>
-    <loc>https://skintel-six.vercel.app/</loc>
+    <loc>https://www.skinstel.com/</loc>
     <changefreq>weekly</changefreq>
     <priority>1.0</priority>
   </url>
   <url>
-    <loc>https://skintel-six.vercel.app/pricing</loc>
+    <loc>https://www.skinstel.com/pricing</loc>
     <changefreq>weekly</changefreq>
     <priority>0.9</priority>
   </url>
   <url>
-    <loc>https://skintel-six.vercel.app/discount</loc>
+    <loc>https://www.skinstel.com/discount</loc>
     <changefreq>weekly</changefreq>
     <priority>0.9</priority>
   </url>
   <url>
-    <loc>https://skintel-six.vercel.app/about</loc>
+    <loc>https://www.skinstel.com/about</loc>
     <changefreq>monthly</changefreq>
     <priority>0.6</priority>
   </url>
   <url>
-    <loc>https://skintel-six.vercel.app/roadmap</loc>
+    <loc>https://www.skinstel.com/roadmap</loc>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>
   <url>
-    <loc>https://skintel-six.vercel.app/contact</loc>
+    <loc>https://www.skinstel.com/contact</loc>
     <changefreq>monthly</changefreq>
     <priority>0.4</priority>
   </url>
   <url>
-    <loc>https://skintel-six.vercel.app/privacy</loc>
+    <loc>https://www.skinstel.com/privacy</loc>
     <changefreq>yearly</changefreq>
     <priority>0.3</priority>
   </url>
   <url>
-    <loc>https://skintel-six.vercel.app/terms</loc>
+    <loc>https://www.skinstel.com/terms</loc>
     <changefreq>yearly</changefreq>
     <priority>0.3</priority>
   </url>

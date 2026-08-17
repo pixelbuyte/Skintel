@@ -8,7 +8,7 @@ originSessionId: 9ac1e8e3-400f-46ec-97d8-ae0115e52adf
 
 **Repo:** github.com/pixelbuyte/Skintel
 **Local:** C:/Users/rrswa/skintel/
-**Prod:** https://skintel-six.vercel.app
+**Prod:** https://www.skinstel.com
 **Supabase project ref:** fgttlowgvoonedqglyle
 **Vercel team/project:** team_kvUSdDPuWTYwAJnJ93cE8wWY / prj_C7Ypb9fucaN0zItkK6QqMmMFWMQV
 
