@@ -1,10 +1,29 @@
-# Skintel — 3 Production-Ready Scripts
+# Skintel — Production-Ready Scripts
 
-**Format:** 9:16 vertical, 30–35 sec each
+**Format:** 9:16 vertical, 20–35 sec each
 **Style:** native phone footage, real bathroom, no editing polish, auto-captions only
 **Rule:** say "Skintel" out loud exactly once, plus a 2-second text overlay. No "link in bio."
 
 Each script has a shot list, on-screen text, and a clean voiceover block. **For ElevenLabs, paste only the text inside the code block** — nothing else.
+
+---
+
+## What the platform actually rewards (2026)
+
+Researched benchmarks, not guesses. These drive every rule below.
+
+| Finding | Implication |
+|---|---|
+| **3-second retention is the dominant ranking signal.** A video holding 80% at 3s out-distributes one holding 60% at 30s. Clearing 60% past 3s earns **~4× the reach**. | The hook is the whole game. Everything after it only has to not lose people. |
+| **Hooks should be ~10–14 words, landing inside 3 seconds.** | No runway. First frame is mid-sentence. |
+| **Negative framing beats positive by 1.3–1.8× on hook rate.** | "You're cutting the wrong thing" beats "here's how to find what works". |
+| **"Hey guys" and generic greetings score below 30** and suppress reach. | Never open with a greeting, a logo, or a title card. |
+| **Three formulas travel best across niches:** Contrarian Claim, Mistake Warning, List Tease. **Identity Call scores highest overall (85 avg)** — specificity beats broad appeal. | Every script below is built on one of these four, labeled. |
+| **Skincare specifically:** rewards relatability over production value, specific ingredient naming, and reply-to-comment authority. Beauty averages **7.13% engagement** — highest of any category. | Native phone footage wins. Name the actual ingredient. Reply to every comment. |
+
+**Practical upshot:** the hook is the only variable worth A/B testing. Same footage, new first line, repost. A re-cut takes five minutes.
+
+Sources: [TikTok algorithm 2026 / retention](https://hypenest.ai/blogs/tiktok-algorithm-2026-video-hooks-retention) · [tested hook formulas](https://www.hookmafia.io/blog/i-tested-30-viral-tiktok-hooks-here-s-what-actually-works-in-2026) · [3-second hook](https://hansencommerce.com/insights-tiktok-hook-3-seconds) · [skincare formats](https://fluxnote.io/guides/tiktok-skincare-strategy) · [beauty video stats](https://www.webtonic.io/blog/beauty-skincare-video-marketing-statistics)
 
 ---
 
@@ -180,3 +199,156 @@ Paste this, then paste one voiceover block underneath it.
 - Reply to every comment for the first 2 hours. Comment velocity is a ranking input and every reply is free reach.
 - Any post past ~20k views: re-cut with 3 new hooks and repost. Same footage, new first line.
 - Tag each post's link with `?ref=` so you can see which script actually converts.
+
+---
+
+# Batch 2 — hook-formula scripts
+
+Five scripts, each built on one of the four highest-performing formulas. Shorter than batch 1 (20–28s) because 3-second retention outweighs runtime. Formula is labeled on each so you can read the results as a test of the *formula*, not just the video.
+
+---
+
+## Script 4 — "You're cutting the wrong thing"
+**Formula:** Mistake Warning · **Target:** ~24s
+
+### Shots
+| Time | What to film |
+|---|---|
+| 0:00–0:03 | Already mid-sentence. Hand pulling a bottle off the shelf and setting it aside. |
+| 0:03–0:10 | Set aside two more, one at a time — eliminating suspects. |
+| 0:10–0:18 | **Screen recording**: scan several in a row, verdicts stacking. |
+| 0:18–0:22 | Trigger map — one ingredient shared across the flagged ones. **Hold 2 sec silent.** |
+| 0:22–0:24 | `SKINTEL` text. |
+
+### On-screen text
+`YOU'RE CUTTING THE WRONG THING` → `IT'S IN THE NEXT ONE TOO` → `SKINTEL`
+
+### Voiceover
+```
+You're cutting the wrong thing.
+Everyone quits the product. The product isn't the problem.
+One ingredient sits across four things you own, so you drop one and it's still in the next three.
+That's why nothing changes.
+Stop eliminating products. Start tracking ingredients. Skintel.
+```
+
+---
+
+## Script 5 — "Fragrance free doesn't mean allergen free"
+**Formula:** Contrarian Claim · **Target:** ~22s · *Highest comment-driver — this one starts arguments, and arguments are reach.*
+
+### Shots
+| Time | What to film |
+|---|---|
+| 0:00–0:03 | Bottle held up, front label facing camera. Thumb over the brand name. |
+| 0:03–0:07 | Flip to ingredient list, slow push in on the fine print. |
+| 0:07–0:16 | **Screen recording**: scan, flags appear one at a time as each is named. |
+| 0:16–0:20 | Hold on flagged result. **2 sec silent.** |
+| 0:20–0:22 | `SKINTEL` text. |
+
+### On-screen text
+`FRAGRANCE FREE ≠ ALLERGEN FREE` → each ingredient name as spoken → `SKINTEL`
+
+### Voiceover
+```
+Fragrance free doesn't mean allergen free, and they know that.
+Linalool. Limonene. Geraniol.
+Three of the most common fragrance allergens there are, and none of them require the word fragrance on the label.
+The front of the bottle is marketing. The back is the truth. Skintel.
+```
+
+---
+
+## Script 6 — "Two of these three will break you out"
+**Formula:** List Tease · **Target:** ~26s · *Seasonal — run this while sunscreen is top of mind.*
+
+### Shots
+| Time | What to film |
+|---|---|
+| 0:00–0:03 | Three sunscreens lined up, bright light. Already talking. |
+| 0:03–0:10 | Pick each up, scan on phone. Verdicts appear — two flagged, one clean. |
+| 0:10–0:20 | Zoom the flagged ingredients. |
+| 0:20–0:24 | Two flagged results side by side. **Hold 2 sec silent.** |
+| 0:24–0:26 | `SKINTEL` text. |
+
+### On-screen text
+`2 OF THESE 3 WILL BREAK YOU OUT` → `COMEDOGENIC 4/5` → `SKINTEL`
+
+### Voiceover
+```
+Three sunscreens, and two of them will break you out.
+Everyone tells you to wear it every day. Nobody tells you what's in it.
+Isopropyl myristate. Coconut derivatives. Comedogenic four out of five.
+So you do the right thing all summer and your skin gets worse, and you blame the heat.
+It's not the heat. It's the bottle. Skintel.
+```
+
+> **Claim discipline:** say *some* sunscreens, never name a real brand as a breakout cause. The comedogenic ratings are defensible; a named accusation is not.
+
+---
+
+## Script 7 — "Seen a derm and still don't know?"
+**Formula:** Identity Call (highest-scoring formula) · **Target:** ~28s · *Highest buying intent — this is the person who pays.*
+
+### Shots
+| Time | What to film |
+|---|---|
+| 0:00–0:04 | Wide on a messy shelf. Tired, honest delivery — not hype. |
+| 0:04–0:14 | **Screen recording**: scanning several products. |
+| 0:14–0:24 | Trigger map — one ingredient as the recurring thread. **Hold 2 sec silent.** |
+| 0:24–0:28 | Face to camera, then `SKINTEL`. |
+
+### On-screen text
+`SEEN A DERM? STILL BREAKING OUT?` → `NOT WHAT'S BAD — WHAT'S BAD FOR YOU` → `SKINTEL`
+
+### Voiceover
+```
+If you've seen a dermatologist and still don't know what's doing it, this is for you.
+Every ingredient checker tells you what's bad in general. That's useless.
+Coconut oil breaks out half of people and does nothing to the other half.
+You don't need a list of bad ingredients. You need the one that keeps showing up when your skin gets worse.
+That's yours. Nobody else's. Skintel.
+```
+
+> **Claim discipline:** this correlates ingredients against the user's own logged breakouts. It does not diagnose skin conditions and must never be framed as medical advice or a substitute for a dermatologist.
+
+---
+
+## Script 8 — "Go get your moisturizer"
+**Formula:** Direct command / physical action · **Target:** ~20s · *Strongest mechanic — makes the viewer stop scrolling and pick up a real bottle, which drives both watch time and the "wait, mine has it too" comment.*
+
+### Shots
+| Time | What to film |
+|---|---|
+| 0:00–0:03 | Direct to camera, gesturing — go get it. |
+| 0:03–0:05 | A beat of actual waiting. Don't cut it short; the pause is the point. |
+| 0:05–0:14 | Bottle turned around, ingredient list scanned. |
+| 0:14–0:18 | Flagged ingredient on the verdict card. **Hold 2 sec silent.** |
+| 0:18–0:20 | `SKINTEL` text. |
+
+### On-screen text
+`GO GET YOUR MOISTURIZER` → `LOOK FOR: MYRISTATE` → `SKINTEL`
+
+### Voiceover
+```
+Go get your moisturizer. I'll wait.
+Turn it around, look for the word myristate.
+If it's there, that's a four out of five on the comedogenic scale, sitting on your face every night.
+Most people have it in three things and have no idea.
+Check yours. Skintel.
+```
+
+---
+
+## Testing these
+
+Post all five, then read the results as a **formula** test, not a video test:
+
+| If this wins | It means | Do next |
+|---|---|---|
+| Script 4 or 7 | Your audience is the exhausted, already-tried-everything buyer | Make more empathy/diagnosis angles. Highest intent, best conversion. |
+| Script 5 | Controversy is your reach engine | More myth-busting. Expect and welcome argument in comments. |
+| Script 6 | Seasonal/product-category framing works | Build a category series: cleansers, primers, SPF, makeup. |
+| Script 8 | The physical-action mechanic is your unlock | Rebuild every other script to open with a command. |
+
+Tag every post with `?ref=` so the winner is visible in Stripe metadata, not guessed from view counts. Views tell you what got attention; `?ref=` tells you what got paid.
