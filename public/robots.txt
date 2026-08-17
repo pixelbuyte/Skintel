@@ -1,0 +1,14 @@
+# Skintel
+# NOTE: update the Sitemap URL below when the custom domain goes live.
+
+User-agent: *
+Allow: /
+
+# Signed-in app, auth callbacks and checkout returns carry no public content
+# and should not be indexed.
+Disallow: /app
+Disallow: /app/
+Disallow: /auth/
+Disallow: /checkout/
+
+Sitemap: https://skintel-six.vercel.app/sitemap.xml
