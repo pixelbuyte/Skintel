@@ -10,6 +10,7 @@ gradients — composed over the iPhone mockups in `designs/previews/`.
 | `v2.html` | 27s | **Scan → verdict.** Demo: scanner, the 82 score card, ingredient breakdown. |
 | `v3.html` | 21s | **The offer.** Price, feature list, terms, CTA. Built for paid and Stories. |
 | `launch.html` | 50s | **Launch film.** The full story — problem, brand reveal, scan, culprit, what compounds, offer. |
+| `hero.html` | 38s | **Live UI.** The only one where the interface animates rather than being filmed: a scanline resolves each ingredient row, an SVG arc draws to 82 while the number counts, and twelve journal bars rise before three flip red. |
 
 `ads.html` holds six 1080×1080 stills for paid social — Reddit's automated campaigns
 want at least two images to run across placements, and square covers feed and

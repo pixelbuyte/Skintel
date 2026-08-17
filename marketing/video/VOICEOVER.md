@@ -69,6 +69,26 @@ understood perfectly.
 
 ---
 
+## Hero — "Live UI" (38s) · ~69 words
+
+The only composition where the interface actually animates rather than being filmed
+off a screenshot, so the voice has more room than usual to stay out of the way. Let
+the ring draw and the bars flip red in silence — the visuals are carrying those beats.
+
+| In | Out | On screen | Say |
+|---|---|---|---|
+| 0.0 | 4.6 | "Your shelf is full of suspects." | *"You already own the answer. It's sitting on a shelf."* |
+| 4.6 | 12.6 | Scanline sweeps, rows flag | *"Skintel reads every ingredient in one pass — and knows which ones your skin has reacted to before."* |
+| 12.6 | 20.6 | Ring draws, 82 counts up | *"Then it scores the whole product against your profile. Not clean or dirty… yours."* |
+| 20.6 | 30.4 | Bars rise, three flip red | *"It lines your routine up against your breakouts, and names what keeps coming first."* |
+| 30.4 | 38.0 | Offer card | *"Twenty dollars, once. Three months. Five hundred spots."* |
+
+**Delivery:** the pause before "yours" is the whole line — it's the differentiator
+against every other ingredient checker. Don't rush the bar scene; the red flip at
+~24.5s wants a beat of silence around it.
+
+---
+
 ## Which to use, per video
 
 Not one answer for all three — the videos do different jobs.

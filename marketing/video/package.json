@@ -10,7 +10,8 @@
     "render:v2": "node render.mjs v2 30",
     "render:v3": "node render.mjs v3 30",
     "render:launch": "node render.mjs launch 30",
-    "render:all": "npm run render:v1 && npm run render:v2 && npm run render:v3 && npm run render:launch",
+    "render:hero": "node render.mjs hero 30",
+    "render:all": "npm run render:v1 && npm run render:v2 && npm run render:v3 && npm run render:launch && npm run render:hero",
     "ads": "node shoot.mjs ads"
   },
   "dependencies": {
