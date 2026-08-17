@@ -10,7 +10,8 @@
     "render:v2": "node render.mjs v2 30",
     "render:v3": "node render.mjs v3 30",
     "render:launch": "node render.mjs launch 30",
-    "render:all": "npm run render:v1 && npm run render:v2 && npm run render:v3 && npm run render:launch"
+    "render:all": "npm run render:v1 && npm run render:v2 && npm run render:v3 && npm run render:launch",
+    "ads": "node shoot.mjs ads"
   },
   "dependencies": {
     "@fontsource/dm-sans": "^5.3.0",

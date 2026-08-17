@@ -1,6 +1,6 @@
-# Skintel marketing video
+# Skintel marketing
 
-Four vertical (1080×1920) videos rendered from the same design tokens as the app —
+Vertical videos and square ad stills, rendered from the same design tokens as the app —
 `#A35848` terracotta, Instrument Serif / DM Sans, the site's grain and radial
 gradients — composed over the iPhone mockups in `designs/previews/`.
 
@@ -11,8 +11,30 @@ gradients — composed over the iPhone mockups in `designs/previews/`.
 | `v3.html` | 21s | **The offer.** Price, feature list, terms, CTA. Built for paid and Stories. |
 | `launch.html` | 50s | **Launch film.** The full story — problem, brand reveal, scan, culprit, what compounds, offer. |
 
+`ads.html` holds six 1080×1080 stills for paid social — Reddit's automated campaigns
+want at least two images to run across placements, and square covers feed and
+conversation. They are six *different angles* (problem, mechanism, price) rather than
+six variants of one, so the platform's rotation reports which argument works, not which
+crop won.
+
 Captions, hashtags and a posting sequence: [`CAPTIONS.md`](./CAPTIONS.md).
 Voiceover scripts timed to the scene cuts: [`VOICEOVER.md`](./VOICEOVER.md).
+
+## House style
+
+Names for the moves, so they can be asked for by name:
+
+| Name | What it is |
+|---|---|
+| **Lift** | Push in on a real UI element, blur and dim the mockup, then fade a crisp version of that element in on top. The screenshot says *where you are*; the crisp card says *what it reads*. It exists because an enlarged screenshot goes soft at ~1.6× — the handoff happens exactly when the blur would start to show. |
+| **Word stagger** | Headline words rising in one at a time, slightly blurred. |
+| **Drift** | The slow Ken Burns push on a phone mockup. |
+| **Scrim montage** | Mockups cross-fading behind a soft gradient with text over the top. |
+| **Number pop** | A big figure scaling up from 82% — the `500`, the `$20`. |
+| **Offer card** | The closing price / terms / CTA block. |
+
+A **Skintel cut** is the whole format: 9:16, silent, cream ground with grain, serif
+headlines that stagger in, one idea per scene, always ending on the offer card.
 
 ## How it works
 
