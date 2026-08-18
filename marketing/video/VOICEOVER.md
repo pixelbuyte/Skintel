@@ -89,18 +89,91 @@ against every other ingredient checker. Don't rush the bar scene; the red flip a
 
 ---
 
+## Shelf — "The audit" (41s) · ~66 words
+
+| In | Out | On screen | Say |
+|---|---|---|---|
+| 0.0 | 4.6 | "You own eleven products." | *"The average bathroom shelf is about four hundred dollars deep."* |
+| 4.6 | 14.6 | Barcode resolves under the beam | *"It takes a barcode. Or a photo of the back of the bottle, if there isn't one."* |
+| 14.6 | 23.6 | Donut splits 26 ingredients | *"Everything in it sorted into what your skin tolerates, watches… and reacts to."* |
+| 23.6 | 33.6 | Six tiles score, then re-sort | *"Then it ranks the whole shelf against you. The expensive one doesn't always win."* |
+| 33.6 | 41.0 | Offer card | *"Twenty dollars, once. Three months. Five hundred spots."* |
+
+**Delivery:** stay flat and factual through the scan — the visuals are doing the
+selling. The one line that wants attitude is "the expensive one doesn't always win";
+land it just before the tiles start moving, then say nothing while they do.
+
+---
+
+## Routine — "The conflict" (42s) · ~64 words
+
+| In | Out | On screen | Say |
+|---|---|---|---|
+| 0.0 | 4.6 | "Six steps. Two cancel out." | *"Most routines fight themselves, and nobody ever tells you."* |
+| 4.6 | 14.8 | Rail draws, steps drop in | *"You log what you use, morning and night. That's the whole job."* |
+| 14.6 | 24.0 | Bracket joins the two acids | *"It reads the order and the timing — and flags when two things shouldn't share a night."* |
+| 23.8 | 34.8 | 28 days fill, barrier gauge | *"Then it watches what happens next. Four weeks is usually enough to see it."* |
+| 34.6 | 42.0 | Offer card | *"Twenty dollars, once. Three months. Five hundred spots."* |
+
+**Delivery:** the bracket drawing at ~16–18s is the reveal. Let it draw in silence
+and come in on the far side of it. Do not name retinol or glycolic aloud — they're
+already on screen, and saying them turns a demonstration into a recital.
+
+---
+
+## Versus — "Head to head" (40s) · ~62 words
+
+| In | Out | On screen | Say |
+|---|---|---|---|
+| 0.0 | 4.6 | "$48. Or $12." | *"Price is the least useful thing on a skincare label."* |
+| 4.6 | 13.6 | Both cards land, scores count | *"Scan both. The score isn't about quality — it's about you."* |
+| 13.4 | 24.0 | Diverging attribute bars | *"Barrier support, actives, fragrance. Line by line, against your profile."* |
+| 23.8 | 32.6 | Cost per use, tick draws | *"Then work out what each one actually costs per use… and it stops being close."* |
+| 32.4 | 40.0 | Offer card | *"Twenty dollars, once. Three months. Five hundred spots."* |
+
+**Delivery:** the row scene is ten seconds for ten words — that's deliberate. Say the
+line early, then let five bars grow in silence. Filling that gap is the one thing
+that would ruin this cut.
+
+---
+
+## Progress — "Twelve weeks" (43s) · ~70 words
+
+| In | Out | On screen | Say |
+|---|---|---|---|
+| 0.0 | 4.8 | "Nothing new was bought." | *"This is what twelve weeks of logging actually looks like."* |
+| 4.6 | 18.2 | Curve draws, milestones pop | *"No new products. No dermatologist. Just three things removed — and the app marked each one the week it happened."* |
+| 18.0 | 27.2 | Three items struck off | *"It didn't guess any of them. Every one came out of the journal."* |
+| 27.0 | 35.6 | Counters run up | *"Three quarters fewer breakout days, from information that was already there."* |
+| 35.4 | 43.0 | Offer card | *"Twelve weeks from today is going to happen either way."* |
+
+**Delivery:** the softest read of the five — this one is a result, not a pitch. The
+13-second curve scene has room for two real pauses; put one after "dermatologist"
+and one before "the week it happened." The closing line replaces the usual price
+read on purpose: the offer card is already on screen saying it.
+
+> The "three quarters" figure is computed from the chart data at render time
+> (currently 76%). If the curve is ever re-cut with different numbers, check the
+> stat card before recording this line.
+
+---
+
 ## Which to use, per video
 
-Not one answer for all three — the videos do different jobs.
+Not one answer for all of them — the videos do different jobs.
 
 | Video | Use | Why |
 |---|---|---|
 | **V1** culprit reveal | your voice | It has the shape of a personal story. A founder telling you what their own app found is the whole credibility of the piece, and that's the one thing TTS cannot supply. |
 | **V2** scan → verdict | either | Pure explainer. No personal claim, so a synthetic read costs nothing. |
 | **V3** the offer | ElevenLabs | It's an ad, and ads are expected to sound produced. Also the one you'll re-cut most as seat counts change — regenerating a line beats re-recording one. |
+| **Hero / Shelf / Versus** | ElevenLabs | Demonstrations, not testimony. The screen is the proof; the voice is just labelling. |
+| **Routine** | either | Sits between the two — the conflict beat lands slightly harder in a real voice, but not enough to hold the cut up over it. |
+| **Progress** | your voice | The only one making a claim about a result. A synthetic read of "three quarters fewer breakout days" sounds exactly like every fake before-and-after ad, and undoes the honesty the chart just bought you. |
 
 The honest tiebreaker: **a synthetic VO that ships beats a recorded one that doesn't.**
-If recording means this sits for a week, use ElevenLabs on all three and move on.
+If recording means this sits for a week, use ElevenLabs on everything and move on —
+except `progress.html`, which is better left silent than synthetic.
 
 ## Recording it yourself
 

@@ -1,0 +1,388 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<link rel="stylesheet" href="./style.css">
+<style>
+  /* Live UI: barcode capture, composition donut, and a shelf that re-sorts itself.
+     Every value below is driven from render(t) — nothing is pre-baked. */
+
+  /* --- S2 viewfinder --- */
+  #finder { position: absolute; left: 160px; top: 470px; width: 760px; height: 700px; }
+  .brk {
+    position: absolute; width: 116px; height: 116px;
+    border: 8px solid var(--primary); border-radius: 12px;
+    will-change: transform, opacity, border-color;
+  }
+  .brk.tl { top: 0; left: 0; border-right: 0; border-bottom: 0; border-radius: 26px 0 0 0; }
+  .brk.tr { top: 0; right: 0; border-left: 0; border-bottom: 0; border-radius: 0 26px 0 0; }
+  .brk.bl { bottom: 0; left: 0; border-right: 0; border-top: 0; border-radius: 0 0 0 26px; }
+  .brk.br { bottom: 0; right: 0; border-left: 0; border-top: 0; border-radius: 0 0 26px 0; }
+
+  #code {
+    position: absolute; left: 92px; right: 92px; top: 186px; height: 320px;
+    display: flex; align-items: flex-end; justify-content: space-between;
+  }
+  /* flex:none — otherwise the bars shrink to fit and the code reads as hatching */
+  #code i { flex: none; background: var(--ink); border-radius: 2px;
+            will-change: transform, opacity; }
+  #beam {
+    position: absolute; top: 150px; width: 8px; height: 396px;
+    background: linear-gradient(180deg, rgba(163,88,72,0), #A35848 22%,
+                                #A35848 78%, rgba(163,88,72,0));
+    box-shadow: 0 0 44px 14px rgba(163,88,72,0.55);
+    z-index: 8;
+  }
+  #digits {
+    position: absolute; left: 0; right: 0; top: 528px; text-align: center;
+    font-family: 'JetBrains Mono', ui-monospace, monospace;
+    font-size: 40px; letter-spacing: 0.24em; color: var(--muted);
+  }
+
+  /* --- S4 shelf --- */
+  #shelf { position: absolute; left: 84px; top: 560px; width: 912px; height: 984px; }
+  .tile {
+    position: absolute; width: 442px; height: 300px;
+    background: var(--cream); border: 1px solid var(--border);
+    border-radius: 30px; padding: 32px 34px;
+    box-shadow: 0 26px 62px -28px rgba(26,24,20,0.30);
+    will-change: transform, opacity, border-color;
+  }
+  .tile .tn { font-size: 33px; font-weight: 500; line-height: 1.2; }
+  .tile .tb { font-size: 26px; color: var(--muted); margin-top: 8px; }
+  .tile .ts {
+    position: absolute; right: 34px; bottom: 28px;
+    font-family: 'Instrument Serif', Georgia, serif; font-size: 84px; line-height: 1;
+  }
+  .tile .tt {
+    position: absolute; left: 34px; bottom: 40px;
+    font-size: 23px; font-weight: 700; letter-spacing: 0.14em;
+    padding: 10px 18px; border-radius: 999px;
+    will-change: opacity, transform;
+  }
+</style>
+</head>
+<body>
+<div id="stage">
+
+  <!-- S1 · hook -->
+  <div class="scene" id="s1">
+    <div class="eyebrow" id="s1e">The shelf audit</div>
+    <div class="serif h1" id="s1a" style="margin-top:32px">You own eleven</div>
+    <div class="serif h1" id="s1b" style="margin-top:4px">products.</div>
+    <div class="serif h3 pri ital" id="s1c" style="margin-top:44px">Two are working against you.</div>
+  </div>
+
+  <!-- S2 · capture: brackets close, barcode draws under the beam -->
+  <div class="scene" id="s2" style="padding:0">
+    <div style="position:absolute;left:84px;right:84px;top:250px;z-index:30">
+      <div class="eyebrow" id="s2e">Point &amp; capture</div>
+    </div>
+    <div id="finder">
+      <div class="brk tl" id="k0"></div><div class="brk tr" id="k1"></div>
+      <div class="brk bl" id="k2"></div><div class="brk br" id="k3"></div>
+      <div id="code"></div>
+      <div id="beam" style="left:92px"></div>
+      <div id="digits">8 901234 567890</div>
+    </div>
+    <div style="position:absolute;left:84px;right:84px;top:1300px;z-index:30">
+      <div class="serif h3" id="s2t">Barcode, or just<br>the ingredient list.</div>
+      <div class="pill good" id="s2p" style="margin-top:40px">
+        <span class="dot"></span>Matched &middot; Barrier Repair Lotion
+      </div>
+    </div>
+  </div>
+
+  <!-- S3 · composition donut -->
+  <div class="scene" id="s3" style="padding:0">
+    <div style="position:absolute;left:84px;right:84px;top:230px;z-index:30">
+      <div class="eyebrow" id="s3e">What&rsquo;s actually in it</div>
+    </div>
+    <svg id="donut" width="620" height="620" viewBox="0 0 620 620"
+         style="position:absolute;top:400px;left:50%;transform:translateX(-50%)">
+      <circle cx="310" cy="310" r="248" fill="none" stroke="#EAE6DF" stroke-width="46"/>
+      <circle class="dseg" id="d0" cx="310" cy="310" r="248" fill="none"
+              stroke="#5C7A4F" stroke-width="46" stroke-linecap="butt"/>
+      <circle class="dseg" id="d1" cx="310" cy="310" r="248" fill="none"
+              stroke="#C79A3A" stroke-width="46" stroke-linecap="butt"/>
+      <circle class="dseg" id="d2" cx="310" cy="310" r="248" fill="none"
+              stroke="#B22B2B" stroke-width="46" stroke-linecap="butt"/>
+    </svg>
+    <div id="dnum" class="serif"
+         style="position:absolute;top:620px;left:0;right:0;text-align:center;
+                font-size:170px;line-height:1">0</div>
+    <div id="dlab"
+         style="position:absolute;top:800px;left:0;right:0;text-align:center;
+                font-size:27px;font-weight:700;letter-spacing:0.2em;
+                text-transform:uppercase;color:var(--muted)">Ingredients read</div>
+
+    <div id="legend" style="position:absolute;left:120px;right:120px;top:1130px"></div>
+
+    <div class="serif h3" id="s3t"
+         style="position:absolute;left:84px;right:84px;top:1490px;text-align:center">
+      Four of them<br>your skin has <em class="pri ital">flagged before.</em>
+    </div>
+  </div>
+
+  <!-- S4 · the shelf re-sorts itself worst-first -->
+  <div class="scene" id="s4" style="padding:0">
+    <div style="position:absolute;left:84px;right:84px;top:230px;z-index:30">
+      <div class="eyebrow" id="s4e">Your whole shelf, scored</div>
+      <div class="serif h3" id="s4t" style="margin-top:26px">Then it sorts them<br>worst first.</div>
+    </div>
+    <div id="shelf"></div>
+    <div class="serif h3" id="s4f"
+         style="position:absolute;left:84px;right:84px;top:1640px;text-align:center">
+      Now you know<br>what to <em class="pri ital">stop buying.</em>
+    </div>
+  </div>
+
+  <!-- S5 · offer -->
+  <div class="scene" id="s5">
+    <div id="s5mark" class="mark" style="margin-bottom:44px">
+      <svg viewBox="0 0 24 24" fill="#FFFEFA">
+        <path d="M12 0.6 13.85 9.6 23 11.6 13.85 13.6 12 22.6 10.15 13.6 1 11.6 10.15 9.6Z"/>
+        <path d="M18.6 2.2 19.35 5.1 22.2 5.9 19.35 6.7 18.6 9.6 17.85 6.7 15 5.9 17.85 5.1Z"/>
+      </svg>
+    </div>
+    <div class="serif" id="s5a" style="font-size:120px;line-height:1">Skintel</div>
+    <div class="body" id="s5b" style="margin-top:18px;font-size:42px;max-width:30ch">
+      Audit the shelf you already paid for.
+    </div>
+    <div class="serif" id="s5c" style="font-size:150px;line-height:1;margin-top:54px">
+      $20<span style="font-size:52px;color:var(--muted);margin-left:18px">once</span>
+    </div>
+    <div style="font-size:40px;font-weight:500;margin-top:14px" id="s5d2">
+      Three months of Pro &middot; 500 spots
+    </div>
+    <div class="btn" id="s5d" style="margin-top:50px;align-self:flex-start">
+      skinstel.com/discount
+      <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#FFFEFA"
+           stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round">
+        <line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/>
+      </svg>
+    </div>
+  </div>
+
+  <div id="vignette"></div>
+  <div id="grain"></div>
+</div>
+
+<script src="./engine.js"></script>
+<script>
+const E = window.__E;
+const $ = id => document.getElementById(id);
+const DURATION = 41.0;
+
+const S = {
+  s1: [0.00,  4.60],
+  s2: [4.40, 14.60],
+  s3: [14.40, 23.60],
+  s4: [23.40, 33.60],
+  s5: [33.40, 41.00],
+};
+
+// ---------------------------------------------------------------- S2 barcode
+// Bar widths come from a fixed integer hash rather than Math.random, so two
+// renders of the same frame are byte-identical.
+const CODE_N = 30;
+const codeEl = $('code');
+for (let i = 0; i < CODE_N; i++) {
+  const h = (i * 2654435761) % 97;
+  const b = document.createElement('i');
+  b.style.width = (h < 34 ? 6 : h < 72 ? 10 : 17) + 'px';
+  b.style.height = '320px';
+  codeEl.appendChild(b);
+}
+const CODE_BARS = [...codeEl.children];
+
+// ---------------------------------------------------------------- S3 donut
+const SEGS = [
+  { pct: 0.62, color: '#5C7A4F', label: 'Well tolerated',  n: 16 },
+  { pct: 0.23, color: '#C79A3A', label: 'Watch',           n: 6  },
+  { pct: 0.15, color: '#B22B2B', label: 'Known triggers',  n: 4  },
+];
+const DR = 248;
+const DCIRC = 2 * Math.PI * DR;
+let acc = 0;
+SEGS.forEach((s, i) => {
+  const el = $('d' + i);
+  el.setAttribute('stroke-dasharray', DCIRC);
+  el.setAttribute('stroke-dashoffset', DCIRC);
+  // each arc begins where the previous one ended
+  el.setAttribute('transform', `rotate(${-90 + acc * 360} 310 310)`);
+  s.start = acc;
+  acc += s.pct;
+
+  const row = document.createElement('div');
+  row.id = 'lg' + i;
+  row.style.cssText =
+    'display:flex;align-items:center;gap:24px;margin-top:26px;will-change:opacity,transform';
+  row.innerHTML =
+    `<span style="width:26px;height:26px;border-radius:8px;background:${s.color};flex:none"></span>` +
+    `<span style="font-size:38px;font-weight:500;flex:1">${s.label}</span>` +
+    `<span style="font-family:'Instrument Serif',Georgia,serif;font-size:52px">${s.n}</span>`;
+  $('legend').appendChild(row);
+});
+
+// ---------------------------------------------------------------- S4 shelf
+const PRODUCTS = [
+  { name: 'Gentle Cleanser',    brand: 'Everyday',   score: 88 },
+  { name: 'Vitamin C Serum',    brand: '15% L-AA',   score: 74 },
+  { name: 'Fragranced Lotion',  brand: 'Body care',  score: 31 },
+  { name: 'Niacinamide 10%',    brand: 'The Ord.',   score: 91 },
+  { name: 'Exfoliating Toner',  brand: '7% Glycolic',score: 42 },
+  { name: 'Ceramide Cream',     brand: 'Night',      score: 86 },
+];
+const TW = 442, TH = 300, GAP = 28;
+const slot = k => ({ x: (k % 2) * (TW + GAP), y: Math.floor(k / 2) * (TH + GAP) });
+// rank[i] = where product i lands once sorted ascending (worst first)
+const order = PRODUCTS.map((p, i) => i).sort((a, b) => PRODUCTS[a].score - PRODUCTS[b].score);
+const rank = [];
+order.forEach((idx, r) => { rank[idx] = r; });
+
+const tone = s => (s < 50 ? ['#B22B2B', 'var(--bad-bg)',   'Cut it']
+                : s < 75 ? ['#8B6914', 'var(--unsure-bg)', 'Watch']
+                         : ['#5C7A4F', 'var(--good-bg)',   'Keep']);
+
+PRODUCTS.forEach((p, i) => {
+  const [fg, bg, verdict] = tone(p.score);
+  const el = document.createElement('div');
+  el.className = 'tile';
+  el.id = 't' + i;
+  el.innerHTML =
+    `<div class="tn">${p.name}</div><div class="tb">${p.brand}</div>` +
+    `<div class="tt" id="tt${i}" style="color:${fg};background:${bg}">${verdict.toUpperCase()}</div>` +
+    `<div class="ts" id="ts${i}" style="color:${fg}">0</div>`;
+  $('shelf').appendChild(el);
+});
+
+function render(t) {
+  // ---------- S1 ----------
+  if (E.applyScene($('s1'), t, S.s1[0], S.s1[1], { drift: 20 }) > 0) {
+    E.riseIn($('s1e'), t, 0.15, { rise: 22 });
+    E.revealWords($('s1a'), t, 0.45, { step: 0.06, blur: true });
+    E.revealWords($('s1b'), t, 1.00, { step: 0.06, blur: true });
+    E.revealWords($('s1c'), t, 2.05, { step: 0.05 });
+  }
+
+  // ---------- S2 capture ----------
+  if (E.applyScene($('s2'), t, S.s2[0], S.s2[1], { drift: 0, scale: 0 }) > 0) {
+    E.riseIn($('s2e'), t, 4.55, { rise: 18 });
+
+    // brackets fly in from outside the frame and settle
+    const close = E.easeOutQuint(E.seg(t, 4.70, 5.90));
+    const lock  = E.easeEmil(E.seg(t, 10.10, 10.70));   // green once the read completes
+    [[-1,-1],[1,-1],[-1,1],[1,1]].forEach(([sx, sy], i) => {
+      const k = $('k' + i);
+      const off = (1 - close) * 130;
+      k.style.opacity = close;
+      k.style.transform = `translate(${sx * off}px, ${sy * off}px)`;
+      k.style.borderColor = `color-mix(in srgb, #5C7A4F ${lock * 100}%, #A35848)`;
+    });
+
+    // One linear sweep drives both the beam and the bars, so a bar can only
+    // resolve at the instant the beam is over it — the causal link is exact.
+    const sweep = E.seg(t, 6.20, 9.90);
+    const W = 760 - 184;
+    $('beam').style.left = `${92 + sweep * W}px`;
+    $('beam').style.opacity = sweep > 0 && sweep < 1 ? 1 : 0;
+    CODE_BARS.forEach((b, i) => {
+      const p = E.easeEmil(E.clamp((sweep - i / CODE_N) / 0.05, 0, 1));
+      b.style.transform = `scaleY(${E.lerp(0.10, 1, p)})`;
+      b.style.transformOrigin = 'bottom';
+      b.style.opacity = 0.18 + 0.82 * p;
+    });
+    E.riseIn($('digits'), t, 9.60, { rise: 14 });
+    E.revealWords($('s2t'), t, 10.10, { step: 0.05 });
+    const pill = E.easeEmil(E.seg(t, 11.30, 12.00));
+    $('s2p').style.opacity = pill;
+    $('s2p').style.transform = `translateY(${(1 - pill) * 26}px) scale(${E.lerp(0.9, 1, pill)})`;
+  }
+
+  // ---------- S3 composition ----------
+  if (E.applyScene($('s3'), t, S.s3[0], S.s3[1], { drift: 0, scale: 0 }) > 0) {
+    E.riseIn($('s3e'), t, 14.55, { rise: 18 });
+    const ringIn = E.easeOutQuint(E.seg(t, 14.70, 15.60));
+    $('donut').style.opacity = ringIn;
+    $('donut').style.transform = `translateX(-50%) scale(${E.lerp(0.88, 1, ringIn)})`;
+
+    // arcs draw one after another, each starting where the last finished
+    let counted = 0;
+    SEGS.forEach((s, i) => {
+      const at = 15.10 + i * 0.72;
+      const p = E.easeOutQuint(E.seg(t, at, at + 1.00));
+      $('d' + i).setAttribute('stroke-dashoffset', DCIRC * (1 - p * s.pct));
+      counted += p * s.n;
+      // legend row lands only when its own arc is done
+      const lg = $('lg' + i);
+      const q = E.easeEmil(E.seg(t, at + 0.85, at + 1.45));
+      lg.style.opacity = q;
+      lg.style.transform = `translateX(${(1 - q) * -28}px)`;
+    });
+    $('dnum').textContent = Math.round(counted);
+    $('dnum').style.opacity = ringIn;
+    E.riseIn($('dlab'), t, 17.60, { rise: 14 });
+    E.revealWords($('s3t'), t, 19.60, { step: 0.045 });
+  }
+
+  // ---------- S4 shelf: populate, score, then re-sort ----------
+  if (E.applyScene($('s4'), t, S.s4[0], S.s4[1], { drift: 0, scale: 0 }) > 0) {
+    E.riseIn($('s4e'), t, 23.55, { rise: 18 });
+    E.revealWords($('s4t'), t, 23.85, { step: 0.05 });
+
+    // the re-sort happens only after every tile has a number on it
+    const sort = E.easeInOut(E.seg(t, 29.30, 30.60));
+
+    PRODUCTS.forEach((p, i) => {
+      const el = $('t' + i);
+      const at = 25.10 + i * 0.13;
+      const inP = E.easeOutQuint(E.seg(t, at, at + 0.70));
+      const a = slot(i), b = slot(rank[i]);
+      const x = E.lerp(a.x, b.x, sort), y = E.lerp(a.y, b.y, sort);
+      // tiles lift slightly off the grid while they travel
+      const lift = Math.sin(sort * Math.PI);
+      el.style.opacity = inP;
+      el.style.transform =
+        `translate(${x}px, ${y + (1 - inP) * 34}px) scale(${E.lerp(0.94, 1, inP) + lift * 0.035})`;
+      el.style.zIndex = String(10 + Math.round(lift * 10));
+      el.style.boxShadow =
+        `0 ${26 + lift * 40}px ${62 + lift * 50}px -28px rgba(26,24,20,${0.30 + lift * 0.16})`;
+
+      // score counts up per tile, staggered behind its own entrance
+      const cAt = at + 0.45;
+      const cp = E.easeOutQuint(E.seg(t, cAt, cAt + 1.10));
+      $('ts' + i).textContent = Math.round(cp * p.score);
+      const vp = E.easeEmil(E.seg(t, cAt + 1.05, cAt + 1.55));
+      $('tt' + i).style.opacity = vp;
+      $('tt' + i).style.transform = `scale(${E.lerp(0.7, 1, vp)})`;
+      el.style.borderColor =
+        `color-mix(in srgb, ${tone(p.score)[0]} ${vp * 34}%, #EAE6DF)`;
+    });
+
+    E.revealWords($('s4f'), t, 31.00, { step: 0.045 });
+  }
+
+  // ---------- S5 offer ----------
+  if (E.applyScene($('s5'), t, S.s5[0], S.s5[1], { drift: 14, scale: 0.008 }) > 0) {
+    const m = E.easeEmil(E.seg(t, 33.55, 34.30));
+    $('s5mark').style.opacity = m;
+    $('s5mark').style.transform = `scale(${E.lerp(0.72, 1, m)}) rotate(${(1 - m) * -14}deg)`;
+    E.revealWords($('s5a'), t, 33.95, { step: 0.05 });
+    E.riseIn($('s5b'), t, 34.40, { rise: 24 });
+    const n = E.easeEmil(E.seg(t, 34.90, 35.80));
+    $('s5c').style.opacity = n;
+    $('s5c').style.transform = `scale(${E.lerp(0.86, 1, n)})`;
+    E.riseIn($('s5d2'), t, 35.70, { rise: 24 });
+    const b = E.easeEmil(E.seg(t, 36.40, 37.15));
+    $('s5d').style.opacity = b;
+    $('s5d').style.transform = `translateY(${(1 - b) * 32}px) scale(${E.lerp(0.94, 1, b)})`;
+  }
+}
+
+window.__seek = t => { render(t); return true; };
+window.__duration = DURATION;
+render(0);
+</script>
+</body>
+</html>

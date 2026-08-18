@@ -1,0 +1,401 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<link rel="stylesheet" href="./style.css">
+<style>
+  /* Live UI: twelve weeks of journal drawn as a curve, the three changes that
+     caused it struck off a list, and the result counted out. */
+
+  #grid line { stroke: #E2DCD1; stroke-width: 2; }
+  #grid text {
+    font-family: 'JetBrains Mono', ui-monospace, monospace;
+    font-size: 24px; fill: #6B6760;
+  }
+  .xlab {
+    position: absolute; top: 1210px; left: 84px; right: 84px;
+    display: flex; justify-content: space-between;
+    font-family: 'JetBrains Mono', ui-monospace, monospace;
+    font-size: 23px; color: var(--muted);
+  }
+  .mlab {
+    position: absolute; left: 84px; right: 84px;
+    display: flex; align-items: center; gap: 24px;
+    font-size: 34px; will-change: opacity, transform;
+  }
+  .mlab b {
+    font-family: 'JetBrains Mono', ui-monospace, monospace;
+    font-size: 26px; font-weight: 700; color: var(--primary);
+    border: 2px solid rgba(163,88,72,0.32); border-radius: 999px;
+    padding: 9px 20px; flex: none;
+  }
+
+  /* --- S3 the changes --- */
+  .crow {
+    position: absolute; left: 84px; right: 84px; height: 152px;
+    background: var(--cream); border: 1px solid var(--border);
+    border-radius: 28px; padding: 0 40px;
+    display: flex; align-items: center; gap: 30px;
+    box-shadow: 0 22px 54px -30px rgba(26,24,20,0.26);
+    will-change: opacity, transform, background;
+  }
+  .crow .cn { font-size: 42px; font-weight: 500; flex: 1; }
+  .crow .cw {
+    font-family: 'JetBrains Mono', ui-monospace, monospace;
+    font-size: 26px; color: var(--muted);
+  }
+  .crow .cico {
+    width: 66px; height: 66px; border-radius: 20px; flex: none;
+    display: flex; align-items: center; justify-content: center;
+  }
+
+  /* --- S4 stat cards --- */
+  .stat {
+    position: absolute; top: 620px; width: 284px; height: 380px;
+    background: var(--cream); border: 1px solid var(--border);
+    border-radius: 32px; padding: 36px 30px;
+    box-shadow: 0 28px 66px -30px rgba(26,24,20,0.30);
+    will-change: opacity, transform;
+  }
+  .stat .sv {
+    font-family: 'Instrument Serif', Georgia, serif;
+    font-size: 108px; line-height: 1;
+  }
+  .stat .sk {
+    position: absolute; left: 30px; right: 30px; bottom: 34px;
+    font-size: 27px; line-height: 1.3; color: var(--muted);
+  }
+</style>
+</head>
+<body>
+<div id="stage">
+
+  <!-- S1 · hook -->
+  <div class="scene" id="s1">
+    <div class="eyebrow" id="s1e">Twelve weeks in</div>
+    <div class="serif h1" id="s1a" style="margin-top:32px">Nothing new</div>
+    <div class="serif h1" id="s1b" style="margin-top:4px">was bought.</div>
+    <div class="serif h3 pri ital" id="s1c" style="margin-top:44px">Three things were stopped.</div>
+  </div>
+
+  <!-- S2 · the curve draws itself, milestones land on it -->
+  <div class="scene" id="s2" style="padding:0">
+    <div style="position:absolute;left:84px;right:84px;top:230px;z-index:30">
+      <div class="eyebrow" id="s2e">Breakout days per week</div>
+      <div class="serif h3" id="s2t" style="margin-top:24px">The line you<br>came for.</div>
+    </div>
+    <svg id="chart" width="912" height="580" viewBox="0 0 912 580"
+         style="position:absolute;left:84px;top:620px">
+      <g id="grid"></g>
+      <clipPath id="wipe"><rect id="wiperect" x="0" y="0" width="0" height="580"/></clipPath>
+      <path id="area" fill="rgba(163,88,72,0.16)" clip-path="url(#wipe)"/>
+      <path id="line" fill="none" stroke="#A35848" stroke-width="8"
+            stroke-linecap="round" stroke-linejoin="round"/>
+      <g id="marks"></g>
+    </svg>
+    <div class="xlab" id="xlab"><span>WEEK 1</span><span>WEEK 6</span><span>WEEK 12</span></div>
+    <div id="mlabs"></div>
+  </div>
+
+  <!-- S3 · what actually changed -->
+  <div class="scene" id="s3" style="padding:0">
+    <div style="position:absolute;left:84px;right:84px;top:250px;z-index:30">
+      <div class="eyebrow" id="s3e">What changed</div>
+      <div class="serif h3" id="s3t" style="margin-top:24px">Three out. One in.</div>
+    </div>
+    <div id="crows"></div>
+    <svg id="strikes" width="1080" height="1920" viewBox="0 0 1080 1920"
+         style="position:absolute;inset:0;z-index:20;pointer-events:none"></svg>
+    <div class="serif h3" id="s3f"
+         style="position:absolute;left:84px;right:84px;top:1500px;text-align:center">
+      Every one of them<br>came from <em class="pri ital">your own log.</em>
+    </div>
+  </div>
+
+  <!-- S4 · the result, counted -->
+  <div class="scene" id="s4" style="padding:0">
+    <div style="position:absolute;left:84px;right:84px;top:250px;z-index:30">
+      <div class="eyebrow" id="s4e">Weeks 1&ndash;4 vs 9&ndash;12</div>
+      <div class="serif h3" id="s4t" style="margin-top:24px">Same face.<br>Different data.</div>
+    </div>
+    <div class="stat" id="q0" style="left:84px">
+      <div class="sv" id="v0" style="color:#5C7A4F">0%</div>
+      <div class="sk">fewer breakout days</div>
+    </div>
+    <div class="stat" id="q1" style="left:398px">
+      <div class="sv" id="v1" style="color:var(--primary)">0</div>
+      <div class="sk">products removed</div>
+    </div>
+    <div class="stat" id="q2" style="left:712px">
+      <div class="sv" id="v2" style="color:#5C7A4F">0</div>
+      <div class="sk">clear days in a row</div>
+    </div>
+    <div class="body" id="s4s"
+         style="position:absolute;left:84px;right:84px;top:1120px;text-align:center;
+                max-width:none;font-size:40px">
+      No new routine. No dermatologist. Just the one product
+      the pattern kept pointing at.
+    </div>
+    <div class="serif h3" id="s4f"
+         style="position:absolute;left:84px;right:84px;top:1420px;text-align:center">
+      You already own<br>the <em class="pri ital">evidence.</em>
+    </div>
+  </div>
+
+  <!-- S5 · offer -->
+  <div class="scene" id="s5">
+    <div id="s5mark" class="mark" style="margin-bottom:44px">
+      <svg viewBox="0 0 24 24" fill="#FFFEFA">
+        <path d="M12 0.6 13.85 9.6 23 11.6 13.85 13.6 12 22.6 10.15 13.6 1 11.6 10.15 9.6Z"/>
+        <path d="M18.6 2.2 19.35 5.1 22.2 5.9 19.35 6.7 18.6 9.6 17.85 6.7 15 5.9 17.85 5.1Z"/>
+      </svg>
+    </div>
+    <div class="serif" id="s5a" style="font-size:120px;line-height:1">Skintel</div>
+    <div class="body" id="s5b" style="margin-top:18px;font-size:42px;max-width:30ch">
+      Twelve weeks from now, you&rsquo;ll have this chart.
+    </div>
+    <div class="serif" id="s5c" style="font-size:150px;line-height:1;margin-top:54px">
+      $20<span style="font-size:52px;color:var(--muted);margin-left:18px">once</span>
+    </div>
+    <div style="font-size:40px;font-weight:500;margin-top:14px" id="s5d2">
+      Three months of Pro &middot; 500 spots
+    </div>
+    <div class="btn" id="s5d" style="margin-top:50px;align-self:flex-start">
+      skinstel.com/discount
+      <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#FFFEFA"
+           stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round">
+        <line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/>
+      </svg>
+    </div>
+  </div>
+
+  <div id="vignette"></div>
+  <div id="grain"></div>
+</div>
+
+<script src="./engine.js"></script>
+<script>
+const E = window.__E;
+const $ = id => document.getElementById(id);
+const SVGNS = 'http://www.w3.org/2000/svg';
+const DURATION = 43.0;
+
+const S = {
+  s1: [0.00,  4.80],
+  s2: [4.60, 18.20],
+  s3: [18.00, 27.20],
+  s4: [27.00, 35.60],
+  s5: [35.40, 43.00],
+};
+
+// ---------------------------------------------------------------- S2 curve
+const DATA = [9, 10, 8, 7, 6, 6, 4, 5, 3, 2, 2, 1];   // breakout days per week
+const MAXY = 12;
+const PX0 = 86, PX1 = 894, PY0 = 40, PY1 = 508;
+const X = i => PX0 + (i / (DATA.length - 1)) * (PX1 - PX0);
+const Y = v => PY1 - (v / MAXY) * (PY1 - PY0);
+
+// gridlines first — the scale exists before the data does
+[0, 3, 6, 9, 12].forEach(v => {
+  const ln = document.createElementNS(SVGNS, 'line');
+  ln.setAttribute('x1', PX0); ln.setAttribute('x2', PX1);
+  ln.setAttribute('y1', Y(v)); ln.setAttribute('y2', Y(v));
+  $('grid').appendChild(ln);
+  const tx = document.createElementNS(SVGNS, 'text');
+  tx.setAttribute('x', 0); tx.setAttribute('y', Y(v) + 9);
+  tx.textContent = v;
+  $('grid').appendChild(tx);
+});
+
+// horizontal-tangent cubics: smooth without overshooting below zero
+let d = `M ${X(0)} ${Y(DATA[0])}`;
+for (let i = 0; i < DATA.length - 1; i++) {
+  const x0 = X(i), x1 = X(i + 1), dx = (x1 - x0) / 3;
+  d += ` C ${x0 + dx} ${Y(DATA[i])} ${x1 - dx} ${Y(DATA[i + 1])} ${x1} ${Y(DATA[i + 1])}`;
+}
+$('line').setAttribute('d', d);
+$('area').setAttribute('d', `${d} L ${PX1} ${PY1} L ${PX0} ${PY1} Z`);
+const LLEN = $('line').getTotalLength();
+$('line').setAttribute('stroke-dasharray', LLEN);
+$('line').setAttribute('stroke-dashoffset', LLEN);
+
+const MILES = [
+  { i: 2,  w: 'WEEK 3',  txt: 'Cut the fragranced lotion' },
+  { i: 6,  w: 'WEEK 7',  txt: 'Stopped layering the acids' },
+  { i: 10, w: 'WEEK 11', txt: 'Barrier score back over 70' },
+];
+MILES.forEach((m, k) => {
+  const c = document.createElementNS(SVGNS, 'circle');
+  c.setAttribute('cx', X(m.i)); c.setAttribute('cy', Y(DATA[m.i]));
+  c.setAttribute('r', 0);
+  c.setAttribute('fill', '#FFFEFA');
+  c.setAttribute('stroke', '#A35848');
+  c.setAttribute('stroke-width', 7);
+  c.id = 'mk' + k;
+  $('marks').appendChild(c);
+
+  const row = document.createElement('div');
+  row.className = 'mlab'; row.id = 'ml' + k;
+  row.style.top = (1290 + k * 106) + 'px';
+  row.innerHTML = `<b>${m.w}</b><span>${m.txt}</span>`;
+  $('mlabs').appendChild(row);
+});
+
+// ---------------------------------------------------------------- S3 changes
+const CHANGES = [
+  { n: 'Fragranced body lotion', w: 'CUT · WEEK 3',   out: true  },
+  { n: 'Glycolic toner, nightly',w: 'CUT · WEEK 7',   out: true  },
+  { n: 'Foaming SLS cleanser',   w: 'CUT · WEEK 8',   out: true  },
+  { n: 'Ceramide cream',         w: 'ADDED · WEEK 4', out: false },
+];
+const CTOP = 560, CPITCH = 176;
+CHANGES.forEach((c, i) => {
+  const el = document.createElement('div');
+  el.className = 'crow'; el.id = 'cr' + i;
+  el.style.top = (CTOP + i * CPITCH) + 'px';
+  const col = c.out ? '#B22B2B' : '#5C7A4F';
+  const bg  = c.out ? 'rgba(178,43,43,0.10)' : 'rgba(92,122,79,0.12)';
+  const glyph = c.out
+    ? `<line x1="6" y1="12" x2="18" y2="12"/>`
+    : `<line x1="12" y1="6" x2="12" y2="18"/><line x1="6" y1="12" x2="18" y2="12"/>`;
+  el.innerHTML =
+    `<div class="cico" style="background:${bg}">
+       <svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="${col}"
+            stroke-width="3" stroke-linecap="round">${glyph}</svg>
+     </div>
+     <div class="cn">${c.n}</div>
+     <div class="cw" style="color:${col}">${c.w}</div>`;
+  $('crows').appendChild(el);
+
+  if (c.out) {
+    const ln = document.createElementNS(SVGNS, 'line');
+    const y = CTOP + i * CPITCH + 76;
+    ln.setAttribute('x1', 190); ln.setAttribute('x2', 720);
+    ln.setAttribute('y1', y);   ln.setAttribute('y2', y);
+    ln.setAttribute('stroke', '#B22B2B');
+    ln.setAttribute('stroke-width', 5);
+    ln.setAttribute('stroke-linecap', 'round');
+    ln.setAttribute('stroke-dasharray', 530);
+    ln.setAttribute('stroke-dashoffset', 530);
+    ln.id = 'sk' + i;
+    $('strikes').appendChild(ln);
+  }
+});
+
+// ---------------------------------------------------------------- S4 stats
+// Derived from DATA so the headline number can never drift from the chart.
+const early = DATA.slice(0, 4).reduce((a, b) => a + b, 0);
+const late  = DATA.slice(8).reduce((a, b) => a + b, 0);
+const DROP  = Math.round((1 - late / early) * 100);
+const STATS = [
+  { el: 'v0', to: DROP, suffix: '%' },
+  { el: 'v1', to: 3,    suffix: ''  },
+  { el: 'v2', to: 19,   suffix: ''  },
+];
+
+function render(t) {
+  // ---------- S1 ----------
+  if (E.applyScene($('s1'), t, S.s1[0], S.s1[1], { drift: 20 }) > 0) {
+    E.riseIn($('s1e'), t, 0.15, { rise: 22 });
+    E.revealWords($('s1a'), t, 0.45, { step: 0.06, blur: true });
+    E.revealWords($('s1b'), t, 1.05, { step: 0.06, blur: true });
+    E.revealWords($('s1c'), t, 2.20, { step: 0.05 });
+  }
+
+  // ---------- S2 the curve ----------
+  if (E.applyScene($('s2'), t, S.s2[0], S.s2[1], { drift: 0, scale: 0 }) > 0) {
+    E.riseIn($('s2e'), t, 4.75, { rise: 18 });
+    E.revealWords($('s2t'), t, 5.00, { step: 0.05 });
+
+    const gp = E.easeOutQuint(E.seg(t, 5.60, 6.60));
+    $('grid').style.opacity = gp;
+    $('xlab').style.opacity = gp;
+
+    // line and area advance together, left to right
+    const p = E.easeInOut(E.seg(t, 6.80, 11.60));
+    $('line').setAttribute('stroke-dashoffset', LLEN * (1 - p));
+    $('wiperect').setAttribute('width', String(PX0 + p * (PX1 - PX0)));
+
+    // each marker pops as the line reaches its week — never before
+    MILES.forEach((m, k) => {
+      const reach = X(m.i) - PX0;
+      const at = 6.80 + (reach / (PX1 - PX0)) * 4.80;
+      const q = E.easeEmil(E.seg(t, at, at + 0.40));
+      $('mk' + k).setAttribute('r', String(q * 16));
+
+      const lp = E.easeOutQuint(E.seg(t, 12.20 + k * 0.55, 12.90 + k * 0.55));
+      $('ml' + k).style.opacity = lp;
+      $('ml' + k).style.transform = `translateX(${(1 - lp) * -32}px)`;
+    });
+  }
+
+  // ---------- S3 what changed ----------
+  if (E.applyScene($('s3'), t, S.s3[0], S.s3[1], { drift: 0, scale: 0 }) > 0) {
+    E.riseIn($('s3e'), t, 18.15, { rise: 18 });
+    E.revealWords($('s3t'), t, 18.40, { step: 0.05 });
+
+    CHANGES.forEach((c, i) => {
+      const at = 19.30 + i * 0.40;
+      const p = E.easeOutQuint(E.seg(t, at, at + 0.70));
+      const el = $('cr' + i);
+      el.style.transform = `translateY(${(1 - p) * 34}px)`;
+
+      if (c.out) {
+        // the strike is drawn across, then the row recedes behind it
+        const sAt = 21.60 + i * 0.42;
+        const s = E.easeInOut(E.seg(t, sAt, sAt + 0.52));
+        $('sk' + i).setAttribute('stroke-dashoffset', String(530 * (1 - s)));
+        el.style.opacity = p * E.lerp(1, 0.42, E.easeInOut(E.seg(t, sAt + 0.30, sAt + 0.90)));
+      } else {
+        el.style.opacity = p;
+        const glow = E.easeInOut(E.seg(t, 23.40, 24.10));
+        el.style.background = `color-mix(in srgb, #EEF2DD ${glow * 100}%, #FFFEFA)`;
+      }
+    });
+
+    E.revealWords($('s3f'), t, 24.30, { step: 0.045 });
+  }
+
+  // ---------- S4 the result ----------
+  if (E.applyScene($('s4'), t, S.s4[0], S.s4[1], { drift: 0, scale: 0 }) > 0) {
+    E.riseIn($('s4e'), t, 27.15, { rise: 18 });
+    E.revealWords($('s4t'), t, 27.40, { step: 0.05 });
+
+    STATS.forEach((s, i) => {
+      const at = 28.40 + i * 0.34;
+      const cIn = E.easeOutQuint(E.seg(t, at, at + 0.70));
+      const card = $('q' + i);
+      card.style.opacity = cIn;
+      card.style.transform =
+        `translateY(${(1 - cIn) * 40}px) scale(${E.lerp(0.93, 1, cIn)})`;
+      const cp = E.easeOutQuint(E.seg(t, at + 0.30, at + 1.60));
+      $(s.el).textContent = Math.round(cp * s.to) + s.suffix;
+    });
+
+    E.riseIn($('s4s'), t, 30.90, { rise: 26 });
+    E.revealWords($('s4f'), t, 32.10, { step: 0.05 });
+  }
+
+  // ---------- S5 offer ----------
+  if (E.applyScene($('s5'), t, S.s5[0], S.s5[1], { drift: 14, scale: 0.008 }) > 0) {
+    const m = E.easeEmil(E.seg(t, 35.55, 36.30));
+    $('s5mark').style.opacity = m;
+    $('s5mark').style.transform = `scale(${E.lerp(0.72, 1, m)}) rotate(${(1 - m) * -14}deg)`;
+    E.revealWords($('s5a'), t, 35.95, { step: 0.05 });
+    E.riseIn($('s5b'), t, 36.40, { rise: 24 });
+    const n = E.easeEmil(E.seg(t, 36.90, 37.80));
+    $('s5c').style.opacity = n;
+    $('s5c').style.transform = `scale(${E.lerp(0.86, 1, n)})`;
+    E.riseIn($('s5d2'), t, 37.70, { rise: 24 });
+    const b = E.easeEmil(E.seg(t, 38.40, 39.15));
+    $('s5d').style.opacity = b;
+    $('s5d').style.transform = `translateY(${(1 - b) * 32}px) scale(${E.lerp(0.94, 1, b)})`;
+  }
+}
+
+window.__seek = t => { render(t); return true; };
+window.__duration = DURATION;
+render(0);
+</script>
+</body>
+</html>
