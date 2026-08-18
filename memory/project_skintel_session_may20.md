@@ -9,8 +9,8 @@ originSessionId: 9ac1e8e3-400f-46ec-97d8-ae0115e52adf
 ## What shipped
 - Vite + React 19 + TS + Tailwind v3 SPA scaffolded at `C:/Users/rrswa/skintel/`
 - Repo pushed: `github.com/pixelbuyte/Skintel`
-- Production: `https://skintel-six.vercel.app`
-- Domain: skintel-six (Vercel auto-domain)
+- Production: `https://www.skinstel.com`
+- Domain: skinstel.com (custom; apex 308-redirects to www)
 - Project IDs: Vercel `prj_C7Ypb9fucaN0zItkK6QqMmMFWMQV` / team `team_kvUSdDPuWTYwAJnJ93cE8wWY`; Supabase ref `fgttlowgvoonedqglyle`
 
 ## Routes
@@ -87,8 +87,8 @@ originSessionId: 9ac1e8e3-400f-46ec-97d8-ae0115e52adf
 - Plan file: `C:/Users/rrswa/.claude/plans/claude-code-master-fancy-treasure.md`
 
 ## Pending / Next session
-- Confirm Stripe webhook endpoint registered at `https://skintel-six.vercel.app/api/stripe-webhook` in Stripe dashboard (events: checkout.session.completed, customer.subscription.*, invoice.payment_succeeded)
-- Confirm Supabase Auth redirect URLs include `https://skintel-six.vercel.app/auth/callback`
+- Confirm Stripe webhook endpoint registered at `https://www.skinstel.com/api/stripe-webhook` in Stripe dashboard (events: checkout.session.completed, customer.subscription.*, invoice.payment_succeeded)
+- Confirm Supabase Auth redirect URLs include `https://www.skinstel.com/auth/callback`
 - Add Founding tier later when user requests
 - Optional: cron-dump session transcripts to mem0 for full-recall
 

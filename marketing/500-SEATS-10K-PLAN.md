@@ -80,20 +80,47 @@ Two notes on why this mattered:
 
 Consequence: the counter now reads low early. That's expected — urgency moves to the price step (B4), which is true and doesn't require inventing buyers.
 
-### 🔴 B2 — Buy a real domain
+### ✅ B2 — Real domain *(already done — but not the one this plan assumed)*
 
-Highest-leverage $15 in the plan. `skintel-six.vercel.app` in a TikTok comment reads as a scam link, and §6 depends on people searching the name and finding a company.
+A custom domain exists and is live: **`www.skinstel.com`**. The apex `skinstel.com` 308-redirects to `www`. Verified against the Vercel project (`prj_C7Ypb9fuca…`), which lists exactly four domains — `www.skinstel.com`, `skinstel.com`, and two `*.vercel.app` internals.
 
-- Buy `skintel.app` / `getskintel.com` / `skintel.io` — today, ~$12–15
-- Point at Vercel; update `appUrl()` and Supabase Auth redirect URLs
+The URL this plan previously named, `skintel-six.vercel.app`, **does not exist** — it returns `DEPLOYMENT_NOT_FOUND`. It appears to have been carried forward from an early session note and was never a live host. Anything pointing at it (metadata, sitemaps, Stripe webhook endpoints, Supabase Auth redirect URLs) is pointing at nothing.
 
-### 🔴 B3 — Claim the name, check for collisions
+- [ ] Verify the Stripe webhook endpoint is registered against `www.skinstel.com`, not the dead host. **If it is not, checkout succeeds and the subscription never activates** — the single worst failure mode for this launch.
+- [ ] Verify Supabase Auth redirect URLs use `www.skinstel.com/auth/callback`
+- [ ] Confirm `appUrl()` resolves to the live host in production
 
-Before driving searches at a name, confirm it's yours:
+### 🔴 B3 — Name collision: **confirmed, and it is real**
 
-- Search "Skintel" on TikTok, IG, YouTube, Google, App Store — note what ranks now
-- Register one handle and use it identically everywhere
-- If a bigger brand owns the term, you'd be driving traffic to a competitor. Find out Wednesday, not Saturday.
+This was listed as "find out Wednesday, not Saturday." Here is Wednesday.
+
+**Every clean `skintel` domain is taken, and at least two are live skincare products with the same name and the same pitch:**
+
+| Domain | Status | Their positioning |
+|---|---|---|
+| `skintel.app` | Live, pre-launch | "Skincare that learns your skin. One morning selfie…" — iPhone, coming soon |
+| `skintel.io` | Live, shipping | "Evidence-based, personalized guidance. No photos needed." |
+| `skintel.com` | Registered, not resolving | — |
+| `skintel.co` | Registered, erroring (526) | — |
+| `getskintel.com` | Registered | — |
+| `tryskintel.com` | **Available**, $11.25/yr | — |
+
+**This is a direct hit on §6.** The branded-search mechanic assumes someone who hears "Skintel" and searches it lands on you. They will not. They will type `skintel.com`, or Google "Skintel", and meet two competitors whose domains actually match the name — while yours reads `skinstel.com`, which looks like a typo of the name you just said out loud.
+
+Every view you buy or earn under the spoken name partly subsidises `skintel.app` and `skintel.io`.
+
+Three ways out, in order of cost:
+
+1. **Buy `tryskintel.com` ($11.25) and say "tryskintel.com" on screen instead of a bare name.** Cheapest, keeps the brand, removes the guess. The plan's §6 becomes "say the domain" rather than "say the name" — weaker than pure branded search, but it lands on you.
+2. **Spell the domain on screen every time** — `skinstel.com` as plain text for 2 full seconds, and pin it as the first comment. Free, but you are fighting your own name on every single view.
+3. **Rename.** Correct long-term if this becomes the real business, far too expensive to do inside this week.
+
+Recommendation: **(1) plus (2)** for this week — $11.25 out of the $35 buffer — and treat the rename question as a post-launch decision informed by whether the week works at all.
+
+Also still to do, and now more urgent:
+
+- [ ] Search "Skintel" on TikTok, IG, YouTube — find out whether the competitors already hold the handles
+- [ ] Register one handle and use it identically everywhere
 
 ### 🟡 B4 — Price step, not a closing deadline
 
@@ -243,11 +270,15 @@ Off-platform links are suppressed and cost reach. A spoken name costs nothing, a
 
 ### The dependency people forget
 
-**If people search "Skintel" and find nothing, the campaign is burned.** Before the first post:
+**If people search "Skintel" and find nothing, the campaign is burned.** It is worse than that here — per **B3**, they find *someone else*. `skintel.app` and `skintel.io` are live skincare products under the identical name, and their domains match the word you are saying while yours does not.
+
+So the mechanic above changes: **say the domain, not just the name.** "Skintel — that's skinstel dot com" or, if you buy it, "tryskintel dot com." One extra beat of audio, and it is the difference between your traffic and theirs.
+
+Before the first post:
 
 - [ ] TikTok search → your account, populated with content
 - [ ] IG + YouTube → same handle, same avatar
-- [ ] Google → your real domain (**B2**), indexable, title tag says what it is
+- [ ] Google → `www.skinstel.com` ranks for the *domain* as typed (you will not win "Skintel" this week)
 - [ ] TikTok in-app search → several of your own videos, so results look populated
 - [ ] App Store → **nothing ships here.** The iOS designs exist (`designs/`) but there's no app. Name the web app in videos, or point explicitly at the site.
 

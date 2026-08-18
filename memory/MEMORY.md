@@ -22,6 +22,6 @@
 - [AI News 30-Clip May 16](project_ai_news_30clips_may16.md) — 30 viral AI news clips rendering to Downloads/ai_news_30clips_2026-05-16/, 3 waves parallel, ~40 min ETA
 - [No AI Slop](feedback_no_ai_slop.md) — for video edits use real footage/news/music, never synthetic placeholders
 - [VO Speed](feedback_vo_speed.md) — short-form VO must be slower (SAPI rate ≤160, atempo ≤1.0); first 30-clip render was too fast
-- [Skintel Project](project_skintel.md) — Vite SPA + Supabase + Stripe at skintel-six.vercel.app; owner has pro til 2028, Vercel Node handler style, .js ESM imports
+- [Skintel Project](project_skintel.md) — Vite SPA + Supabase + Stripe at www.skinstel.com; owner has pro til 2028, Vercel Node handler style, .js ESM imports
 - [Skintel Session May 20](project_skintel_session_may20.md) — full build log: routes, API handler rewrite, OAuth swap, Stripe live test 200, pro grant, MCP fixes
 - [Memory MCPs Active](reference_memory_mcps.md) — memory-kg + mem0 MCPs wired; both stdio, restart Claude Code to load tools
