@@ -25,6 +25,34 @@ photographed. They share the offer card, so any of them can carry a campaign alo
 | `routine.html` | 42s | **The conflict.** A timeline rail draws downward and drops each step in as it passes; two night acids turn red; a bracket draws to join them. Then 28 journal days fill in one at a time and a barrier gauge answers. |
 | `versus.html` | 40s | **Head to head.** Two products fly in from opposite edges, scores count in parallel, and five attributes grow as diverging bars from a shared spine. Cost-per-use counts out and a tick draws itself over the winner. |
 | `progress.html` | 43s | **Twelve weeks.** A curve draws left-to-right with its area fill chasing it, milestone markers popping exactly as the line reaches their week. Three products get struck off a list; the result counts up. |
+| `projection.html` | 51s | **The dark cut.** Founder content, not product marketing — see below. |
+
+### `projection.html` — the odd one out
+
+Rebuilt from a screen recording of asking an assistant what the launch would
+actually earn. It is the only composition on a **dark** ground, because it isn't
+selling the product: it's the founder showing their working. That register buys
+effects the beauty cuts would look silly wearing — a chromatic split that converges
+onto the headline, a shimmering skeleton while the answer "thinks", CRT scanlines,
+and a glitch that tears the wordmark into seven bands.
+
+Its centrepiece is the funnel: **525 individual dots fall, and ten get through.**
+Every dot is drawn rather than summarised into a bar, because that ratio *is* the
+argument — a 2% conversion rate stated as a number is forgettable and stated as
+515 dots dying on a wall is not. The counters read off the simulation (`landed`,
+not a scripted value), so the arithmetic on screen cannot drift from the animation.
+
+Three things about it are deliberate and should survive any edit:
+
+- **The unflattering number stays.** Ten preorders and ~$200 is the whole reason
+  the format works. Rounding it up turns build-in-public into an ad, and the genre
+  dies the moment it smells like one.
+- **The caveat scene stays.** The assistant volunteered that `skinstel.com` vs
+  "Skintel" may be costing click-through. Showing the criticism is what makes the
+  favourable parts believable.
+- **These are projections, not results.** The scene labels say "assumed" and
+  "depending on how it performs" for that reason. If real ad data ever replaces
+  the assumptions, change the eyebrow copy too.
 
 The moment that makes each one work is a *withheld* beat — the label that waits for
 the arc, the red flip that waits for every bar, the marker that will not pop before

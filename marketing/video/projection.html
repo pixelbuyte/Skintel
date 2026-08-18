@@ -1,0 +1,593 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<link rel="stylesheet" href="./style.css">
+<style>
+  /* ------------------------------------------------------------------
+     The dark cut. Everything else in this folder is cream — this one is
+     founder content, not product marketing, so it gets its own register:
+     terminal ground, the same terracotta, and effects the beauty cuts
+     would never wear (chromatic split, glitch, scanlines, bloom).
+     ------------------------------------------------------------------ */
+  :root {
+    --d-bg:     #0E0D0B;
+    --d-panel:  #17150F;
+    --d-line:   #2B2721;
+    --d-ink:    #F4EFE5;
+    --d-muted:  #8A8377;
+    --d-accent: #D0714F;
+    --d-good:   #86AC6C;
+    --d-bad:    #D9584E;
+  }
+  html, body { background: var(--d-bg); }
+  body { color: var(--d-ink); }
+
+  #stage {
+    background:
+      radial-gradient(760px circle at 14% -4%,  rgba(208,113,79,0.16), transparent 58%),
+      radial-gradient(680px circle at 92% 8%,   rgba(120,150,170,0.10), transparent 60%),
+      radial-gradient(820px circle at 84% 104%, rgba(208,113,79,0.12), transparent 56%),
+      linear-gradient(180deg, #100E0C 0%, #0B0A09 100%);
+  }
+  #grain { opacity: 0.34; mix-blend-mode: overlay; }
+  #vignette {
+    background: radial-gradient(118% 76% at 50% 44%, transparent 52%, rgba(0,0,0,0.62) 100%);
+  }
+
+  /* faint engineering grid, drawn in behind the analysis */
+  #gridbg {
+    position: absolute; inset: 0; z-index: 1; pointer-events: none; opacity: 0;
+    background-image:
+      linear-gradient(rgba(208,113,79,0.10) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(208,113,79,0.10) 1px, transparent 1px);
+    background-size: 90px 90px;
+  }
+  /* CRT scanlines — very low contrast, reads as texture not gimmick */
+  #scan {
+    position: absolute; inset: 0; z-index: 58; pointer-events: none; opacity: 0.30;
+    background: repeating-linear-gradient(180deg,
+      rgba(255,255,255,0.030) 0 1px, transparent 1px 4px);
+  }
+
+  .eyebrow { color: var(--d-accent); }
+  .body    { color: var(--d-muted); }
+  .pri     { color: var(--d-accent); }
+
+  /* chromatic split: two coloured copies sit under the real text and
+     converge onto it. Screen blending on a near-black ground. */
+  .chroma { position: relative; }
+  .chroma .gh {
+    position: absolute; inset: 0; mix-blend-mode: screen; pointer-events: none;
+    will-change: transform, opacity;
+  }
+  .chroma .gh.r { color: #FF3B2F; }
+  .chroma .gh.c { color: #29D3E0; }
+
+  /* --- S2 chat --- */
+  .bubble {
+    position: absolute; left: 84px; right: 84px;
+    background: var(--d-panel); border: 1px solid var(--d-line);
+    border-radius: 30px; padding: 40px 44px;
+    font-size: 42px; line-height: 1.34;
+    will-change: opacity, transform;
+  }
+  #caret {
+    display: inline-block; width: 4px; height: 46px; margin-left: 6px;
+    background: var(--d-accent); vertical-align: -8px;
+  }
+  .skel {
+    position: absolute; height: 26px; border-radius: 999px;
+    background: linear-gradient(90deg, #221F19 0%, #353027 42%, #221F19 84%);
+    background-size: 260% 100%;
+    will-change: background-position, opacity;
+  }
+
+  /* --- S3 assumption ranges --- */
+  .asm { position: absolute; left: 84px; right: 84px; will-change: opacity, transform; }
+  .asm .an { font-size: 36px; font-weight: 500; }
+  .asm .ar {
+    position: relative; margin-top: 26px; height: 16px;
+    background: var(--d-line); border-radius: 999px;
+  }
+  .asm .aspan {
+    position: absolute; top: 0; bottom: 0; border-radius: 999px;
+    background: linear-gradient(90deg, rgba(208,113,79,0.45), var(--d-accent));
+    will-change: width, opacity;
+  }
+  .asm .amk {
+    position: absolute; top: -13px; width: 6px; height: 42px; border-radius: 3px;
+    background: var(--d-ink); box-shadow: 0 0 22px 5px rgba(244,239,229,0.45);
+    will-change: left, opacity;
+  }
+  .asm .aend {
+    display: flex; justify-content: space-between; margin-top: 18px;
+    font-family: 'JetBrains Mono', ui-monospace, monospace;
+    font-size: 25px; color: var(--d-muted);
+  }
+
+  /* --- S4 funnel --- */
+  .dot {
+    position: absolute; width: 9px; height: 9px; border-radius: 999px;
+    background: #6E675C; will-change: transform, opacity;
+  }
+  .dot.win { background: var(--d-accent); box-shadow: 0 0 16px 3px rgba(208,113,79,0.75); }
+  #walls { position: absolute; inset: 0; z-index: 3; }
+
+  /* --- S5 scenarios --- */
+  .scn {
+    position: absolute; left: 84px; right: 84px; height: 130px;
+    border-bottom: 1px solid var(--d-line);
+    display: flex; align-items: center;
+    will-change: opacity, transform, background;
+  }
+  .scn .sname { font-size: 36px; flex: 1; }
+  .scn .sconv {
+    font-family: 'JetBrains Mono', ui-monospace, monospace;
+    font-size: 34px; color: var(--d-muted); width: 150px;
+  }
+  .scn .spre {
+    font-family: 'Instrument Serif', Georgia, serif;
+    font-size: 62px; width: 150px; text-align: right;
+  }
+
+  /* --- S6 glitch: the wordmark tears into bands --- */
+  .glb {
+    position: absolute; left: 0; right: 0;
+    font-family: 'Instrument Serif', Georgia, serif;
+    font-size: 128px; line-height: 1; text-align: center;
+    will-change: transform, clip-path, opacity;
+  }
+</style>
+</head>
+<body>
+<div id="stage">
+  <div id="gridbg"></div>
+
+  <!-- S1 · hook -->
+  <div class="scene" id="s1">
+    <div class="eyebrow" id="s1e">Building in public</div>
+    <div class="chroma" id="s1w" style="margin-top:34px">
+      <div class="serif h1 gh r" id="s1r">I asked what<br>this launch<br>would <em class="ital">actually</em> make.</div>
+      <div class="serif h1 gh c" id="s1c">I asked what<br>this launch<br>would <em class="ital">actually</em> make.</div>
+      <div class="serif h1" id="s1a">I asked what<br>this launch<br>would <em class="ital">actually</em> make.</div>
+    </div>
+  </div>
+
+  <!-- S2 · the prompt types itself, then the answer starts building -->
+  <div class="scene" id="s2" style="padding:0">
+    <div style="position:absolute;left:84px;right:84px;top:250px;z-index:30">
+      <div class="eyebrow" id="s2e">The question</div>
+    </div>
+    <div class="bubble" id="s2b" style="top:430px">
+      <span id="typed"></span><span id="caret"></span>
+    </div>
+    <div id="skels"></div>
+    <div class="serif h3" id="s2t"
+         style="position:absolute;left:84px;right:84px;top:1440px">
+      No optimism setting.<br><em class="pri ital">Just the maths.</em>
+    </div>
+  </div>
+
+  <!-- S3 · the assumptions it worked from -->
+  <div class="scene" id="s3" style="padding:0">
+    <div style="position:absolute;left:84px;right:84px;top:240px;z-index:30">
+      <div class="eyebrow" id="s3e">What it assumed</div>
+      <div class="serif h3" id="s3t" style="margin-top:24px">Cold traffic.<br>No social proof yet.</div>
+    </div>
+    <div id="asms"></div>
+  </div>
+
+  <!-- S4 · $500 becomes 525 clicks becomes 10 preorders -->
+  <div class="scene" id="s4" style="padding:0">
+    <div style="position:absolute;left:84px;right:84px;top:200px;z-index:30">
+      <div class="eyebrow" id="s4e">$500 across Meta and Reddit</div>
+    </div>
+    <div id="splits"
+         style="position:absolute;left:84px;right:84px;top:300px;display:flex;
+                justify-content:space-between;z-index:30">
+      <div style="text-align:left">
+        <div class="serif" id="mMeta" style="font-size:76px;line-height:1">$0</div>
+        <div style="font-size:26px;color:var(--d-muted);margin-top:6px">META &middot; $1.15 CPC</div>
+      </div>
+      <div style="text-align:right">
+        <div class="serif" id="mRed" style="font-size:76px;line-height:1">$0</div>
+        <div style="font-size:26px;color:var(--d-muted);margin-top:6px">REDDIT &middot; $0.75 CPC</div>
+      </div>
+    </div>
+
+    <svg id="walls" width="1080" height="1920" viewBox="0 0 1080 1920">
+      <path id="wl" d="M 110 690 L 496 900" fill="none" stroke="#2B2721" stroke-width="4"/>
+      <path id="wr" d="M 970 690 L 584 900" fill="none" stroke="#2B2721" stroke-width="4"/>
+    </svg>
+    <div id="dots" style="position:absolute;inset:0;z-index:4"></div>
+
+    <div id="clicks"
+         style="position:absolute;left:84px;right:84px;top:470px;text-align:center;z-index:30">
+      <span class="serif" id="cN" style="font-size:96px;line-height:1">0</span>
+      <span style="font-size:28px;color:var(--d-muted);letter-spacing:0.2em;
+                   margin-left:20px">CLICKS</span>
+    </div>
+
+    <div id="outcome"
+         style="position:absolute;left:84px;right:84px;top:1300px;text-align:center;z-index:30">
+      <div class="serif" id="oN" style="font-size:150px;line-height:1;color:var(--d-accent)">0</div>
+      <div style="font-size:30px;color:var(--d-muted);letter-spacing:0.2em;
+                  text-transform:uppercase;margin-top:10px">Preorders at 2%</div>
+      <div class="serif" id="oR" style="font-size:104px;line-height:1;margin-top:44px">$0</div>
+      <div id="oRange" style="font-size:29px;color:var(--d-muted);margin-top:14px">
+        ~$200&ndash;$220 depending on whether it&rsquo;s 10 or 11
+      </div>
+    </div>
+  </div>
+
+  <!-- S5 · the range, not the number -->
+  <div class="scene" id="s5" style="padding:0">
+    <div style="position:absolute;left:84px;right:84px;top:250px;z-index:30">
+      <div class="eyebrow" id="s5e">Depending on how it performs</div>
+      <div class="serif h3" id="s5t" style="margin-top:24px">One of these<br>is the real one.</div>
+    </div>
+    <div id="scns"></div>
+    <div class="body" id="s5f"
+         style="position:absolute;left:84px;right:84px;top:1380px;font-size:38px;max-width:none">
+      Month one is a calibration period. CPCs start high before the
+      algorithm settles, and none of this is a promise.
+    </div>
+  </div>
+
+  <!-- S6 · the caveat it volunteered -->
+  <div class="scene" id="s6" style="padding:0">
+    <div style="position:absolute;left:84px;right:84px;top:300px;z-index:30">
+      <div class="eyebrow" id="s6e" style="color:var(--d-bad)">The bit I didn&rsquo;t ask for</div>
+    </div>
+    <div id="glitch" style="position:absolute;left:0;right:0;top:700px;height:150px"></div>
+    <div class="serif h3" id="s6t"
+         style="position:absolute;left:84px;right:84px;top:960px;text-align:center">
+      The domain has an <em class="pri ital">S</em> in it.
+    </div>
+    <div class="body" id="s6s"
+         style="position:absolute;left:84px;right:84px;top:1180px;text-align:center;
+                font-size:38px;max-width:none">
+      It flagged that people searching the brand may not land on the site &mdash;
+      and that this quietly costs click-through on every ad.
+    </div>
+  </div>
+
+  <!-- S7 · CTA -->
+  <div class="scene" id="s7">
+    <div id="s7mark" class="mark" style="margin-bottom:44px">
+      <svg viewBox="0 0 24 24" fill="#FFFEFA">
+        <path d="M12 0.6 13.85 9.6 23 11.6 13.85 13.6 12 22.6 10.15 13.6 1 11.6 10.15 9.6Z"/>
+        <path d="M18.6 2.2 19.35 5.1 22.2 5.9 19.35 6.7 18.6 9.6 17.85 6.7 15 5.9 17.85 5.1Z"/>
+      </svg>
+    </div>
+    <div class="serif" id="s7a" style="font-size:120px;line-height:1">Skintel</div>
+    <div class="body" id="s7b" style="margin-top:18px;font-size:42px;max-width:30ch">
+      Ten preorders is ten people who wanted it before it shipped.
+    </div>
+    <div class="serif" id="s7c" style="font-size:150px;line-height:1;margin-top:54px">
+      $20<span style="font-size:52px;color:var(--d-muted);margin-left:18px">once</span>
+    </div>
+    <div style="font-size:40px;font-weight:500;margin-top:14px" id="s7d2">
+      Three months of Pro &middot; 500 spots
+    </div>
+    <div class="btn" id="s7d" style="margin-top:50px;align-self:flex-start;
+                                     background:var(--d-accent);
+                                     box-shadow:0 30px 64px -22px rgba(208,113,79,0.6)">
+      skinstel.com/discount
+      <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#0E0D0B"
+           stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round">
+        <line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/>
+      </svg>
+    </div>
+  </div>
+
+  <div id="scan"></div>
+  <div id="vignette"></div>
+  <div id="grain"></div>
+</div>
+
+<script src="./engine.js"></script>
+<script>
+const E = window.__E;
+const $ = id => document.getElementById(id);
+const DURATION = 51.0;
+
+const S = {
+  s1: [0.00,  4.80],
+  s2: [4.60, 13.00],
+  s3: [12.80, 20.40],
+  s4: [20.20, 33.60],
+  s5: [33.40, 40.40],
+  s6: [40.20, 46.20],
+  s7: [46.00, 51.00],
+};
+
+/** Deterministic 0..1 from an integer — no Math.random anywhere in a render. */
+const rnd = (i, salt = 0) => {
+  const x = Math.sin(i * 127.1 + salt * 311.7) * 43758.5453;
+  return x - Math.floor(x);
+};
+
+// ---------------------------------------------------------------- S2 typing
+const PROMPT = 'Estimated revenue for skintel this month with Reddit + Meta ads';
+const SKELS = [
+  { t: 700, l: 84, w: 760 }, { t: 752, l: 84, w: 900 }, { t: 804, l: 84, w: 640 },
+  { t: 880, l: 84, w: 840 }, { t: 932, l: 84, w: 700 }, { t: 984, l: 84, w: 880 },
+  { t: 1060, l: 84, w: 560 }, { t: 1112, l: 84, w: 820 },
+];
+SKELS.forEach((s, i) => {
+  const el = document.createElement('div');
+  el.className = 'skel'; el.id = 'sk' + i;
+  el.style.top = s.t + 'px'; el.style.left = s.l + 'px'; el.style.width = s.w + 'px';
+  $('skels').appendChild(el);
+});
+
+// ---------------------------------------------------------------- S3 ranges
+const ASM = [
+  { n: 'Meta cost per click',      lo: 0.80, hi: 1.50, avg: 1.15, unit: '$' },
+  { n: 'Reddit cost per click',    lo: 0.50, hi: 1.00, avg: 0.75, unit: '$' },
+  { n: 'Landing → preorder rate',  lo: 1.5,  hi: 3.0,  avg: 2.0,  unit: '%' },
+];
+const A_TOP = 700, A_PITCH = 300;
+ASM.forEach((a, i) => {
+  const fmt = v => a.unit === '$' ? '$' + v.toFixed(2) : v.toFixed(1) + '%';
+  const el = document.createElement('div');
+  el.className = 'asm'; el.id = 'as' + i;
+  el.style.top = (A_TOP + i * A_PITCH) + 'px';
+  el.innerHTML =
+    `<div class="an">${a.n}</div>
+     <div class="ar"><div class="aspan" id="asp${i}"></div><div class="amk" id="amk${i}"></div></div>
+     <div class="aend"><span>${fmt(a.lo)}</span>
+       <span style="color:var(--d-ink);font-weight:700" id="aav${i}">${fmt(a.avg)}</span>
+       <span>${fmt(a.hi)}</span></div>`;
+  $('asms').appendChild(el);
+});
+
+// ---------------------------------------------------------------- S4 funnel
+// 525 clicks fall. 10 fit through the gate. That ratio *is* the argument —
+// so every dot is drawn rather than summarised into a bar.
+const N_DOTS = 525, N_WIN = 10;
+const SPAWN_Y = 665, LAND_Y = 1215;
+const GATE_X = 540, SLOT_GAP = 62;
+const wallY = x => 900 - Math.min(Math.abs(x - GATE_X), 430) / 430 * 210;
+
+const DOTS = [];
+let winSeen = 0;
+for (let i = 0; i < N_DOTS; i++) {
+  // spread the ten winners evenly through the stream so the gate never idles
+  const win = (i % Math.floor(N_DOTS / N_WIN)) === 26 && winSeen < N_WIN;
+  if (win) winSeen++;
+  const el = document.createElement('div');
+  el.className = 'dot' + (win ? ' win' : '');
+  el.id = 'd' + i;
+  $('dots').appendChild(el);
+  DOTS.push({
+    el, win,
+    slot: win ? winSeen - 1 : -1,
+    x: 118 + rnd(i, 1) * 844,
+    start: 21.60 + rnd(i, 2) * 3.40,
+    dur: 1.45 + rnd(i, 3) * 0.55,
+  });
+}
+
+// ---------------------------------------------------------------- S5 rows
+const SCN = [
+  { n: 'Weak — new brand, no proof', c: '1%',   p: 5,  hot: false },
+  { n: 'Realistic',                  c: '2%',   p: 10, hot: true  },
+  { n: 'Strong — creative lands',    c: '3.5%', p: 18, hot: false },
+];
+const SC_TOP = 700;
+SCN.forEach((s, i) => {
+  const el = document.createElement('div');
+  el.className = 'scn'; el.id = 'sc' + i;
+  el.style.top = (SC_TOP + i * 130) + 'px';
+  el.innerHTML =
+    `<div class="sname">${s.n}</div><div class="sconv">${s.c}</div>` +
+    `<div class="spre" id="scp${i}" style="color:${s.hot ? 'var(--d-accent)' : 'var(--d-ink)'}">0</div>`;
+  $('scns').appendChild(el);
+});
+
+// ---------------------------------------------------------------- S6 glitch
+const BANDS = 7;
+for (let i = 0; i < BANDS; i++) {
+  const el = document.createElement('div');
+  el.className = 'glb'; el.id = 'gb' + i;
+  el.textContent = 'skinstel.com';
+  el.style.clipPath = `inset(${(i / BANDS) * 100}% 0 ${((BANDS - 1 - i) / BANDS) * 100}% 0)`;
+  $('glitch').appendChild(el);
+}
+
+function render(t) {
+  // ---------- S1 hook: the chromatic split converges onto the type ----------
+  if (E.applyScene($('s1'), t, S.s1[0], S.s1[1], { drift: 18 }) > 0) {
+    E.riseIn($('s1e'), t, 0.15, { rise: 22 });
+    E.revealWords($('s1a'), t, 0.45, { step: 0.06, blur: true });
+    E.revealWords($('s1r'), t, 0.45, { step: 0.06, blur: true });
+    E.revealWords($('s1c'), t, 0.45, { step: 0.06, blur: true });
+    // ghosts pull apart on entry, then snap into register
+    const split = (1 - E.easeOutQuint(E.seg(t, 1.60, 3.00))) * 16;
+    $('s1r').style.transform = `translate(${-split}px, ${-split * 0.28}px)`;
+    $('s1c').style.transform = `translate(${split}px, ${split * 0.28}px)`;
+    $('s1r').style.opacity = split > 0.2 ? 0.85 : 0;
+    $('s1c').style.opacity = split > 0.2 ? 0.85 : 0;
+  }
+
+  // ---------- S2 the prompt types, the answer starts assembling ----------
+  if (E.applyScene($('s2'), t, S.s2[0], S.s2[1], { drift: 0, scale: 0 }) > 0) {
+    E.riseIn($('s2e'), t, 4.75, { rise: 18 });
+    const bIn = E.easeOutQuint(E.seg(t, 4.85, 5.60));
+    $('s2b').style.opacity = bIn;
+    $('s2b').style.transform = `translateY(${(1 - bIn) * 30}px)`;
+
+    // one character at a time — the caret blinks on a 1.06s cycle, and stops
+    // the instant the message is sent
+    const typed = Math.round(E.seg(t, 5.40, 9.00) * PROMPT.length);
+    $('typed').textContent = PROMPT.slice(0, typed);
+    const sent = t > 9.35;
+    $('caret').style.opacity = sent ? 0 : (t % 1.06 < 0.53 ? 1 : 0.15);
+
+    // sending nudges the bubble up and hands off to the thinking skeleton
+    const send = E.easeEmil(E.seg(t, 9.35, 9.95));
+    $('s2b').style.transform =
+      `translateY(${(1 - bIn) * 30 - send * 96}px) scale(${E.lerp(1, 0.965, send)})`;
+    $('s2b').style.borderColor =
+      `color-mix(in srgb, ${'#D0714F'} ${send * 60}%, #2B2721)`;
+
+    SKELS.forEach((s, i) => {
+      const at = 10.05 + i * 0.13;
+      const p = E.easeOutQuint(E.seg(t, at, at + 0.45));
+      const el = $('sk' + i);
+      el.style.opacity = p * 0.9;
+      el.style.width = `${p * s.w}px`;
+      // the shimmer runs continuously right-to-left while it "thinks"
+      el.style.backgroundPosition = `${(1 - ((t * 0.55 + i * 0.09) % 1)) * 260}% 0`;
+    });
+    E.revealWords($('s2t'), t, 11.40, { step: 0.05 });
+  }
+
+  // ---------- S3 assumptions ----------
+  const s3a = E.applyScene($('s3'), t, S.s3[0], S.s3[1], { drift: 0, scale: 0 });
+  if (s3a > 0) {
+    E.riseIn($('s3e'), t, 12.95, { rise: 18 });
+    E.revealWords($('s3t'), t, 13.20, { step: 0.05 });
+    ASM.forEach((a, i) => {
+      const at = 14.40 + i * 0.62;
+      const p = E.easeOutQuint(E.seg(t, at, at + 0.60));
+      const el = $('as' + i);
+      el.style.opacity = p;
+      el.style.transform = `translateY(${(1 - p) * 28}px)`;
+      // the span opens across the full range, then the marker settles on
+      // the average actually used in the maths
+      const sp = E.easeOutQuint(E.seg(t, at + 0.25, at + 1.05));
+      $('asp' + i).style.width = `${sp * 100}%`;
+      const mk = E.easeEmil(E.seg(t, at + 0.95, at + 1.60));
+      const frac = (a.avg - a.lo) / (a.hi - a.lo);
+      $('amk' + i).style.left = `${E.lerp(0, frac * 100, mk)}%`;
+      $('amk' + i).style.opacity = mk;
+      $('aav' + i).style.opacity = E.easeEmil(E.seg(t, at + 1.45, at + 1.90));
+    });
+  }
+  // the grid comes up under the analytical scenes only
+  $('gridbg').style.opacity =
+    (E.easeInOut(E.seg(t, 13.00, 14.20)) - E.easeInOut(E.seg(t, 39.60, 40.40))) * 0.85;
+
+  // ---------- S4 the funnel ----------
+  if (E.applyScene($('s4'), t, S.s4[0], S.s4[1], { drift: 0, scale: 0 }) > 0) {
+    E.riseIn($('s4e'), t, 20.35, { rise: 18 });
+    const sp = E.easeOutQuint(E.seg(t, 20.55, 21.45));
+    $('splits').style.opacity = sp;
+    $('mMeta').textContent = '$' + Math.round(sp * 300);
+    $('mRed').textContent  = '$' + Math.round(sp * 200);
+
+    const wIn = E.easeOutQuint(E.seg(t, 21.30, 22.20));
+    $('walls').style.opacity = wIn;
+
+    let landed = 0, inflight = 0;
+    DOTS.forEach(d => {
+      const p = E.seg(t, d.start, d.start + d.dur);
+      if (p <= 0) { d.el.style.opacity = 0; return; }
+      if (p > 0 && p < 1) inflight++;
+
+      let x, y, o = 1, s = 1;
+      if (d.win) {
+        // converts: steered to the gate on the way down, then to its slot
+        const toGate = E.easeInOut(E.clamp(p / 0.62, 0, 1));
+        const drop   = E.easeOut(p);
+        const settle = E.easeEmil(E.clamp((p - 0.62) / 0.38, 0, 1));
+        const slotX  = GATE_X - ((N_WIN - 1) / 2) * SLOT_GAP + d.slot * SLOT_GAP;
+        x = E.lerp(E.lerp(d.x, GATE_X, toGate), slotX, settle);
+        y = E.lerp(SPAWN_Y, LAND_Y, drop);
+        s = E.lerp(1, 1.9, settle);
+        if (p >= 1) landed++;
+      } else {
+        // everything else meets the wall and is absorbed there. No slide:
+        // the wall is a filter, and a click that bounces reads as retained.
+        const fall = E.easeOut(E.clamp(p / 0.70, 0, 1));
+        const die  = E.clamp((p - 0.70) / 0.30, 0, 1);
+        x = d.x;
+        y = E.lerp(SPAWN_Y, wallY(d.x), fall);
+        o = 1 - E.easeInOut(die);
+        s = E.lerp(1, 0.35, die);
+      }
+      d.el.style.opacity = o;
+      d.el.style.transform = `translate(${x}px, ${y}px) scale(${s})`;
+    });
+
+    // counters are read off the simulation, not scripted alongside it
+    const seen = DOTS.filter(d => t >= d.start).length;
+    $('cN').textContent = seen;
+    $('clicks').style.opacity = E.easeOutQuint(E.seg(t, 21.50, 22.20));
+    $('oN').textContent = landed;
+    $('oR').textContent = '$' + landed * 20;
+    const oIn = E.easeOutQuint(E.seg(t, 26.60, 27.40));
+    $('outcome').style.opacity = oIn;
+    $('oR').style.opacity = E.easeEmil(E.seg(t, 29.40, 30.20));
+    $('oRange').style.opacity = E.easeOutQuint(E.seg(t, 30.40, 31.20));
+    // the walls have done their job once the stream is through
+    $('walls').style.opacity = wIn * (1 - 0.55 * E.easeInOut(E.seg(t, 28.40, 30.00)));
+  }
+
+  // ---------- S5 the range ----------
+  if (E.applyScene($('s5'), t, S.s5[0], S.s5[1], { drift: 0, scale: 0 }) > 0) {
+    E.riseIn($('s5e'), t, 33.55, { rise: 18 });
+    E.revealWords($('s5t'), t, 33.80, { step: 0.05 });
+    SCN.forEach((s, i) => {
+      const at = 34.90 + i * 0.44;
+      const p = E.easeOutQuint(E.seg(t, at, at + 0.62));
+      const el = $('sc' + i);
+      el.style.opacity = p;
+      el.style.transform = `translateX(${(1 - p) * -34}px)`;
+      const cp = E.easeOutQuint(E.seg(t, at + 0.30, at + 1.20));
+      $('scp' + i).textContent = Math.round(cp * s.p);
+      // the middle row lights only once all three are readable
+      const hot = s.hot ? E.easeInOut(E.seg(t, 36.90, 37.60)) : 0;
+      el.style.background = `rgba(208,113,79,${hot * 0.10})`;
+    });
+    E.riseIn($('s5f'), t, 37.90, { rise: 24 });
+  }
+
+  // ---------- S6 the caveat, torn into bands ----------
+  if (E.applyScene($('s6'), t, S.s6[0], S.s6[1], { drift: 0, scale: 0 }) > 0) {
+    E.riseIn($('s6e'), t, 40.35, { rise: 18 });
+    const gIn = E.easeOutQuint(E.seg(t, 40.60, 41.30));
+    // three discrete bursts rather than constant noise — a tear you can read
+    const burst = [41.50, 42.05, 42.55].reduce(
+      (m, b) => Math.max(m, 1 - E.clamp(Math.abs(t - b) / 0.19, 0, 1)), 0);
+    for (let i = 0; i < BANDS; i++) {
+      const el = $('gb' + i);
+      const k = Math.floor(t * 26) * BANDS + i;      // held for ~2 frames
+      const off = (rnd(k, 7) - 0.5) * 108 * burst;
+      el.style.opacity = gIn;
+      el.style.transform = `translateX(${off}px)`;
+      el.style.color = burst > 0.4 && rnd(k, 9) > 0.72
+        ? (rnd(k, 11) > 0.5 ? '#29D3E0' : '#FF3B2F')
+        : 'var(--d-ink)';
+    }
+    E.revealWords($('s6t'), t, 43.10, { step: 0.055 });
+    E.riseIn($('s6s'), t, 44.00, { rise: 24 });
+  }
+
+  // ---------- S7 CTA ----------
+  if (E.applyScene($('s7'), t, S.s7[0], S.s7[1], { drift: 14, scale: 0.008 }) > 0) {
+    const m = E.easeEmil(E.seg(t, 46.15, 46.90));
+    $('s7mark').style.opacity = m;
+    $('s7mark').style.transform = `scale(${E.lerp(0.72, 1, m)}) rotate(${(1 - m) * -14}deg)`;
+    E.revealWords($('s7a'), t, 46.55, { step: 0.05 });
+    E.riseIn($('s7b'), t, 47.00, { rise: 24 });
+    const n = E.easeEmil(E.seg(t, 47.50, 48.40));
+    $('s7c').style.opacity = n;
+    $('s7c').style.transform = `scale(${E.lerp(0.86, 1, n)})`;
+    E.riseIn($('s7d2'), t, 48.30, { rise: 24 });
+    const b = E.easeEmil(E.seg(t, 48.90, 49.65));
+    $('s7d').style.opacity = b;
+    $('s7d').style.transform = `translateY(${(1 - b) * 32}px) scale(${E.lerp(0.94, 1, b)})`;
+  }
+}
+
+window.__seek = t => { render(t); return true; };
+window.__duration = DURATION;
+render(0);
+</script>
+</body>
+</html>

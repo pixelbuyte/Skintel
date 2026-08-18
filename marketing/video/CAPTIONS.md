@@ -13,6 +13,7 @@ All of them drive to **skinstel.com/discount** — $20 once · 3 months of Pro �
 | `skintel-routine.mp4` | 42s | Two products conflicting | Routine-building content, TikTok comments bait |
 | `skintel-versus.mp4` | 40s | $48 vs $12, head to head | Highest organic ceiling — price arguments travel |
 | `skintel-progress.mp4` | 43s | Twelve weeks of results | Retargeting and email. Not a cold-open video |
+| `skintel-projection.mp4` | 51s | Founder content — the honest launch maths | X, LinkedIn, r/Entrepreneur. **Not** the beauty audience |
 
 ---
 
@@ -137,6 +138,44 @@ else.
 no matter how honest the chart is. It works as **retargeting** (people who watched Hero or Shelf)
 and in **email**, where the sender is already known. The illustration is a worked example, not a
 customer testimonial — don't caption it as one.
+
+---
+
+## Projection — "I asked what this launch would actually make." (51s)
+
+Not a product ad. This one goes where founders talk to founders — X/Twitter, LinkedIn,
+r/Entrepreneur, r/SaaS, Indie Hackers — and it works precisely because the answer is
+small. Posting it on TikTok alongside the beauty cuts would confuse both audiences.
+
+**Caption (X / LinkedIn):**
+> I asked for an honest revenue projection on the Skintel launch instead of a hopeful one.
+>
+> $500 across Meta and Reddit. ~525 clicks at real skincare CPCs. At a 2% cold-traffic
+> conversion that's ten preorders — about $200.
+>
+> It also told me, unprompted, that the domain having an S in it is probably costing me
+> click-through on every ad I run.
+>
+> Ten people who wanted it before it shipped is still ten people. skinstel.com/discount
+
+**Hook overlay (0–2s):** "I asked what this launch would actually make."
+
+**Reddit title (r/Entrepreneur, no link in the post body):**
+> Ran the numbers on my launch before spending the money. Projection: 10 preorders, $200.
+
+**Why the small number is the point.** Every founder reading this has seen a
+"$10k month" thread and quietly assumed it was inflated. A projection of $200,
+published before the spend, is the one claim nobody has a reason to doubt — and it
+buys credibility that no amount of good news would. Do not round it up.
+
+**Do not caption this as results.** Nothing in it has happened yet. It's a model with
+its assumptions on screen. "Here's the projection" is honest; "here's what we made"
+would not be, and the video itself says so in the range scene.
+
+**One thing to decide before posting:** it puts your ad budget, CPC assumptions,
+conversion estimate and revenue expectation in public. That's the entire genre and it
+demonstrably works — but it is a choice, and a competitor watching the same niche
+learns your unit economics for free. Worth thirty seconds of thought, not a veto.
 
 ---
 

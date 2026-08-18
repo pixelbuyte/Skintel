@@ -15,6 +15,7 @@
     "render:routine": "node render.mjs routine 30",
     "render:versus": "node render.mjs versus 30",
     "render:progress": "node render.mjs progress 30",
+    "render:projection": "node render.mjs projection 30",
     "render:live": "npm run render:hero && npm run render:shelf && npm run render:routine && npm run render:versus && npm run render:progress",
     "render:all": "npm run render:v1 && npm run render:v2 && npm run render:v3 && npm run render:launch && npm run render:live",
     "ads": "node shoot.mjs ads"
