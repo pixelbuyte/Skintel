@@ -2552,8 +2552,8 @@ export default function Landing() {
                   </h2>
                   <p className="text-muted text-sm sm:text-base leading-relaxed mb-5 max-w-[48ch]">
                     Everything in Pro — unlimited products, the full INCI scanner, your personal
-                    trigger map. Pay once. No subscription, no auto-renew. Regular price after
-                    the founding batch: <span className="line-through">$79/year</span>.
+                    trigger map. Pay once. No subscription, no auto-renew. Standard subscription
+                    pricing applies once the founding batch closes.
                   </p>
                   <div className="flex flex-col min-[390px]:flex-row items-stretch min-[390px]:items-center gap-3">
                     <a
