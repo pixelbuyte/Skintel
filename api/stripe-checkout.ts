@@ -2,6 +2,12 @@ import Stripe from 'stripe';
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { appUrl, getServiceClient, getUserFromAuthHeader, json } from './_lib.js';
 
+// The founding offer lists at the full price ($49.99) and this promotion code
+// discounts it to $20 -- applied server-side so nobody loses the deal by
+// forgetting to type a code. Override via env if the code ever needs to
+// rotate without a redeploy; the id here is a live Stripe object, not a secret.
+const FOUNDING_PROMO_CODE_ID = process.env.STRIPE_PROMO_FOUNDING || 'promo_1U6I2NRrTdDFA54jRrHxFnMs';
+
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   const isGuestFounding = req.query.offer === 'founding';
 
@@ -32,10 +38,10 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       mode: 'payment',
       payment_method_types: ['card'],
       line_items: [{ price: priceId, quantity: 1 }],
+      discounts: [{ promotion_code: FOUNDING_PROMO_CODE_ID }],
       metadata: { tier: 'founding', guest: 'true', ...(ref ? { ref } : {}) },
       success_url: `${appUrl()}/checkout/success?session_id={CHECKOUT_SESSION_ID}`,
       cancel_url: `${appUrl()}/#offer`,
-      allow_promotion_codes: true,
     });
 
     if (!session.url) return json(res, { error: 'Checkout failed' }, 500);
@@ -83,11 +89,10 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     client_reference_id: user.id,
     metadata: { supabase_user_id: user.id, tier },
     ...(isFounding
-      ? {}
+      ? { discounts: [{ promotion_code: FOUNDING_PROMO_CODE_ID }] }
       : { subscription_data: { metadata: { supabase_user_id: user.id, tier } } }),
     success_url: `${appUrl()}/checkout/success?session_id={CHECKOUT_SESSION_ID}`,
     cancel_url: `${appUrl()}/pricing`,
-    allow_promotion_codes: true,
   });
 
   return json(res, { url: session.url });
