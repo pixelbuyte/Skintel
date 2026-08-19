@@ -3,36 +3,12 @@ import { Link, Navigate } from 'react-router-dom';
 import { Sparkles, Loader2 } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 
-function GoogleIcon({ size = 18 }: { size?: number }) {
-  return (
-    <svg width={size} height={size} viewBox="0 0 18 18" xmlns="http://www.w3.org/2000/svg">
-      <path
-        fill="#4285F4"
-        d="M17.64 9.2c0-.637-.057-1.251-.164-1.84H9v3.481h4.844a4.14 4.14 0 0 1-1.796 2.716v2.258h2.908c1.702-1.567 2.684-3.874 2.684-6.615z"
-      />
-      <path
-        fill="#34A853"
-        d="M9 18c2.43 0 4.467-.806 5.956-2.184l-2.908-2.258c-.806.54-1.837.86-3.048.86-2.344 0-4.328-1.584-5.036-3.711H.957v2.332A8.997 8.997 0 0 0 9 18z"
-      />
-      <path
-        fill="#FBBC05"
-        d="M3.964 10.707A5.41 5.41 0 0 1 3.682 9c0-.593.102-1.17.282-1.707V4.961H.957A8.996 8.996 0 0 0 0 9c0 1.452.348 2.827.957 4.04l3.007-2.333z"
-      />
-      <path
-        fill="#EA4335"
-        d="M9 3.58c1.321 0 2.508.454 3.44 1.345l2.582-2.58C13.463.891 11.426 0 9 0A8.997 8.997 0 0 0 .957 4.96l3.007 2.333C4.672 5.166 6.656 3.58 9 3.58z"
-      />
-    </svg>
-  );
-}
-
 type Mode = 'signin' | 'signup' | 'reset';
 
 export default function Login() {
   const {
     user,
     loading,
-    signInWithGoogle,
     signInWithEmail,
     signUpWithEmail,
     sendPasswordReset,
@@ -43,7 +19,6 @@ export default function Login() {
   const [err, setErr] = useState<string | null>(null);
   const [info, setInfo] = useState<string | null>(null);
   const [confirmed, setConfirmed] = useState<string | null>(null);
-  const [oauthSubmitting, setOauthSubmitting] = useState(false);
   const [emailSubmitting, setEmailSubmitting] = useState(false);
 
   if (loading) return null;
@@ -74,17 +49,6 @@ export default function Login() {
         </div>
       </div>
     );
-  }
-
-  async function doGoogle() {
-    setErr(null);
-    setInfo(null);
-    setOauthSubmitting(true);
-    const { error } = await signInWithGoogle();
-    if (error) {
-      setErr(error.message);
-      setOauthSubmitting(false);
-    }
   }
 
   async function doEmail(e: React.FormEvent) {
@@ -133,30 +97,11 @@ export default function Login() {
         <h1 className="font-display text-3xl mb-2">{heading}</h1>
         <p className="text-muted text-sm mb-6">
           {mode === 'signup'
-            ? 'Sign up with email or continue with Google.'
+            ? 'Sign up with your email.'
             : mode === 'reset'
               ? 'Enter your email to get a reset link.'
               : 'Welcome back. Sign in to continue.'}
         </p>
-
-        {mode !== 'reset' && (
-          <>
-            <button
-              type="button"
-              onClick={doGoogle}
-              disabled={oauthSubmitting || emailSubmitting}
-              className="w-full inline-flex items-center justify-center gap-3 border border-border rounded-lg px-4 py-3 bg-card hover:bg-bg transition text-sm font-medium disabled:opacity-60"
-            >
-              <GoogleIcon /> {oauthSubmitting ? 'Redirecting…' : 'Continue with Google'}
-            </button>
-
-            <div className="flex items-center gap-3 my-5 text-xs text-muted">
-              <div className="h-px bg-border flex-1" />
-              <span>OR</span>
-              <div className="h-px bg-border flex-1" />
-            </div>
-          </>
-        )}
 
         <form onSubmit={doEmail} className="space-y-3">
           <div className="space-y-1">
@@ -192,7 +137,7 @@ export default function Login() {
           )}
           <button
             type="submit"
-            disabled={emailSubmitting || oauthSubmitting}
+            disabled={emailSubmitting}
             className="btn-primary w-full inline-flex items-center justify-center gap-2 py-3 disabled:opacity-60"
           >
             {emailSubmitting && <Loader2 className="w-4 h-4 animate-spin" aria-hidden="true" />}

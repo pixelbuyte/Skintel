@@ -22,7 +22,7 @@ const FAQS = [
   },
   {
     q: 'Why only 500 spots?',
-    a: 'This is the founding batch — people who lock in before the iOS app ships. Once 500 seats are claimed, the offer is closed for good. The price after that is $79/year or $9/month.',
+    a: 'This is the founding batch — people who lock in before the iOS app ships. Once 500 seats are claimed, the offer is closed for good and standard subscription pricing takes over.',
   },
   {
     q: 'What happens after the 3 months?',
@@ -216,7 +216,7 @@ export default function Discount() {
             <p className="text-bg/70 text-base leading-relaxed max-w-[56ch]">
               Founding members get priority on feature requests, the first invite to
               the iOS beta, and a permanent badge on their account. After 500 seats,
-              Pro is $9/month or $79/year. No exceptions.
+              standard subscription pricing applies. No exceptions.
             </p>
           </div>
         </section>
