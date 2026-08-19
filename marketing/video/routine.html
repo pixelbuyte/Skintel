@@ -1,0 +1,353 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<link rel="stylesheet" href="./style.css">
+<style>
+  /* Live UI: a routine timeline that draws itself, a conflict the app finds
+     between two steps, and 28 days of journal filling in dot by dot. */
+
+  /* --- S2 timeline --- */
+  #rail {
+    position: absolute; left: 176px; top: 470px; width: 6px;
+    background: var(--border); border-radius: 3px;
+  }
+  .node {
+    position: absolute; left: 152px; width: 54px; height: 54px;
+    border-radius: 999px; background: var(--cream);
+    border: 6px solid var(--primary);
+    will-change: transform, opacity, border-color, background;
+  }
+  .step {
+    position: absolute; left: 258px; right: 84px;
+    background: var(--cream); border: 1px solid var(--border);
+    border-radius: 26px; padding: 26px 34px;
+    box-shadow: 0 22px 54px -28px rgba(26,24,20,0.28);
+    display: flex; align-items: center; justify-content: space-between;
+    will-change: transform, opacity, border-color;
+  }
+  .step .sn { font-size: 38px; font-weight: 500; }
+  .step .st {
+    font-family: 'JetBrains Mono', ui-monospace, monospace;
+    font-size: 28px; color: var(--muted);
+  }
+
+  /* --- S3 conflict --- */
+  .bigstep {
+    position: absolute; left: 250px; right: 96px;
+    background: var(--cream); border: 2px solid var(--border);
+    border-radius: 30px; padding: 40px 44px;
+    box-shadow: 0 30px 70px -28px rgba(26,24,20,0.32);
+    will-change: transform, opacity, border-color, background;
+  }
+
+  /* --- S4 journal + gauge --- */
+  #cal { position: absolute; left: 121px; top: 620px; }
+  .day {
+    position: absolute; width: 100px; height: 100px; border-radius: 30px;
+    background: var(--border); will-change: transform, opacity, background;
+  }
+  #track {
+    position: absolute; left: 121px; right: 121px; top: 1230px; height: 38px;
+    background: var(--border); border-radius: 999px; overflow: hidden;
+  }
+  #fill {
+    position: absolute; inset: 0 auto 0 0; width: 0;
+    background: linear-gradient(90deg, #C79A3A 0%, #7E9A5E 62%, #5C7A4F 100%);
+    border-radius: 999px;
+  }
+</style>
+</head>
+<body>
+<div id="stage">
+
+  <!-- S1 · hook -->
+  <div class="scene" id="s1">
+    <div class="eyebrow" id="s1e">Your routine</div>
+    <div class="serif h1" id="s1a" style="margin-top:32px">Six steps.</div>
+    <div class="serif h1 pri ital" id="s1b" style="margin-top:4px">Two cancel out.</div>
+  </div>
+
+  <!-- S2 · the rail draws down, each step lands as it passes -->
+  <div class="scene" id="s2" style="padding:0">
+    <div style="position:absolute;left:84px;right:84px;top:240px;z-index:30">
+      <div class="eyebrow" id="s2e">Morning &amp; night</div>
+      <div class="serif h3" id="s2t" style="margin-top:24px">Log it once.</div>
+    </div>
+    <div id="rail" style="height:0"></div>
+    <div id="steps"></div>
+  </div>
+
+  <!-- S3 · conflict found between two steps -->
+  <div class="scene" id="s3" style="padding:0">
+    <div style="position:absolute;left:84px;right:84px;top:250px;z-index:30">
+      <div class="eyebrow" id="s3e" style="color:#B22B2B">Conflict found</div>
+    </div>
+    <svg id="brk" width="1080" height="620" viewBox="0 0 1080 620"
+         style="position:absolute;left:0;top:520px;z-index:5">
+      <path id="brkp" fill="none" stroke="#B22B2B" stroke-width="7"
+            stroke-linecap="round" stroke-linejoin="round"
+            d="M 250 96 L 150 96 Q 118 96 118 130 L 118 366 Q 118 400 150 400 L 250 400"/>
+      <circle id="brkd" cx="118" cy="248" r="17" fill="#B22B2B"/>
+    </svg>
+    <div class="bigstep" id="c1" style="top:560px">
+      <div class="sn" style="font-size:46px;font-weight:500">Retinol 0.5%</div>
+      <div style="font-size:30px;color:var(--muted);margin-top:10px">Night &middot; step 5</div>
+    </div>
+    <div class="bigstep" id="c2" style="top:850px">
+      <div class="sn" style="font-size:46px;font-weight:500">Glycolic acid 7%</div>
+      <div style="font-size:30px;color:var(--muted);margin-top:10px">Night &middot; step 6</div>
+    </div>
+    <div class="callout" id="s3c" style="position:absolute;left:84px;right:84px;top:1230px">
+      <div style="display:flex;align-items:center;gap:26px">
+        <div style="width:80px;height:80px;border-radius:22px;background:rgba(178,43,43,0.12);
+                    display:flex;align-items:center;justify-content:center;flex:none">
+          <svg width="44" height="44" viewBox="0 0 24 24" fill="none" stroke="#B22B2B"
+               stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>
+            <line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/>
+          </svg>
+        </div>
+        <div style="font-size:44px;font-weight:700">Same night</div>
+      </div>
+      <div class="serif" id="s3q" style="font-size:66px;line-height:1.14;margin-top:30px">
+        Layered together these strip the barrier. <span class="pri">Alternate them.</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- S4 · 28 days fill in, then the barrier gauge answers -->
+  <div class="scene" id="s4" style="padding:0">
+    <div style="position:absolute;left:84px;right:84px;top:250px;z-index:30">
+      <div class="eyebrow" id="s4e">Four weeks after the fix</div>
+      <div class="serif h3" id="s4t" style="margin-top:26px">Every day you log,<br>the picture sharpens.</div>
+    </div>
+    <div id="cal"></div>
+    <div id="track"><div id="fill"></div></div>
+    <div id="gnum"
+         style="position:absolute;left:121px;right:121px;top:1310px;
+                display:flex;align-items:baseline;justify-content:space-between">
+      <span style="font-size:29px;font-weight:700;letter-spacing:0.18em;
+                   text-transform:uppercase;color:var(--muted)">Barrier</span>
+      <span class="serif" id="gval" style="font-size:92px;line-height:1;color:#5C7A4F">0</span>
+    </div>
+    <div class="serif h3" id="s4f"
+         style="position:absolute;left:84px;right:84px;top:1520px;text-align:center">
+      <em class="pri ital" id="s4n">11</em> clear days this fortnight.<br>You had two.
+    </div>
+  </div>
+
+  <!-- S5 · offer -->
+  <div class="scene" id="s5">
+    <div id="s5mark" class="mark" style="margin-bottom:44px">
+      <svg viewBox="0 0 24 24" fill="#FFFEFA">
+        <path d="M12 0.6 13.85 9.6 23 11.6 13.85 13.6 12 22.6 10.15 13.6 1 11.6 10.15 9.6Z"/>
+        <path d="M18.6 2.2 19.35 5.1 22.2 5.9 19.35 6.7 18.6 9.6 17.85 6.7 15 5.9 17.85 5.1Z"/>
+      </svg>
+    </div>
+    <div class="serif" id="s5a" style="font-size:120px;line-height:1">Skintel</div>
+    <div class="body" id="s5b" style="margin-top:18px;font-size:42px;max-width:30ch">
+      A routine that stops fighting itself.
+    </div>
+    <div class="serif" id="s5c" style="font-size:150px;line-height:1;margin-top:54px">
+      $20<span style="font-size:52px;color:var(--muted);margin-left:18px">once</span>
+    </div>
+    <div style="font-size:40px;font-weight:500;margin-top:14px" id="s5d2">
+      Three months of Pro &middot; 500 spots
+    </div>
+    <div class="btn" id="s5d" style="margin-top:50px;align-self:flex-start">
+      skinstel.com/discount
+      <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#FFFEFA"
+           stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round">
+        <line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/>
+      </svg>
+    </div>
+  </div>
+
+  <div id="vignette"></div>
+  <div id="grain"></div>
+</div>
+
+<script src="./engine.js"></script>
+<script>
+const E = window.__E;
+const $ = id => document.getElementById(id);
+const DURATION = 42.0;
+
+const S = {
+  s1: [0.00,  4.60],
+  s2: [4.40, 14.80],
+  s3: [14.60, 24.00],
+  s4: [23.80, 34.80],
+  s5: [34.60, 42.00],
+};
+
+// ---------------------------------------------------------------- S2 steps
+const STEPS = [
+  { n: 'Gel cleanser',     t: '06:40', clash: false },
+  { n: 'Vitamin C 15%',    t: '06:44', clash: false },
+  { n: 'Moisturiser SPF',  t: '06:48', clash: false },
+  { n: 'Micellar water',   t: '22:05', clash: false },
+  { n: 'Retinol 0.5%',     t: '22:10', clash: true  },
+  { n: 'Glycolic acid 7%', t: '22:12', clash: true  },
+];
+const TOP = 470, PITCH = 172, RAIL_H = (STEPS.length - 1) * PITCH + 54;
+$('rail').style.height = '0px';
+
+STEPS.forEach((s, i) => {
+  const y = TOP + i * PITCH;
+  const node = document.createElement('div');
+  node.className = 'node'; node.id = 'nd' + i;
+  node.style.top = y + 'px';
+  $('steps').appendChild(node);
+
+  const el = document.createElement('div');
+  el.className = 'step'; el.id = 'sp' + i;
+  el.style.top = (y - 14) + 'px';
+  el.innerHTML = `<span class="sn">${s.n}</span><span class="st">${s.t}</span>`;
+  $('steps').appendChild(el);
+});
+
+// ---------------------------------------------------------------- S3 bracket
+const BP = $('brkp');
+const BLEN = BP.getTotalLength();
+BP.setAttribute('stroke-dasharray', BLEN);
+BP.setAttribute('stroke-dashoffset', BLEN);
+
+// ---------------------------------------------------------------- S4 journal
+// 0 clear · 1 irritated · 2 breakout. Bad fortnight, then a good one — the
+// counts in the closing line are derived from this array, not typed in.
+const DAYS = [
+  2,1,2,1,1,2,1,  1,2,1,1,0,1,0,
+  0,1,0,0,1,0,0,  0,0,0,1,0,0,0,
+];
+const DAY_COLOR = ['#5C7A4F', '#C79A3A', '#B22B2B'];
+const clearIn = a => a.filter(d => d === 0).length;
+const FIRST = clearIn(DAYS.slice(0, 14));
+const LAST  = clearIn(DAYS.slice(14));
+$('s4n').textContent = LAST;
+
+const DOT = 100, DGAP = 23;
+DAYS.forEach((d, i) => {
+  const el = document.createElement('div');
+  el.className = 'day'; el.id = 'dy' + i;
+  el.style.left = (i % 7) * (DOT + DGAP) + 'px';
+  el.style.top  = Math.floor(i / 7) * (DOT + DGAP) + 'px';
+  $('cal').appendChild(el);
+});
+
+const BARRIER = 74;
+
+function render(t) {
+  // ---------- S1 ----------
+  if (E.applyScene($('s1'), t, S.s1[0], S.s1[1], { drift: 20 }) > 0) {
+    E.riseIn($('s1e'), t, 0.15, { rise: 22 });
+    E.revealWords($('s1a'), t, 0.45, { step: 0.07, blur: true });
+    E.revealWords($('s1b'), t, 1.35, { step: 0.07, blur: true });
+  }
+
+  // ---------- S2 the rail draws, steps land behind it ----------
+  if (E.applyScene($('s2'), t, S.s2[0], S.s2[1], { drift: 0, scale: 0 }) > 0) {
+    E.riseIn($('s2e'), t, 4.55, { rise: 18 });
+    E.revealWords($('s2t'), t, 4.80, { step: 0.05 });
+
+    const draw = E.easeInOut(E.seg(t, 5.40, 10.60));
+    $('rail').style.height = `${draw * RAIL_H}px`;
+
+    STEPS.forEach((s, i) => {
+      const at = 5.55 + i * 0.80;                    // node fires as the rail reaches it
+      const np = E.easeEmil(E.seg(t, at, at + 0.42));
+      const nd = $('nd' + i);
+      nd.style.opacity = np;
+      nd.style.transform = `scale(${E.lerp(0.3, 1, np)})`;
+
+      const cp = E.easeOutQuint(E.seg(t, at + 0.16, at + 0.86));
+      const el = $('sp' + i);
+      el.style.opacity = cp;
+      el.style.transform = `translateX(${(1 - cp) * 54}px)`;
+
+      // the two night acids are marked only once the whole list exists
+      const warn = s.clash ? E.easeInOut(E.seg(t, 11.60, 12.40)) : 0;
+      el.style.borderColor = `color-mix(in srgb, #B22B2B ${warn * 100}%, #EAE6DF)`;
+      el.style.background  = `color-mix(in srgb, #FDEAEA ${warn * 100}%, #FFFEFA)`;
+      nd.style.borderColor = `color-mix(in srgb, #B22B2B ${warn * 100}%, #A35848)`;
+    });
+  }
+
+  // ---------- S3 the conflict ----------
+  if (E.applyScene($('s3'), t, S.s3[0], S.s3[1], { drift: 0, scale: 0 }) > 0) {
+    E.riseIn($('s3e'), t, 14.75, { rise: 18 });
+    [['c1', 14.90], ['c2', 15.10]].forEach(([id, at]) => {
+      const p = E.easeOutQuint(E.seg(t, at, at + 0.75));
+      const el = $(id);
+      el.style.opacity = p;
+      el.style.transform = `translateX(${(1 - p) * 46}px)`;
+    });
+
+    // the bracket physically joins the two steps
+    const d = E.easeInOut(E.seg(t, 16.20, 17.60));
+    BP.setAttribute('stroke-dashoffset', BLEN * (1 - d));
+    const dot = E.easeEmil(E.seg(t, 17.50, 18.00));
+    $('brkd').setAttribute('r', String(dot * 17));
+
+    // both cards turn red together — the pair is the problem, not either one
+    const hot = E.easeInOut(E.seg(t, 17.70, 18.50));
+    ['c1', 'c2'].forEach(id => {
+      $(id).style.borderColor = `color-mix(in srgb, #B22B2B ${hot * 70}%, #EAE6DF)`;
+      $(id).style.background  = `color-mix(in srgb, #FDEAEA ${hot * 100}%, #FFFEFA)`;
+    });
+
+    const c = E.easeOutQuint(E.seg(t, 18.90, 19.80));
+    $('s3c').style.opacity = c;
+    $('s3c').style.transform = `translateY(${(1 - c) * 42}px) scale(${E.lerp(0.95, 1, c)})`;
+    E.revealWords($('s3q'), t, 19.50, { step: 0.042 });
+  }
+
+  // ---------- S4 journal fills, then the gauge answers ----------
+  if (E.applyScene($('s4'), t, S.s4[0], S.s4[1], { drift: 0, scale: 0 }) > 0) {
+    E.riseIn($('s4e'), t, 23.95, { rise: 18 });
+    E.revealWords($('s4t'), t, 24.20, { step: 0.05 });
+
+    DAYS.forEach((d, i) => {
+      const at = 25.30 + i * 0.115;                  // one day at a time, left to right
+      const p = E.easeEmil(E.seg(t, at, at + 0.40));
+      const el = $('dy' + i);
+      el.style.opacity = 0.22 + 0.78 * p;
+      el.style.transform = `scale(${E.lerp(0.55, 1, p)})`;
+      el.style.background = `color-mix(in srgb, ${DAY_COLOR[d]} ${p * 100}%, #EAE6DF)`;
+    });
+
+    // gauge only moves once all 28 days are in — it is a conclusion, not a widget
+    const g = E.easeOutQuint(E.seg(t, 29.40, 31.20));
+    $('fill').style.width = `${g * BARRIER}%`;
+    $('gval').textContent = Math.round(g * BARRIER);
+    const gIn = E.easeOutQuint(E.seg(t, 29.10, 29.80));
+    $('track').style.opacity = gIn;
+    $('gnum').style.opacity = gIn;
+
+    E.revealWords($('s4f'), t, 31.40, { step: 0.045 });
+  }
+
+  // ---------- S5 offer ----------
+  if (E.applyScene($('s5'), t, S.s5[0], S.s5[1], { drift: 14, scale: 0.008 }) > 0) {
+    const m = E.easeEmil(E.seg(t, 34.75, 35.50));
+    $('s5mark').style.opacity = m;
+    $('s5mark').style.transform = `scale(${E.lerp(0.72, 1, m)}) rotate(${(1 - m) * -14}deg)`;
+    E.revealWords($('s5a'), t, 35.15, { step: 0.05 });
+    E.riseIn($('s5b'), t, 35.60, { rise: 24 });
+    const n = E.easeEmil(E.seg(t, 36.10, 37.00));
+    $('s5c').style.opacity = n;
+    $('s5c').style.transform = `scale(${E.lerp(0.86, 1, n)})`;
+    E.riseIn($('s5d2'), t, 36.90, { rise: 24 });
+    const b = E.easeEmil(E.seg(t, 37.60, 38.35));
+    $('s5d').style.opacity = b;
+    $('s5d').style.transform = `translateY(${(1 - b) * 32}px) scale(${E.lerp(0.94, 1, b)})`;
+  }
+}
+
+window.__seek = t => { render(t); return true; };
+window.__duration = DURATION;
+render(0);
+</script>
+</body>
+</html>
