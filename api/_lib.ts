@@ -23,7 +23,19 @@ export function json(res: VercelResponse, body: unknown, status = 200) {
   return res.send(JSON.stringify(body));
 }
 
+// Canonical production origin. Hardcoded (not env-driven) because VITE_APP_URL /
+// APP_URL was found pointing at a stale Vercel deployment alias
+// (https://skintel.vercel.app) while live -- every Stripe checkout success_url,
+// cancel_url, and the billing portal return_url were sending real customers
+// back to a domain that isn't the site. Production always uses this value
+// regardless of what those env vars are set to, so a repeat of that
+// misconfiguration can't leak into checkout again. Preview and local dev keep
+// using the env vars (falling back to localhost) since they intentionally
+// point elsewhere.
+const PRODUCTION_APP_URL = 'https://www.skinstel.com';
+
 export function appUrl() {
+  if (process.env.VERCEL_ENV === 'production') return PRODUCTION_APP_URL;
   return process.env.VITE_APP_URL ?? process.env.APP_URL ?? 'http://localhost:5173';
 }
 

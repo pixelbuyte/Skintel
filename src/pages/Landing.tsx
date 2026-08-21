@@ -2546,14 +2546,17 @@ export default function Landing() {
                     Founding offer · one batch only
                   </div>
                   <h2 className="font-display text-3xl sm:text-4xl leading-tight mb-3">
-                    3 months of Pro for <span className="text-primary">$20.</span>
+                    3 months of Pro for{' '}
+                    <span className="line-through text-muted/50 text-2xl sm:text-3xl align-middle">$49.99</span>{' '}
+                    <span className="text-primary">$20.</span>
                     <br />
                     Then it&rsquo;s gone.
                   </h2>
                   <p className="text-muted text-sm sm:text-base leading-relaxed mb-5 max-w-[48ch]">
                     Everything in Pro — unlimited products, the full INCI scanner, your personal
-                    trigger map. Pay once. No subscription, no auto-renew. Standard subscription
-                    pricing applies once the founding batch closes.
+                    trigger map. Founding code applied automatically, nothing to type. Pay once.
+                    No subscription, no auto-renew. Standard subscription pricing applies once
+                    the founding batch closes.
                   </p>
                   <div className="flex flex-col min-[390px]:flex-row items-stretch min-[390px]:items-center gap-3">
                     <a

@@ -18,7 +18,7 @@ const INCLUDED = [
 const FAQS = [
   {
     q: 'What exactly do I get for $20?',
-    a: 'Three months of Skintel Pro — everything in the yearly plan, prorated. No subscription, no auto-renew. You pay once, use it for three months, then decide if you want to keep going at the regular Pro price.',
+    a: 'Three months of Skintel Pro — everything in the yearly plan, prorated. Lists at $49.99; the founding code brings it to $20 automatically at checkout, no code to type. No subscription, no auto-renew. You pay once, use it for three months, then decide if you want to keep going at the regular Pro price.',
   },
   {
     q: 'Why only 500 spots?',
@@ -97,7 +97,7 @@ export default function Discount() {
     ? 'Sold out'
     : loading
       ? 'Loading…'
-      : 'Claim 3 months — $20';
+      : 'Claim 3 months — $20 (was $49.99)';
 
   return (
     <div className="min-h-screen">
@@ -125,8 +125,11 @@ export default function Discount() {
         </h1>
 
         <p className="text-lg md:text-xl text-muted max-w-[58ch] leading-relaxed mb-10">
-          $20. One payment. No subscription, no auto-renew. Locks in your Pro access
-          before the iOS app ships — then this deal is gone for good.
+          <span className="line-through text-muted/60">$49.99</span>{' '}
+          <span className="text-ink font-medium">$20</span> with the founding code —
+          applied automatically, nothing to type. One payment. No subscription, no
+          auto-renew. Locks in your Pro access before the iOS app ships — then this
+          deal is gone for good.
         </p>
 
         {/* Live progress */}
