@@ -2293,13 +2293,25 @@ export default function Landing() {
 
   const [showBar, setShowBar] = useState(false);
   useEffect(() => {
+    let raf = 0;
+    // Hysteresis (show >480, hide <380) so a scroll position hovering near a
+    // single threshold — normal during iOS momentum/rubber-banding — can't
+    // flip showBar every frame and leave the 300ms slide transition retriggering
+    // before it finishes, which is what reads as the bar "getting stuck".
     const onScroll = () => {
-      setScrolled(window.scrollY > 8);
-      setShowBar(window.scrollY > 480);
+      cancelAnimationFrame(raf);
+      raf = requestAnimationFrame(() => {
+        const y = window.scrollY;
+        setScrolled(y > 8);
+        setShowBar((prev) => (y > 480 ? true : y < 380 ? false : prev));
+      });
     };
     onScroll();
     window.addEventListener('scroll', onScroll, { passive: true });
-    return () => window.removeEventListener('scroll', onScroll);
+    return () => {
+      cancelAnimationFrame(raf);
+      window.removeEventListener('scroll', onScroll);
+    };
   }, []);
 
   // channel attribution: ?ref=tt|reddit|x|… survives into waitlist + checkout
@@ -3151,9 +3163,14 @@ export default function Landing() {
 
       {/* ── STICKY MOBILE CTA ── */}
       <div
-        className={`sm:hidden fixed bottom-0 inset-x-0 z-40 transition-transform duration-300 ease-emil ${
-          showBar ? 'translate-y-0' : 'translate-y-full'
-        }`}
+        // translate3d + backdrop-blur on a fixed element is the classic iOS Safari
+        // combination that drops out of its own compositing layer mid-scroll and
+        // freezes in place; translateZ(0) plus explicit willChange keeps it promoted.
+        className="sm:hidden fixed bottom-0 inset-x-0 z-40 transition-transform duration-300 ease-emil"
+        style={{
+          transform: `translate3d(0, ${showBar ? '0' : '100%'}, 0)`,
+          willChange: 'transform',
+        }}
       >
         <div
           className="bg-bg/95 backdrop-blur-xl border-t border-border px-4 pt-3 flex items-center gap-3"
