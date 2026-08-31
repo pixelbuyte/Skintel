@@ -11,6 +11,53 @@ gradients — composed over the iPhone mockups in `designs/previews/`.
 | `v3.html` | 21s | **The offer.** Price, feature list, terms, CTA. Built for paid and Stories. |
 | `launch.html` | 50s | **Launch film.** The full story — problem, brand reveal, scan, culprit, what compounds, offer. |
 
+### Live-UI cuts
+
+Five compositions where the interface *animates* instead of being filmed off a
+screenshot. Each is built around mechanics a PNG physically cannot do — things that
+count, draw, re-order or change colour — so the data performs rather than being
+photographed. They share the offer card, so any of them can carry a campaign alone.
+
+| Composition | Length | The mechanic |
+|---|---|---|
+| `hero.html` | 38s | **Scan → score → culprit.** A scanline resolves each ingredient row, an SVG arc draws to 82 while the number counts with it, twelve journal bars rise before three flip red. |
+| `shelf.html` | 41s | **Audit the whole shelf.** Viewfinder brackets close, a beam sweeps a barcode into existence, a donut splits 26 ingredients three ways, then six product tiles score themselves and **physically re-sort worst-first**. |
+| `routine.html` | 42s | **The conflict.** A timeline rail draws downward and drops each step in as it passes; two night acids turn red; a bracket draws to join them. Then 28 journal days fill in one at a time and a barrier gauge answers. |
+| `versus.html` | 40s | **Head to head.** Two products fly in from opposite edges, scores count in parallel, and five attributes grow as diverging bars from a shared spine. Cost-per-use counts out and a tick draws itself over the winner. |
+| `progress.html` | 43s | **Twelve weeks.** A curve draws left-to-right with its area fill chasing it, milestone markers popping exactly as the line reaches their week. Three products get struck off a list; the result counts up. |
+| `projection.html` | 51s | **The dark cut.** Founder content, not product marketing — see below. |
+
+### `projection.html` — the odd one out
+
+Rebuilt from a screen recording of asking an assistant what the launch would
+actually earn. It is the only composition on a **dark** ground, because it isn't
+selling the product: it's the founder showing their working. That register buys
+effects the beauty cuts would look silly wearing — a chromatic split that converges
+onto the headline, a shimmering skeleton while the answer "thinks", CRT scanlines,
+and a glitch that tears the wordmark into seven bands.
+
+Its centrepiece is the funnel: **525 individual dots fall, and ten get through.**
+Every dot is drawn rather than summarised into a bar, because that ratio *is* the
+argument — a 2% conversion rate stated as a number is forgettable and stated as
+515 dots dying on a wall is not. The counters read off the simulation (`landed`,
+not a scripted value), so the arithmetic on screen cannot drift from the animation.
+
+Three things about it are deliberate and should survive any edit:
+
+- **The unflattering number stays.** Ten preorders and ~$200 is the whole reason
+  the format works. Rounding it up turns build-in-public into an ad, and the genre
+  dies the moment it smells like one.
+- **The caveat scene stays.** The assistant volunteered that `skinstel.com` vs
+  "Skintel" may be costing click-through. Showing the criticism is what makes the
+  favourable parts believable.
+- **These are projections, not results.** The scene labels say "assumed" and
+  "depending on how it performs" for that reason. If real ad data ever replaces
+  the assumptions, change the eyebrow copy too.
+
+The moment that makes each one work is a *withheld* beat — the label that waits for
+the arc, the red flip that waits for every bar, the marker that will not pop before
+the line arrives. Data that resolves ahead of its own evidence reads as decoration.
+
 `ads.html` holds six 1080×1080 stills for paid social — Reddit's automated campaigns
 want at least two images to run across placements, and square covers feed and
 conversation. They are six *different angles* (problem, mechanism, price) rather than
@@ -32,6 +79,10 @@ Names for the moves, so they can be asked for by name:
 | **Scrim montage** | Mockups cross-fading behind a soft gradient with text over the top. |
 | **Number pop** | A big figure scaling up from 82% — the `500`, the `$20`. |
 | **Offer card** | The closing price / terms / CTA block. |
+| **Resolve** | A beam or line sweeps across, and content only becomes definite as it passes — barcode bars, ingredient rows. The sweep and the content share one progress value, so a thing can never resolve before the beam reaches it. |
+| **Withheld beat** | The verdict, label or colour deliberately held back until its evidence is fully on screen. This is what separates a finding from a decoration. |
+| **Re-sort** | Cards travelling to new grid positions under their own scores, lifting on the way. |
+| **Counter** | Any figure counting to its real value — scores, money, percentages — driven from the same array that drives the chart, so the two can never disagree. |
 
 A **Skintel cut** is the whole format: 9:16, silent, cream ground with grain, serif
 headlines that stagger in, one idea per scene, always ending on the offer card.

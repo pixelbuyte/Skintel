@@ -1,0 +1,310 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<link rel="stylesheet" href="./style.css">
+<style>
+  /* Live UI rebuilt as DOM/SVG so the data animates rather than being filmed
+     off a screenshot. Everything here is driven from render(t) below. */
+  .panel {
+    position: absolute; left: 84px; right: 84px;
+    background: var(--cream);
+    border: 1px solid var(--border);
+    border-radius: 34px;
+    box-shadow: 0 44px 96px -34px rgba(26,24,20,0.34);
+    will-change: transform, opacity;
+  }
+  .row {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 26px 34px;
+    border-top: 1px solid var(--border);
+    will-change: opacity, transform;
+  }
+  .row:first-child { border-top: 0; }
+  .row .nm { font-family: 'JetBrains Mono', ui-monospace, monospace; font-size: 34px; }
+  .flag {
+    font-size: 25px; font-weight: 600; letter-spacing: 0.04em;
+    padding: 11px 22px; border-radius: 999px;
+    will-change: opacity, transform;
+  }
+  .f-good   { background: var(--good-bg);   color: var(--good-fg); }
+  .f-watch  { background: var(--unsure-bg); color: var(--unsure-fg); }
+  .f-bad    { background: var(--bad-bg);    color: var(--bad-fg); }
+
+  #scanline {
+    position: absolute; left: 0; right: 0; height: 5px;
+    background: linear-gradient(90deg, transparent, #A35848, transparent);
+    box-shadow: 0 0 34px 10px rgba(163,88,72,0.42);
+    z-index: 20;
+  }
+
+  .bar {
+    flex: 1; border-radius: 12px 12px 4px 4px;
+    background: var(--border);
+    will-change: height, background;
+    align-self: flex-end;
+  }
+  .barlbl { font-family: 'JetBrains Mono', ui-monospace, monospace;
+            font-size: 22px; color: var(--muted); text-align: center; }
+</style>
+</head>
+<body>
+<div id="stage">
+
+  <!-- S1 · hook -->
+  <div class="scene" id="s1">
+    <div class="eyebrow" id="s1e">Skintel</div>
+    <div class="serif h1" id="s1a" style="margin-top:32px">Your shelf is full of</div>
+    <div class="serif h1 pri ital" id="s1b" style="margin-top:4px">suspects.</div>
+  </div>
+
+  <!-- S2 · the scan — rows flag as the line passes -->
+  <div class="scene" id="s2" style="padding:0">
+    <div style="position:absolute;left:84px;right:84px;top:150px;z-index:30">
+      <div class="eyebrow" id="s2e">Reading the label</div>
+    </div>
+    <div class="panel" id="s2p" style="top:430px;overflow:hidden">
+      <div class="row"><span class="nm" id="n0">Aqua</span><span class="flag f-good" id="g0">FILLER</span></div>
+      <div class="row"><span class="nm" id="n1">Glycerin</span><span class="flag f-good" id="g1">HYDRATOR</span></div>
+      <div class="row"><span class="nm" id="n2">Niacinamide</span><span class="flag f-good" id="g2">ACTIVE</span></div>
+      <div class="row"><span class="nm" id="n3">Ceramide NP</span><span class="flag f-good" id="g3">BARRIER</span></div>
+      <div class="row"><span class="nm" id="n4">Cocamidopropyl…</span><span class="flag f-watch" id="g4">WATCH</span></div>
+      <div class="row"><span class="nm" id="n5">Parfum</span><span class="flag f-bad" id="g5">TRIGGER</span></div>
+      <div class="row"><span class="nm" id="n6">Phenoxyethanol</span><span class="flag f-good" id="g6">PRESERVATIVE</span></div>
+      <div id="scanline" style="top:0"></div>
+    </div>
+    <div style="position:absolute;left:84px;right:84px;bottom:250px;z-index:30">
+      <div class="serif h3" id="s2t">26 ingredients,<br>read in one pass.</div>
+    </div>
+  </div>
+
+  <!-- S3 · the verdict — ring draws, number counts -->
+  <div class="scene" id="s3" style="padding:0;align-items:center;justify-content:center">
+    <svg id="ring" width="620" height="620" viewBox="0 0 620 620"
+         style="position:absolute;top:430px;left:50%;transform:translateX(-50%)">
+      <circle cx="310" cy="310" r="250" fill="none" stroke="#EAE6DF" stroke-width="34"/>
+      <circle id="arc" cx="310" cy="310" r="250" fill="none" stroke="#5C7A4F"
+              stroke-width="34" stroke-linecap="round"
+              transform="rotate(-90 310 310)"/>
+    </svg>
+    <div id="score" class="serif"
+         style="position:absolute;top:640px;left:0;right:0;text-align:center;
+                font-size:210px;line-height:1;color:#5C7A4F">0</div>
+    <div id="slab"
+         style="position:absolute;top:880px;left:0;right:0;text-align:center;
+                font-size:30px;font-weight:700;letter-spacing:0.2em;
+                text-transform:uppercase;color:#5C7A4F">Good match</div>
+    <div id="s3t" class="serif h3"
+         style="position:absolute;left:84px;right:84px;top:1240px;text-align:center">
+      Scored against <em class="pri ital">your</em> skin.
+    </div>
+    <div id="s3s" class="body"
+         style="position:absolute;left:84px;right:84px;top:1420px;text-align:center;
+                max-width:none;font-size:36px">
+      Combination · breakout-prone · fragrance-sensitive
+    </div>
+  </div>
+
+  <!-- S4 · the culprit — bars rise, one turns red -->
+  <div class="scene" id="s4" style="padding:0">
+    <div style="position:absolute;left:84px;right:84px;top:170px;z-index:30">
+      <div class="eyebrow" id="s4e">Twelve days of your journal</div>
+      <div class="serif h3" id="s4t" style="margin-top:26px">Then it finds<br>the pattern.</div>
+    </div>
+    <div id="chart"
+         style="position:absolute;left:84px;right:84px;top:640px;height:420px;
+                display:flex;align-items:flex-end;gap:18px"></div>
+    <div id="chartlbl"
+         style="position:absolute;left:84px;right:84px;top:1080px;
+                display:flex;gap:18px">
+      <div class="barlbl" style="flex:1">JUL 4</div>
+      <div class="barlbl" style="flex:5"></div>
+      <div class="barlbl" style="flex:1">JUL 16</div>
+    </div>
+    <div class="callout" id="s4c"
+         style="position:absolute;left:84px;right:84px;top:1230px;padding:52px 56px">
+      <div style="display:flex;align-items:center;gap:26px">
+        <div style="width:80px;height:80px;border-radius:22px;background:rgba(178,43,43,0.12);
+                    display:flex;align-items:center;justify-content:center;flex:none">
+          <svg width="44" height="44" viewBox="0 0 24 24" fill="none" stroke="#B22B2B"
+               stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>
+            <line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/>
+          </svg>
+        </div>
+        <div style="font-size:44px;font-weight:700">Suspect found</div>
+      </div>
+      <div class="serif" id="s4q" style="font-size:68px;line-height:1.14;margin-top:30px">
+        The lotion you never questioned precedes <span class="pri">3 of 4</span> breakouts.
+      </div>
+    </div>
+  </div>
+
+  <!-- S5 · offer -->
+  <div class="scene" id="s5">
+    <div id="s5mark" class="mark" style="margin-bottom:44px">
+      <svg viewBox="0 0 24 24" fill="#FFFEFA">
+        <path d="M12 0.6 13.85 9.6 23 11.6 13.85 13.6 12 22.6 10.15 13.6 1 11.6 10.15 9.6Z"/>
+        <path d="M18.6 2.2 19.35 5.1 22.2 5.9 19.35 6.7 18.6 9.6 17.85 6.7 15 5.9 17.85 5.1Z"/>
+      </svg>
+    </div>
+    <div class="serif" id="s5a" style="font-size:120px;line-height:1">Skintel</div>
+    <div class="body" id="s5b" style="margin-top:18px;font-size:42px;max-width:30ch">
+      Know what touches your skin.
+    </div>
+    <div class="serif" id="s5c" style="font-size:150px;line-height:1;margin-top:54px">
+      $20<span style="font-size:52px;color:var(--muted);margin-left:18px">once</span>
+    </div>
+    <div style="font-size:40px;font-weight:500;margin-top:14px" id="s5d2">
+      Three months of Pro · 500 spots
+    </div>
+    <div class="btn" id="s5d" style="margin-top:50px;align-self:flex-start">
+      skinstel.com/discount
+      <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#FFFEFA"
+           stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round">
+        <line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/>
+      </svg>
+    </div>
+  </div>
+
+  <div id="vignette"></div>
+  <div id="grain"></div>
+</div>
+
+<script src="./engine.js"></script>
+<script>
+const E = window.__E;
+const $ = id => document.getElementById(id);
+const DURATION = 38.0;
+
+const S = {
+  s1: [0.00,  4.60],
+  s2: [4.40, 12.60],
+  s3: [12.40, 20.60],
+  s4: [20.40, 30.40],
+  s5: [30.20, 38.00],
+};
+
+// --- S4 chart data: twelve journal days. Bar height = irritation score.
+// The three tall red ones are the breakout days the lotion precedes.
+const DAYS = [
+  { h: 0.22 }, { h: 0.30 }, { h: 0.86, hit: true }, { h: 0.26 },
+  { h: 0.34 }, { h: 0.80, hit: true }, { h: 0.24 }, { h: 0.31 },
+  { h: 0.90, hit: true }, { h: 0.28 }, { h: 0.36 }, { h: 0.25 },
+];
+const chart = $('chart');
+DAYS.forEach((d, i) => {
+  const b = document.createElement('div');
+  b.className = 'bar';
+  b.id = 'b' + i;
+  chart.appendChild(b);
+});
+
+const RING_R = 250;
+const CIRC = 2 * Math.PI * RING_R;
+$('arc').setAttribute('stroke-dasharray', CIRC);
+$('arc').setAttribute('stroke-dashoffset', CIRC);
+
+function render(t) {
+  // ---------- S1 hook ----------
+  if (E.applyScene($('s1'), t, S.s1[0], S.s1[1], { drift: 20 }) > 0) {
+    E.riseIn($('s1e'), t, 0.15, { rise: 22 });
+    E.revealWords($('s1a'), t, 0.45, { step: 0.06, blur: true });
+    E.revealWords($('s1b'), t, 1.05, { step: 0.06, blur: true });
+  }
+
+  // ---------- S2 scan ----------
+  if (E.applyScene($('s2'), t, S.s2[0], S.s2[1], { drift: 0, scale: 0 }) > 0) {
+    const panelIn = E.easeOutQuint(E.seg(t, 4.50, 5.50));
+    $('s2p').style.opacity = panelIn;
+    $('s2p').style.transform = `translateY(${(1 - panelIn) * 44}px)`;
+    E.riseIn($('s2e'), t, 4.60, { rise: 18 });
+
+    // the line sweeps the panel; each row resolves as it passes
+    const sweep = E.easeInOut(E.seg(t, 5.60, 9.60));
+    const H = $('s2p').offsetHeight || 720;
+    $('scanline').style.top = `${sweep * H}px`;
+    $('scanline').style.opacity = sweep > 0 && sweep < 1 ? 1 : 0;
+
+    for (let i = 0; i < 7; i++) {
+      const at = 5.75 + i * 0.52;                 // row lights as the line reaches it
+      const p = E.easeEmil(E.seg(t, at, at + 0.5));
+      $('n' + i).style.opacity = 0.25 + 0.75 * p;
+      const g = $('g' + i);
+      g.style.opacity = p;
+      g.style.transform = `scale(${E.lerp(0.7, 1, p)})`;
+    }
+    E.revealWords($('s2t'), t, 9.70, { step: 0.05 });
+  }
+
+  // ---------- S3 verdict: ring draws + score counts ----------
+  if (E.applyScene($('s3'), t, S.s3[0], S.s3[1], { drift: 0, scale: 0 }) > 0) {
+    const p = E.easeOutQuint(E.seg(t, 12.80, 15.60));   // 0 → 1 draw
+    const target = 82;
+    $('arc').setAttribute('stroke-dashoffset', CIRC * (1 - p * (target / 100)));
+    $('score').textContent = Math.round(p * target);
+
+    const ringIn = E.easeOutQuint(E.seg(t, 12.55, 13.45));
+    $('ring').style.opacity = ringIn;
+    $('score').style.opacity = ringIn;
+    $('ring').style.transform =
+      `translateX(-50%) scale(${E.lerp(0.88, 1, ringIn)})`;
+
+    // label only lands once the arc has finished — the number earns it
+    const lab = E.easeEmil(E.seg(t, 15.50, 16.20));
+    $('slab').style.opacity = lab;
+    $('slab').style.transform = `translateY(${(1 - lab) * 18}px)`;
+
+    E.revealWords($('s3t'), t, 16.30, { step: 0.05 });
+    E.riseIn($('s3s'), t, 17.20, { rise: 24 });
+  }
+
+  // ---------- S4 culprit: bars rise, breakout days flip red ----------
+  if (E.applyScene($('s4'), t, S.s4[0], S.s4[1], { drift: 0, scale: 0 }) > 0) {
+    E.riseIn($('s4e'), t, 20.55, { rise: 18 });
+    E.revealWords($('s4t'), t, 20.85, { step: 0.05 });
+
+    DAYS.forEach((d, i) => {
+      const at = 21.90 + i * 0.11;
+      const p = E.easeEmil(E.seg(t, at, at + 0.55));
+      const b = $('b' + i);
+      b.style.height = `${p * d.h * 420}px`;
+      // the three culprit days only turn red after every bar is standing
+      const flip = d.hit ? E.easeInOut(E.seg(t, 24.10, 24.90)) : 0;
+      b.style.background = d.hit
+        ? `color-mix(in srgb, #B22B2B ${flip * 100}%, #EAE6DF)`
+        : '#EAE6DF';
+    });
+    const lblIn = E.easeOutQuint(E.seg(t, 22.10, 22.90));
+    $('chartlbl').style.opacity = lblIn;
+
+    const cIn = E.easeOutQuint(E.seg(t, 25.30, 26.20));
+    $('s4c').style.opacity = cIn;
+    $('s4c').style.transform =
+      `translateY(${(1 - cIn) * 40}px) scale(${E.lerp(0.95, 1, cIn)})`;
+    E.revealWords($('s4q'), t, 25.90, { step: 0.042 });
+  }
+
+  // ---------- S5 offer ----------
+  if (E.applyScene($('s5'), t, S.s5[0], S.s5[1], { drift: 14, scale: 0.008 }) > 0) {
+    const m = E.easeEmil(E.seg(t, 30.35, 31.10));
+    $('s5mark').style.opacity = m;
+    $('s5mark').style.transform = `scale(${E.lerp(0.72, 1, m)}) rotate(${(1 - m) * -14}deg)`;
+    E.revealWords($('s5a'), t, 30.75, { step: 0.05 });
+    E.riseIn($('s5b'), t, 31.20, { rise: 24 });
+    const n = E.easeEmil(E.seg(t, 31.70, 32.60));
+    $('s5c').style.opacity = n;
+    $('s5c').style.transform = `scale(${E.lerp(0.86, 1, n)})`;
+    E.riseIn($('s5d2'), t, 32.50, { rise: 24 });
+    const b = E.easeEmil(E.seg(t, 33.20, 33.95));
+    $('s5d').style.opacity = b;
+    $('s5d').style.transform = `translateY(${(1 - b) * 32}px) scale(${E.lerp(0.94, 1, b)})`;
+  }
+}
+
+window.__seek = t => { render(t); return true; };
+window.__duration = DURATION;
+render(0);
+</script>
+</body>
+</html>

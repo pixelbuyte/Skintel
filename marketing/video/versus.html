@@ -1,0 +1,331 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<link rel="stylesheet" href="./style.css">
+<style>
+  /* Live UI: two products compared attribute by attribute. Bars grow outward
+     from a shared centre line, so the winner of each row is read as distance,
+     not as a colour you have to decode. */
+
+  .pcard {
+    position: absolute; top: 540px; width: 436px; height: 640px;
+    background: var(--cream); border: 2px solid var(--border);
+    border-radius: 34px; padding: 40px 36px;
+    box-shadow: 0 34px 78px -30px rgba(26,24,20,0.34);
+    will-change: transform, opacity, border-color;
+  }
+  .pcard .pb {
+    font-size: 25px; font-weight: 700; letter-spacing: 0.16em;
+    text-transform: uppercase; color: var(--muted);
+  }
+  .pcard .pn { font-size: 46px; font-weight: 500; line-height: 1.14; margin-top: 18px; }
+  .pcard .pp {
+    font-family: 'Instrument Serif', Georgia, serif;
+    font-size: 76px; line-height: 1; margin-top: 26px; color: var(--muted);
+  }
+  .pcard .pscore {
+    position: absolute; left: 36px; bottom: 38px;
+    font-family: 'Instrument Serif', Georgia, serif; font-size: 132px; line-height: 1;
+  }
+  .pcard .pu {
+    position: absolute; right: 36px; bottom: 58px;
+    font-size: 25px; font-weight: 700; letter-spacing: 0.14em;
+    text-transform: uppercase; color: var(--muted);
+  }
+
+  /* --- S3 diverging rows --- */
+  .arow { position: absolute; left: 84px; right: 84px; height: 132px; will-change: opacity; }
+  .arow .al {
+    position: absolute; left: 0; right: 0; top: 0; text-align: center;
+    font-size: 27px; font-weight: 700; letter-spacing: 0.15em;
+    text-transform: uppercase; color: var(--muted);
+  }
+  .arow .abar {
+    position: absolute; top: 54px; height: 40px; border-radius: 12px;
+    will-change: width;
+  }
+  .arow .aL { right: 50%; border-radius: 12px 5px 5px 12px; background: #C79A3A; }
+  .arow .aR { left: 50%;  border-radius: 5px 12px 12px 5px; background: #A35848; }
+  .arow .av {
+    position: absolute; top: 56px; font-size: 32px; font-weight: 700;
+    will-change: opacity;
+  }
+  #spine {
+    position: absolute; left: 540px; width: 3px; background: var(--border);
+    border-radius: 2px;
+  }
+</style>
+</head>
+<body>
+<div id="stage">
+
+  <!-- S1 · hook -->
+  <div class="scene" id="s1">
+    <div class="eyebrow" id="s1e">Head to head</div>
+    <div class="serif h1" id="s1a" style="margin-top:32px">$48. Or $12.</div>
+    <div class="serif h3 pri ital" id="s1b" style="margin-top:44px">
+      Your skin can&rsquo;t read price tags.
+    </div>
+  </div>
+
+  <!-- S2 · both products land, scores count -->
+  <div class="scene" id="s2" style="padding:0">
+    <div style="position:absolute;left:84px;right:84px;top:250px;z-index:30">
+      <div class="eyebrow" id="s2e">Same job, same shelf</div>
+      <div class="serif h3" id="s2t" style="margin-top:24px">Scan both.</div>
+    </div>
+    <div class="pcard" id="pA" style="left:84px">
+      <div class="pb">Prestige</div>
+      <div class="pn">Restorative<br>Night Cream</div>
+      <div class="pp">$48</div>
+      <div class="pscore" id="scA" style="color:#8B6914">0</div>
+      <div class="pu">for you</div>
+    </div>
+    <div class="pcard" id="pB" style="right:84px">
+      <div class="pb">Drugstore</div>
+      <div class="pn">Ceramide<br>Moisturising Cream</div>
+      <div class="pp">$12</div>
+      <div class="pscore" id="scB" style="color:#5C7A4F">0</div>
+      <div class="pu">for you</div>
+    </div>
+    <div class="serif h3" id="s2f"
+         style="position:absolute;left:84px;right:84px;top:1330px;text-align:center">
+      One of these is<br><em class="pri ital">four times</em> the price.
+    </div>
+  </div>
+
+  <!-- S3 · attribute by attribute -->
+  <div class="scene" id="s3" style="padding:0">
+    <div style="position:absolute;left:84px;right:84px;top:230px;z-index:30">
+      <div class="eyebrow" id="s3e">Row by row</div>
+      <div class="serif h3" id="s3t" style="margin-top:24px">Matched to your<br>profile, not the ad.</div>
+    </div>
+    <div id="spine" style="top:660px;height:0"></div>
+    <div id="rows"></div>
+    <div id="s3k"
+         style="position:absolute;left:84px;right:84px;top:1560px;
+                display:flex;justify-content:space-between;font-size:28px;
+                font-weight:700;letter-spacing:0.14em;text-transform:uppercase">
+      <span style="color:#8B6914">$48 cream</span>
+      <span style="color:var(--primary)">$12 cream</span>
+    </div>
+  </div>
+
+  <!-- S4 · cost per use, then the verdict stamp -->
+  <div class="scene" id="s4" style="padding:0">
+    <div style="position:absolute;left:84px;right:84px;top:250px;z-index:30">
+      <div class="eyebrow" id="s4e">Cost per use</div>
+    </div>
+    <div style="position:absolute;left:84px;right:84px;top:430px;display:flex;
+                justify-content:space-between;align-items:flex-start">
+      <div style="text-align:left">
+        <div class="serif" id="cA" style="font-size:150px;line-height:1;color:#8B6914">$0.00</div>
+        <div style="font-size:30px;color:var(--muted);margin-top:10px">40 uses</div>
+      </div>
+      <div style="text-align:right">
+        <div class="serif" id="cB" style="font-size:150px;line-height:1;color:#5C7A4F">$0.00</div>
+        <div style="font-size:30px;color:var(--muted);margin-top:10px">60 uses</div>
+      </div>
+    </div>
+
+    <svg id="tick" width="260" height="260" viewBox="0 0 100 100"
+         style="position:absolute;top:790px;left:50%;transform:translateX(-50%)">
+      <circle id="tickc" cx="50" cy="50" r="44" fill="none" stroke="#5C7A4F" stroke-width="5"/>
+      <path id="tickp" d="M30 51 L44 65 L71 36" fill="none" stroke="#5C7A4F"
+            stroke-width="8" stroke-linecap="round" stroke-linejoin="round"/>
+    </svg>
+
+    <div class="serif h2" id="s4t"
+         style="position:absolute;left:84px;right:84px;top:1120px;text-align:center">
+      The cheap one wins.
+    </div>
+    <div class="body" id="s4s"
+         style="position:absolute;left:84px;right:84px;top:1330px;text-align:center;
+                max-width:none;font-size:40px">
+      Six times the value per use, and none of the fragrance
+      your journal keeps flagging.
+    </div>
+  </div>
+
+  <!-- S5 · offer -->
+  <div class="scene" id="s5">
+    <div id="s5mark" class="mark" style="margin-bottom:44px">
+      <svg viewBox="0 0 24 24" fill="#FFFEFA">
+        <path d="M12 0.6 13.85 9.6 23 11.6 13.85 13.6 12 22.6 10.15 13.6 1 11.6 10.15 9.6Z"/>
+        <path d="M18.6 2.2 19.35 5.1 22.2 5.9 19.35 6.7 18.6 9.6 17.85 6.7 15 5.9 17.85 5.1Z"/>
+      </svg>
+    </div>
+    <div class="serif" id="s5a" style="font-size:120px;line-height:1">Skintel</div>
+    <div class="body" id="s5b" style="margin-top:18px;font-size:42px;max-width:30ch">
+      Stop paying for the packaging.
+    </div>
+    <div class="serif" id="s5c" style="font-size:150px;line-height:1;margin-top:54px">
+      $20<span style="font-size:52px;color:var(--muted);margin-left:18px">once</span>
+    </div>
+    <div style="font-size:40px;font-weight:500;margin-top:14px" id="s5d2">
+      Three months of Pro &middot; 500 spots
+    </div>
+    <div class="btn" id="s5d" style="margin-top:50px;align-self:flex-start">
+      skinstel.com/discount
+      <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#FFFEFA"
+           stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round">
+        <line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/>
+      </svg>
+    </div>
+  </div>
+
+  <div id="vignette"></div>
+  <div id="grain"></div>
+</div>
+
+<script src="./engine.js"></script>
+<script>
+const E = window.__E;
+const $ = id => document.getElementById(id);
+const DURATION = 40.0;
+
+const S = {
+  s1: [0.00,  4.60],
+  s2: [4.40, 13.60],
+  s3: [13.40, 24.00],
+  s4: [23.80, 32.60],
+  s5: [32.40, 40.00],
+};
+
+const SCORE_A = 54, SCORE_B = 89;
+
+// ---------------------------------------------------------------- S3 rows
+// Both sides are "higher is better for you", so the longer bar always wins —
+// no legend to decode mid-scroll.
+const ATTR = [
+  { k: 'Match to your skin', a: 58, b: 91 },
+  { k: 'Barrier support',    a: 44, b: 88 },
+  { k: 'Fragrance-free',     a: 12, b: 100 },
+  { k: 'Active strength',    a: 82, b: 70 },
+  { k: 'Value per use',      a: 30, b: 95 },
+];
+const ROW_TOP = 660, ROW_PITCH = 168, HALF = 380;
+const rowsEl = $('rows');
+ATTR.forEach((r, i) => {
+  const el = document.createElement('div');
+  el.className = 'arow'; el.id = 'r' + i;
+  el.style.top = (ROW_TOP + i * ROW_PITCH) + 'px';
+  el.innerHTML =
+    `<div class="al">${r.k}</div>` +
+    `<div class="abar aL" id="bl${i}" style="width:0"></div>` +
+    `<div class="abar aR" id="br${i}" style="width:0"></div>` +
+    `<div class="av" id="vl${i}" style="left:0;color:#8B6914">${r.a}</div>` +
+    `<div class="av" id="vr${i}" style="right:0;color:var(--primary);text-align:right">${r.b}</div>`;
+  rowsEl.appendChild(el);
+});
+const SPINE_H = (ATTR.length - 1) * ROW_PITCH + 100;
+
+// ---------------------------------------------------------------- S4 tick
+const TP = $('tickp'), TC = $('tickc');
+const TPLEN = TP.getTotalLength(), TCLEN = TC.getTotalLength();
+TP.setAttribute('stroke-dasharray', TPLEN);
+TC.setAttribute('stroke-dasharray', TCLEN);
+
+const money = v => '$' + v.toFixed(2);
+const CPU_A = 48 / 40, CPU_B = 12 / 60;
+
+function render(t) {
+  // ---------- S1 ----------
+  if (E.applyScene($('s1'), t, S.s1[0], S.s1[1], { drift: 20 }) > 0) {
+    E.riseIn($('s1e'), t, 0.15, { rise: 22 });
+    E.revealWords($('s1a'), t, 0.45, { step: 0.09, blur: true });
+    E.revealWords($('s1b'), t, 1.85, { step: 0.05 });
+  }
+
+  // ---------- S2 both products land ----------
+  if (E.applyScene($('s2'), t, S.s2[0], S.s2[1], { drift: 0, scale: 0 }) > 0) {
+    E.riseIn($('s2e'), t, 4.55, { rise: 18 });
+    E.revealWords($('s2t'), t, 4.80, { step: 0.05 });
+
+    // they arrive from opposite edges so the comparison is set up spatially
+    [['pA', 5.30, -1], ['pB', 5.55, 1]].forEach(([id, at, dir]) => {
+      const p = E.easeOutQuint(E.seg(t, at, at + 0.95));
+      const el = $(id);
+      el.style.opacity = p;
+      el.style.transform = `translateX(${dir * (1 - p) * 300}px) scale(${E.lerp(0.94, 1, p)})`;
+    });
+
+    // scores count in parallel — the gap opens up in front of you
+    const cp = E.easeOutQuint(E.seg(t, 6.60, 8.60));
+    $('scA').textContent = Math.round(cp * SCORE_A);
+    $('scB').textContent = Math.round(cp * SCORE_B);
+    const settle = E.easeInOut(E.seg(t, 8.50, 9.30));
+    $('pA').style.borderColor = `color-mix(in srgb, #8B6914 ${settle * 55}%, #EAE6DF)`;
+    $('pB').style.borderColor = `color-mix(in srgb, #5C7A4F ${settle * 75}%, #EAE6DF)`;
+
+    E.revealWords($('s2f'), t, 10.20, { step: 0.05 });
+  }
+
+  // ---------- S3 attribute rows ----------
+  if (E.applyScene($('s3'), t, S.s3[0], S.s3[1], { drift: 0, scale: 0 }) > 0) {
+    E.riseIn($('s3e'), t, 13.55, { rise: 18 });
+    E.revealWords($('s3t'), t, 13.80, { step: 0.05 });
+
+    const sp = E.easeInOut(E.seg(t, 15.00, 16.10));
+    $('spine').style.height = `${sp * SPINE_H}px`;
+    $('spine').style.opacity = sp;
+
+    ATTR.forEach((r, i) => {
+      const at = 15.60 + i * 0.62;
+      const lblP = E.easeOutQuint(E.seg(t, at, at + 0.45));
+      $('r' + i).style.opacity = lblP;
+      // both bars grow outward from the spine at the same time
+      const p = E.easeOutQuint(E.seg(t, at + 0.18, at + 1.05));
+      $('bl' + i).style.width = `${p * (r.a / 100) * HALF}px`;
+      $('br' + i).style.width = `${p * (r.b / 100) * HALF}px`;
+      const vp = E.easeEmil(E.seg(t, at + 0.95, at + 1.35));
+      $('vl' + i).style.opacity = vp;
+      $('vr' + i).style.opacity = vp;
+    });
+
+    E.riseIn($('s3k'), t, 15.10, { rise: 16 });
+  }
+
+  // ---------- S4 cost per use + verdict ----------
+  if (E.applyScene($('s4'), t, S.s4[0], S.s4[1], { drift: 0, scale: 0 }) > 0) {
+    E.riseIn($('s4e'), t, 23.95, { rise: 18 });
+
+    const cp = E.easeOutQuint(E.seg(t, 24.20, 26.20));
+    $('cA').textContent = money(cp * CPU_A);
+    $('cB').textContent = money(cp * CPU_B);
+
+    // the tick draws itself only after both figures have settled
+    const ring = E.easeInOut(E.seg(t, 26.40, 27.30));
+    const path = E.easeOutQuint(E.seg(t, 27.10, 27.90));
+    TC.setAttribute('stroke-dashoffset', TCLEN * (1 - ring));
+    TP.setAttribute('stroke-dashoffset', TPLEN * (1 - path));
+    $('tick').style.opacity = ring > 0 ? 1 : 0;
+
+    E.revealWords($('s4t'), t, 28.10, { step: 0.06 });
+    E.riseIn($('s4s'), t, 29.10, { rise: 26 });
+  }
+
+  // ---------- S5 offer ----------
+  if (E.applyScene($('s5'), t, S.s5[0], S.s5[1], { drift: 14, scale: 0.008 }) > 0) {
+    const m = E.easeEmil(E.seg(t, 32.55, 33.30));
+    $('s5mark').style.opacity = m;
+    $('s5mark').style.transform = `scale(${E.lerp(0.72, 1, m)}) rotate(${(1 - m) * -14}deg)`;
+    E.revealWords($('s5a'), t, 32.95, { step: 0.05 });
+    E.riseIn($('s5b'), t, 33.40, { rise: 24 });
+    const n = E.easeEmil(E.seg(t, 33.90, 34.80));
+    $('s5c').style.opacity = n;
+    $('s5c').style.transform = `scale(${E.lerp(0.86, 1, n)})`;
+    E.riseIn($('s5d2'), t, 34.70, { rise: 24 });
+    const b = E.easeEmil(E.seg(t, 35.40, 36.15));
+    $('s5d').style.opacity = b;
+    $('s5d').style.transform = `translateY(${(1 - b) * 32}px) scale(${E.lerp(0.94, 1, b)})`;
+  }
+}
+
+window.__seek = t => { render(t); return true; };
+window.__duration = DURATION;
+render(0);
+</script>
+</body>
+</html>
