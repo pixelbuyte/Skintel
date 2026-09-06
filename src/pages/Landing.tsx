@@ -2386,12 +2386,12 @@ export default function Landing() {
                   Get 3 months of Pro — $20 <ArrowRight size={16} />
                 </a>
               )}
-              <a
-                href="#demo"
+              <Link
+                to="/shelf-audit"
                 className="btn-secondary active:scale-[0.97] transition-transform duration-150 ease-emil"
               >
                 Find my culprit — free
-              </a>
+              </Link>
             </div>
 
             <div className="mt-6 sm:mt-10 flex items-center gap-3 sm:gap-5 text-[11px] sm:text-xs text-muted flex-wrap">

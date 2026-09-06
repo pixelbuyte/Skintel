@@ -25,6 +25,7 @@ const Privacy = lazy(() => import('@/pages/Privacy'));
 const Terms = lazy(() => import('@/pages/Terms'));
 const About = lazy(() => import('@/pages/About'));
 const Contact = lazy(() => import('@/pages/Contact'));
+const ShelfAudit = lazy(() => import('@/pages/ShelfAudit'));
 
 function RouteFallback() {
   return (
@@ -49,6 +50,7 @@ function App() {
         <Route path="/terms" element={<Terms />} />
         <Route path="/about" element={<About />} />
         <Route path="/contact" element={<Contact />} />
+        <Route path="/shelf-audit" element={<ShelfAudit />} />
 
         <Route
           path="/app"
