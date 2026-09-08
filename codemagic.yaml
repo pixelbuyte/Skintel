@@ -1,0 +1,84 @@
+workflows:
+  skintel-ios:
+    name: Skintel iOS
+    max_build_duration: 60
+    instance_type: mac_mini_m2
+    environment:
+      groups:
+        - skintel_ios          # DEVELOPMENT_TEAM, SUPABASE_URL, SUPABASE_ANON_KEY, API_BASE_URL — set in Codemagic UI
+      vars:
+        XCODE_PROJECT: "ios/Skintel/Skintel.xcodeproj"
+        XCODE_SCHEME: "Skintel"
+        BUNDLE_ID: "com.skintel.app"
+      xcode: latest
+      swift: latest
+
+    triggering:
+      events:
+        - push
+      branch_patterns:
+        - pattern: main
+          include: true
+          source: true
+
+    scripts:
+      - name: Install XcodeGen
+        script: brew install xcodegen
+
+      # Config.xcconfig is gitignored on purpose — it never touches the repo, only this
+      # build. xcconfig treats "//" as a comment, so URLs are written as "https:/$()/host"
+      # (the empty $() macro expands to nothing at Xcode build time, and the slashes
+      # survive). sed builds that literally; nothing here evaluates it.
+      - name: Write Config.xcconfig from secrets
+        script: |
+          set -e
+          SUPA_URL_ESCAPED=$(echo "$SUPABASE_URL" | sed 's#//#/$()/#')
+          API_URL_ESCAPED=$(echo "$API_BASE_URL" | sed 's#//#/$()/#')
+          cat > "$CM_BUILD_DIR/ios/Skintel/Config/Config.xcconfig" <<CONFIG
+          DEVELOPMENT_TEAM = $DEVELOPMENT_TEAM
+          SUPABASE_URL = $SUPA_URL_ESCAPED
+          SUPABASE_ANON_KEY = $SUPABASE_ANON_KEY
+          API_BASE_URL = $API_URL_ESCAPED
+          CONFIG
+
+      - name: Generate Xcode project
+        script: |
+          cd "$CM_BUILD_DIR/ios/Skintel" && xcodegen generate
+
+      - name: Set up code signing
+        script: |
+          xcode-project use-profiles
+
+      - name: Run SkintelCore unit tests
+        script: |
+          cd "$CM_BUILD_DIR/ios/Skintel/SkintelCore" && swift test
+
+      - name: Run app unit + UI tests
+        script: |
+          xcode-project run-tests \
+            --project "$CM_BUILD_DIR/$XCODE_PROJECT" \
+            --scheme "$XCODE_SCHEME"
+
+      - name: Build ipa for distribution
+        script: |
+          xcode-project build-ipa \
+            --project "$CM_BUILD_DIR/$XCODE_PROJECT" \
+            --scheme "$XCODE_SCHEME"
+
+    artifacts:
+      - build/ios/ipa/*.ipa
+      - /tmp/xcodebuild_logs/*.log
+      - $CM_BUILD_DIR/ios/Skintel/SkintelCore/.build/**/*.xctest
+
+    publishing:
+      app_store_connect:
+        auth: integration          # named ASC API key integration, set up in Codemagic → Team → Integrations
+        submit_to_testflight: true
+        beta_groups:
+          - Internal Testers
+      email:
+        recipients:
+          - rrswat00@gmail.com
+        notify:
+          success: true
+          failure: true
