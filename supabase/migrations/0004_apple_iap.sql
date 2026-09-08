@@ -2,24 +2,32 @@
 -- Paste into the Supabase SQL editor and run. Additive only; existing Stripe rows are untouched.
 --
 -- One `subscriptions` row per user stays the single source of truth for entitlement.
--- Stripe (web) writes via api/stripe-webhook.ts; Apple (iOS) writes via
--- api/apple-verify.ts and api/apple-notifications.ts. `source` records which channel
+-- Stripe (web) writes via api/stripe-webhook.ts; Apple (iOS) writes via api/apple.ts
+-- (/api/apple-verify and /api/apple-notifications). `source` records which channel
 -- currently owns the row so the app knows where "Manage subscription" should send the user.
+--
+-- Guarded with IF EXISTS so it also applies cleanly on Supabase preview branches, which run
+-- only migrations/* and may not have schema.sql (where `subscriptions` is created) applied.
 
-alter table public.subscriptions
+alter table if exists public.subscriptions
   add column if not exists source text
     check (source in ('stripe', 'apple', 'grant')),
   add column if not exists apple_original_transaction_id text,
   add column if not exists apple_product_id text;
 
-create unique index if not exists subs_apple_original_tx_idx
-  on public.subscriptions(apple_original_transaction_id)
-  where apple_original_transaction_id is not null;
+do $$
+begin
+  if to_regclass('public.subscriptions') is not null then
+    create unique index if not exists subs_apple_original_tx_idx
+      on public.subscriptions(apple_original_transaction_id)
+      where apple_original_transaction_id is not null;
 
--- Rows that already have a Stripe customer were written by the webhook.
-update public.subscriptions
-   set source = 'stripe'
- where source is null and stripe_customer_id is not null;
+    -- Rows that already have a Stripe customer were written by the webhook.
+    update public.subscriptions
+       set source = 'stripe'
+     where source is null and stripe_customer_id is not null;
+  end if;
+end $$;
 
 -- Founding seats are allocated with max()+1 in application code, which can collide
 -- under concurrent purchases. A sequence makes the allocation atomic; both the Stripe

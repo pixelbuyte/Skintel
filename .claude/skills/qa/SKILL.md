@@ -15,7 +15,8 @@ Run, in order, and paste real output (trimmed):
    `xcodebuild ... test -only-testing:SkintelTests`
    `xcodebuild ... test -only-testing:SkintelUITests`
 3. `git diff --check` and `git status --short`.
-4. Backend routes touched by iOS: `npx tsc --noEmit --ignoreConfig --strict --target es2023 --module esnext --moduleResolution bundler --types node --skipLibCheck --verbatimModuleSyntax api/_apple.ts api/apple-verify.ts api/apple-notifications.ts`
+4. Backend routes touched by iOS: `npx tsc --noEmit --ignoreConfig --strict --target es2023 --module esnext --moduleResolution bundler --types node --skipLibCheck --verbatimModuleSyntax api/_apple.ts api/apple.ts api/account.ts`
+5. Function count — Vercel Hobby allows **12** serverless functions per deployment: `ls api/*.ts | grep -v '/_' | wc -l` must print ≤ 12. Public URLs that share a function are mapped in `vercel.json` rewrites.
 
 Then exercise (simulator or by reading the flow if no simulator): launch → welcome → sign-up/sign-in → onboarding
 (profile, camera) → home → scanner (barcode / type it / photo) → found → verdict → save → product detail → routine

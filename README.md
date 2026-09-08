@@ -11,7 +11,7 @@ Live at **[skinstel.com](https://www.skinstel.com)** (the domain has an S; the b
 | Web app | Vite · React 19 · TypeScript · Tailwind | `src/` |
 | API | Vercel Node functions | `api/` |
 | Data + auth | Supabase (Postgres, RLS, GoTrue) | `supabase/` |
-| Billing | Stripe (web) · StoreKit 2 (iOS) | `api/stripe-*.ts`, `api/apple-*.ts` |
+| Billing | Stripe (web) · StoreKit 2 (iOS) | `api/stripe-*.ts`, `api/apple.ts` |
 | **iOS app** | Swift 6 · SwiftUI · StoreKit 2 · AVFoundation | **`ios/Skintel/`** |
 | Design | 18-surface spec + previews | `designs/` |
 | Marketing | Deterministic video compositions | `marketing/video/` |
@@ -26,7 +26,9 @@ npm run build
 ```
 
 Serverless routes run under `vercel dev`. Handlers use the `(req: VercelRequest, res: VercelResponse)`
-signature and relative imports carry a `.js` extension (ESM).
+signature and relative imports carry a `.js` extension (ESM). The Hobby plan allows **12 functions per
+deployment** (every `api/*.ts` not prefixed `_`), so related endpoints share a function and `vercel.json`
+rewrites map the public paths — e.g. `/api/apple-verify` → `api/apple.ts?action=verify`.
 
 ## iOS
 

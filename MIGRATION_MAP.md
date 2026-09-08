@@ -26,7 +26,7 @@ listed under **Conflicts** below.
 | Journal photo | **Not built.** | `photo_url` is a bare string; no storage bucket or upload path exists on the web either. |
 | Routine | Persisted on device (mirrors `localStorage['skintel:routine:v1']`), conflicts via `POST /api/analyze-routine`. | No routine table exists; conflict rules live in the API prompt, not in code. |
 | Culprits | Local co-occurrence engine (`correlate.ts` ported exactly) **plus** `POST /api/journal?action=analyze` suspects (Pro). | Both are what the web does. |
-| Monetisation | **StoreKit 2** for in-app purchase; Stripe stays for web. New `api/apple-verify.ts` + `api/apple-notifications.ts` write to the same `subscriptions` table. | Apple requires IAP for digital features. One server-side row remains the single source of truth for both channels. |
+| Monetisation | **StoreKit 2** for in-app purchase; Stripe stays for web. New `api/apple.ts` (serving `/api/apple-verify` and `/api/apple-notifications` via rewrites) writes to the same `subscriptions` table. | Apple requires IAP for digital features. One server-side row remains the single source of truth for both channels. |
 | StoreKit products | `com.skintel.app.pro.monthly` (auto-renew, $9), `com.skintel.app.pro.yearly` (auto-renew, $79), `com.skintel.app.founding` (non-renewing, $20, 3 months, 500 seats via RPC). | Mirrors `src/lib/stripe-prices.ts` + `Discount.tsx`. Prices displayed come from StoreKit, never hard-coded. |
 | Free cap | Handled by the DB trigger (`FREE_PLAN_LIMIT`, 5 products). The app maps that error to the paywall. | Already enforced server-side; do not duplicate. |
 | Entitlement rule | `isPro = status ∈ {active, trialing} && tier ∈ {pro, founding}` — the **server's** rule. | The web hook checks tier only and disagrees with the API (a cancelled Pro looks paid, then gets 402). Fixed in the port. |
@@ -88,10 +88,13 @@ Every `/api/*` call sends `Authorization: Bearer <supabase access token>`; the s
 | `POST /api/journal?action=analyze` | yes | → `{result:{summary,suspects:[{productOrIngredient,confidence,reasoning,evidenceDates}],patterns,recommendations}}` |
 | `POST /api/analyze-routine` `{amProductIds, pmProductIds}` | yes | → `{result:{amVerdict,pmVerdict,conflicts:[{products,issue,severity,fix}],redundancies,suggestions}}` |
 | `POST /api/recommend` `{goal,budget,maxPrice?,count?,notes?}` | yes | → `{result:{recommendations:[...]}, meta}` |
-| `GET /api/export-data` | no | → JSON attachment |
-| `POST /api/delete-account` | no | → `{ok:true}` |
-| `POST /api/apple-verify` **(new)** | no | `{signedTransaction}` → `{subscription}` |
-| `POST /api/apple-notifications` **(new)** | — | App Store Server Notifications V2 |
+| `GET /api/export-data` | no | → JSON attachment (function: `api/account.ts?action=export`) |
+| `POST /api/delete-account` | no | → `{ok:true}` (function: `api/account.ts?action=delete`) |
+| `POST /api/apple-verify` **(new)** | no | `{signedTransaction}` → `{subscription}` (function: `api/apple.ts?action=verify`) |
+| `POST /api/apple-notifications` **(new)** | — | App Store Server Notifications V2 (function: `api/apple.ts?action=notifications`) |
+
+Vercel's Hobby plan allows 12 serverless functions per deployment, so the account and Apple endpoints share a
+function each; `vercel.json` rewrites keep the public paths above stable for both the web app and iOS.
 
 ## Conflicts resolved (product vs design)
 
