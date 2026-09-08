@@ -27,13 +27,15 @@ enum DateFormatting {
     static func short(_ d: Date) -> String { shortDate.string(from: d) }
 
     /// "today" / "yesterday" / "Mon" / "Jul 3"
+    ///
+    /// Everything derives from the injected `now` — `isDateInToday` would read the real
+    /// clock and ignore it, which is exactly the bug the tests caught.
     static func relative(_ d: Date, now: Date = Date()) -> String {
         let cal = Calendar.current
-        if cal.isDateInToday(d) { return "today" }
-        if cal.isDateInYesterday(d) { return "yesterday" }
-        if let days = cal.dateComponents([.day], from: cal.startOfDay(for: d), to: cal.startOfDay(for: now)).day, days < 7 {
-            return weekday.string(from: d)
-        }
+        let days = cal.dateComponents([.day], from: cal.startOfDay(for: d), to: cal.startOfDay(for: now)).day ?? 0
+        if days == 0 { return "today" }
+        if days == 1 { return "yesterday" }
+        if days < 7 { return weekday.string(from: d) }
         return shortDate.string(from: d)
     }
 
