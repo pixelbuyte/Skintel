@@ -1,0 +1,9 @@
+// Shared across configurations. Per-machine values (team id) and public client
+// configuration live in Config.xcconfig, which is gitignored. Copy
+// Config.example.xcconfig → Config.xcconfig; the `?` makes the include optional so a
+// fresh checkout still generates and opens.
+#include? "Config.xcconfig"
+
+// Legal pages shown from Settings and the paywall.
+LEGAL_TERMS_URL = https:/$()/www.skinstel.com/terms
+LEGAL_PRIVACY_URL = https:/$()/www.skinstel.com/privacy

@@ -99,28 +99,41 @@ public struct Subscription: Codable, Sendable, Hashable {
     public var status: String?
     public var currentPeriodEnd: String?
     public var foundingSeatNumber: Int?
+    /// Added by supabase/migrations/0004_apple_iap.sql; nil on rows written before it ran.
+    public var source: String?
+    public var appleOriginalTransactionID: String?
+    public var appleProductID: String?
     public var createdAt: String
     public var updatedAt: String
 
     enum CodingKeys: String, CodingKey {
-        case tier, status
+        case tier, status, source
         case userID = "user_id"
         case stripeCustomerID = "stripe_customer_id"
         case stripeSubscriptionID = "stripe_subscription_id"
         case currentPeriodEnd = "current_period_end"
         case foundingSeatNumber = "founding_seat_number"
+        case appleOriginalTransactionID = "apple_original_transaction_id"
+        case appleProductID = "apple_product_id"
         case createdAt = "created_at"
         case updatedAt = "updated_at"
     }
 
     public init(userID: String, tier: Tier, stripeCustomerID: String? = nil, stripeSubscriptionID: String? = nil,
                 status: String?, currentPeriodEnd: String? = nil, foundingSeatNumber: Int? = nil,
+                source: String? = nil, appleOriginalTransactionID: String? = nil, appleProductID: String? = nil,
                 createdAt: String, updatedAt: String) {
         self.userID = userID; self.tier = tier; self.stripeCustomerID = stripeCustomerID
         self.stripeSubscriptionID = stripeSubscriptionID; self.status = status
         self.currentPeriodEnd = currentPeriodEnd; self.foundingSeatNumber = foundingSeatNumber
+        self.source = source; self.appleOriginalTransactionID = appleOriginalTransactionID
+        self.appleProductID = appleProductID
         self.createdAt = createdAt; self.updatedAt = updatedAt
     }
+
+    /// Where the entitlement is managed: Apple (this app), Stripe (the web), or a manual grant.
+    public var isManagedByApple: Bool { source == "apple" || appleOriginalTransactionID != nil }
+    public var isManagedByStripe: Bool { !isManagedByApple && stripeCustomerID != nil }
 }
 
 public enum JournalCondition: String, Codable, Sendable, CaseIterable {

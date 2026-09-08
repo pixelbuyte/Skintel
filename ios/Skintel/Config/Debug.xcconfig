@@ -1,0 +1,5 @@
+#include "Base.xcconfig"
+
+// Debug builds talk to production Supabase and the production API by default —
+// there is no staging backend. Override here to point at `vercel dev`:
+// API_BASE_URL = http:/$()/localhost:3000/api
