@@ -4,6 +4,10 @@
   "buildCommand": "npm run build",
   "outputDirectory": "dist",
   "rewrites": [
+    { "source": "/api/apple-verify", "destination": "/api/apple?action=verify" },
+    { "source": "/api/apple-notifications", "destination": "/api/apple?action=notifications" },
+    { "source": "/api/export-data", "destination": "/api/account?action=export" },
+    { "source": "/api/delete-account", "destination": "/api/account?action=delete" },
     { "source": "/api/(.*)", "destination": "/api/$1" },
     { "source": "/((?!api/).*)", "destination": "/index.html" }
   ]

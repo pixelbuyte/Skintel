@@ -1,0 +1,16 @@
+# Local secrets / team id — copy Config/Config.example.xcconfig to Config/Config.xcconfig
+Config/Config.xcconfig
+
+# Build products
+.build/
+DerivedData/
+build/
+*.xcresult
+
+# Xcode user state
+xcuserdata/
+*.xcuserstate
+*.xcworkspace/xcuserdata/
+.swiftpm/xcode/
+
+.DS_Store

@@ -1,0 +1,1066 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 77;
+	objects = {
+
+/* Begin PBXBuildFile section */
+		00F617F672D28DD208C72840 /* ProductDetailView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4AAB915E94E620CD4B4234FF /* ProductDetailView.swift */; };
+		0CF0EAE85AD8D9C3B108D818 /* RecommendView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 554F6F52E994E7707BBF19EC /* RecommendView.swift */; };
+		0DE9D0B9B291B90E5DF86F37 /* SKTextField.swift in Sources */ = {isa = PBXBuildFile; fileRef = B0E8E151FBCF9534C921D1F5 /* SKTextField.swift */; };
+		0F98B62C4FE97957D68E64C9 /* CameraPermission.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5CE0405B2427CBC9CE1B6FF2 /* CameraPermission.swift */; };
+		1D3C5E3BC9FA1C343C88E6DD /* RoutineView.swift in Sources */ = {isa = PBXBuildFile; fileRef = FB75EFA44E8933D0CE278CC3 /* RoutineView.swift */; };
+		21A738E63A8D5B94542FC8DF /* SkintelCore in Frameworks */ = {isa = PBXBuildFile; productRef = AFB88C4177C8695BA6013C4A /* SkintelCore */; };
+		21BA985B72A8F5F8BB705823 /* AppRouter.swift in Sources */ = {isa = PBXBuildFile; fileRef = B89A39D514937525E18C27B4 /* AppRouter.swift */; };
+		26D6887E6274AC97AF751C7A /* SKFont.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5EB6ECEEDFE684AAC7A74EB6 /* SKFont.swift */; };
+		3232FA965DEEF944CFACE886 /* DMSans-Regular.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 4D7EB960E431B7BA8662737B /* DMSans-Regular.ttf */; };
+		337DCA0BC0A5E86D17DFCC50 /* CompareView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 283327961C5ADE9B80F64D89 /* CompareView.swift */; };
+		3B1AFF68E0709D9CABFB465C /* AuthFlow.swift in Sources */ = {isa = PBXBuildFile; fileRef = A33BF995628F31E4DF54BA52 /* AuthFlow.swift */; };
+		3D3A3A356AC175FDA96CF15A /* SKMarks.swift in Sources */ = {isa = PBXBuildFile; fileRef = BBAE192B533670E5B8D27F55 /* SKMarks.swift */; };
+		3E1A2EB7372F30A2D74A4242 /* RoutineStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2E24655AD2FF379E52CC373E /* RoutineStore.swift */; };
+		3E285E964A8AACE093621DA6 /* SKScoreRing.swift in Sources */ = {isa = PBXBuildFile; fileRef = 85C0ADEF50FA38E10E2AAB4A /* SKScoreRing.swift */; };
+		40202DC315B238828A527D6C /* SKMetrics.swift in Sources */ = {isa = PBXBuildFile; fileRef = FFBA9AD67DEDDC0A49CCE28E /* SKMetrics.swift */; };
+		45C092F6535764EA635C33D9 /* ProductFormView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 23CC42A67CE7000000BA8FFB /* ProductFormView.swift */; };
+		46553EA3126F7F91475A5247 /* ImageResizer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5C0163337648842526018C20 /* ImageResizer.swift */; };
+		4945BF5D81C2FBA52D0E185F /* RoutineTemplates.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3C7475ADBC18EC1CED79FEC8 /* RoutineTemplates.swift */; };
+		4D182EEA998E20FF94C4B8D9 /* SKStates.swift in Sources */ = {isa = PBXBuildFile; fileRef = CE03602DA17EADDE79882A49 /* SKStates.swift */; };
+		4E86E32D7DADB78B7BCE7CFF /* DMSans-Medium.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 37357A70529D951ADE798CDE /* DMSans-Medium.ttf */; };
+		53484C7DC82FC1F1CADC64D0 /* MainTabView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8617562511CD67F071E9A7DE /* MainTabView.swift */; };
+		550AB8204F1194FDFB433E55 /* EditProfileSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = 86A7B5F7A4F2AEC2F2FFA1E4 /* EditProfileSheet.swift */; };
+		55DD65660FD5C9B715A12FB1 /* AppConfiguration.swift in Sources */ = {isa = PBXBuildFile; fileRef = C81F3F11E6FB002886612329 /* AppConfiguration.swift */; };
+		56FB53FE48E07920BDF9E34E /* FoundSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6287453431AD5BFC6819DED6 /* FoundSheet.swift */; };
+		5BF77FE6C8A4542027673C4E /* AuthViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 843304B8AE0568BC4EA3526D /* AuthViewModel.swift */; };
+		68C7A24A9CFAA1AB84F1C5AB /* HomeView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6B5E48E10B211CACC5CF54DF /* HomeView.swift */; };
+		6A2AC55BED612F5FD0B11163 /* InstrumentSerif-Regular.ttf in Resources */ = {isa = PBXBuildFile; fileRef = E088C26F4F0C1EA4665E169C /* InstrumentSerif-Regular.ttf */; };
+		6EDF9A6A77F45D28D73BBE34 /* SKNavigation.swift in Sources */ = {isa = PBXBuildFile; fileRef = 67A174DD5FB2BD8AE5380F0B /* SKNavigation.swift */; };
+		76FFD528BA7F32523480B985 /* JournalView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 796E88FFEB5279864F3F2F71 /* JournalView.swift */; };
+		7B57EE0CC09B458218F632D0 /* JournalStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8A073BDE8480C0DF087EFC68 /* JournalStore.swift */; };
+		7D978A002189261368263C16 /* OnboardingFlow.swift in Sources */ = {isa = PBXBuildFile; fileRef = 15D14CDE0716A3705DE509A4 /* OnboardingFlow.swift */; };
+		856A1D57BB622C348BD231BC /* InstrumentSerif-Italic.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 4908DC6854ECCBD6CD11E066 /* InstrumentSerif-Italic.ttf */; };
+		8FEAF49D67D33A73904D9D55 /* ProductsListView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 68873569B769A5EECF5C114A /* ProductsListView.swift */; };
+		97AFF934A05C0145E2F7CE55 /* DateFormatting.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2667B80337EC0233544AFF65 /* DateFormatting.swift */; };
+		990F36780523A1056E8D6963 /* Navigation.swift in Sources */ = {isa = PBXBuildFile; fileRef = 33DB2266238DBF85A3586528 /* Navigation.swift */; };
+		997207A5679E3C1C6566917B /* SKChip.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3D9E5AFED7855A473D575C4C /* SKChip.swift */; };
+		9F9A978D1A01AEF32EDEF1AA /* DMSans-SemiBold.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 4315E200A206D548600F78C9 /* DMSans-SemiBold.ttf */; };
+		A632886B6250E242C4974C15 /* DMSans-Bold.ttf in Resources */ = {isa = PBXBuildFile; fileRef = E6A7D9FB644FE572390F2679 /* DMSans-Bold.ttf */; };
+		A98B18AD01112D7D45985C95 /* JetBrainsMono-Bold.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 4A4A5697A75042AFF2F8117C /* JetBrainsMono-Bold.ttf */; };
+		AA23CAB528A3CF8A144405F1 /* AppleNonce.swift in Sources */ = {isa = PBXBuildFile; fileRef = 87F4CCA3C74D1CC8AF3A2057 /* AppleNonce.swift */; };
+		AE4D32B545F9E24FCC0842DB /* PaywallView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6479ED1720E6095C44CAEDAE /* PaywallView.swift */; };
+		BAFCFF6AFC6DAFA061F84506 /* SubscriptionStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6DBE9CC8AE206FE62F276768 /* SubscriptionStore.swift */; };
+		BE0D467B707F369A654D75B8 /* JetBrainsMono-Regular.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 783263C6D4B6E42DA89210E3 /* JetBrainsMono-Regular.ttf */; };
+		BE87F9C25BC87E4F7BB12CD1 /* Analytics.swift in Sources */ = {isa = PBXBuildFile; fileRef = 752CCAB65D77A62C17367EBA /* Analytics.swift */; };
+		BFDBE4C50DA6BE04EA88E239 /* CulpritsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 41D9B33C51B9B8C5CF9AEAEE /* CulpritsView.swift */; };
+		C17B7BA22F01C2FA52493101 /* VerdictView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4FDAAA323CB25E3414FFE9F7 /* VerdictView.swift */; };
+		C17FC1096F6EF903DB63F13C /* ScanFlowModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 421094553674E3332A031478 /* ScanFlowModel.swift */; };
+		C2CA6F75426E46573EAB2018 /* Skintel.storekit in Resources */ = {isa = PBXBuildFile; fileRef = AFFF4AB08094894BD1D7E0B9 /* Skintel.storekit */; };
+		C2F5427C2E97CD771EEDD08F /* AppEnvironment.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0FCCC6CEA78D934299A7907B /* AppEnvironment.swift */; };
+		C45262F3F0DB633D0CC1E178 /* ScanStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = E5578C1ECC45FBED1F5F2552 /* ScanStore.swift */; };
+		C5EDA64C4577D471BD07910A /* SKColor.swift in Sources */ = {isa = PBXBuildFile; fileRef = A068F81223A2085CD0463B6C /* SKColor.swift */; };
+		C7F4F2B72A4F1DC7B0BE3B03 /* AppLogicTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0617B8B860F0792AF0BDB240 /* AppLogicTests.swift */; };
+		CA0FD8A959230049E335655F /* ScannerHostView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A08627A5CA5D26ABC1D3C4D7 /* ScannerHostView.swift */; };
+		CF88A82E1C35017C7CC5F678 /* PrivacyInfo.xcprivacy in Resources */ = {isa = PBXBuildFile; fileRef = 210196EA5627F4E9ABEB5E6C /* PrivacyInfo.xcprivacy */; };
+		CFA99DFB36E11A10A0F85E7C /* SkintelApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = DE1CF1ECD89B1569B29E3091 /* SkintelApp.swift */; };
+		D042075D75B92C4149637DFC /* SKButton.swift in Sources */ = {isa = PBXBuildFile; fileRef = EBFB8CDCDCC9E5BF0D50C55E /* SKButton.swift */; };
+		D096BDEDBFC9CB6458883BCD /* BarcodeScannerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 69E02082F57B466549EDAB2B /* BarcodeScannerView.swift */; };
+		D1ED58E84F5208D324DB8597 /* OnboardingViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 850DE4D92D22A7AFCAED7A0F /* OnboardingViewModel.swift */; };
+		D72B33839F34FE1F51AD8D55 /* ProductStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 99F83044ED8A56FBA4E68E83 /* ProductStore.swift */; };
+		D743E6D300185022CA78E954 /* KeychainSessionStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = FE40F88930006529021DF8A0 /* KeychainSessionStore.swift */; };
+		D831B40EF0F86B5E8C3621BF /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = E535B1CF7F91281F4113CD3A /* Assets.xcassets */; };
+		D90FA1E5F5016E0C3974E77E /* ManualEntrySheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = F42996097AF9A7608AB44724 /* ManualEntrySheet.swift */; };
+		DB4C1A6FACCEA7D7DE771E3E /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9E6F58C8201C7A36357C684C /* SettingsView.swift */; };
+		DE25D292E7E1DB878F5B369B /* Haptics.swift in Sources */ = {isa = PBXBuildFile; fileRef = 12E9343CE561ED10C5BEBA04 /* Haptics.swift */; };
+		E17E675EEEDC398420CD54EF /* SKCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8D54AD044221C0042055DD6F /* SKCard.swift */; };
+		E6F53A20391807BC5F6C8CFA /* SubscriptionService.swift in Sources */ = {isa = PBXBuildFile; fileRef = E0503DA61244522AC1CB6A50 /* SubscriptionService.swift */; };
+		ECA9E661F6CA7235977B416C /* LaunchFlowUITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3A39F5A76A0C34C4E5D9F5DE /* LaunchFlowUITests.swift */; };
+		ECB2FB5835B1C6451B50A8B6 /* SignInView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 46F63CA468C46743A095849A /* SignInView.swift */; };
+		F2DCEF823940F0A50FC4584C /* SkintelCore in Frameworks */ = {isa = PBXBuildFile; productRef = 78F0F8DC47D276EA81148884 /* SkintelCore */; };
+		FD5F3CC41DB53703CD2332F6 /* SessionManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 833039A3F923D8469DDBC0BA /* SessionManager.swift */; };
+/* End PBXBuildFile section */
+
+/* Begin PBXContainerItemProxy section */
+		380975957C403168EE1F5A8B /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 2FCA0B42D87BEA26F9B76AC2 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 88D1679CE351D048D3FD21D0;
+			remoteInfo = Skintel;
+		};
+		A87A07A36EC5A72428F121C1 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 2FCA0B42D87BEA26F9B76AC2 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 88D1679CE351D048D3FD21D0;
+			remoteInfo = Skintel;
+		};
+/* End PBXContainerItemProxy section */
+
+/* Begin PBXFileReference section */
+		0617B8B860F0792AF0BDB240 /* AppLogicTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppLogicTests.swift; sourceTree = "<group>"; };
+		082C6577ACED664C39C284B8 /* SkintelUITests.xctest */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.cfbundle; path = SkintelUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		0E853A1CF1203902E3C7399F /* SkintelTests.xctest */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.cfbundle; path = SkintelTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		0FCCC6CEA78D934299A7907B /* AppEnvironment.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppEnvironment.swift; sourceTree = "<group>"; };
+		12E9343CE561ED10C5BEBA04 /* Haptics.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Haptics.swift; sourceTree = "<group>"; };
+		15D14CDE0716A3705DE509A4 /* OnboardingFlow.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OnboardingFlow.swift; sourceTree = "<group>"; };
+		210196EA5627F4E9ABEB5E6C /* PrivacyInfo.xcprivacy */ = {isa = PBXFileReference; path = PrivacyInfo.xcprivacy; sourceTree = "<group>"; };
+		22CF73FEDEF580D2E42474D2 /* Skintel.app */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.application; path = Skintel.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		23CC42A67CE7000000BA8FFB /* ProductFormView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProductFormView.swift; sourceTree = "<group>"; };
+		2667B80337EC0233544AFF65 /* DateFormatting.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DateFormatting.swift; sourceTree = "<group>"; };
+		283327961C5ADE9B80F64D89 /* CompareView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CompareView.swift; sourceTree = "<group>"; };
+		2E24655AD2FF379E52CC373E /* RoutineStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RoutineStore.swift; sourceTree = "<group>"; };
+		33CC6A9100B24534E4BA62BF /* Debug.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = Debug.xcconfig; sourceTree = "<group>"; };
+		33DB2266238DBF85A3586528 /* Navigation.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Navigation.swift; sourceTree = "<group>"; };
+		37357A70529D951ADE798CDE /* DMSans-Medium.ttf */ = {isa = PBXFileReference; lastKnownFileType = file; path = "DMSans-Medium.ttf"; sourceTree = "<group>"; };
+		3A39F5A76A0C34C4E5D9F5DE /* LaunchFlowUITests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LaunchFlowUITests.swift; sourceTree = "<group>"; };
+		3C7475ADBC18EC1CED79FEC8 /* RoutineTemplates.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RoutineTemplates.swift; sourceTree = "<group>"; };
+		3D9E5AFED7855A473D575C4C /* SKChip.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SKChip.swift; sourceTree = "<group>"; };
+		41D9B33C51B9B8C5CF9AEAEE /* CulpritsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CulpritsView.swift; sourceTree = "<group>"; };
+		421094553674E3332A031478 /* ScanFlowModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScanFlowModel.swift; sourceTree = "<group>"; };
+		4315E200A206D548600F78C9 /* DMSans-SemiBold.ttf */ = {isa = PBXFileReference; lastKnownFileType = file; path = "DMSans-SemiBold.ttf"; sourceTree = "<group>"; };
+		46F63CA468C46743A095849A /* SignInView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SignInView.swift; sourceTree = "<group>"; };
+		4908DC6854ECCBD6CD11E066 /* InstrumentSerif-Italic.ttf */ = {isa = PBXFileReference; lastKnownFileType = file; path = "InstrumentSerif-Italic.ttf"; sourceTree = "<group>"; };
+		4A4A5697A75042AFF2F8117C /* JetBrainsMono-Bold.ttf */ = {isa = PBXFileReference; lastKnownFileType = file; path = "JetBrainsMono-Bold.ttf"; sourceTree = "<group>"; };
+		4AAB915E94E620CD4B4234FF /* ProductDetailView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProductDetailView.swift; sourceTree = "<group>"; };
+		4D7EB960E431B7BA8662737B /* DMSans-Regular.ttf */ = {isa = PBXFileReference; lastKnownFileType = file; path = "DMSans-Regular.ttf"; sourceTree = "<group>"; };
+		4FDAAA323CB25E3414FFE9F7 /* VerdictView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VerdictView.swift; sourceTree = "<group>"; };
+		554F6F52E994E7707BBF19EC /* RecommendView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RecommendView.swift; sourceTree = "<group>"; };
+		5C0163337648842526018C20 /* ImageResizer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ImageResizer.swift; sourceTree = "<group>"; };
+		5CE0405B2427CBC9CE1B6FF2 /* CameraPermission.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CameraPermission.swift; sourceTree = "<group>"; };
+		5EB6ECEEDFE684AAC7A74EB6 /* SKFont.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SKFont.swift; sourceTree = "<group>"; };
+		6287453431AD5BFC6819DED6 /* FoundSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FoundSheet.swift; sourceTree = "<group>"; };
+		6479ED1720E6095C44CAEDAE /* PaywallView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PaywallView.swift; sourceTree = "<group>"; };
+		67A174DD5FB2BD8AE5380F0B /* SKNavigation.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SKNavigation.swift; sourceTree = "<group>"; };
+		68873569B769A5EECF5C114A /* ProductsListView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProductsListView.swift; sourceTree = "<group>"; };
+		69E02082F57B466549EDAB2B /* BarcodeScannerView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BarcodeScannerView.swift; sourceTree = "<group>"; };
+		6B5E48E10B211CACC5CF54DF /* HomeView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HomeView.swift; sourceTree = "<group>"; };
+		6DBE9CC8AE206FE62F276768 /* SubscriptionStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SubscriptionStore.swift; sourceTree = "<group>"; };
+		752CCAB65D77A62C17367EBA /* Analytics.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Analytics.swift; sourceTree = "<group>"; };
+		783263C6D4B6E42DA89210E3 /* JetBrainsMono-Regular.ttf */ = {isa = PBXFileReference; lastKnownFileType = file; path = "JetBrainsMono-Regular.ttf"; sourceTree = "<group>"; };
+		796E88FFEB5279864F3F2F71 /* JournalView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = JournalView.swift; sourceTree = "<group>"; };
+		833039A3F923D8469DDBC0BA /* SessionManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SessionManager.swift; sourceTree = "<group>"; };
+		843304B8AE0568BC4EA3526D /* AuthViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AuthViewModel.swift; sourceTree = "<group>"; };
+		850DE4D92D22A7AFCAED7A0F /* OnboardingViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OnboardingViewModel.swift; sourceTree = "<group>"; };
+		85C0ADEF50FA38E10E2AAB4A /* SKScoreRing.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SKScoreRing.swift; sourceTree = "<group>"; };
+		8617562511CD67F071E9A7DE /* MainTabView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MainTabView.swift; sourceTree = "<group>"; };
+		86A7B5F7A4F2AEC2F2FFA1E4 /* EditProfileSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EditProfileSheet.swift; sourceTree = "<group>"; };
+		87F4CCA3C74D1CC8AF3A2057 /* AppleNonce.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppleNonce.swift; sourceTree = "<group>"; };
+		8A073BDE8480C0DF087EFC68 /* JournalStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = JournalStore.swift; sourceTree = "<group>"; };
+		8D54AD044221C0042055DD6F /* SKCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SKCard.swift; sourceTree = "<group>"; };
+		99F83044ED8A56FBA4E68E83 /* ProductStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProductStore.swift; sourceTree = "<group>"; };
+		9D68606BF67F46CE73ABE3DE /* SkintelCore */ = {isa = PBXFileReference; lastKnownFileType = folder; name = SkintelCore; path = SkintelCore; sourceTree = SOURCE_ROOT; };
+		9E6F58C8201C7A36357C684C /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
+		A068F81223A2085CD0463B6C /* SKColor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SKColor.swift; sourceTree = "<group>"; };
+		A08627A5CA5D26ABC1D3C4D7 /* ScannerHostView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScannerHostView.swift; sourceTree = "<group>"; };
+		A33BF995628F31E4DF54BA52 /* AuthFlow.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AuthFlow.swift; sourceTree = "<group>"; };
+		AFFF4AB08094894BD1D7E0B9 /* Skintel.storekit */ = {isa = PBXFileReference; path = Skintel.storekit; sourceTree = "<group>"; };
+		B0E8E151FBCF9534C921D1F5 /* SKTextField.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SKTextField.swift; sourceTree = "<group>"; };
+		B89A39D514937525E18C27B4 /* AppRouter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppRouter.swift; sourceTree = "<group>"; };
+		BBAE192B533670E5B8D27F55 /* SKMarks.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SKMarks.swift; sourceTree = "<group>"; };
+		C81F3F11E6FB002886612329 /* AppConfiguration.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppConfiguration.swift; sourceTree = "<group>"; };
+		CBD85A337F11E12C8E12B167 /* Skintel.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = Skintel.entitlements; sourceTree = "<group>"; };
+		CE03602DA17EADDE79882A49 /* SKStates.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SKStates.swift; sourceTree = "<group>"; };
+		CE8FF8B877385277C328264A /* Release.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = Release.xcconfig; sourceTree = "<group>"; };
+		DE1CF1ECD89B1569B29E3091 /* SkintelApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SkintelApp.swift; sourceTree = "<group>"; };
+		E0503DA61244522AC1CB6A50 /* SubscriptionService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SubscriptionService.swift; sourceTree = "<group>"; };
+		E088C26F4F0C1EA4665E169C /* InstrumentSerif-Regular.ttf */ = {isa = PBXFileReference; lastKnownFileType = file; path = "InstrumentSerif-Regular.ttf"; sourceTree = "<group>"; };
+		E535B1CF7F91281F4113CD3A /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
+		E5578C1ECC45FBED1F5F2552 /* ScanStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScanStore.swift; sourceTree = "<group>"; };
+		E6A7D9FB644FE572390F2679 /* DMSans-Bold.ttf */ = {isa = PBXFileReference; lastKnownFileType = file; path = "DMSans-Bold.ttf"; sourceTree = "<group>"; };
+		EBFB8CDCDCC9E5BF0D50C55E /* SKButton.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SKButton.swift; sourceTree = "<group>"; };
+		F42996097AF9A7608AB44724 /* ManualEntrySheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ManualEntrySheet.swift; sourceTree = "<group>"; };
+		FB75EFA44E8933D0CE278CC3 /* RoutineView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RoutineView.swift; sourceTree = "<group>"; };
+		FE40F88930006529021DF8A0 /* KeychainSessionStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KeychainSessionStore.swift; sourceTree = "<group>"; };
+		FFBA9AD67DEDDC0A49CCE28E /* SKMetrics.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SKMetrics.swift; sourceTree = "<group>"; };
+/* End PBXFileReference section */
+
+/* Begin PBXFrameworksBuildPhase section */
+		27E0756510FA79772B9FD798 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				21A738E63A8D5B94542FC8DF /* SkintelCore in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		CCC82621F6A3E19B3F9DB631 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				F2DCEF823940F0A50FC4584C /* SkintelCore in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXFrameworksBuildPhase section */
+
+/* Begin PBXGroup section */
+		14E2952A906C9C468EF542F0 /* DesignSystem */ = {
+			isa = PBXGroup;
+			children = (
+				8742D6A288C929FA563D15A8 /* Components */,
+				E026693B3A60B318AC385287 /* Tokens */,
+			);
+			path = DesignSystem;
+			sourceTree = "<group>";
+		};
+		2C5F819C070E576EA5CBB0FE /* Culprits */ = {
+			isa = PBXGroup;
+			children = (
+				41D9B33C51B9B8C5CF9AEAEE /* CulpritsView.swift */,
+			);
+			path = Culprits;
+			sourceTree = "<group>";
+		};
+		2F0C11C9DD30C53877C9DBA8 /* Recommend */ = {
+			isa = PBXGroup;
+			children = (
+				554F6F52E994E7707BBF19EC /* RecommendView.swift */,
+			);
+			path = Recommend;
+			sourceTree = "<group>";
+		};
+		3A479EDA2C7CF760A7F0BBB6 /* Config */ = {
+			isa = PBXGroup;
+			children = (
+				C81F3F11E6FB002886612329 /* AppConfiguration.swift */,
+			);
+			path = Config;
+			sourceTree = "<group>";
+		};
+		3BC0C7CFAC195A81100F8B7F /* Routine */ = {
+			isa = PBXGroup;
+			children = (
+				3C7475ADBC18EC1CED79FEC8 /* RoutineTemplates.swift */,
+				FB75EFA44E8933D0CE278CC3 /* RoutineView.swift */,
+			);
+			path = Routine;
+			sourceTree = "<group>";
+		};
+		3EF8978BBA19C51642FAA796 /* Analysis */ = {
+			isa = PBXGroup;
+			children = (
+				4FDAAA323CB25E3414FFE9F7 /* VerdictView.swift */,
+			);
+			path = Analysis;
+			sourceTree = "<group>";
+		};
+		42EA7FADDE3CE31A770364BE /* Compare */ = {
+			isa = PBXGroup;
+			children = (
+				283327961C5ADE9B80F64D89 /* CompareView.swift */,
+			);
+			path = Compare;
+			sourceTree = "<group>";
+		};
+		4609138C2141B8D03B2C9F54 /* Onboarding */ = {
+			isa = PBXGroup;
+			children = (
+				15D14CDE0716A3705DE509A4 /* OnboardingFlow.swift */,
+				850DE4D92D22A7AFCAED7A0F /* OnboardingViewModel.swift */,
+			);
+			path = Onboarding;
+			sourceTree = "<group>";
+		};
+		4B3A6DEC5440C304978FCF23 /* Auth */ = {
+			isa = PBXGroup;
+			children = (
+				A33BF995628F31E4DF54BA52 /* AuthFlow.swift */,
+				843304B8AE0568BC4EA3526D /* AuthViewModel.swift */,
+				46F63CA468C46743A095849A /* SignInView.swift */,
+			);
+			path = Auth;
+			sourceTree = "<group>";
+		};
+		58FE59F28D8D870B0F80569A /* SkintelUITests */ = {
+			isa = PBXGroup;
+			children = (
+				3A39F5A76A0C34C4E5D9F5DE /* LaunchFlowUITests.swift */,
+			);
+			path = SkintelUITests;
+			sourceTree = "<group>";
+		};
+		5B972D4ED04D82A46F64BCD2 = {
+			isa = PBXGroup;
+			children = (
+				C74BC5F6297711CBCFC93A48 /* Config */,
+				7DA2E5970C9ABBE768984359 /* Packages */,
+				F7B8311A7544F4FE0EC476C4 /* Skintel */,
+				B4A47EA3A775BE7F48D82BEF /* SkintelTests */,
+				58FE59F28D8D870B0F80569A /* SkintelUITests */,
+				CC7ACB3A7055FDEA4050631E /* Products */,
+			);
+			sourceTree = "<group>";
+		};
+		63D4BDF49BCE6F11C794D484 /* Analytics */ = {
+			isa = PBXGroup;
+			children = (
+				752CCAB65D77A62C17367EBA /* Analytics.swift */,
+			);
+			path = Analytics;
+			sourceTree = "<group>";
+		};
+		74B84A12965D7CB714F66809 /* Fonts */ = {
+			isa = PBXGroup;
+			children = (
+				E6A7D9FB644FE572390F2679 /* DMSans-Bold.ttf */,
+				37357A70529D951ADE798CDE /* DMSans-Medium.ttf */,
+				4D7EB960E431B7BA8662737B /* DMSans-Regular.ttf */,
+				4315E200A206D548600F78C9 /* DMSans-SemiBold.ttf */,
+				4908DC6854ECCBD6CD11E066 /* InstrumentSerif-Italic.ttf */,
+				E088C26F4F0C1EA4665E169C /* InstrumentSerif-Regular.ttf */,
+				4A4A5697A75042AFF2F8117C /* JetBrainsMono-Bold.ttf */,
+				783263C6D4B6E42DA89210E3 /* JetBrainsMono-Regular.ttf */,
+			);
+			path = Fonts;
+			sourceTree = "<group>";
+		};
+		75AC98139D251AAA5CA867AF /* Settings */ = {
+			isa = PBXGroup;
+			children = (
+				86A7B5F7A4F2AEC2F2FFA1E4 /* EditProfileSheet.swift */,
+				9E6F58C8201C7A36357C684C /* SettingsView.swift */,
+			);
+			path = Settings;
+			sourceTree = "<group>";
+		};
+		7B0DA5F563649C2DCD0149BD /* App */ = {
+			isa = PBXGroup;
+			children = (
+				0FCCC6CEA78D934299A7907B /* AppEnvironment.swift */,
+				B89A39D514937525E18C27B4 /* AppRouter.swift */,
+				8617562511CD67F071E9A7DE /* MainTabView.swift */,
+				33DB2266238DBF85A3586528 /* Navigation.swift */,
+				DE1CF1ECD89B1569B29E3091 /* SkintelApp.swift */,
+			);
+			path = App;
+			sourceTree = "<group>";
+		};
+		7DA2E5970C9ABBE768984359 /* Packages */ = {
+			isa = PBXGroup;
+			children = (
+				9D68606BF67F46CE73ABE3DE /* SkintelCore */,
+			);
+			name = Packages;
+			sourceTree = "<group>";
+		};
+		8742D6A288C929FA563D15A8 /* Components */ = {
+			isa = PBXGroup;
+			children = (
+				EBFB8CDCDCC9E5BF0D50C55E /* SKButton.swift */,
+				8D54AD044221C0042055DD6F /* SKCard.swift */,
+				3D9E5AFED7855A473D575C4C /* SKChip.swift */,
+				BBAE192B533670E5B8D27F55 /* SKMarks.swift */,
+				67A174DD5FB2BD8AE5380F0B /* SKNavigation.swift */,
+				85C0ADEF50FA38E10E2AAB4A /* SKScoreRing.swift */,
+				CE03602DA17EADDE79882A49 /* SKStates.swift */,
+				B0E8E151FBCF9534C921D1F5 /* SKTextField.swift */,
+			);
+			path = Components;
+			sourceTree = "<group>";
+		};
+		8B04913E0A1E5483DEA5AC8A /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				4AAB915E94E620CD4B4234FF /* ProductDetailView.swift */,
+				23CC42A67CE7000000BA8FFB /* ProductFormView.swift */,
+				68873569B769A5EECF5C114A /* ProductsListView.swift */,
+			);
+			path = Products;
+			sourceTree = "<group>";
+		};
+		8CF66E88615E1A9962BE3639 /* Home */ = {
+			isa = PBXGroup;
+			children = (
+				6B5E48E10B211CACC5CF54DF /* HomeView.swift */,
+			);
+			path = Home;
+			sourceTree = "<group>";
+		};
+		9AC72CF051548683359D1F5E /* Features */ = {
+			isa = PBXGroup;
+			children = (
+				3EF8978BBA19C51642FAA796 /* Analysis */,
+				4B3A6DEC5440C304978FCF23 /* Auth */,
+				42EA7FADDE3CE31A770364BE /* Compare */,
+				2C5F819C070E576EA5CBB0FE /* Culprits */,
+				8CF66E88615E1A9962BE3639 /* Home */,
+				9DB7A03A61A4A5339073B236 /* Journal */,
+				4609138C2141B8D03B2C9F54 /* Onboarding */,
+				8B04913E0A1E5483DEA5AC8A /* Products */,
+				2F0C11C9DD30C53877C9DBA8 /* Recommend */,
+				3BC0C7CFAC195A81100F8B7F /* Routine */,
+				D5B818F828805555EF7D31F9 /* Scanner */,
+				75AC98139D251AAA5CA867AF /* Settings */,
+				CCF5F21CF14051A48E89E3CF /* Subscription */,
+			);
+			path = Features;
+			sourceTree = "<group>";
+		};
+		9DB7A03A61A4A5339073B236 /* Journal */ = {
+			isa = PBXGroup;
+			children = (
+				796E88FFEB5279864F3F2F71 /* JournalView.swift */,
+			);
+			path = Journal;
+			sourceTree = "<group>";
+		};
+		B4A47EA3A775BE7F48D82BEF /* SkintelTests */ = {
+			isa = PBXGroup;
+			children = (
+				0617B8B860F0792AF0BDB240 /* AppLogicTests.swift */,
+			);
+			path = SkintelTests;
+			sourceTree = "<group>";
+		};
+		C094E5283FA11FD6512F7E66 /* Core */ = {
+			isa = PBXGroup;
+			children = (
+				63D4BDF49BCE6F11C794D484 /* Analytics */,
+				F48CDE803D62BB6FD33E387C /* Auth */,
+				3A479EDA2C7CF760A7F0BBB6 /* Config */,
+				F7ECC8A808E73A24A3315682 /* Persistence */,
+				F5832405286D5BEA45F0ED11 /* Utilities */,
+			);
+			path = Core;
+			sourceTree = "<group>";
+		};
+		C74BC5F6297711CBCFC93A48 /* Config */ = {
+			isa = PBXGroup;
+			children = (
+				33CC6A9100B24534E4BA62BF /* Debug.xcconfig */,
+				CE8FF8B877385277C328264A /* Release.xcconfig */,
+			);
+			path = Config;
+			sourceTree = "<group>";
+		};
+		CC7ACB3A7055FDEA4050631E /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				22CF73FEDEF580D2E42474D2 /* Skintel.app */,
+				0E853A1CF1203902E3C7399F /* SkintelTests.xctest */,
+				082C6577ACED664C39C284B8 /* SkintelUITests.xctest */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+		CCF5F21CF14051A48E89E3CF /* Subscription */ = {
+			isa = PBXGroup;
+			children = (
+				6479ED1720E6095C44CAEDAE /* PaywallView.swift */,
+				E0503DA61244522AC1CB6A50 /* SubscriptionService.swift */,
+			);
+			path = Subscription;
+			sourceTree = "<group>";
+		};
+		D5B818F828805555EF7D31F9 /* Scanner */ = {
+			isa = PBXGroup;
+			children = (
+				69E02082F57B466549EDAB2B /* BarcodeScannerView.swift */,
+				6287453431AD5BFC6819DED6 /* FoundSheet.swift */,
+				F42996097AF9A7608AB44724 /* ManualEntrySheet.swift */,
+				421094553674E3332A031478 /* ScanFlowModel.swift */,
+				A08627A5CA5D26ABC1D3C4D7 /* ScannerHostView.swift */,
+			);
+			path = Scanner;
+			sourceTree = "<group>";
+		};
+		E026693B3A60B318AC385287 /* Tokens */ = {
+			isa = PBXGroup;
+			children = (
+				A068F81223A2085CD0463B6C /* SKColor.swift */,
+				5EB6ECEEDFE684AAC7A74EB6 /* SKFont.swift */,
+				FFBA9AD67DEDDC0A49CCE28E /* SKMetrics.swift */,
+			);
+			path = Tokens;
+			sourceTree = "<group>";
+		};
+		F48CDE803D62BB6FD33E387C /* Auth */ = {
+			isa = PBXGroup;
+			children = (
+				87F4CCA3C74D1CC8AF3A2057 /* AppleNonce.swift */,
+				FE40F88930006529021DF8A0 /* KeychainSessionStore.swift */,
+				833039A3F923D8469DDBC0BA /* SessionManager.swift */,
+			);
+			path = Auth;
+			sourceTree = "<group>";
+		};
+		F5832405286D5BEA45F0ED11 /* Utilities */ = {
+			isa = PBXGroup;
+			children = (
+				5CE0405B2427CBC9CE1B6FF2 /* CameraPermission.swift */,
+				2667B80337EC0233544AFF65 /* DateFormatting.swift */,
+				12E9343CE561ED10C5BEBA04 /* Haptics.swift */,
+				5C0163337648842526018C20 /* ImageResizer.swift */,
+			);
+			path = Utilities;
+			sourceTree = "<group>";
+		};
+		F7B8311A7544F4FE0EC476C4 /* Skintel */ = {
+			isa = PBXGroup;
+			children = (
+				7B0DA5F563649C2DCD0149BD /* App */,
+				C094E5283FA11FD6512F7E66 /* Core */,
+				14E2952A906C9C468EF542F0 /* DesignSystem */,
+				9AC72CF051548683359D1F5E /* Features */,
+				F960D0C9C0296362005F7DDC /* Resources */,
+			);
+			path = Skintel;
+			sourceTree = "<group>";
+		};
+		F7ECC8A808E73A24A3315682 /* Persistence */ = {
+			isa = PBXGroup;
+			children = (
+				8A073BDE8480C0DF087EFC68 /* JournalStore.swift */,
+				99F83044ED8A56FBA4E68E83 /* ProductStore.swift */,
+				2E24655AD2FF379E52CC373E /* RoutineStore.swift */,
+				E5578C1ECC45FBED1F5F2552 /* ScanStore.swift */,
+				6DBE9CC8AE206FE62F276768 /* SubscriptionStore.swift */,
+			);
+			path = Persistence;
+			sourceTree = "<group>";
+		};
+		F960D0C9C0296362005F7DDC /* Resources */ = {
+			isa = PBXGroup;
+			children = (
+				74B84A12965D7CB714F66809 /* Fonts */,
+				E535B1CF7F91281F4113CD3A /* Assets.xcassets */,
+				210196EA5627F4E9ABEB5E6C /* PrivacyInfo.xcprivacy */,
+				CBD85A337F11E12C8E12B167 /* Skintel.entitlements */,
+				AFFF4AB08094894BD1D7E0B9 /* Skintel.storekit */,
+			);
+			path = Resources;
+			sourceTree = "<group>";
+		};
+/* End PBXGroup section */
+
+/* Begin PBXNativeTarget section */
+		15D145C909D396F719861D85 /* SkintelTests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 1B793FC15887F2E384FA9156 /* Build configuration list for PBXNativeTarget "SkintelTests" */;
+			buildPhases = (
+				579F8BEDB41AEF5B410601B1 /* Sources */,
+				CCC82621F6A3E19B3F9DB631 /* Frameworks */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				66240FB51D60ACFC985D83A9 /* PBXTargetDependency */,
+			);
+			name = SkintelTests;
+			packageProductDependencies = (
+				78F0F8DC47D276EA81148884 /* SkintelCore */,
+			);
+			productName = SkintelTests;
+			productReference = 0E853A1CF1203902E3C7399F /* SkintelTests.xctest */;
+			productType = "com.apple.product-type.bundle.unit-test";
+		};
+		88D1679CE351D048D3FD21D0 /* Skintel */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = EF239F2362A448854FF72619 /* Build configuration list for PBXNativeTarget "Skintel" */;
+			buildPhases = (
+				6DD1E78B50D0D81C71CA4D0B /* Sources */,
+				F30C291B9D4A7DBF6C2DA3F6 /* Resources */,
+				27E0756510FA79772B9FD798 /* Frameworks */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = Skintel;
+			packageProductDependencies = (
+				AFB88C4177C8695BA6013C4A /* SkintelCore */,
+			);
+			productName = Skintel;
+			productReference = 22CF73FEDEF580D2E42474D2 /* Skintel.app */;
+			productType = "com.apple.product-type.application";
+		};
+		DCDE36C1573E2564274EFFBC /* SkintelUITests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = E1FDC511B3321DEABE5EA114 /* Build configuration list for PBXNativeTarget "SkintelUITests" */;
+			buildPhases = (
+				112D0762F3FBEDCDF098916D /* Sources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				9811A90EA99D6E6E4D570A71 /* PBXTargetDependency */,
+			);
+			name = SkintelUITests;
+			packageProductDependencies = (
+			);
+			productName = SkintelUITests;
+			productReference = 082C6577ACED664C39C284B8 /* SkintelUITests.xctest */;
+			productType = "com.apple.product-type.bundle.ui-testing";
+		};
+/* End PBXNativeTarget section */
+
+/* Begin PBXProject section */
+		2FCA0B42D87BEA26F9B76AC2 /* Project object */ = {
+			isa = PBXProject;
+			attributes = {
+				BuildIndependentTargetsInParallel = YES;
+				LastUpgradeCheck = 1600;
+				TargetAttributes = {
+					88D1679CE351D048D3FD21D0 = {
+						DevelopmentTeam = "$(DEVELOPMENT_TEAM)";
+						ProvisioningStyle = Automatic;
+					};
+					DCDE36C1573E2564274EFFBC = {
+						TestTargetID = 88D1679CE351D048D3FD21D0;
+					};
+				};
+			};
+			buildConfigurationList = 63ABCBDFDFCE59D9BC4F6B56 /* Build configuration list for PBXProject "Skintel" */;
+			compatibilityVersion = "Xcode 14.0";
+			developmentRegion = en;
+			hasScannedForEncodings = 0;
+			knownRegions = (
+				Base,
+				en,
+			);
+			mainGroup = 5B972D4ED04D82A46F64BCD2;
+			minimizedProjectReferenceProxies = 1;
+			packageReferences = (
+				431C7ACA7F6AEDD0E7622707 /* XCLocalSwiftPackageReference "SkintelCore" */,
+			);
+			preferredProjectObjectVersion = 77;
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (
+				88D1679CE351D048D3FD21D0 /* Skintel */,
+				15D145C909D396F719861D85 /* SkintelTests */,
+				DCDE36C1573E2564274EFFBC /* SkintelUITests */,
+			);
+		};
+/* End PBXProject section */
+
+/* Begin PBXResourcesBuildPhase section */
+		F30C291B9D4A7DBF6C2DA3F6 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				D831B40EF0F86B5E8C3621BF /* Assets.xcassets in Resources */,
+				A632886B6250E242C4974C15 /* DMSans-Bold.ttf in Resources */,
+				4E86E32D7DADB78B7BCE7CFF /* DMSans-Medium.ttf in Resources */,
+				3232FA965DEEF944CFACE886 /* DMSans-Regular.ttf in Resources */,
+				9F9A978D1A01AEF32EDEF1AA /* DMSans-SemiBold.ttf in Resources */,
+				856A1D57BB622C348BD231BC /* InstrumentSerif-Italic.ttf in Resources */,
+				6A2AC55BED612F5FD0B11163 /* InstrumentSerif-Regular.ttf in Resources */,
+				A98B18AD01112D7D45985C95 /* JetBrainsMono-Bold.ttf in Resources */,
+				BE0D467B707F369A654D75B8 /* JetBrainsMono-Regular.ttf in Resources */,
+				CF88A82E1C35017C7CC5F678 /* PrivacyInfo.xcprivacy in Resources */,
+				C2CA6F75426E46573EAB2018 /* Skintel.storekit in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXResourcesBuildPhase section */
+
+/* Begin PBXSourcesBuildPhase section */
+		112D0762F3FBEDCDF098916D /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				ECA9E661F6CA7235977B416C /* LaunchFlowUITests.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		579F8BEDB41AEF5B410601B1 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				C7F4F2B72A4F1DC7B0BE3B03 /* AppLogicTests.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		6DD1E78B50D0D81C71CA4D0B /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				BE87F9C25BC87E4F7BB12CD1 /* Analytics.swift in Sources */,
+				55DD65660FD5C9B715A12FB1 /* AppConfiguration.swift in Sources */,
+				C2F5427C2E97CD771EEDD08F /* AppEnvironment.swift in Sources */,
+				21BA985B72A8F5F8BB705823 /* AppRouter.swift in Sources */,
+				AA23CAB528A3CF8A144405F1 /* AppleNonce.swift in Sources */,
+				3B1AFF68E0709D9CABFB465C /* AuthFlow.swift in Sources */,
+				5BF77FE6C8A4542027673C4E /* AuthViewModel.swift in Sources */,
+				D096BDEDBFC9CB6458883BCD /* BarcodeScannerView.swift in Sources */,
+				0F98B62C4FE97957D68E64C9 /* CameraPermission.swift in Sources */,
+				337DCA0BC0A5E86D17DFCC50 /* CompareView.swift in Sources */,
+				BFDBE4C50DA6BE04EA88E239 /* CulpritsView.swift in Sources */,
+				97AFF934A05C0145E2F7CE55 /* DateFormatting.swift in Sources */,
+				550AB8204F1194FDFB433E55 /* EditProfileSheet.swift in Sources */,
+				56FB53FE48E07920BDF9E34E /* FoundSheet.swift in Sources */,
+				DE25D292E7E1DB878F5B369B /* Haptics.swift in Sources */,
+				68C7A24A9CFAA1AB84F1C5AB /* HomeView.swift in Sources */,
+				46553EA3126F7F91475A5247 /* ImageResizer.swift in Sources */,
+				7B57EE0CC09B458218F632D0 /* JournalStore.swift in Sources */,
+				76FFD528BA7F32523480B985 /* JournalView.swift in Sources */,
+				D743E6D300185022CA78E954 /* KeychainSessionStore.swift in Sources */,
+				53484C7DC82FC1F1CADC64D0 /* MainTabView.swift in Sources */,
+				D90FA1E5F5016E0C3974E77E /* ManualEntrySheet.swift in Sources */,
+				990F36780523A1056E8D6963 /* Navigation.swift in Sources */,
+				7D978A002189261368263C16 /* OnboardingFlow.swift in Sources */,
+				D1ED58E84F5208D324DB8597 /* OnboardingViewModel.swift in Sources */,
+				AE4D32B545F9E24FCC0842DB /* PaywallView.swift in Sources */,
+				00F617F672D28DD208C72840 /* ProductDetailView.swift in Sources */,
+				45C092F6535764EA635C33D9 /* ProductFormView.swift in Sources */,
+				D72B33839F34FE1F51AD8D55 /* ProductStore.swift in Sources */,
+				8FEAF49D67D33A73904D9D55 /* ProductsListView.swift in Sources */,
+				0CF0EAE85AD8D9C3B108D818 /* RecommendView.swift in Sources */,
+				3E1A2EB7372F30A2D74A4242 /* RoutineStore.swift in Sources */,
+				4945BF5D81C2FBA52D0E185F /* RoutineTemplates.swift in Sources */,
+				1D3C5E3BC9FA1C343C88E6DD /* RoutineView.swift in Sources */,
+				D042075D75B92C4149637DFC /* SKButton.swift in Sources */,
+				E17E675EEEDC398420CD54EF /* SKCard.swift in Sources */,
+				997207A5679E3C1C6566917B /* SKChip.swift in Sources */,
+				C5EDA64C4577D471BD07910A /* SKColor.swift in Sources */,
+				26D6887E6274AC97AF751C7A /* SKFont.swift in Sources */,
+				3D3A3A356AC175FDA96CF15A /* SKMarks.swift in Sources */,
+				40202DC315B238828A527D6C /* SKMetrics.swift in Sources */,
+				6EDF9A6A77F45D28D73BBE34 /* SKNavigation.swift in Sources */,
+				3E285E964A8AACE093621DA6 /* SKScoreRing.swift in Sources */,
+				4D182EEA998E20FF94C4B8D9 /* SKStates.swift in Sources */,
+				0DE9D0B9B291B90E5DF86F37 /* SKTextField.swift in Sources */,
+				C17FC1096F6EF903DB63F13C /* ScanFlowModel.swift in Sources */,
+				C45262F3F0DB633D0CC1E178 /* ScanStore.swift in Sources */,
+				CA0FD8A959230049E335655F /* ScannerHostView.swift in Sources */,
+				FD5F3CC41DB53703CD2332F6 /* SessionManager.swift in Sources */,
+				DB4C1A6FACCEA7D7DE771E3E /* SettingsView.swift in Sources */,
+				ECB2FB5835B1C6451B50A8B6 /* SignInView.swift in Sources */,
+				CFA99DFB36E11A10A0F85E7C /* SkintelApp.swift in Sources */,
+				E6F53A20391807BC5F6C8CFA /* SubscriptionService.swift in Sources */,
+				BAFCFF6AFC6DAFA061F84506 /* SubscriptionStore.swift in Sources */,
+				C17B7BA22F01C2FA52493101 /* VerdictView.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXSourcesBuildPhase section */
+
+/* Begin PBXTargetDependency section */
+		66240FB51D60ACFC985D83A9 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 88D1679CE351D048D3FD21D0 /* Skintel */;
+			targetProxy = 380975957C403168EE1F5A8B /* PBXContainerItemProxy */;
+		};
+		9811A90EA99D6E6E4D570A71 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 88D1679CE351D048D3FD21D0 /* Skintel */;
+			targetProxy = A87A07A36EC5A72428F121C1 /* PBXContainerItemProxy */;
+		};
+/* End PBXTargetDependency section */
+
+/* Begin XCBuildConfiguration section */
+		4D1F1B61D62D588E4145A794 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_ENTITLEMENTS = Skintel/Resources/Skintel.entitlements;
+				CODE_SIGN_IDENTITY = "iPhone Developer";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = "$(DEVELOPMENT_TEAM)";
+				ENABLE_PREVIEWS = YES;
+				INFOPLIST_FILE = Skintel/Resources/Info.plist;
+				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				MARKETING_VERSION = 1.0.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.skintel.app;
+				PRODUCT_NAME = Skintel;
+				SDKROOT = iphoneos;
+				SUPPORTS_MACCATALYST = NO;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Debug;
+		};
+		754B2C32ECE1B30ACD704747 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				GENERATE_INFOPLIST_FILE = YES;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@loader_path/Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = com.skintel.app.uitests;
+				SDKROOT = iphoneos;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_TARGET_NAME = Skintel;
+			};
+			name = Release;
+		};
+		7F34973FE4F36E5EF3D00730 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				GENERATE_INFOPLIST_FILE = YES;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@loader_path/Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = com.skintel.app.uitests;
+				SDKROOT = iphoneos;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_TARGET_NAME = Skintel;
+			};
+			name = Debug;
+		};
+		9D530F7CC557A7FC09706627 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			baseConfigurationReference = 33CC6A9100B24534E4BA62BF /* Debug.xcconfig */;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++14";
+				CLANG_CXX_LIBRARY = "libc++";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				DEAD_CODE_STRIPPING = YES;
+				DEBUG_INFORMATION_FORMAT = dwarf;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_TESTABILITY = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu11;
+				GCC_DYNAMIC_NO_PIC = NO;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"$(inherited)",
+					"DEBUG=1",
+				);
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
+				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
+				MTL_FAST_MATH = YES;
+				ONLY_ACTIVE_ARCH = YES;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = iphoneos;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = DEBUG;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+				SWIFT_STRICT_CONCURRENCY = complete;
+				SWIFT_VERSION = 6.0;
+				TARGETED_DEVICE_FAMILY = 1;
+			};
+			name = Debug;
+		};
+		AE3C856B88718193F6D56EA3 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				GENERATE_INFOPLIST_FILE = YES;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@loader_path/Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = com.skintel.app.tests;
+				SDKROOT = iphoneos;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/Skintel.app/Skintel";
+			};
+			name = Release;
+		};
+		B8984E9E6F800A4CD9B4C457 /* Release */ = {
+			isa = XCBuildConfiguration;
+			baseConfigurationReference = CE8FF8B877385277C328264A /* Release.xcconfig */;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++14";
+				CLANG_CXX_LIBRARY = "libc++";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				DEAD_CODE_STRIPPING = YES;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				ENABLE_NS_ASSERTIONS = NO;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu11;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
+				MTL_ENABLE_DEBUG_INFO = NO;
+				MTL_FAST_MATH = YES;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = iphoneos;
+				SWIFT_COMPILATION_MODE = wholemodule;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_OPTIMIZATION_LEVEL = "-O";
+				SWIFT_STRICT_CONCURRENCY = complete;
+				SWIFT_VERSION = 6.0;
+				TARGETED_DEVICE_FAMILY = 1;
+			};
+			name = Release;
+		};
+		C1F93D2A1BB60E9C0098E373 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_ENTITLEMENTS = Skintel/Resources/Skintel.entitlements;
+				CODE_SIGN_IDENTITY = "iPhone Developer";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = "$(DEVELOPMENT_TEAM)";
+				ENABLE_PREVIEWS = YES;
+				INFOPLIST_FILE = Skintel/Resources/Info.plist;
+				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				MARKETING_VERSION = 1.0.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.skintel.app;
+				PRODUCT_NAME = Skintel;
+				SDKROOT = iphoneos;
+				SUPPORTS_MACCATALYST = NO;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Release;
+		};
+		DBCA00CE53BE3CAD84756A04 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				GENERATE_INFOPLIST_FILE = YES;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@loader_path/Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = com.skintel.app.tests;
+				SDKROOT = iphoneos;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/Skintel.app/Skintel";
+			};
+			name = Debug;
+		};
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		1B793FC15887F2E384FA9156 /* Build configuration list for PBXNativeTarget "SkintelTests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				DBCA00CE53BE3CAD84756A04 /* Debug */,
+				AE3C856B88718193F6D56EA3 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+		63ABCBDFDFCE59D9BC4F6B56 /* Build configuration list for PBXProject "Skintel" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				9D530F7CC557A7FC09706627 /* Debug */,
+				B8984E9E6F800A4CD9B4C457 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+		E1FDC511B3321DEABE5EA114 /* Build configuration list for PBXNativeTarget "SkintelUITests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				7F34973FE4F36E5EF3D00730 /* Debug */,
+				754B2C32ECE1B30ACD704747 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+		EF239F2362A448854FF72619 /* Build configuration list for PBXNativeTarget "Skintel" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				4D1F1B61D62D588E4145A794 /* Debug */,
+				C1F93D2A1BB60E9C0098E373 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+/* End XCConfigurationList section */
+
+/* Begin XCLocalSwiftPackageReference section */
+		431C7ACA7F6AEDD0E7622707 /* XCLocalSwiftPackageReference "SkintelCore" */ = {
+			isa = XCLocalSwiftPackageReference;
+			relativePath = SkintelCore;
+		};
+/* End XCLocalSwiftPackageReference section */
+
+/* Begin XCSwiftPackageProductDependency section */
+		78F0F8DC47D276EA81148884 /* SkintelCore */ = {
+			isa = XCSwiftPackageProductDependency;
+			productName = SkintelCore;
+		};
+		AFB88C4177C8695BA6013C4A /* SkintelCore */ = {
+			isa = XCSwiftPackageProductDependency;
+			productName = SkintelCore;
+		};
+/* End XCSwiftPackageProductDependency section */
+	};
+	rootObject = 2FCA0B42D87BEA26F9B76AC2 /* Project object */;
+}

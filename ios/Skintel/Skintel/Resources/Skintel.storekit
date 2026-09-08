@@ -1,0 +1,99 @@
+{
+  "identifier" : "4B6E2C1A-7D3F-4A8E-9C2B-1F5E6A7B8C9D",
+  "nonRenewingSubscriptions" : [
+    {
+      "displayPrice" : "20.00",
+      "familyShareable" : false,
+      "internalID" : "F0A1B2C3-0001-4000-8000-000000000001",
+      "localizations" : [
+        {
+          "description" : "Three months of Skintel Pro. One payment, nothing renews.",
+          "displayName" : "Founding member",
+          "locale" : "en_US"
+        }
+      ],
+      "productID" : "com.skintel.app.founding",
+      "referenceName" : "Founding member (3 months)",
+      "type" : "NonRenewingSubscription"
+    }
+  ],
+  "products" : [
+
+  ],
+  "settings" : {
+    "_applicationInternalID" : "",
+    "_developerTeamID" : "",
+    "_failTransactionsEnabled" : false,
+    "_lastSynchronizedDate" : 0,
+    "_locale" : "en_US",
+    "_storefront" : "USA",
+    "_storeKitErrors" : [
+
+    ]
+  },
+  "subscriptionGroups" : [
+    {
+      "id" : "F0A1B2C3-0002-4000-8000-000000000002",
+      "localizations" : [
+
+      ],
+      "name" : "Skintel Pro",
+      "subscriptions" : [
+        {
+          "adHocOffers" : [
+
+          ],
+          "codeOffers" : [
+
+          ],
+          "displayPrice" : "9.00",
+          "familyShareable" : false,
+          "groupNumber" : 1,
+          "internalID" : "F0A1B2C3-0003-4000-8000-000000000003",
+          "introductoryOffer" : null,
+          "localizations" : [
+            {
+              "description" : "Unlimited scans, culprit detection, compare and routines.",
+              "displayName" : "Pro Monthly",
+              "locale" : "en_US"
+            }
+          ],
+          "productID" : "com.skintel.app.pro.monthly",
+          "recurringSubscriptionPeriod" : "P1M",
+          "referenceName" : "Pro Monthly",
+          "subscriptionGroupID" : "F0A1B2C3-0002-4000-8000-000000000002",
+          "type" : "RecurringSubscription"
+        },
+        {
+          "adHocOffers" : [
+
+          ],
+          "codeOffers" : [
+
+          ],
+          "displayPrice" : "79.00",
+          "familyShareable" : false,
+          "groupNumber" : 1,
+          "internalID" : "F0A1B2C3-0004-4000-8000-000000000004",
+          "introductoryOffer" : null,
+          "localizations" : [
+            {
+              "description" : "Unlimited scans, culprit detection, compare and routines. Billed yearly.",
+              "displayName" : "Pro Yearly",
+              "locale" : "en_US"
+            }
+          ],
+          "productID" : "com.skintel.app.pro.yearly",
+          "recurringSubscriptionPeriod" : "P1Y",
+          "referenceName" : "Pro Yearly",
+          "subscriptionGroupID" : "F0A1B2C3-0002-4000-8000-000000000002",
+          "type" : "RecurringSubscription"
+        }
+      ]
+    }
+  ],
+  "version" : {
+    "major" : 3,
+    "minor" : 0
+  }
+}

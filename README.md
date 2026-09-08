@@ -1,73 +1,69 @@
-# React + TypeScript + Vite
+# Skintel
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+Know what touches your skin. Scan a product's barcode or paste its ingredient list, tell Skintel how
+your skin reacted, and it finds the ingredient your breakouts have in common — then scores every new
+product against *your* history, not skin in general.
 
-Currently, two official plugins are available:
+Live at **[skinstel.com](https://www.skinstel.com)** (the domain has an S; the brand is Skintel).
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+| Part | Stack | Where |
+|---|---|---|
+| Web app | Vite · React 19 · TypeScript · Tailwind | `src/` |
+| API | Vercel Node functions | `api/` |
+| Data + auth | Supabase (Postgres, RLS, GoTrue) | `supabase/` |
+| Billing | Stripe (web) · StoreKit 2 (iOS) | `api/stripe-*.ts`, `api/apple.ts` |
+| **iOS app** | Swift 6 · SwiftUI · StoreKit 2 · AVFoundation | **`ios/Skintel/`** |
+| Design | 18-surface spec + previews | `designs/` |
+| Marketing | Deterministic video compositions | `marketing/video/` |
 
-## React Compiler
+## Web
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
-
-## Expanding the ESLint configuration
-
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
-
-```js
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-
-      // Remove tseslint.configs.recommended and replace with this
-      tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      tseslint.configs.stylisticTypeChecked,
-
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+```bash
+cp .env.example .env.local   # fill in Supabase + Stripe values
+npm install
+npm run dev                  # http://localhost:5173
+npm run build
 ```
 
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
+Serverless routes run under `vercel dev`. Handlers use the `(req: VercelRequest, res: VercelResponse)`
+signature and relative imports carry a `.js` extension (ESM). The Hobby plan allows **12 functions per
+deployment** (every `api/*.ts` not prefixed `_`), so related endpoints share a function and `vercel.json`
+rewrites map the public paths — e.g. `/api/apple-verify` → `api/apple.ts?action=verify`.
 
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
+## iOS
 
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+The native app lives in `ios/Skintel/` and reuses this backend as-is. See:
+
+- [`IOS_SETUP.md`](IOS_SETUP.md) — open the project, configure signing, App Store Connect products, Supabase Apple provider, server env.
+- [`IOS_ARCHITECTURE.md`](IOS_ARCHITECTURE.md) — how the app is put together.
+- [`MIGRATION_MAP.md`](MIGRATION_MAP.md) — what was reused, ported, rebuilt or dropped, and why.
+- [`DESIGN_REVIEW.md`](DESIGN_REVIEW.md) — where the implementation departs from the spec and what's deferred.
+- [`APP_STORE_CHECKLIST.md`](APP_STORE_CHECKLIST.md) — submission readiness.
+
+Quick start on a Mac:
+
+```bash
+cd ios/Skintel
+cp Config/Config.example.xcconfig Config/Config.xcconfig   # add your DEVELOPMENT_TEAM
+open Skintel.xcodeproj                                      # or: brew install xcodegen && xcodegen generate
 ```
+
+The platform-independent core (models, INCI parsing, culprit correlation, entitlement rules, API clients)
+is a SwiftPM package that builds and tests on any machine with a Swift 6 toolchain, Linux included:
+
+```bash
+cd ios/Skintel/SkintelCore && swift test
+```
+
+`ios/App/` is the previous Capacitor (web-view) wrapper. It is superseded by `ios/Skintel/` and kept only
+until it is deliberately removed.
+
+## Database
+
+`supabase/schema.sql` is the base schema; `supabase/migrations/` are applied in order in the Supabase SQL editor.
+`0004_apple_iap.sql` is required before the iOS app's purchases can be recorded.
+
+## Claude Code skills
+
+Project skills in `.claude/skills/` — `/advisor`, `/ios-audit`, `/design-review`, `/security-review`,
+`/appstore-check`, `/qa`, `/ship-check` — encode the review workflows used to build and gate the iOS app.

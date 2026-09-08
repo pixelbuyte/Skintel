@@ -1,0 +1,15 @@
+// Copy this file to Config.xcconfig (gitignored) and fill in DEVELOPMENT_TEAM.
+//
+// xcconfig treats "//" as a comment, so URLs are written as "https:/$()/host" —
+// $() expands to nothing and the slashes survive.
+
+// Your Apple Developer Team ID (App Store Connect → Membership).
+DEVELOPMENT_TEAM =
+
+// Supabase project. The anon key is a *public* key by design: it ships in the web
+// bundle at skinstel.com and is protected by Row Level Security. It is not a secret.
+SUPABASE_URL = https:/$()/fgttlowgvoonedqglyle.supabase.co
+SUPABASE_ANON_KEY = eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZndHRsb3dndm9vbmVkcWdseWxlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQ0NzYzOTcsImV4cCI6MjA5MDA1MjM5N30.
+
+// Vercel API routes (api/*.ts).
+API_BASE_URL = https:/$()/www.skinstel.com/api
