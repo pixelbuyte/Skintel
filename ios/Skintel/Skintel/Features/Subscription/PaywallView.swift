@@ -108,7 +108,7 @@ struct PaywallView: View {
         return "Billed yearly"
     }
 
-    private func foundingCard(_ p: Product, seats: Int?) -> some View {
+    private func foundingCard(_ p: StoreKit.Product, seats: Int?) -> some View {
         let taken = Entitlement.foundingSeatsTotal - (seats ?? Entitlement.foundingSeatsTotal)
         return Button { selected = .founding; Haptics.selection() } label: {
             VStack(spacing: SKSpace.md) {
@@ -133,7 +133,7 @@ struct PaywallView: View {
         .accessibilityAddTraits(selected == .founding ? [.isButton, .isSelected] : .isButton)
     }
 
-    private func planRow(_ id: SubscriptionService.ProductID, product: Product, caption: String) -> some View {
+    private func planRow(_ id: SubscriptionService.ProductID, product: StoreKit.Product, caption: String) -> some View {
         Button { selected = id; Haptics.selection() } label: {
             HStack(spacing: SKSpace.md) {
                 Circle().stroke(selected == id ? SKColor.primary : SKColor.line, lineWidth: 1.5).frame(width: 22, height: 22)

@@ -29,7 +29,7 @@ final class SubscriptionService {
     }
 
     private(set) var phase: Phase = .idle
-    private(set) var products: [Product] = []
+    private(set) var products: [StoreKit.Product] = []
     private(set) var lastMessage: String?
 
     private let api: SkintelAPI
@@ -45,14 +45,14 @@ final class SubscriptionService {
         self.analytics = analytics
     }
 
-    func product(_ id: ProductID) -> Product? { products.first { $0.id == id.rawValue } }
+    func product(_ id: ProductID) -> StoreKit.Product? { products.first { $0.id == id.rawValue } }
 
     // MARK: Products
 
     func loadProducts() async {
         if products.isEmpty { phase = .loadingProducts }
         do {
-            let fetched = try await Product.products(for: ProductID.allCases.map(\.rawValue))
+            let fetched = try await StoreKit.Product.products(for: ProductID.allCases.map(\.rawValue))
             products = fetched.sorted { a, b in
                 (ProductID.allCases.firstIndex { $0.rawValue == a.id } ?? 0) < (ProductID.allCases.firstIndex { $0.rawValue == b.id } ?? 0)
             }
@@ -86,7 +86,7 @@ final class SubscriptionService {
         lastMessage = nil
         analytics.track(.purchaseStarted(productID: id.rawValue))
         do {
-            var options: Set<Product.PurchaseOption> = []
+            var options: Set<StoreKit.Product.PurchaseOption> = []
             // The Supabase user id is a UUID; carrying it in the transaction lets the server
             // bind the purchase to this account and lets notifications find the row.
             if let token = UUID(uuidString: uid) { options.insert(.appAccountToken(token)) }
