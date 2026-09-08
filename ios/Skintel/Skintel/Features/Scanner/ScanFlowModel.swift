@@ -113,7 +113,7 @@ final class ScanFlowModel {
         let matches = env.products.culprits.all.map(ScanAIRequest.Match.init)
         do {
             let result = try await env.api.scan(ScanAIRequest(inci: c.inci, matches: matches))
-            let stored = env.scans.record(productID: nil, brand: c.brand, productName: c.productName, inci: c.inci, result: result)
+            let stored = env.scans.record(productID: nil, brand: c.brand, productName: c.productName, inci: c.inci, source: c.source, result: result)
             env.analytics.track(.scanCompleted(verdict: result.verdict.rawValue))
             Haptics.success()
             phase = .result(scanID: stored.id)

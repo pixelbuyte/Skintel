@@ -193,7 +193,7 @@ struct ProductDetailView: View {
         let matches = env.products.culprits.all.map(ScanAIRequest.Match.init)
         do {
             let result = try await env.api.scan(ScanAIRequest(inci: inci, matches: matches))
-            env.scans.record(productID: p.id, brand: p.product.brand, productName: p.product.productName, inci: inci, result: result)
+            env.scans.record(productID: p.id, brand: p.product.brand, productName: p.product.productName, inci: inci, source: "shelf", result: result)
             env.analytics.track(.scanCompleted(verdict: result.verdict.rawValue))
             Haptics.success()
         } catch let e as APIError where e.requiresPaywall {

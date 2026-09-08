@@ -50,7 +50,7 @@ private func session(onboarded: Bool) -> Session {
 @Test func scanStoreReKeysUnsavedScanOntoProduct() {
     let store = ScanStore(directory: tempDir())
     let result = ScanResult(verdict: .clean, score: 82, summary: "ok", flags: [], notes: nil)
-    let s = store.record(productID: nil, brand: "CeraVe", productName: "Cleanser", inci: "Aqua, Glycerin", result: result)
+    let s = store.record(productID: nil, brand: "CeraVe", productName: "Cleanser", inci: "Aqua, Glycerin", source: "paste", result: result)
     #expect(store.score(for: "p1") == nil)
     store.attach(scanID: s.id, to: "p1")
     #expect(store.score(for: "p1") == 82)

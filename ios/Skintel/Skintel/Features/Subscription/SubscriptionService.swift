@@ -70,7 +70,7 @@ final class SubscriptionService {
             for await update in Transaction.updates {
                 guard let self else { return }
                 if case .verified(let tx) = update {
-                    await self.report(tx)
+                    await self.report(tx, jws: update.jwsRepresentation)
                     await tx.finish()
                 }
             }
@@ -96,7 +96,7 @@ final class SubscriptionService {
                 switch verification {
                 case .verified(let tx):
                     phase = .verifying
-                    await report(tx)
+                    await report(tx, jws: verification.jwsRepresentation)
                     await tx.finish()
                 case .unverified(_, let error):
                     phase = .failed("The App Store receipt couldn't be verified: \(error.localizedDescription)")
@@ -118,9 +118,12 @@ final class SubscriptionService {
 
     /// Sends the signed transaction to the backend, which verifies it with Apple's root
     /// certificate and writes the subscription row that the whole app reads.
-    private func report(_ tx: Transaction) async {
+    ///
+    /// The JWS has to come from the `VerificationResult` wrapper, not the unwrapped
+    /// `Transaction` — the signature is the envelope, and it is what the server checks.
+    private func report(_ tx: StoreKit.Transaction, jws: String) async {
         do {
-            let sub = try await api.verifyAppleTransaction(signedTransaction: tx.jwsRepresentation)
+            let sub = try await api.verifyAppleTransaction(signedTransaction: jws)
             store.apply(sub)
             analytics.track(.purchaseCompleted(productID: tx.productID))
             phase = .ready
@@ -145,7 +148,7 @@ final class SubscriptionService {
         var reported = 0
         for await entitlement in Transaction.currentEntitlements {
             if case .verified(let tx) = entitlement, ProductID(rawValue: tx.productID) != nil {
-                await report(tx)
+                await report(tx, jws: entitlement.jwsRepresentation)
                 reported += 1
             }
         }
@@ -162,7 +165,7 @@ final class SubscriptionService {
         for await entitlement in Transaction.currentEntitlements {
             guard case .verified(let tx) = entitlement, ProductID(rawValue: tx.productID) != nil else { continue }
             if !store.entitlement.isPro || store.subscription?.appleOriginalTransactionID != String(tx.originalID) {
-                await report(tx)
+                await report(tx, jws: entitlement.jwsRepresentation)
             }
         }
     }

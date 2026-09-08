@@ -30,7 +30,7 @@ struct VerdictView: View {
                         SKProductMark(name: name, size: 40)
                         VStack(alignment: .leading, spacing: 2) {
                             Text(name).font(SKFont.cardTitle).foregroundStyle(SKColor.ink).lineLimit(1)
-                            Text("\(parsed.count) ingredients · \(scan.source)").font(SKFont.dataSmall).foregroundStyle(SKColor.muted)
+                            Text("\(parsed.count) ingredients · \(scan.source ?? "scan")").font(SKFont.dataSmall).foregroundStyle(SKColor.muted)
                         }
                     }
                 }
@@ -91,7 +91,7 @@ struct VerdictView: View {
         } else {
             VStack(spacing: SKSpace.sm) {
                 NavigationLink(value: AppDestination.productForm(.add(prefill: ScanCandidate(
-                    brand: scan.brand, productName: scan.productName, inci: scan.inci, upc: nil, source: scan.source)))) {
+                    brand: scan.brand, productName: scan.productName, inci: scan.inci, upc: nil, source: scan.source ?? "scan")))) {
                     Text("Save to shelf").font(SKFont.button).foregroundStyle(SKColor.cream)
                         .frame(maxWidth: .infinity).frame(height: 52)
                         .background(SKColor.primary, in: RoundedRectangle(cornerRadius: SKRadius.button, style: .continuous))

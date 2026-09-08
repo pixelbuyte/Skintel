@@ -15,6 +15,11 @@ final class ScanStore {
         var brand: String?
         var productName: String?
         var inci: String
+        /// How the scan got here ("lookup", "paste", "url", "search", "photo", "shelf").
+        /// Optional so scans persisted before this field existed still decode — `load()`
+        /// drops the whole file on any decode error, and losing history is worse than a
+        /// missing label.
+        var source: String?
         var result: ScanResult
         var scannedAt: Date
     }
@@ -38,10 +43,11 @@ final class ScanStore {
     }
 
     @discardableResult
-    func record(productID: String?, brand: String?, productName: String?, inci: String, result: ScanResult) -> StoredScan {
+    func record(productID: String?, brand: String?, productName: String?, inci: String,
+                source: String?, result: ScanResult) -> StoredScan {
         let id = productID ?? UUID().uuidString
         let s = StoredScan(id: id, productID: productID, brand: brand, productName: productName,
-                           inci: inci, result: result, scannedAt: Date())
+                           inci: inci, source: source, result: result, scannedAt: Date())
         scans[id] = s
         persist()
         return s
