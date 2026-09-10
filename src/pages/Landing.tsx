@@ -2332,10 +2332,10 @@ export default function Landing() {
           </Link>
           <nav className="flex items-center gap-1 text-sm">
             <a
-              href="#founding"
+              href="#demo"
               className="px-3 py-2 text-muted hover:text-ink transition-colors duration-200 ease-emil rounded-lg hidden sm:block"
             >
-              Waitlist
+              How it works
             </a>
             <a
               href={checkoutHref}
@@ -2355,7 +2355,7 @@ export default function Landing() {
                 <span className="absolute inline-flex h-full w-full rounded-full bg-primary animate-breathe" />
                 <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-primary" />
               </span>
-              Personal ingredient intelligence
+              Find the ingredient breaking you out
             </div>
 
             <h1 className="font-display text-[2.45rem] sm:text-6xl lg:text-[4.25rem] leading-[1.02] tracking-tight mb-4 sm:mb-6">
@@ -2386,12 +2386,12 @@ export default function Landing() {
                   Get 3 months of Pro — $20 <ArrowRight size={16} />
                 </a>
               )}
-              <a
-                href="#founding"
+              <Link
+                to="/shelf-audit"
                 className="btn-secondary active:scale-[0.97] transition-transform duration-150 ease-emil"
               >
-                Join the waitlist
-              </a>
+                Find my culprit — free
+              </Link>
             </div>
 
             <div className="mt-6 sm:mt-10 flex items-center gap-3 sm:gap-5 text-[11px] sm:text-xs text-muted flex-wrap">
