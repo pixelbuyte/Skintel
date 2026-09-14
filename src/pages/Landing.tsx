@@ -1141,13 +1141,18 @@ function SceneRecommend({ active }: { active: boolean }) {
   );
 }
 
-function ComingSoonWaitlist() {
+function FoundingOfferCard({ checkoutHref }: { checkoutHref: string }) {
   const { remaining, total } = useFoundingCount();
   const [email, setEmail] = useState('');
-  const [foundingInterest, setFoundingInterest] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [joined, setJoined] = useState(false);
   const [err, setErr] = useState<string | null>(null);
+  const [showNotify, setShowNotify] = useState(false);
+
+  const soldOut = typeof remaining === 'number' && remaining <= 0;
+  const seatsRemaining = typeof remaining === 'number' ? remaining : null;
+  const pctLeft =
+    seatsRemaining !== null ? Math.max(0, Math.min(100, (seatsRemaining / total) * 100)) : 100;
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();
@@ -1158,19 +1163,14 @@ function ComingSoonWaitlist() {
     try {
       let ref: string | null = null;
       try { ref = localStorage.getItem('skintel_ref'); } catch { /* storage unavailable */ }
+      // These sources deliberately avoid the 'founding-3mo' token: the welcome
+      // email keys off it to promise a founding invitation, and anyone on this
+      // list either bought already or missed the batch.
+      const base = soldOut ? 'landing:founding-soldout' : 'landing:ios-notify';
       const res = await fetch('/api/waitlist', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          email: clean,
-          source: foundingInterest
-            ? ref
-              ? `landing:founding-3mo:${ref}`
-              : 'landing:founding-3mo'
-            : ref
-              ? `landing:${ref}`
-              : 'landing',
-        }),
+        body: JSON.stringify({ email: clean, source: ref ? `${base}:${ref}` : base }),
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(data?.error ?? 'Signup failed');
@@ -1182,9 +1182,42 @@ function ComingSoonWaitlist() {
     }
   }
 
-  const seatsRemaining = typeof remaining === 'number' ? remaining : null;
-  const pctLeft =
-    seatsRemaining !== null ? Math.max(0, Math.min(100, (seatsRemaining / total) * 100)) : 100;
+  const notifyForm = joined ? (
+    <div className="rounded-xl bg-primary/15 border border-primary/30 p-5">
+      <div className="font-display text-xl mb-1">✓ You're on the list.</div>
+      <div className="text-sm text-bg/80">
+        We'll email you the moment Skintel hits the App Store and Google Play.
+      </div>
+    </div>
+  ) : (
+    <form onSubmit={submit}>
+      <div className="flex flex-col sm:flex-row gap-3">
+        <input
+          type="email"
+          required
+          autoComplete="email"
+          placeholder="your@email.com"
+          className="flex-1 px-4 py-3.5 rounded-xl bg-bg/10 backdrop-blur border border-bg/20 text-bg placeholder:text-bg/40 focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary transition"
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
+          disabled={submitting}
+        />
+        <button
+          type="submit"
+          disabled={submitting}
+          className="px-6 py-3.5 rounded-xl bg-bg/15 border border-bg/25 text-bg font-medium hover:bg-bg/25 active:scale-[0.97] transition-all duration-150 ease-emil disabled:opacity-60 whitespace-nowrap inline-flex items-center justify-center gap-2"
+        >
+          {submitting ? 'Joining…' : 'Notify me'}
+          {!submitting && <ArrowRight size={16} />}
+        </button>
+      </div>
+      {err && (
+        <div className="text-sm text-bad-fg mt-3" role="alert">
+          {err}
+        </div>
+      )}
+    </form>
+  );
 
   return (
     <div className="relative overflow-hidden rounded-[32px] bg-ink text-bg shadow-[0_40px_80px_-30px_rgba(0,0,0,0.5)]">
@@ -1212,109 +1245,105 @@ function ComingSoonWaitlist() {
             <span className="text-bg/40">·</span>
             <GooglePlayLogo size={14} />
             <span className="text-xs uppercase tracking-[0.18em] font-medium ml-1">
-              Coming Soon · iOS &amp; Android
+              iOS &amp; Android · included at launch
             </span>
           </div>
 
-          <h2 className="font-display text-[2.5rem] sm:text-5xl lg:text-[3.75rem] leading-[1.02] tracking-tight mb-5">
-            Skintel mobile.
-            <br />
-            <span className="italic text-primary">Launching this summer.</span>
-          </h2>
-
-          <p className="text-bg/70 text-lg max-w-[52ch] leading-relaxed mb-8">
-            Scan any product at the store. Live trigger alerts on every label.
-            Join the early-access list, then get first dibs on the{' '}
-            <span className="text-bg font-semibold">$20 / 3-month Pro founding deal</span> when invitations open.
-          </p>
-
-          <div className="mb-8">
-            <div className="flex items-baseline justify-between mb-2">
-              <span className="text-xs uppercase tracking-[0.16em] text-bg/60 font-medium">
-                Founding invitations
-              </span>
-              <span className="text-sm font-display">
-                {seatsRemaining !== null ? (
-                  <>
-                    <span className="text-primary font-semibold">{seatsRemaining}</span>
-                    <span className="text-bg/50"> / {total} left</span>
-                  </>
-                ) : (
-                  <span className="text-bg/50">{total} total</span>
-                )}
-              </span>
-            </div>
-            <div className="h-1.5 w-full rounded-full bg-bg/10 overflow-hidden">
-              <div
-                className="h-full bg-gradient-to-r from-primary to-primary/60 rounded-full transition-[width] duration-700 ease-emil"
-                style={{ width: `${pctLeft}%` }}
-              />
-            </div>
-          </div>
-
-          {!joined ? (
-            <form onSubmit={submit} className="mb-5">
-              <div className="flex flex-col sm:flex-row gap-3">
-              <input
-                type="email"
-                required
-                autoComplete="email"
-                placeholder="your@email.com"
-                className="flex-1 px-4 py-3.5 rounded-xl bg-bg/10 backdrop-blur border border-bg/20 text-bg placeholder:text-bg/40 focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary transition"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                disabled={submitting}
-              />
-              <button
-                type="submit"
-                disabled={submitting}
-                className="px-6 py-3.5 rounded-xl bg-bg text-ink font-medium hover:bg-bg/90 active:scale-[0.97] transition-all duration-150 ease-emil disabled:opacity-60 whitespace-nowrap inline-flex items-center justify-center gap-2"
-              >
-                {submitting ? 'Joining…' : 'Notify me at launch'}
-                {!submitting && <ArrowRight size={16} />}
-              </button>
-              </div>
-              <label className="mt-4 flex items-start gap-3 cursor-pointer text-sm text-bg/75">
-                <input
-                  type="checkbox"
-                  checked={foundingInterest}
-                  onChange={(e) => setFoundingInterest(e.target.checked)}
-                  className="mt-1 size-4 rounded border-bg/30 bg-bg/10 text-primary focus:ring-primary/50"
-                />
-                <span>
-                  I want first access to the <strong className="text-bg">$20 / 3-month Pro founding deal</strong>.
-                  <span className="block text-xs text-bg/50 mt-1">No payment today. We’ll email you before it opens.</span>
-                </span>
-              </label>
-            </form>
+          {soldOut ? (
+            <>
+              <h2 className="font-display text-[2.5rem] sm:text-5xl lg:text-[3.75rem] leading-[1.02] tracking-tight mb-5">
+                The founding batch
+                <br />
+                <span className="italic text-primary">is closed.</span>
+              </h2>
+              <p className="text-bg/70 text-lg max-w-[52ch] leading-relaxed mb-8">
+                All {total} seats are claimed and standard Pro pricing applies from here. Pro is
+                live on the web today — and if you'd rather wait for the apps, leave your email
+                and we'll tell you the moment they ship.
+              </p>
+              <div className="mb-5">{notifyForm}</div>
+            </>
           ) : (
-            <div className="rounded-xl bg-primary/15 border border-primary/30 p-5 mb-5">
-              <div className="font-display text-xl mb-1">✓ You're on the list.</div>
-              <div className="text-sm text-bg/80">
-                We'll email you the moment Skintel hits the App Store + Google Play.
-                {foundingInterest && ' You’ll also get the $20 / 3-month founding invitation first.'}
+            <>
+              <h2 className="font-display text-[2.5rem] sm:text-5xl lg:text-[3.75rem] leading-[1.02] tracking-tight mb-5">
+                3 months of Pro. $20.
+                <br />
+                <span className="italic text-primary">Use it today.</span>
+              </h2>
+
+              <p className="text-bg/70 text-lg max-w-[52ch] leading-relaxed mb-8">
+                Pro is live on the web right now — paste your products, tag what broke you out,
+                and find the ingredient behind it the moment you pay. The iOS and Android apps
+                are included when they ship. One payment. No subscription, no auto-renew.
+              </p>
+
+              <div className="mb-8">
+                <div className="flex items-baseline justify-between mb-2">
+                  <span className="text-xs uppercase tracking-[0.16em] text-bg/60 font-medium">
+                    Founding seats
+                  </span>
+                  <span className="text-sm font-display">
+                    {seatsRemaining !== null ? (
+                      <>
+                        <span className="text-primary font-semibold">{seatsRemaining}</span>
+                        <span className="text-bg/50"> / {total} left</span>
+                      </>
+                    ) : (
+                      <span className="text-bg/50">{total} total</span>
+                    )}
+                  </span>
+                </div>
+                <div className="h-1.5 w-full rounded-full bg-bg/10 overflow-hidden">
+                  <div
+                    className="h-full bg-gradient-to-r from-primary to-primary/60 rounded-full transition-[width] duration-700 ease-emil"
+                    style={{ width: `${pctLeft}%` }}
+                  />
+                </div>
               </div>
-            </div>
-          )}
 
-          {err && (
-            <div className="text-sm text-bad-fg mb-4" role="alert">
-              {err}
-            </div>
-          )}
+              <div className="flex flex-col sm:flex-row sm:items-center gap-3 mb-4">
+                <a
+                  href={checkoutHref}
+                  className="px-6 py-3.5 rounded-xl bg-bg text-ink font-medium hover:bg-bg/90 active:scale-[0.97] transition-all duration-150 ease-emil whitespace-nowrap inline-flex items-center justify-center gap-2"
+                >
+                  Claim 3 months — $20 <ArrowRight size={16} />
+                </a>
+                <Link
+                  to="/discount"
+                  className="text-sm text-bg/70 hover:text-bg underline underline-offset-4 decoration-bg/30 transition-colors duration-150 ease-emil text-center sm:text-left"
+                >
+                  Full details &amp; FAQ →
+                </Link>
+              </div>
 
-          <div className="flex items-center gap-2 text-xs text-bg/60 pt-2">
-              <ShieldCheck size={13} />
-              Launch-list signup · no card required
-          </div>
+              <div className="flex items-center gap-2 text-xs text-bg/60 mb-8">
+                <ShieldCheck size={13} />
+                Secure Stripe checkout · 14-day refund · no auto-renew
+              </div>
+
+              <div className="pt-5 border-t border-bg/10">
+                {showNotify ? (
+                  notifyForm
+                ) : (
+                  <button
+                    type="button"
+                    onClick={() => setShowNotify(true)}
+                    className="text-sm text-bg/50 hover:text-bg/80 transition-colors duration-150 ease-emil"
+                  >
+                    Not ready? Get an email when the iOS app ships →
+                  </button>
+                )}
+              </div>
+            </>
+          )}
 
           <div className="mt-6 pt-6 md:mt-10 md:pt-8 border-t border-bg/10 flex items-center gap-3 flex-wrap">
             <AppStoreBadge />
             <PlayStoreBadge />
             <div className="text-xs text-bg/50 max-w-[24ch] leading-relaxed ml-1">
-              Pre-launch waitlist.
+              Web works now.
               <br />
-              Web stays live forever.
+              Apps included at launch.
             </div>
           </div>
         </div>
@@ -2344,7 +2373,7 @@ export default function Landing() {
               href="#founding"
               className="px-3 py-2 text-muted hover:text-ink transition-colors duration-200 ease-emil rounded-lg hidden sm:block"
             >
-              Waitlist
+              Founding offer
             </a>
             <a
               href={checkoutHref}
@@ -2396,10 +2425,10 @@ export default function Landing() {
                 </a>
               )}
               <a
-                href="#founding"
+                href="#demo"
                 className="btn-secondary active:scale-[0.97] transition-transform duration-150 ease-emil"
               >
-                Join the waitlist
+                See how it works
               </a>
             </div>
 
@@ -2423,7 +2452,7 @@ export default function Landing() {
                 14-day refund
               </div>
               <div className="hidden sm:block h-3 w-px bg-border" />
-              <div className="hidden sm:block">No auto-renew · pay once</div>
+              <div className="hidden sm:block">No auto-renew · pay once · works on web today</div>
             </div>
           </div>
 
@@ -2540,8 +2569,8 @@ export default function Landing() {
                     </div>
                   ))}
                 </div>
-                <a href="#founding" className="btn-primary inline-flex active:scale-[0.97] transition-transform duration-150 ease-emil">
-                  Join the waitlist <ArrowRight size={16} />
+                <a href={checkoutHref} className="btn-primary inline-flex active:scale-[0.97] transition-transform duration-150 ease-emil">
+                  Claim 3 months — $20 <ArrowRight size={16} />
                 </a>
               </div>
 
@@ -2574,7 +2603,7 @@ export default function Landing() {
                     Then it&rsquo;s gone.
                   </h2>
                   <p className="text-muted text-sm sm:text-base leading-relaxed mb-5 max-w-[48ch]">
-                    Everything in Pro — unlimited products, the full INCI scanner, your personal
+                    Live on the web today; apps included at launch. Everything in Pro — unlimited products, the full INCI scanner, your personal
                     trigger map. Founding code applied automatically, nothing to type. Pay once.
                     No subscription, no auto-renew. Standard subscription pricing applies once
                     the founding batch closes.
@@ -2895,7 +2924,7 @@ export default function Landing() {
 
       <section id="founding" className="max-w-6xl mx-auto px-4 sm:px-6 py-8 sm:py-10 md:py-12 scroll-mt-24">
         <FadeUp>
-          <ComingSoonWaitlist />
+          <FoundingOfferCard checkoutHref={checkoutHref} />
         </FadeUp>
       </section>
 
