@@ -1351,19 +1351,27 @@ function ScrollProgress() {
 
 function useParallaxRoot() {
   useEffect(() => {
-    let raf = 0;
+    // Writing a custom property on :root invalidates style for the whole
+    // document, and this page is large enough that doing it per scroll frame
+    // is the single most expensive thing happening during a scroll. The two
+    // elements that read --scrollY are decorative blurred blobs, so skip the
+    // work entirely where it isn't worth it: coarse pointers (touch) and
+    // reduced-motion. Desktop keeps the effect unchanged.
+    const skip = window.matchMedia('(pointer: coarse), (prefers-reduced-motion: reduce)').matches;
+    if (skip) return;
+
+    let scheduled = false;
     const onScroll = () => {
-      cancelAnimationFrame(raf);
-      raf = requestAnimationFrame(() => {
+      if (scheduled) return;
+      scheduled = true;
+      requestAnimationFrame(() => {
+        scheduled = false;
         document.documentElement.style.setProperty('--scrollY', String(window.scrollY));
       });
     };
     onScroll();
     window.addEventListener('scroll', onScroll, { passive: true });
-    return () => {
-      cancelAnimationFrame(raf);
-      window.removeEventListener('scroll', onScroll);
-    };
+    return () => window.removeEventListener('scroll', onScroll);
   }, []);
 }
 
@@ -2284,25 +2292,26 @@ export default function Landing() {
 
   const [showBar, setShowBar] = useState(false);
   useEffect(() => {
-    let raf = 0;
-    // Hysteresis (show >480, hide <380) so a scroll position hovering near a
-    // single threshold — normal during iOS momentum/rubber-banding — can't
-    // flip showBar every frame and leave the 300ms slide transition retriggering
-    // before it finishes, which is what reads as the bar "getting stuck".
+    // Coalesce to one frame with a "already scheduled" guard rather than
+    // cancel-and-reschedule. iOS fires scroll faster than rAF during momentum,
+    // so cancelling each time starves the callback until scrolling stops --
+    // which is why the bar used to lag behind the page and settle mid-content.
+    let scheduled = false;
     const onScroll = () => {
-      cancelAnimationFrame(raf);
-      raf = requestAnimationFrame(() => {
+      if (scheduled) return;
+      scheduled = true;
+      requestAnimationFrame(() => {
+        scheduled = false;
         const y = window.scrollY;
         setScrolled(y > 8);
+        // Hysteresis band: a position hovering on one threshold would flip
+        // showBar every frame and keep restarting the 300ms slide.
         setShowBar((prev) => (y > 480 ? true : y < 380 ? false : prev));
       });
     };
     onScroll();
     window.addEventListener('scroll', onScroll, { passive: true });
-    return () => {
-      cancelAnimationFrame(raf);
-      window.removeEventListener('scroll', onScroll);
-    };
+    return () => window.removeEventListener('scroll', onScroll);
   }, []);
 
   // channel attribution: ?ref=tt|reddit|x|… survives into waitlist + checkout
@@ -3157,17 +3166,15 @@ export default function Landing() {
 
       {/* ── STICKY MOBILE CTA ── */}
       <div
-        // translate3d + backdrop-blur on a fixed element is the classic iOS Safari
-        // combination that drops out of its own compositing layer mid-scroll and
-        // freezes in place; translateZ(0) plus explicit willChange keeps it promoted.
         className="sm:hidden fixed bottom-0 inset-x-0 z-40 transition-transform duration-300 ease-emil"
-        style={{
-          transform: `translate3d(0, ${showBar ? '0' : '100%'}, 0)`,
-          willChange: 'transform',
-        }}
+        style={{ transform: `translate3d(0, ${showBar ? '0' : '100%'}, 0)` }}
       >
         <div
-          className="bg-bg/95 backdrop-blur-xl border-t border-border px-4 pt-3 flex items-center gap-3"
+          // Opaque rather than bg-bg/95 + backdrop-blur-xl: at 95% opacity the
+          // blur was invisible, but backdrop-filter on a fixed element forces
+          // Safari to re-sample and re-blur the page behind it every scroll
+          // frame. That was the bulk of the scroll jank on mobile.
+          className="bg-bg border-t border-border px-4 pt-3 flex items-center gap-3"
           style={{ paddingBottom: 'calc(0.75rem + env(safe-area-inset-bottom))' }}
         >
           <div className="flex-1 min-w-0">
