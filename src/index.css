@@ -127,9 +127,13 @@
     transition: transform 80ms linear;
   }
 
-  .parallax-slow { will-change: transform; transform: translate3d(0, calc(var(--scrollY, 0) * -0.06px), 0); }
-  .parallax-med  { will-change: transform; transform: translate3d(0, calc(var(--scrollY, 0) * -0.12px), 0); }
-  .parallax-fast { will-change: transform; transform: translate3d(0, calc(var(--scrollY, 0) * -0.22px), 0); }
+  /* translate3d already promotes these to their own layer; a standing
+     will-change on top of it keeps a large blur-3xl texture resident for
+     elements that are only decorative, which costs memory and raster time
+     on mobile for no visible gain. */
+  .parallax-slow { transform: translate3d(0, calc(var(--scrollY, 0) * -0.06px), 0); }
+  .parallax-med  { transform: translate3d(0, calc(var(--scrollY, 0) * -0.12px), 0); }
+  .parallax-fast { transform: translate3d(0, calc(var(--scrollY, 0) * -0.22px), 0); }
 }
 
 @keyframes demoBob {
