@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { ArrowRight, Plus, Sparkles, X } from 'lucide-react';
+import { ArrowRight, Check, Copy, Plus, Sparkles, X } from 'lucide-react';
 import { PublicPage } from '@/components/PublicPage';
 import { parseInci } from '@/lib/inci';
 import { isFragrance, lookupIngredient, POSITIVE_CATEGORIES } from '@/lib/ingredient-knowledge';
@@ -97,6 +97,7 @@ export default function ShelfAudit() {
   const [analyzed, setAnalyzed] = useState(false);
   const [email, setEmail] = useState('');
   const [emailState, setEmailState] = useState<'idle' | 'submitting' | 'done' | 'error'>('idle');
+  const [copied, setCopied] = useState(false);
 
   const filledCount = products.filter((p) => p.ingredients.trim().length > 0).length;
   const canAnalyze = filledCount >= 2;
@@ -119,6 +120,20 @@ export default function ShelfAudit() {
     if (products.length <= 2) return;
     setAnalyzed(false);
     setProducts((prev) => prev.filter((p) => p.id !== id));
+  }
+
+  async function copyResult() {
+    const top = shared[0];
+    if (!top) return;
+    const more = shared.length > 1 ? ` (+${shared.length - 1} more shared)` : '';
+    const text = `My shelf audit: ${top.display} is in ${top.count} of my ${totalWithIngredients} products${more}. Check yours free: skinstel.com/shelf-audit`;
+    try {
+      await navigator.clipboard.writeText(text);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch {
+      /* clipboard unavailable — the on-screen card is still screenshot-able */
+    }
   }
 
   async function submitEmail(e: React.FormEvent) {
@@ -225,10 +240,45 @@ export default function ShelfAudit() {
               </div>
             ) : (
               <>
-                <div className="text-sm text-muted mb-3">
-                  Found <span className="text-ink font-medium">{shared.length}</span> ingredient
-                  {shared.length === 1 ? '' : 's'} shared across your {totalWithIngredients}{' '}
-                  products.
+                {/* Screenshot-first result card: the domain is printed on it so a share
+                    carries the right URL even when the name is misheard as "skintel". */}
+                <div className="rounded-2xl border border-border bg-card p-5 sm:p-6 mb-3">
+                  <div className="text-[11px] uppercase tracking-[0.16em] text-muted mb-2">
+                    Shelf audit result
+                  </div>
+                  <div className="font-display text-2xl sm:text-3xl leading-tight">
+                    <span className="text-primary">{shared[0].display}</span>
+                    <span className="text-muted"> is in </span>
+                    {shared[0].count}
+                    <span className="text-muted"> of your </span>
+                    {totalWithIngredients}
+                    <span className="text-muted"> products.</span>
+                  </div>
+                  {shared.length > 1 && (
+                    <div className="text-sm text-muted mt-1.5">
+                      + {shared.length - 1} more shared ingredient{shared.length === 2 ? '' : 's'} below
+                    </div>
+                  )}
+                  <div className="flex items-center justify-between mt-4 pt-3 border-t border-border">
+                    <span className="font-display text-base">
+                      Skintel<span className="text-primary">.</span>
+                    </span>
+                    <span className="text-xs text-muted tracking-wide">skinstel.com/shelf-audit</span>
+                  </div>
+                </div>
+                <div className="flex items-center justify-between gap-3 mb-4">
+                  <div className="text-sm text-muted">
+                    <span className="text-ink font-medium">{shared.length}</span> shared ingredient
+                    {shared.length === 1 ? '' : 's'} across {totalWithIngredients} products
+                  </div>
+                  <button
+                    type="button"
+                    onClick={copyResult}
+                    className="btn-secondary text-xs shrink-0 active:scale-[0.97] transition-transform duration-150 ease-emil"
+                  >
+                    {copied ? <Check size={13} /> : <Copy size={13} />}
+                    {copied ? 'Copied' : 'Copy result'}
+                  </button>
                 </div>
                 <div className="grid sm:grid-cols-2 gap-3">
                   {shared.map((row) => (
