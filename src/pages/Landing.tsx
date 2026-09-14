@@ -11,10 +11,16 @@ import {
   Check,
   Play,
 } from 'lucide-react';
+import { track } from '@vercel/analytics';
 import { TryItDemo } from '@/components/TryItDemo';
 import { useInView } from '@/lib/useInView';
 import { useFoundingCount } from '@/hooks/useFoundingCount';
 import { Tilt3D } from '@/components/Tilt3D';
+
+// Same event /discount fires, so the funnel reads as one series. Every direct
+// $20 link on this page hits Stripe via a server redirect, so without this the
+// landing page — where most traffic arrives — reported zero claim clicks.
+const claimClick = (from: string) => () => track('founding_claim_click', { from });
 
 const FAQS = [
   {
@@ -1304,6 +1310,7 @@ function FoundingOfferCard({ checkoutHref }: { checkoutHref: string }) {
               <div className="flex flex-col sm:flex-row sm:items-center gap-3 mb-4">
                 <a
                   href={checkoutHref}
+                  onClick={claimClick('founding-card')}
                   className="px-6 py-3.5 rounded-xl bg-bg text-ink font-medium hover:bg-bg/90 active:scale-[0.97] transition-all duration-150 ease-emil whitespace-nowrap inline-flex items-center justify-center gap-2"
                 >
                   Claim 3 months — $20 <ArrowRight size={16} />
@@ -2377,6 +2384,7 @@ export default function Landing() {
             </a>
             <a
               href={checkoutHref}
+              onClick={claimClick('nav')}
               className="btn-primary active:scale-[0.97] transition-transform duration-150 ease-emil"
             >
               Claim $20 deal <ArrowRight size={14} />
@@ -2419,6 +2427,7 @@ export default function Landing() {
               ) : (
                 <a
                   href={checkoutHref}
+                  onClick={claimClick('hero')}
                   className="btn-primary active:scale-[0.97] transition-transform duration-150 ease-emil"
                 >
                   Get 3 months of Pro — $20 <ArrowRight size={16} />
@@ -2569,7 +2578,7 @@ export default function Landing() {
                     </div>
                   ))}
                 </div>
-                <a href={checkoutHref} className="btn-primary inline-flex active:scale-[0.97] transition-transform duration-150 ease-emil">
+                <a href={checkoutHref} onClick={claimClick('walkthrough')} className="btn-primary inline-flex active:scale-[0.97] transition-transform duration-150 ease-emil">
                   Claim 3 months — $20 <ArrowRight size={16} />
                 </a>
               </div>
@@ -2611,6 +2620,7 @@ export default function Landing() {
                   <div className="flex flex-col min-[390px]:flex-row items-stretch min-[390px]:items-center gap-3">
                     <a
                       href={checkoutHref}
+                      onClick={claimClick('offer')}
                       className="btn-primary justify-center active:scale-[0.97] transition-transform duration-150 ease-emil"
                     >
                       Claim my seat — $20 <ArrowRight size={16} />
@@ -3223,7 +3233,7 @@ export default function Landing() {
               Waitlist <ArrowRight size={14} />
             </a>
           ) : (
-            <a href={checkoutHref} className="btn-primary shrink-0 active:scale-[0.97] transition-transform duration-150 ease-emil">
+            <a href={checkoutHref} onClick={claimClick('sticky-bar')} className="btn-primary shrink-0 active:scale-[0.97] transition-transform duration-150 ease-emil">
               Claim <ArrowRight size={14} />
             </a>
           )}
