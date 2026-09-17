@@ -188,18 +188,33 @@ export default function Privacy() {
 
       <H2>9. Security and international transfers</H2>
       <p>
-        All traffic to skinstel.com and the app is encrypted in transit (HTTPS/TLS). Every row in
-        our Postgres database is locked to your user ID with row-level security policies — other
-        users, and our own backend code running without your access token, cannot read your
-        products, journal, ingredients, or routine. Passwords are never stored in plain text; they
-        are hashed by Supabase's authentication system.
+        All traffic to skinstel.com and the app is encrypted in transit (HTTPS/TLS), and encrypted
+        at rest in Supabase's underlying storage. Every row in our Postgres database is locked to
+        your user ID with row-level security policies — the ordinary product API, running under
+        your access token, cannot read another user's products, journal, ingredients, or routine.
+        Passwords are never stored in plain text; they are hashed by Supabase's authentication
+        system.
+      </p>
+      <H3>9.1 Administrative access</H3>
+      <p>
+        Row-level security governs the app's ordinary API surface. A small number of privileged
+        server routes — account export and deletion, and writing subscription status after a
+        payment is verified — necessarily run with elevated database access that is not scoped to
+        a single user, because that's what those operations require. This access exists only in
+        those specific, code-reviewable server routes, is used only to perform the exact action you
+        requested (export, delete, apply an entitlement) or to investigate a support request or
+        abuse report, and is never used to browse or read your content out of curiosity. We're
+        naming this plainly rather than implying row-level security is an absolute technical wall
+        with no administrative access at all, which wouldn't be accurate.
       </p>
       <p>
         Our infrastructure (Supabase's database, Vercel's hosting, Anthropic's API) is based in the
         United States. If you're accessing Skintel from the EU, UK, or elsewhere outside the US,
-        your data will be transferred to and processed in the US. By using Skintel, you understand
-        that your information will be processed in the United States, which may have different data
-        protection laws than your home country.
+        your data will be transferred to and processed in the US under each provider's own standard
+        data processing terms, which incorporate the EU Standard Contractual Clauses for exactly
+        this kind of transfer. By using Skintel, you understand that your information will be
+        processed in the United States, which may have different data protection laws than your
+        home country.
       </p>
 
       <H2>10. Children's privacy</H2>
