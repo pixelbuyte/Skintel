@@ -27,8 +27,8 @@ export default function Privacy() {
       <p>
         If anything here is unclear, or you want a plain-English answer to a specific question
         instead of reading the whole thing, email{' '}
-        <a href="mailto:hello@skintel.app" className="text-primary underline-offset-4 hover:underline">
-          hello@skintel.app
+        <a href="mailto:hello@skinstel.com" className="text-primary underline-offset-4 hover:underline">
+          hello@skinstel.com
         </a>{' '}
         and we'll answer personally — not with a form letter.
       </p>
@@ -207,8 +207,8 @@ export default function Privacy() {
         Skintel is not directed at children and is not intended for use by anyone under 13. We do
         not knowingly collect personal information from children under 13, and if we learn that we
         have, we will delete it promptly. If you believe a child has created an account, email us at{' '}
-        <a href="mailto:hello@skintel.app" className="text-primary underline-offset-4 hover:underline">
-          hello@skintel.app
+        <a href="mailto:hello@skinstel.com" className="text-primary underline-offset-4 hover:underline">
+          hello@skinstel.com
         </a>{' '}
         and we will remove it.
       </p>
@@ -271,8 +271,8 @@ export default function Privacy() {
       </ul>
       <p>
         To exercise any right in this section, email{' '}
-        <a href="mailto:hello@skintel.app" className="text-primary underline-offset-4 hover:underline">
-          hello@skintel.app
+        <a href="mailto:hello@skinstel.com" className="text-primary underline-offset-4 hover:underline">
+          hello@skinstel.com
         </a>
         . We may need to verify it's really you (typically by confirming from the email address on
         your account) before acting on the request.
@@ -289,8 +289,8 @@ export default function Privacy() {
       <H2>15. Contact us</H2>
       <p>
         Questions, requests, or concerns about this policy or your data: email{' '}
-        <a href="mailto:hello@skintel.app" className="text-primary underline-offset-4 hover:underline">
-          hello@skintel.app
+        <a href="mailto:hello@skinstel.com" className="text-primary underline-offset-4 hover:underline">
+          hello@skinstel.com
         </a>
         . We answer.
       </p>

@@ -11,10 +11,10 @@ export default function Contact() {
 
       <div className="flex flex-col sm:flex-row gap-3 pt-2">
         <a
-          href="mailto:hello@skintel.app"
+          href="mailto:hello@skinstel.com"
           className="btn-primary active:scale-[0.97] transition-transform duration-150 ease-emil"
         >
-          <Mail size={16} /> hello@skintel.app
+          <Mail size={16} /> hello@skinstel.com
         </a>
         <a
           href="https://github.com/anthropics/claude-code/issues"
