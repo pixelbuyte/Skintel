@@ -13,3 +13,8 @@ SUPABASE_ANON_KEY = eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSI
 
 // Vercel API routes (api/*.ts).
 API_BASE_URL = https:/$()/www.skinstel.com/api
+
+// Legal pages linked from Settings and the paywall. AppConfiguration.load() treats these
+// as required, so leaving them unset makes the app start on its configuration-error screen.
+LEGAL_TERMS_URL = https:/$()/www.skinstel.com/terms
+LEGAL_PRIVACY_URL = https:/$()/www.skinstel.com/privacy
