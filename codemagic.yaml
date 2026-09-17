@@ -12,9 +12,9 @@
 #                   in the same folder). It only ever holds PUBLIC client values - the Supabase
 #                   anon key and API base URL are not secrets, by the project's own design (see
 #                   comments in Config.example.xcconfig: the anon key ships in the public web
-#                   bundle and is protected by Supabase Row Level Security). The only value that
-#                   is machine/team specific is DEVELOPMENT_TEAM, which is injected below from a
-#                   Codemagic environment variable and never committed to git.
+#                   bundle and is protected by Supabase Row Level Security). The release workflow
+#                   injects these public client values and DEVELOPMENT_TEAM from its Codemagic
+#                   variable group; credentials remain in the Apple integration.
 #
 # All server-side secrets (Supabase service-role key, Stripe secret key/webhook secret, any
 # AI provider keys) live in /api/*.ts and Vercel's own environment configuration - they are not
@@ -115,17 +115,13 @@ workflows:
     # (APP_STORE_CONNECT_ISSUER_ID / APP_STORE_CONNECT_KEY_IDENTIFIER / APP_STORE_CONNECT_PRIVATE_KEY)
     # to every `auth: integration` reference below - none of it is ever stored in this file.
     integrations:
-      app_store_connect: skintel_app_store_connect
+      app_store_connect: codemagic1
     environment:
       xcode: latest
       groups:
-        # Create this group under Codemagic > Team settings > Environment variables with:
-        #   DEVELOPMENT_TEAM  - your 10-character Apple Developer Team ID (Membership page)
-        #   APP_APPLE_ID      - the app's numeric Apple ID from App Store Connect > General >
-        #                       App Information (only exists once the app record is created there)
-        # Neither value is a secret, but keeping them out of the yaml means updating them never
-        # requires a commit.
-        - ios_release
+        # App settings > Environment variables: DEVELOPMENT_TEAM, SUPABASE_URL,
+        # SUPABASE_ANON_KEY (public anon key only), and API_BASE_URL.
+        - skintel_ios_release
       ios_signing:
         distribution_type: app_store
         bundle_identifier: com.skintel.app
@@ -139,7 +135,19 @@ workflows:
           set -euo pipefail
           cp "$CM_BUILD_DIR/ios/Skintel/Config/Config.example.xcconfig" \
              "$CM_BUILD_DIR/ios/Skintel/Config/Config.xcconfig"
-          echo "DEVELOPMENT_TEAM = $DEVELOPMENT_TEAM" >> "$CM_BUILD_DIR/ios/Skintel/Config/Config.xcconfig"
+          python3 - <<'PY'
+          import os
+          from pathlib import Path
+          keys = ("DEVELOPMENT_TEAM", "SUPABASE_URL", "SUPABASE_ANON_KEY", "API_BASE_URL")
+          values = {key: os.environ[key].strip() for key in keys}
+          if any(not value or "\n" in value or "\r" in value for value in values.values()):
+              raise SystemExit("Missing or invalid iOS release configuration")
+          # xcconfig treats // as a comment; $() preserves both URL slashes.
+          config = Path(os.environ["CM_BUILD_DIR"]) / "ios/Skintel/Config/Config.xcconfig"
+          with config.open("a") as output:
+              for key, value in values.items():
+                  output.write(f"\n{key} = {value.replace('://', ':/$()/')}\n")
+          PY
 
       - name: Resolve Swift Package Manager dependencies
         script: |
@@ -156,8 +164,17 @@ workflows:
       - name: Determine next build number from App Store Connect
         script: |
           set -euo pipefail
-          # Falls back to 0 (-> build 1) the first time, before any build has ever been uploaded.
-          LATEST_BUILD_NUMBER=$(app-store-connect get-latest-app-store-build-number "$APP_APPLE_ID" || echo 0)
+          # Resolve the existing app record by its exact bundle ID.
+          APP_APPLE_ID=$(app-store-connect apps list \
+            --bundle-id-identifier "$BUNDLE_ID" --strict-match-identifier --json \
+            | python3 -c 'import json, sys; apps = json.load(sys.stdin); assert len(apps) == 1, "Expected exactly one App Store Connect app"; print(apps[0]["id"])')
+          # Include TestFlight builds; authentication errors must stop the build.
+          LATEST_BUILD_NUMBER=$(app-store-connect get-latest-build-number "$APP_APPLE_ID")
+          LATEST_BUILD_NUMBER=${LATEST_BUILD_NUMBER:-0}
+          if ! [[ "$LATEST_BUILD_NUMBER" =~ ^[0-9]+$ ]]; then
+            echo "Expected an integer App Store Connect build number" >&2
+            exit 1
+          fi
           echo "Latest App Store Connect build number: $LATEST_BUILD_NUMBER"
           echo "BUILD_NUMBER=$((LATEST_BUILD_NUMBER + 1))" >> "$CM_ENV"
 
@@ -175,5 +192,6 @@ workflows:
     publishing:
       app_store_connect:
         auth: integration
-        submit_to_testflight: true
+        # Upload only; do not submit for TestFlight beta review or App Review.
+        submit_to_testflight: false
         submit_to_app_store: false
