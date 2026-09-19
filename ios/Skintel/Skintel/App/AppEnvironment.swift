@@ -17,6 +17,7 @@ final class AppEnvironment {
     let scans: ScanStore
     let routine: RoutineStore
     let journal: JournalStore
+    let journalUsage: JournalUsageStore
     let subscriptionService: SubscriptionService
     let analytics: any Analytics
 
@@ -33,6 +34,7 @@ final class AppEnvironment {
         self.scans = ScanStore()
         self.routine = RoutineStore()
         self.journal = JournalStore(api: api)
+        self.journalUsage = JournalUsageStore()
         self.subscriptionService = SubscriptionService(api: api, store: subscription, session: session, analytics: analytics)
     }
 
@@ -51,6 +53,7 @@ final class AppEnvironment {
         scans.reset()
         routine.reset()
         journal.reset()
+        journalUsage.reset()
     }
 }
 
