@@ -9,6 +9,7 @@ struct SettingsView: View {
     @Environment(\.openPaywall) private var openPaywall
 
     @AppStorage(Haptics.preferenceKey) private var hapticsOn = true
+    @AppStorage(Haptics.strengthKey) private var hapticStrength: HapticStrength = .gentle
     @State private var showEditProfile = false
     @State private var showManageSubs = false
     @State private var restoring = false
@@ -53,6 +54,20 @@ struct SettingsView: View {
                         Toggle("Haptics", isOn: $hapticsOn).labelsHidden().tint(SKColor.goodFg)
                     }
                     .padding(.horizontal, SKSpace.lg).padding(.vertical, 14)
+                    if hapticsOn {
+                        divider
+                        VStack(alignment: .leading, spacing: SKSpace.sm) {
+                            Text("Strength").font(SKFont.sans(17, relativeTo: .body)).foregroundStyle(SKColor.ink)
+                            SKSegmented(options: [(HapticStrength.gentle, "Gentle"),
+                                                  (.medium, "Medium"),
+                                                  (.full, "Full")],
+                                        selection: $hapticStrength)
+                        }
+                        .padding(.horizontal, SKSpace.lg).padding(.vertical, 14)
+                        // Tapping a segment fires that exact haptic immediately, so she
+                        // feels the difference while choosing instead of guessing.
+                        .onChange(of: hapticStrength) { _, new in Haptics.preview(new) }
+                    }
                     divider
                     row(title: "Camera & photo access", trailing: { chevron }, last: true) { CameraPermission.openSettings() }
                 }
