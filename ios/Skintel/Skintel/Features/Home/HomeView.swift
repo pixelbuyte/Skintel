@@ -17,8 +17,11 @@ struct HomeView: View {
                 .skPagePadding()
                 .padding(.top, SKSpace.sm)
                 .padding(.bottom, SKSpace.xxl)
+                // `skPetRefresh` scopes `.tint(.clear)` to kill the system wheel; put the
+                // real tint back on the page content so nothing else inherits clear.
+                .tint(SKColor.primary)
             }
-            .refreshable { await env.products.load(); await env.subscription.load() }
+            .skPetRefresh { await env.products.load(); await env.subscription.load() }
             .skPageBackground()
             .toolbar(.hidden, for: .navigationBar)
             .navigationDestination(for: AppDestination.self) { destination(for: $0) }
@@ -60,7 +63,10 @@ struct HomeView: View {
                 SKSkeleton(height: 170)
             }
         case .failed(let e):
-            SKErrorState(error: e) { Task { await env.products.load() } }
+            VStack(spacing: SKSpace.lg) {
+                SKErrorState(error: e) { Task { await env.products.load() } }
+                savedOnThisPhone
+            }
         case .loaded(let products):
             if products.isEmpty {
                 emptyShelf
@@ -70,6 +76,49 @@ struct HomeView: View {
                 routineCard
                 recentScans(products)
                 recommendRow
+            }
+        }
+    }
+
+    /// The offline rescue block: when the shelf can't load, hand back her own data
+    /// instead of a dead end. Both sources are already in memory, off disk, so this
+    /// works with no network — `VerdictView` reads `env.scans.scans[scanID]` the same way.
+    @ViewBuilder
+    private var savedOnThisPhone: some View {
+        let recent = Array(env.scans.recent.prefix(3))
+        let progress = env.routine.progress(for: RoutineStore.currentSlot())
+        if !recent.isEmpty || progress.total > 0 {
+            VStack(alignment: .leading, spacing: SKSpace.md) {
+                SKSectionHeader(title: "Saved on this phone")
+
+                if progress.total > 0 {
+                    SKCard(padding: SKSpace.md) {
+                        HStack(spacing: SKSpace.md) {
+                            SKProgressBar(fraction: Double(progress.done) / Double(max(1, progress.total)))
+                            Text("\(progress.done)/\(progress.total)")
+                                .font(SKFont.secondary).foregroundStyle(SKColor.muted)
+                        }
+                    }
+                }
+
+                ForEach(recent) { s in
+                    Button { path.append(.verdict(scanID: s.id)) } label: {
+                        SKCard(padding: SKSpace.md) {
+                            HStack(spacing: SKSpace.md) {
+                                SKProductMark(name: s.productName ?? "Product", size: 40)
+                                VStack(alignment: .leading, spacing: 3) {
+                                    Text(s.productName ?? "Scanned product")
+                                        .font(SKFont.cardTitle).foregroundStyle(SKColor.ink).lineLimit(1)
+                                    Text(DateFormatting.relative(s.scannedAt))
+                                        .font(SKFont.secondary).foregroundStyle(SKColor.muted)
+                                }
+                                Spacer(minLength: SKSpace.sm)
+                                SKScoreBadge(score: s.result.score)
+                            }
+                        }
+                    }
+                    .buttonStyle(SKPressStyle())
+                }
             }
         }
     }

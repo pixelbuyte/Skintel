@@ -38,8 +38,11 @@ struct ProductsListView: View {
             .skPagePadding()
             .padding(.vertical, SKSpace.md)
             .padding(.bottom, SKSpace.xxl)
+            // `skPetRefresh` scopes `.tint(.clear)` to kill the system wheel; put the
+            // real tint back on the page content so nothing else inherits clear.
+            .tint(SKColor.primary)
         }
-        .refreshable { await env.products.load() }
+        .skPetRefresh { await env.products.load() }
         .skPageBackground()
         .skNavigationTitle("Shelf")
         .toolbar {

@@ -55,6 +55,9 @@ struct MainTabView: View {
             }
         }
         .ignoresSafeArea(.keyboard, edges: .bottom)
+        // Warms the Taptic Engine once, so the very first tap of the session lands with
+        // the animation instead of ~100ms behind it.
+        .onAppear { Haptics.prepare() }
         .fullScreenCover(isPresented: $presentScanner) {
             ScannerHostView(embedded: false)
         }
