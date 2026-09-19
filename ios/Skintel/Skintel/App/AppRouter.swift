@@ -22,6 +22,7 @@ enum AppRoute: Equatable {
 
 struct RootView: View {
     @Environment(AppEnvironment.self) private var env
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
     /// Users who tap "Maybe later" on the last onboarding step shouldn't be re-asked
     /// every launch on this device; the server flag is still the durable truth.
     @AppStorage("onboarding.skipped") private var onboardingSkipped = false
@@ -33,18 +34,19 @@ struct RootView: View {
 
     var body: some View {
         ZStack {
+            SKColor.bg.ignoresSafeArea()
             switch route {
             case .launching:
                 SplashView().transition(.opacity)
             case .signedOut:
-                AuthFlow().transition(.opacity)
+                AuthFlow().transition(arrival)
             case .onboarding:
-                OnboardingFlow().transition(.opacity)
+                OnboardingFlow().transition(arrival)
             case .main:
-                MainTabView().transition(.opacity)
+                MainTabView().transition(arrival)
             }
         }
-        .animation(SKAnimation.ios(0.35), value: route)
+        .animation(reduceMotion ? nil : .easeInOut(duration: 0.32), value: route)
         .task { await env.session.restore() }
         .onChange(of: route, initial: true) { _, new in
             switch new {
@@ -58,6 +60,13 @@ struct RootView: View {
                 break
             }
         }
+    }
+
+    private var arrival: AnyTransition {
+        reduceMotion ? .identity : .asymmetric(
+            insertion: .opacity.combined(with: .offset(y: 12)),
+            removal: .opacity
+        )
     }
 }
 

@@ -22,6 +22,13 @@ enum SKFont {
         .custom(italic ? serifItalicName : serifName, size: size, relativeTo: style)
     }
 
+    /// A real bold editorial face, matching the landing reference's Georgia fallback.
+    /// Instrument Serif ships only regular/italic, so requesting a bold weight on that
+    /// family does not reliably produce heavier glyphs on iOS. Georgia is system-bundled.
+    static func editorial(_ size: CGFloat, relativeTo style: Font.TextStyle = .title, italic: Bool = false) -> Font {
+        .custom(italic ? "Georgia-BoldItalic" : "Georgia-Bold", size: size, relativeTo: style)
+    }
+
     static func sans(_ size: CGFloat, weight: Font.Weight = .regular, relativeTo style: Font.TextStyle = .body) -> Font {
         .custom(sansName(weight), size: size, relativeTo: style)
     }
@@ -37,7 +44,8 @@ enum SKFont {
     static let section = serif(24, relativeTo: .title2)           // "Recent scans"
     static let stat = serif(28, relativeTo: .title)               // 128 / 62 / 41
     static let score = serif(44, relativeTo: .largeTitle)         // ring number
-    static let price = serif(56, relativeTo: .largeTitle)
+    static let price = editorial(46, relativeTo: .largeTitle)
+    static let editorialHero = editorial(36, relativeTo: .largeTitle)
 
     static let navTitle = sans(17, weight: .semibold, relativeTo: .headline)
     static let cardTitle = sans(17, weight: .semibold, relativeTo: .headline)

@@ -22,6 +22,29 @@ public struct SkintelAPI: Sendable {
         try await get(BarcodeLookup.self, "lookup", ["mode": "barcode", "upc": upc])
     }
 
+    /// Optional image enrichment runs beside analysis, including older barcode-cache
+    /// rows that have no image field. No name search, AI guesses, or auth token is sent
+    /// to the public catalogues; only the same barcode used by the lookup endpoint.
+    public func lookupProductImage(barcode: String) async -> URL? {
+        guard (8...13).contains(barcode.count), barcode.allSatisfy({ $0.isASCII && $0.isNumber }) else { return nil }
+        return await withTaskGroup(of: URL?.self) { group in
+            for host in ["world.openbeautyfacts.org", "world.openfoodfacts.org"] {
+                group.addTask {
+                    guard let url = URL(string: "https://\(host)/api/v2/product/\(barcode).json?fields=code,image_front_url,image_front_small_url") else { return nil }
+                    var request = URLRequest(url: url, timeoutInterval: 3)
+                    request.setValue("Skintel/1.0 (https://www.skinstel.com)", forHTTPHeaderField: "User-Agent")
+                    guard let response = try? await self.http.send(request), response.status == 200,
+                          let catalogue = try? JSONCoding.decode(CatalogueProductImage.self, from: response.data) else { return nil }
+                    return catalogue.imageURL(matching: barcode)
+                }
+            }
+            for await image in group {
+                if let image { group.cancelAll(); return image }
+            }
+            return nil
+        }
+    }
+
     public func searchProducts(_ q: String) async throws -> [ProductSearchResult] {
         try await get(ProductSearchResponse.self, "lookup", ["mode": "search", "q": q]).results
     }

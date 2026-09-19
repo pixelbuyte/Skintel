@@ -1,10 +1,10 @@
 import SwiftUI
 import SkintelCore
 
-/// Design §07. Answers "what should I do next?": the four shelf counts, the top
-/// suspect, tonight's routine progress, and recent products with their scores.
+/// A daily starting point: the next routine, a scan action, and the user's real shelf.
 struct HomeView: View {
     @Environment(AppEnvironment.self) private var env
+    @Environment(\.openScanner) private var openScanner
     @State private var path: [AppDestination] = []
 
     var body: some View {
@@ -33,7 +33,7 @@ struct HomeView: View {
             VStack(alignment: .leading, spacing: SKSpace.sm) {
                 Text(DateFormatting.header()).skLabelStyle()
                 Text("\(DateFormatting.greeting()), \(env.session.user?.firstName ?? "there")")
-                    .font(SKFont.greeting)
+                    .font(SKFont.editorial(30, relativeTo: .largeTitle))
                     .foregroundStyle(SKColor.ink)
                     .lineLimit(2)
                     .minimumScaleFactor(0.8)
@@ -65,10 +65,11 @@ struct HomeView: View {
             if products.isEmpty {
                 emptyShelf
             } else {
-                stats
-                suspectCard
                 routineCard
+                quickActions
+                stats
                 recentScans(products)
+                suspectCard
                 recommendRow
             }
         }
@@ -76,37 +77,60 @@ struct HomeView: View {
 
     private var emptyShelf: some View {
         VStack(spacing: SKSpace.lg) {
-            SKEmptyState(icon: "sparkles",
-                         title: "Your shelf is empty",
-                         message: "Scan a product or paste its ingredient list, then tell Skintel how your skin reacted. Patterns start with the second product.",
-                         actionTitle: "Add your first product") {
-                path.append(.productForm(.add(prefill: nil)))
+            SKCard {
+                VStack(spacing: SKSpace.lg) {
+                    SKMascot(size: 112)
+                    Text("Start with one product.")
+                        .font(SKFont.editorial(28, relativeTo: .title))
+                        .foregroundStyle(SKColor.ink)
+                        .multilineTextAlignment(.center)
+                    Text("Check its ingredients, save it to your shelf, and keep track of how your skin feels.")
+                        .font(SKFont.body).foregroundStyle(SKColor.muted)
+                        .multilineTextAlignment(.center)
+                    SKButton(title: "Scan your first product", systemImage: "barcode.viewfinder") { openScanner() }
+                    SKLinkButton(title: "Add ingredients by hand", chevron: false) {
+                        path.append(.productForm(.add(prefill: nil)))
+                    }
+                }
+                .padding(.vertical, SKSpace.md)
             }
-            recommendRow
+            routineCard
+        }
+    }
+
+    private var quickActions: some View {
+        ViewThatFits(in: .horizontal) {
+            HStack(spacing: SKSpace.md) {
+                SKButton(title: "Scan a product", systemImage: "barcode.viewfinder") { openScanner() }
+                SKButton(title: "My shelf", kind: .secondary, fullWidth: false) { path.append(.products) }
+            }
+            VStack(spacing: SKSpace.md) {
+                SKButton(title: "Scan a product", systemImage: "barcode.viewfinder") { openScanner() }
+                SKButton(title: "My shelf", kind: .secondary) { path.append(.products) }
+            }
         }
     }
 
     private var stats: some View {
         let c = env.products.counts
-        return HStack(spacing: SKSpace.md) {
-            statTile(c.total, "Logged", SKColor.ink)
-            statTile(c.good, "Worked", SKColor.goodFg)
-            statTile(c.unsure, "Unsure", SKColor.cautionFg)
-            statTile(c.bad, "Broke out", SKColor.badFg)
+        return SKCard(padding: SKSpace.md) {
+            HStack(spacing: SKSpace.sm) {
+                statTile(c.total, "Saved", SKColor.ink)
+                statTile(c.good, "Worked", SKColor.goodFg)
+                statTile(c.unsure, "Unsure", SKColor.cautionFg)
+                statTile(c.bad, "Broke out", SKColor.badFg)
+            }
         }
     }
 
     private func statTile(_ n: Int, _ label: String, _ color: Color) -> some View {
         Button { path.append(.products) } label: {
             VStack(spacing: 6) {
-                Text("\(n)").font(SKFont.stat).foregroundStyle(color)
+                Text("\(n)").font(SKFont.sans(24, weight: .semibold, relativeTo: .title2)).foregroundStyle(color)
                 Text(label).font(SKFont.sans(13, relativeTo: .caption)).foregroundStyle(SKColor.muted)
             }
             .frame(maxWidth: .infinity)
-            .padding(.vertical, SKSpace.lg)
-            .background(SKColor.cream, in: RoundedRectangle(cornerRadius: SKRadius.card, style: .continuous))
-            .overlay(RoundedRectangle(cornerRadius: SKRadius.card, style: .continuous).stroke(SKColor.line))
-            .skCardShadow()
+            .padding(.vertical, SKSpace.sm)
         }
         .buttonStyle(SKPressStyle())
         .accessibilityLabel("\(n) \(label)")
@@ -117,22 +141,17 @@ struct HomeView: View {
         let culprits = env.products.culprits
         if let top = culprits.all.first {
             Button { path.append(.culprits) } label: {
-                SKCard(tint: .bad) {
+                SKCard {
                     HStack(spacing: SKSpace.lg) {
-                        Image(systemName: "exclamationmark.triangle")
-                            .font(.system(size: 20, weight: .semibold))
-                            .foregroundStyle(SKColor.badFg)
-                            .frame(width: 48, height: 48)
-                            .background(SKColor.badBg, in: RoundedRectangle(cornerRadius: 14, style: .continuous))
+                        SKMascot(size: 48)
                         VStack(alignment: .leading, spacing: 3) {
-                            Text(culprits.all.count == 1 ? "1 suspect found" : "\(culprits.all.count) suspects found")
+                            Text("A pattern worth a look")
                                 .font(SKFont.cardTitle).foregroundStyle(SKColor.ink)
-                            Text("\(top.name) is in \(top.badCount) products that broke you out")
+                            Text("\(top.name) appears in \(top.badCount) products you marked “Broke out”.")
                                 .font(SKFont.secondary).foregroundStyle(SKColor.muted)
-                                .lineLimit(2)
                         }
                         Spacer(minLength: 0)
-                        Text("Review ›").font(SKFont.sans(15, weight: .semibold)).foregroundStyle(SKColor.badFg)
+                        Image(systemName: "chevron.right").foregroundStyle(SKColor.primary)
                     }
                 }
             }
@@ -146,8 +165,8 @@ struct HomeView: View {
                         .frame(width: 48, height: 48)
                         .background(SKColor.blush, in: RoundedRectangle(cornerRadius: 14, style: .continuous))
                     VStack(alignment: .leading, spacing: 3) {
-                        Text("No suspects yet").font(SKFont.cardTitle).foregroundStyle(SKColor.ink)
-                        Text("Mark two products as “Broke out” and Skintel finds what they share.")
+                        Text("Your skin has a story").font(SKFont.cardTitle).foregroundStyle(SKColor.ink)
+                        Text("Log how products feel on your skin to start spotting shared ingredients.")
                             .font(SKFont.secondary).foregroundStyle(SKColor.muted)
                     }
                 }
@@ -162,17 +181,23 @@ struct HomeView: View {
         return Button { path.append(.routine) } label: {
             SKCard {
                 VStack(alignment: .leading, spacing: SKSpace.md) {
+                    Text("YOUR DAILY CARE").skLabelStyle()
                     HStack {
+                        Image(systemName: slot == .pm ? "moon.stars" : "sun.max")
+                            .font(.system(size: 24, weight: .regular))
+                            .foregroundStyle(SKColor.primary)
                         Text(slot == .pm ? "Tonight's routine" : "This morning's routine")
-                            .font(SKFont.cardTitle).foregroundStyle(SKColor.ink)
+                            .font(SKFont.editorial(24, relativeTo: .title2)).foregroundStyle(SKColor.ink)
                         Spacer()
                         Text(slot.rawValue).font(SKFont.sans(13, weight: .semibold)).foregroundStyle(SKColor.muted)
                             .padding(.horizontal, 12).padding(.vertical, 6)
                             .background(SKColor.neutralChip, in: Capsule())
                     }
                     if ids.isEmpty {
-                        Text("No steps yet — build it from your shelf.")
+                        Text("A simple routine starts with the products you already have.")
                             .font(SKFont.secondary).foregroundStyle(SKColor.muted)
+                        Label("Build your routine", systemImage: "arrow.right")
+                            .font(SKFont.bodyMedium).foregroundStyle(SKColor.primary)
                     } else {
                         HStack(spacing: SKSpace.md) {
                             SKProgressBar(fraction: Double(progress.done) / Double(max(1, progress.total)))
@@ -185,6 +210,12 @@ struct HomeView: View {
                                 SKChip(done ? "✓ \(shortName(name))" : shortName(name), tone: done ? .good : .neutral)
                             }
                             if ids.count > 4 { SKChip("+\(ids.count - 4)") }
+                        }
+                        HStack {
+                            Text(progress.done == progress.total ? "All done. A little care, every day." : "Pick up where you left off")
+                                .font(SKFont.secondary).foregroundStyle(SKColor.primary)
+                            Spacer()
+                            Image(systemName: "arrow.right").foregroundStyle(SKColor.primary)
                         }
                     }
                 }
@@ -200,7 +231,7 @@ struct HomeView: View {
 
     private func recentScans(_ products: [ProductWithIngredients]) -> some View {
         VStack(alignment: .leading, spacing: SKSpace.md) {
-            SKSectionHeader(title: "Recent scans", linkTitle: "Shelf") { path.append(.products) }
+            SKSectionHeader(title: "On your shelf", linkTitle: "See all") { path.append(.products) }
             ForEach(products.prefix(3)) { p in
                 Button { path.append(.productDetail(id: p.id)) } label: {
                     ProductRow(product: p, score: env.scans.score(for: p.id))
@@ -221,7 +252,7 @@ struct HomeView: View {
                         .background(SKColor.blush, in: RoundedRectangle(cornerRadius: 14, style: .continuous))
                     VStack(alignment: .leading, spacing: 3) {
                         Text("Find a product that fits").font(SKFont.cardTitle).foregroundStyle(SKColor.ink)
-                        Text("Picks built around what your shelf says works and what doesn't.")
+                        Text("Explore options based on your skin profile and past reactions.")
                             .font(SKFont.secondary).foregroundStyle(SKColor.muted)
                     }
                     Spacer(minLength: 0)
@@ -251,13 +282,14 @@ struct HomeView: View {
 
 /// Product row used on Home and the shelf list: mark, name, meta, score or outcome.
 struct ProductRow: View {
+    @Environment(AppEnvironment.self) private var env
     let product: ProductWithIngredients
     var score: Int?
 
     var body: some View {
         SKCard(padding: SKSpace.md) {
             HStack(spacing: SKSpace.md) {
-                SKProductMark(name: product.product.productName)
+                SKProductMark(name: product.product.productName, imageURL: env.scans.imageURL(for: product.id))
                 VStack(alignment: .leading, spacing: 3) {
                     Text(product.product.productName)
                         .font(SKFont.cardTitle).foregroundStyle(SKColor.ink).lineLimit(1)

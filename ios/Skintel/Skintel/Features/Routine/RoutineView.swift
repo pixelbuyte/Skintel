@@ -191,35 +191,140 @@ struct RoutineView: View {
     // MARK: Templates
 
     private var templatesSheet: some View {
+        RoutineTemplatesSheet(products: env.products.products) { am, pm in
+            env.routine.set(am, for: .am)
+            env.routine.set(pm, for: .pm)
+            Haptics.success()
+            showTemplates = false
+        }
+    }
+}
+
+/// A compact category preview. The illustrations describe the template's steps;
+/// counts are computed from the actual shelf, and only those matched products apply.
+private struct RoutineTemplatesSheet: View {
+    let products: [ProductWithIngredients]
+    let onSelect: ([String], [String]) -> Void
+    @Environment(\.dismiss) private var dismiss
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
+    @State private var previewSlot: RoutineStore.Slot = .am
+
+    var body: some View {
         NavigationStack {
             ScrollView {
-                VStack(spacing: SKSpace.md) {
-                    ForEach(RoutineTemplate.all) { t in
-                        let am = t.fill(t.am, from: env.products.products), pm = t.fill(t.pm, from: env.products.products)
-                        Button {
-                            env.routine.set(am, for: .am); env.routine.set(pm, for: .pm)
-                            Haptics.success(); showTemplates = false
-                        } label: {
-                            SKCard {
-                                VStack(alignment: .leading, spacing: 6) {
-                                    Text(t.name).font(SKFont.cardTitle).foregroundStyle(SKColor.ink)
-                                    Text(t.blurb).font(SKFont.secondary).foregroundStyle(SKColor.muted)
-                                    Text("Fills \(am.count) AM · \(pm.count) PM steps from your shelf").font(SKFont.dataSmall).foregroundStyle(SKColor.primary)
-                                }
-                            }
-                        }
-                        .buttonStyle(SKPressStyle())
+                VStack(alignment: .leading, spacing: SKSpace.lg) {
+                    VStack(alignment: .leading, spacing: SKSpace.sm) {
+                        Text("A little structure.\nYour own products.")
+                            .font(SKFont.editorial(28, relativeTo: .title))
+                            .foregroundStyle(SKColor.ink)
+                        Text("Pick a starting point. Edit any step later.")
+                            .font(SKFont.secondary).foregroundStyle(SKColor.muted)
                     }
-                    Text("Templates match by category — a product whose category is “Serum” fills a serum slot. Unmatched slots are skipped.")
-                        .font(SKFont.caption).foregroundStyle(SKColor.muted).multilineTextAlignment(.center)
+                    SKSegmented(options: [(RoutineStore.Slot.am, "Morning"), (.pm, "Evening")], selection: $previewSlot)
+                        .accessibilityLabel("Preview time of day")
+
+                    ForEach(RoutineTemplate.all) { template in
+                        templateCard(template)
+                    }
+                    Text("Applies both routines using matches from your shelf. Check each product suits your skin.")
+                        .font(SKFont.caption).foregroundStyle(SKColor.muted)
                 }
                 .skPagePadding().padding(.vertical, SKSpace.lg)
             }
             .skPageBackground()
             .skNavigationTitle("Templates")
-            .toolbar { ToolbarItem(placement: .topBarLeading) { Button("Cancel") { showTemplates = false }.font(SKFont.bodyMedium) } }
+            .toolbar { ToolbarItem(placement: .topBarLeading) { Button("Cancel") { dismiss() }.font(SKFont.bodyMedium) } }
         }
         .tint(SKColor.primary)
+        .transaction { transaction in
+            if reduceMotion { transaction.disablesAnimations = true }
+        }
+    }
+
+    private func templateCard(_ template: RoutineTemplate) -> some View {
+        let am = template.fill(template.am, from: products)
+        let pm = template.fill(template.pm, from: products)
+        let tags = previewSlot == .am ? template.am : template.pm
+        let canApply = !am.isEmpty || !pm.isEmpty
+        let stepSummary = tags.map { previewStep($0).label }.joined(separator: ", ")
+
+        return Button {
+            onSelect(am, pm)
+        } label: {
+            VStack(alignment: .leading, spacing: SKSpace.md) {
+                VStack(alignment: .leading, spacing: 4) {
+                    Text(template.name)
+                        .font(SKFont.sans(18, weight: .bold, relativeTo: .headline))
+                        .foregroundStyle(SKColor.ink)
+                    Text(template.blurb).font(SKFont.secondary).foregroundStyle(SKColor.muted)
+                }
+                templateSteps(tags)
+                    .id(previewSlot)
+                    .transition(.opacity)
+                    .animation(reduceMotion ? nil : .easeInOut(duration: 0.24), value: previewSlot)
+                HStack(alignment: .firstTextBaseline, spacing: SKSpace.sm) {
+                    Text(canApply ? "\(am.count) AM · \(pm.count) PM from your shelf" : "Add matching products to get started")
+                        .font(SKFont.caption).foregroundStyle(SKColor.muted)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                    if canApply {
+                        Text("Use template")
+                            .font(SKFont.sans(12, weight: .bold, relativeTo: .caption))
+                            .foregroundStyle(SKColor.primary)
+                    }
+                }
+            }
+            .padding(SKSpace.lg)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .background(SKColor.cream, in: RoundedRectangle(cornerRadius: SKRadius.card, style: .continuous))
+            .overlay(RoundedRectangle(cornerRadius: SKRadius.card, style: .continuous).stroke(SKColor.line))
+        }
+        .buttonStyle(SKPressStyle())
+        .disabled(!canApply)
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel("\(template.name). \(template.blurb) \(previewSlot == .am ? "Morning" : "Evening") preview: \(stepSummary). \(am.count) morning and \(pm.count) evening steps available from your shelf.")
+        .accessibilityHint(canApply ? "Replaces your morning and evening routines with matching products." : "Add matching products to your shelf first.")
+    }
+
+    private func templateSteps(_ tags: [String]) -> some View {
+        let layout = dynamicTypeSize.isAccessibilitySize
+            ? AnyLayout(VStackLayout(alignment: .leading, spacing: SKSpace.sm))
+            : AnyLayout(HStackLayout(alignment: .top, spacing: 4))
+
+        return layout {
+            ForEach(tags, id: \.self) { tag in
+                let step = previewStep(tag)
+                let stepLayout = dynamicTypeSize.isAccessibilitySize
+                    ? AnyLayout(HStackLayout(alignment: .center, spacing: SKSpace.sm))
+                    : AnyLayout(VStackLayout(alignment: .center, spacing: 6))
+                stepLayout {
+                    Image(systemName: step.symbol)
+                        .font(.system(size: 17, weight: .medium))
+                        .foregroundStyle(SKColor.primary)
+                        .frame(width: 36, height: 36)
+                        .background(SKColor.blush, in: RoundedRectangle(cornerRadius: 12, style: .continuous))
+                    Text(step.label)
+                        .font(SKFont.sans(11, weight: .semibold, relativeTo: .caption))
+                        .foregroundStyle(SKColor.ink)
+                        .multilineTextAlignment(dynamicTypeSize.isAccessibilitySize ? .leading : .center)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+                .frame(maxWidth: .infinity, alignment: dynamicTypeSize.isAccessibilitySize ? .leading : .center)
+            }
+        }
+        .accessibilityHidden(true)
+    }
+
+    private func previewStep(_ category: String) -> (label: String, symbol: String) {
+        switch category {
+        case "cleanser": ("Cleanse", "drop")
+        case "toner": ("Tone", "drop.circle")
+        case "serum": ("Serum", "eyedropper")
+        case "exfoliant": ("Exfoliate", "sparkles")
+        case "moisturizer": ("Moisturize", "drop.fill")
+        case "sunscreen": ("SPF", "sun.max")
+        default: (category.capitalized, "circle")
+        }
     }
 }
 

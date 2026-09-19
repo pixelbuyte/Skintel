@@ -29,14 +29,15 @@ struct SKLoadingView: View {
 
 /// Skeleton row used while lists load (keeps layout stable, no spinner jump).
 struct SKSkeleton: View {
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
     var height: CGFloat = 72
     @State private var phase = false
     var body: some View {
         RoundedRectangle(cornerRadius: SKRadius.card, style: .continuous)
             .fill(SKColor.neutralChip)
             .frame(height: height)
-            .opacity(phase ? 0.55 : 1)
-            .animation(.easeInOut(duration: 0.9).repeatForever(autoreverses: true), value: phase)
+            .opacity(phase && !reduceMotion ? 0.55 : 1)
+            .animation(reduceMotion ? nil : .easeInOut(duration: 0.9).repeatForever(autoreverses: true), value: phase)
             .onAppear { phase = true }
             .accessibilityHidden(true)
     }
@@ -73,11 +74,7 @@ struct SKErrorState: View {
 
     var body: some View {
         VStack(spacing: SKSpace.md) {
-            Image(systemName: error == .offline ? "wifi.slash" : "exclamationmark.triangle")
-                .font(.system(size: 26, weight: .light))
-                .foregroundStyle(SKColor.badFg)
-                .frame(width: 56, height: 56)
-                .background(SKColor.badBg, in: RoundedRectangle(cornerRadius: 16, style: .continuous))
+            SKMascot(size: 108)
             Text(error == .offline ? "You're offline" : "Something went wrong")
                 .font(SKFont.cardTitle).foregroundStyle(SKColor.ink)
             Text(error.userMessage).font(SKFont.secondary).foregroundStyle(SKColor.muted).multilineTextAlignment(.center)
@@ -95,7 +92,7 @@ struct SKInlineError: View {
     let message: String
     var body: some View {
         HStack(alignment: .top, spacing: SKSpace.sm) {
-            Image(systemName: "exclamationmark.circle").font(.system(size: 14, weight: .semibold))
+            SKMascot(size: 36)
             Text(message).font(SKFont.secondary)
         }
         .foregroundStyle(SKColor.badFg)
@@ -103,6 +100,21 @@ struct SKInlineError: View {
         .frame(maxWidth: .infinity, alignment: .leading)
         .background(SKColor.badBg, in: RoundedRectangle(cornerRadius: SKRadius.tile, style: .continuous))
         .accessibilityLabel("Error: \(message)")
+    }
+}
+
+/// User-provided Skinstel companion, shared by recoverable error surfaces.
+/// The original illustration is bundled unchanged; this view crops its outer frame.
+struct SKMascot: View {
+    var size: CGFloat = 88
+
+    var body: some View {
+        Image("SkinstelMascot")
+            .resizable()
+            .scaledToFill()
+            .frame(width: size, height: size)
+            .clipShape(RoundedRectangle(cornerRadius: size * 0.24, style: .continuous))
+            .accessibilityHidden(true)
     }
 }
 
