@@ -75,7 +75,7 @@ struct PaywallView: View {
         switch reason {
         case .scanner: "Barcode, label and link scanning run through Skintel's AI."
         case .productLimit: "Free shelves hold five products. Pro shelves are unlimited."
-        case .compare: "Side-by-side verdicts are a Pro feature."
+        case .compare: "The full ingredient read on two products, line by line."
         case .recommend: "Personal picks are built from your full history."
         case .routine: "Conflict checks read every step of your routine."
         case .journalAnalysis, .culprits: "Journal analysis correlates 90 days of entries with your shelf."
