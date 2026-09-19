@@ -9,9 +9,12 @@ public struct BarcodeLookup: Codable, Sendable, Hashable {
     public var productName: String?
     public var ingredients: String
     public var source: String?
+    /// Present when the catalogue supplies a verified photo for this exact barcode.
+    public var imageUrl: String?
 
-    public init(brand: String?, productName: String?, ingredients: String, source: String?) {
+    public init(brand: String?, productName: String?, ingredients: String, source: String?, imageUrl: String? = nil) {
         self.brand = brand; self.productName = productName; self.ingredients = ingredients; self.source = source
+        self.imageUrl = imageUrl
     }
 }
 
@@ -32,6 +35,34 @@ public struct URLImport: Codable, Sendable, Hashable {
     public var brand: String?
     public var productName: String?
     public var ingredients: String
+    public var imageUrl: String?
+}
+
+/// Accept only HTTPS image URLs. A missing photo is preferable to a fabricated
+/// product match or an insecure URL; local user photos are handled separately on device.
+public enum ProductImageURL {
+    public static func remote(_ raw: String?) -> URL? {
+        guard let raw, let url = URL(string: raw.trimmingCharacters(in: .whitespacesAndNewlines)),
+              url.scheme?.lowercased() == "https", let host = url.host, !host.isEmpty,
+              url.user == nil, url.password == nil else { return nil }
+        return url
+    }
+}
+
+struct CatalogueProductImage: Decodable, Sendable {
+    struct Entry: Decodable, Sendable {
+        var code: String?
+        var image_front_url: String?
+        var image_front_small_url: String?
+    }
+    var status: Int?
+    var code: String?
+    var product: Entry?
+
+    func imageURL(matching barcode: String) -> URL? {
+        guard status == 1, let product, (product.code ?? code) == barcode else { return nil }
+        return ProductImageURL.remote(product.image_front_url) ?? ProductImageURL.remote(product.image_front_small_url)
+    }
 }
 
 // MARK: Scan (AI verdict)

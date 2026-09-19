@@ -1,18 +1,50 @@
 import SwiftUI
+import SkintelCore
+import UIKit
 
-/// Rounded-square initial tile behind product names (design §07/§09/§11).
+/// A real catalogue or user photo, with an honest neutral fallback when unavailable.
 struct SKProductMark: View {
     let name: String
+    var imageURL: URL? = nil
+    var photoData: Data? = nil
     var size: CGFloat = 48
+    @State private var localImage: UIImage?
 
     var body: some View {
-        let t = SKColor.tile(for: name)
-        Text(String(name.trimmingCharacters(in: .whitespaces).prefix(1)).uppercased())
-            .font(SKFont.sans(size * 0.42, weight: .semibold, relativeTo: .title2))
-            .foregroundStyle(t.fg)
+        Group {
+            if let localImage {
+                Image(uiImage: localImage).resizable().scaledToFit().padding(size * 0.05)
+            } else if let remote = ProductImageURL.remote(imageURL?.absoluteString) {
+                AsyncImage(url: remote) { phase in
+                    if let image = phase.image {
+                        image.resizable().scaledToFit().padding(size * 0.05)
+                    } else { placeholder }
+                }
+            } else { placeholder }
+        }
             .frame(width: size, height: size)
-            .background(t.bg, in: RoundedRectangle(cornerRadius: size * 0.25, style: .continuous))
+            .background(SKColor.cream)
+            .compositingGroup()
+            .clipShape(RoundedRectangle(cornerRadius: size * 0.22, style: .continuous))
+            .overlay(RoundedRectangle(cornerRadius: size * 0.22, style: .continuous).stroke(SKColor.line.opacity(0.6)))
             .accessibilityHidden(true)
+            .task(id: imageURL) { await loadLocalImage() }
+            .onChange(of: photoData) { _, data in localImage = data.flatMap(UIImage.init(data:)) }
+    }
+
+    private var placeholder: some View {
+        Image(systemName: "photo")
+            .font(.system(size: size * 0.3, weight: .light))
+            .foregroundStyle(SKColor.muted.opacity(0.65))
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+    }
+
+    private func loadLocalImage() async {
+        localImage = photoData.flatMap(UIImage.init(data:))
+        guard photoData == nil, let imageURL, imageURL.isFileURL else { return }
+        let data = await Task.detached(priority: .utility) { try? Data(contentsOf: imageURL) }.value
+        guard !Task.isCancelled else { return }
+        localImage = data.flatMap(UIImage.init(data:))
     }
 }
 

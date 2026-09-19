@@ -1,6 +1,19 @@
 import UIKit
+import ImageIO
 
 enum ImageResizer {
+    /// Decode only the small shelf thumbnail, not a full-resolution library image.
+    static func thumbnailData(_ data: Data) -> Data? {
+        guard let source = CGImageSourceCreateWithData(data as CFData, [kCGImageSourceShouldCache: false] as CFDictionary),
+              let thumbnail = CGImageSourceCreateThumbnailAtIndex(source, 0, [
+                kCGImageSourceCreateThumbnailFromImageAlways: true,
+                kCGImageSourceCreateThumbnailWithTransform: true,
+                kCGImageSourceThumbnailMaxPixelSize: 512,
+                kCGImageSourceShouldCacheImmediately: true
+              ] as CFDictionary) else { return nil }
+        return UIImage(cgImage: thumbnail).jpegData(compressionQuality: 0.8)
+    }
+
     /// Downscales to `maxDimension` on the long edge and encodes JPEG. Label photos are
     /// text; 1600px is plenty for OCR and keeps uploads well under the API's 6 MB cap.
     static func jpegData(_ image: UIImage, maxDimension: CGFloat = 1600, quality: CGFloat = 0.82) -> Data? {

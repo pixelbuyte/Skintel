@@ -36,6 +36,24 @@ private func decode<T: Decodable>(_ t: T.Type, _ json: String) throws -> T {
     #expect(rows[0].ingredients.isEmpty)
 }
 
+@Test func productImagesAreOptionalAndRequireAnExactCatalogueBarcode() throws {
+    let legacy = try decode(BarcodeLookup.self, #"{"brand":"Brand","productName":"Cleanser","ingredients":"Aqua","source":"cache"}"#)
+    #expect(legacy.imageUrl == nil)
+    let hit = try decode(BarcodeLookup.self, #"{"ingredients":"Aqua","imageUrl":"https://images.openbeautyfacts.org/product.jpg"}"#)
+    #expect(ProductImageURL.remote(hit.imageUrl)?.scheme == "https")
+    let oldURL = try decode(URLImport.self, #"{"ingredients":"Aqua"}"#)
+    #expect(oldURL.imageUrl == nil)
+    let catalogue = try decode(CatalogueProductImage.self, #"{"status":1,"code":"1234567890123","product":{"image_front_url":"https://images.openbeautyfacts.org/front.jpg"}}"#)
+    #expect(catalogue.imageURL(matching: "1234567890123") != nil)
+    #expect(catalogue.imageURL(matching: "1234567890124") == nil)
+    let missing = try decode(CatalogueProductImage.self, #"{"status":0,"code":"1234567890123"}"#)
+    #expect(missing.imageURL(matching: "1234567890123") == nil)
+    #expect(ProductImageURL.remote("http://example.com/photo.jpg") == nil)
+    #expect(ProductImageURL.remote("file:///tmp/photo.jpg") == nil)
+    #expect(ProductImageURL.remote("https://user:password@example.com/photo.jpg") == nil)
+    #expect(ProductImageURL.remote("") == nil)
+}
+
 @Test func decodesSubscriptionAndJournal() throws {
     let s = try decode([Subscription].self, """
     [{"user_id":"u","tier":"founding","stripe_customer_id":null,"stripe_subscription_id":null,"status":"active",

@@ -44,7 +44,7 @@ struct SKSectionHeader: View {
     }
 }
 
-/// Circular glass button for dark surfaces (scanner close / torch).
+/// Circular native glass control with a warm opaque accessibility fallback.
 struct SKGlassButton: View {
     let systemImage: String
     let label: String
@@ -54,11 +54,44 @@ struct SKGlassButton: View {
         Button(action: action) {
             Image(systemName: systemImage)
                 .font(.system(size: 17, weight: .semibold))
-                .foregroundStyle(.white)
+                .foregroundStyle(SKColor.ink)
                 .frame(width: 44, height: 44)
-                .background(.white.opacity(0.14), in: Circle())
+                .skGlassControl(in: Circle())
         }
-        .buttonStyle(SKPressStyle(scale: 0.92))
+        .buttonStyle(SKPressStyle())
         .accessibilityLabel(label)
+    }
+}
+
+extension View {
+    func skGlassControl<S: Shape>(in shape: S, interactive: Bool = true) -> some View {
+        modifier(SKGlassControlSurface(shape: shape, interactive: interactive))
+    }
+
+    @ViewBuilder
+    func skGlassGroup() -> some View {
+        if #available(iOS 26.0, *) {
+            GlassEffectContainer(spacing: 16) { self }
+        } else {
+            self
+        }
+    }
+}
+
+private struct SKGlassControlSurface<S: Shape>: ViewModifier {
+    @Environment(\.accessibilityReduceTransparency) private var reduceTransparency
+    let shape: S
+    let interactive: Bool
+
+    @ViewBuilder
+    func body(content: Content) -> some View {
+        if #available(iOS 26.0, *), !reduceTransparency {
+            content.glassEffect(.regular.tint(SKColor.cream.opacity(0.8)).interactive(interactive), in: shape)
+        } else {
+            content
+                .background(SKColor.cream, in: shape)
+                .overlay(shape.stroke(SKColor.line, lineWidth: 1))
+                .shadow(color: SKColor.ink.opacity(0.06), radius: 12, y: 4)
+        }
     }
 }

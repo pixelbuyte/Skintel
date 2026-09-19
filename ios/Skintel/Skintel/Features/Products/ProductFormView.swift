@@ -1,5 +1,6 @@
 import SwiftUI
 import SkintelCore
+import PhotosUI
 
 /// Add / edit a product — the same fields as AddProduct.tsx / EditProduct.tsx. Category is
 /// free text (as on the web) with quick picks. The INCI box shows the live parsed count so
@@ -23,17 +24,36 @@ struct ProductFormView: View {
     @State private var error: String?
     @State private var loaded = false
     @State private var savedID: String?
+    @State private var photoItem: PhotosPickerItem?
+    @State private var photoData: Data?
+    @State private var imageURL: URL?
+    @State private var photoLoading = false
     @FocusState private var focus: Field?
 
     private enum Field { case brand, name, category, inci, notes }
 
     var isEdit: Bool { if case .edit = mode { return true }; return false }
     private var parsed: [INCI.ParsedIngredient] { INCI.parse(inci) }
-    private var canSave: Bool { !name.trimmingCharacters(in: .whitespaces).isEmpty && !saving }
+    private var canSave: Bool { !name.trimmingCharacters(in: .whitespaces).isEmpty && !saving && !photoLoading }
 
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: SKSpace.xl) {
+                PhotosPicker(selection: $photoItem, matching: .images) {
+                    HStack(spacing: SKSpace.md) {
+                        SKProductMark(name: name, imageURL: imageURL, photoData: photoData, size: 72)
+                        VStack(alignment: .leading, spacing: 4) {
+                            Text(photoLoading ? "Reading photo…" : imageURL == nil && photoData == nil ? "Add product photo" : "Change product photo")
+                                .font(SKFont.bodyMedium).foregroundStyle(SKColor.primary)
+                            Text("Use a photo of your product. Saved on this device.")
+                                .font(SKFont.caption).foregroundStyle(SKColor.muted)
+                        }
+                        Spacer()
+                        Image(systemName: "plus.circle").foregroundStyle(SKColor.primary)
+                    }
+                }
+                .buttonStyle(.plain)
+                .disabled(saving)
                 field("Product name", placeholder: "e.g. Foaming Facial Cleanser", text: $name, focus: .name, contentType: nil)
                 field("Brand", placeholder: "e.g. CeraVe", text: $brand, focus: .brand, contentType: .organizationName)
 
@@ -117,6 +137,22 @@ struct ProductFormView: View {
             }
         }
         .onAppear(perform: prefill)
+        .task(id: photoItem) {
+            guard let selectedItem = photoItem else { return }
+            photoLoading = true
+            defer { if selectedItem == photoItem { photoLoading = false } }
+            do {
+                guard let data = try await selectedItem.loadTransferable(type: Data.self),
+                      !Task.isCancelled else { return }
+                guard let thumbnail = ImageResizer.thumbnailData(data) else {
+                    error = "That photo couldn't be opened. Try another image."
+                    return
+                }
+                photoData = thumbnail
+            } catch {
+                if !Task.isCancelled { self.error = "That photo couldn't be opened. Try another image." }
+            }
+        }
         .navigationDestination(item: $savedID) { id in ProductDetailView(productID: id) }
     }
 
@@ -139,6 +175,8 @@ struct ProductFormView: View {
                 brand = c.brand ?? ""
                 name = c.productName ?? ""
                 inci = c.inci
+                imageURL = c.imageURL
+                photoData = c.photoData
             }
         case .edit(let id):
             guard let p = env.products.product(id: id) else { return }
@@ -148,6 +186,7 @@ struct ProductFormView: View {
             outcome = p.product.outcome
             notes = p.product.notes ?? ""
             inci = p.ingredients.map(\.inciRaw).joined(separator: ", ")
+            imageURL = env.scans.imageURL(for: id)
         }
     }
 
@@ -164,6 +203,7 @@ struct ProductFormView: View {
                 let created = try await env.products.add(userID: uid, brand: brand, name: name.trimmingCharacters(in: .whitespaces),
                                                          category: category, outcome: outcome, notes: notes, ingredients: parsed)
                 if let attachScanID { env.scans.attach(scanID: attachScanID, to: created.id) }
+                env.scans.setImage(for: created.id, imageURL: imageURL, photoData: photoData)
                 env.analytics.track(.productSaved)
                 Haptics.success()
                 savedID = created.id
@@ -177,6 +217,7 @@ struct ProductFormView: View {
                 )
                 let original = env.products.product(id: id)?.ingredients.map(\.inciRaw).joined(separator: ", ") ?? ""
                 try await env.products.update(id: id, userID: uid, patch: patch, ingredients: original == inci ? nil : parsed)
+                env.scans.setImage(for: id, imageURL: imageURL, photoData: photoData)
                 Haptics.success()
                 dismiss()
             }

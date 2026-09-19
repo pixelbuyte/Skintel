@@ -26,6 +26,7 @@ enum MainTab: Hashable, CaseIterable {
 /// as a full-screen cover; the Scanner tab hosts the same surface inline.
 struct MainTabView: View {
     @Environment(AppEnvironment.self) private var env
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State private var tab: MainTab = .home
     @State private var presentScanner = false
     @State private var paywall: PaywallReason?
@@ -40,19 +41,24 @@ struct MainTabView: View {
                 case .journal: JournalView()
                 }
             }
+            .id(tab)
+            .transition(.opacity)
+            .zIndex(0)
             .frame(maxWidth: .infinity, maxHeight: .infinity)
             .safeAreaInset(edge: .bottom, spacing: 0) {
-                Color.clear.frame(height: SKTabBar.height)
+                Color.clear.frame(height: SKTabBar.height + 18)
             }
+            .animation(reduceMotion ? nil : .easeInOut(duration: 0.22), value: tab)
 
             SKTabBar(selection: $tab) {
                 if env.subscription.entitlement.canUseScanner {
-                    Haptics.medium()
+                    Haptics.tap()
                     presentScanner = true
                 } else {
                     paywall = .scanner
                 }
             }
+            .zIndex(1)
         }
         .ignoresSafeArea(.keyboard, edges: .bottom)
         .fullScreenCover(isPresented: $presentScanner) {
@@ -62,37 +68,43 @@ struct MainTabView: View {
             PaywallView(reason: reason)
         }
         .environment(\.openPaywall, OpenPaywallAction { reason in paywall = reason })
+        .environment(\.openScanner, OpenScannerAction {
+            if env.subscription.entitlement.canUseScanner {
+                Haptics.tap()
+                presentScanner = true
+            } else {
+                paywall = .scanner
+            }
+        })
     }
 }
 
 struct SKTabBar: View {
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @Namespace private var highlight
     @Binding var selection: MainTab
     let fabAction: () -> Void
     static let height: CGFloat = 62
 
     var body: some View {
-        HStack(alignment: .top, spacing: 0) {
+        HStack(spacing: 0) {
             tabItem(.home)
             tabItem(.scanner)
             fab
             tabItem(.compare)
             tabItem(.journal)
         }
-        .padding(.top, 9)
+        .padding(6)
         .frame(maxWidth: .infinity)
-        .background(alignment: .top) {
-            ZStack(alignment: .top) {
-                Rectangle().fill(.ultraThinMaterial)
-                Rectangle().fill(SKColor.cream.opacity(0.85))
-                Rectangle().fill(SKColor.line).frame(height: 1)
-            }
-            .ignoresSafeArea(edges: .bottom)
-        }
+        .skGlassControl(in: RoundedRectangle(cornerRadius: 30, style: .continuous), interactive: false)
+        .padding(.horizontal, 12)
+        .padding(.bottom, 6)
+        .animation(reduceMotion ? nil : .smooth(duration: 0.25), value: selection)
     }
 
     private func tabItem(_ t: MainTab) -> some View {
         Button {
-            if selection != t { Haptics.selection() }
+            guard selection != t else { return }
             selection = t
         } label: {
             VStack(spacing: 4) {
@@ -102,6 +114,13 @@ struct SKTabBar: View {
             .foregroundStyle(selection == t ? SKColor.primary : SKColor.muted)
             .frame(maxWidth: .infinity)
             .frame(height: Self.height - 9)
+            .background {
+                if selection == t {
+                    RoundedRectangle(cornerRadius: 22, style: .continuous)
+                        .fill(SKColor.blush)
+                        .matchedGeometryEffect(id: "selectedTab", in: highlight)
+                }
+            }
             .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
@@ -116,11 +135,9 @@ struct SKTabBar: View {
                 .foregroundStyle(SKColor.cream)
                 .frame(width: 56, height: 56)
                 .background(SKColor.primary, in: Circle())
-                .overlay(Circle().stroke(SKColor.bg, lineWidth: 4))
-                .skPrimaryGlow(strength: 0.45)
+                .skPrimaryGlow(strength: 0.2)
         }
-        .buttonStyle(SKPressStyle(scale: 0.92))
-        .offset(y: -26)
+        .buttonStyle(SKPressStyle())
         .frame(maxWidth: .infinity)
         .accessibilityLabel("Scan a product")
     }
@@ -147,4 +164,18 @@ extension EnvironmentValues {
         get { self[OpenPaywallKey.self] }
         set { self[OpenPaywallKey.self] = newValue }
     }
+
+    var openScanner: OpenScannerAction {
+        get { self[OpenScannerKey.self] }
+        set { self[OpenScannerKey.self] = newValue }
+    }
+}
+
+struct OpenScannerAction {
+    let handler: @MainActor () -> Void
+    @MainActor func callAsFunction() { handler() }
+}
+
+private struct OpenScannerKey: EnvironmentKey {
+    static let defaultValue = OpenScannerAction { }
 }

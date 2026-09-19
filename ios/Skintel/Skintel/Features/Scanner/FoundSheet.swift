@@ -7,25 +7,26 @@ struct FoundSheet: View {
     @Bindable var model: ScanFlowModel
     @Environment(AppEnvironment.self) private var env
     @State private var pastedINCI = ""
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     var body: some View {
         VStack(alignment: .leading, spacing: SKSpace.lg) {
             switch model.phase {
             case .lookingUp(let upc):
                 header(name: upc.isEmpty ? "Reading…" : "Looking up \(upc)", sub: upc.isEmpty ? "" : "\(spaced(upc)) · searching")
-                progressCard(title: "Checking product databases…", subtitle: "Cache, Open Beauty Facts, then AI search")
+                progressCard(title: "Finding your product…", subtitle: "Checking the barcode and ingredient list")
             case .found(let c):
-                header(name: c.displayName, sub: c.upc.map { "\(spaced($0)) · matched ✓" } ?? "matched ✓")
+                header(name: c.displayName, sub: c.upc.map { "\(spaced($0)) · matched ✓" } ?? "Add the ingredients below", imageURL: c.imageURL, photoData: c.photoData)
                 VStack(alignment: .leading, spacing: SKSpace.sm) {
                     Text("Found the product but not its ingredient list.").font(SKFont.secondary).foregroundStyle(SKColor.muted)
                     SKTextEditor(placeholder: "Paste the INCI list from the packaging", text: $pastedINCI, minHeight: 90, mono: true)
                     SKButton(title: "Analyze") {
-                        Task { await model.usePasted(brand: c.brand, name: c.productName, inci: pastedINCI) }
+                        Task { await model.usePasted(brand: c.brand, name: c.productName, inci: pastedINCI, imageURL: c.imageURL, photoData: c.photoData) }
                     }
                     .disabled(INCI.parse(pastedINCI).isEmpty)
                 }
             case .analyzing(let c):
-                header(name: c.displayName, sub: c.upc.map { "\(spaced($0)) · matched ✓" } ?? "\(c.source) · ready")
+                header(name: c.displayName, sub: c.upc.map { "\(spaced($0)) · matched ✓" } ?? "\(c.source) · ready", imageURL: c.imageURL, photoData: c.photoData)
                 progressCard(title: "Reading \(c.parsed.count) ingredients…",
                              subtitle: profileLine)
                 HStack {
@@ -35,8 +36,9 @@ struct FoundSheet: View {
                         .font(SKFont.sans(15, weight: .semibold)).foregroundStyle(SKColor.primary)
                 }
             case .notFound(let upc):
+                SKMascot(size: 72)
                 header(name: "Not in our databases yet", sub: spaced(upc))
-                Text("Paste the ingredient list from the packaging and Skintel will analyze it — this barcode gets remembered for everyone next time.")
+                Text("Paste the ingredient list from the packaging to check this product.")
                     .font(SKFont.secondary).foregroundStyle(SKColor.muted)
                 SKTextEditor(placeholder: "Aqua, Glycerin, …", text: $pastedINCI, minHeight: 90, mono: true)
                 HStack(spacing: SKSpace.md) {
@@ -45,6 +47,7 @@ struct FoundSheet: View {
                         .disabled(INCI.parse(pastedINCI).isEmpty)
                 }
             case .failed(let e, let retry):
+                SKMascot(size: 72)
                 header(name: e == .proRequired ? "Skintel Pro needed" : "That didn't work", sub: "")
                 Text(e.userMessage).font(SKFont.secondary).foregroundStyle(SKColor.muted)
                 HStack(spacing: SKSpace.md) {
@@ -59,7 +62,7 @@ struct FoundSheet: View {
         .padding(.top, SKSpace.xl)
         .padding(.bottom, SKSpace.lg)
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
-        .animation(SKAnimation.ios(0.3), value: model.phase)
+        .animation(reduceMotion ? nil : SKAnimation.ios(0.3), value: model.phase)
         .interactiveDismissDisabled(model.isBusy)
     }
 
@@ -70,9 +73,9 @@ struct FoundSheet: View {
         return culprits > 0 ? "Matching against \(culprits) known trigger\(culprits == 1 ? "" : "s")" : "Matching against your shelf"
     }
 
-    private func header(name: String, sub: String) -> some View {
+    private func header(name: String, sub: String, imageURL: URL? = nil, photoData: Data? = nil) -> some View {
         HStack(alignment: .top, spacing: SKSpace.lg) {
-            SKProductMark(name: name, size: 60)
+            SKProductMark(name: name, imageURL: imageURL, photoData: photoData, size: 60)
             VStack(alignment: .leading, spacing: 4) {
                 Text(name).font(SKFont.sans(22, weight: .semibold, relativeTo: .title2)).foregroundStyle(SKColor.ink).lineLimit(2)
                 if !sub.isEmpty { Text(sub).font(SKFont.dataSmall).foregroundStyle(SKColor.muted) }
@@ -109,8 +112,12 @@ struct FoundSheet: View {
 /// knowing the exact progress, but not a frozen bar either.
 private struct IndeterminateBar: View {
     @State private var fraction = 0.0
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
     var body: some View {
         SKProgressBar(fraction: fraction, height: 6)
-            .onAppear { withAnimation(.easeOut(duration: 6)) { fraction = 0.9 } }
+            .onAppear {
+                if reduceMotion { fraction = 0.5 }
+                else { withAnimation(.easeOut(duration: 6)) { fraction = 0.9 } }
+            }
     }
 }

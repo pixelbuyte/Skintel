@@ -76,11 +76,13 @@ private struct GlowIfPrimary: ViewModifier {
 
 /// Scale-to-0.97 press feedback shared by every tappable card and chip.
 struct SKPressStyle: ButtonStyle {
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
     var scale: CGFloat = 0.97
     func makeBody(configuration: Configuration) -> some View {
         configuration.label
-            .scaleEffect(configuration.isPressed ? scale : 1)
-            .animation(SKAnimation.press, value: configuration.isPressed)
+            .scaleEffect(configuration.isPressed && !reduceMotion ? scale : 1)
+            .opacity(configuration.isPressed && reduceMotion ? 0.8 : 1)
+            .animation(reduceMotion ? nil : SKAnimation.press, value: configuration.isPressed)
     }
 }
 

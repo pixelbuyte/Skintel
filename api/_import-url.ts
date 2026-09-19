@@ -32,7 +32,7 @@ const BROWSER_HEADERS: Record<string, string> = {
   'upgrade-insecure-requests': '1',
 };
 
-type Extracted = { brand?: string; productName?: string; ingredients: string };
+type Extracted = { brand?: string; productName?: string; ingredients: string; imageUrl?: string };
 
 function isValidHttpUrl(raw: string): URL | null {
   try {
@@ -334,6 +334,7 @@ function extractFromHtml(html: string, url: URL): Extracted {
     undefined;
 
   let ingredients = '';
+  const imageUrl = extractProductImage($, url);
 
   // site-specific FIRST
   if (isAmazon) ingredients = extractAmazon($);
@@ -421,7 +422,42 @@ function extractFromHtml(html: string, url: URL): Extracted {
     brand,
     productName,
     ingredients: ingredients ? cleanIngredientsString(ingredients) : '',
+    imageUrl,
   };
+}
+
+/// Only a product-specific source is accepted. We never ask the language model to
+/// invent an image URL or use the site's generic social/logo image.
+function extractProductImage($: cheerio.CheerioAPI, pageURL: URL): string | undefined {
+  const images: string[] = [];
+  $('script[type="application/ld+json"]').each((_i, el) => {
+    try {
+      const stack: unknown[] = [JSON.parse($(el).contents().text())];
+      while (stack.length) {
+        const node = stack.pop();
+        if (Array.isArray(node)) { stack.push(...node); continue; }
+        if (!node || typeof node !== 'object') continue;
+        const record = node as Record<string, unknown>;
+        const types = Array.isArray(record['@type']) ? record['@type'] : [record['@type']];
+        if (types.includes('Product')) {
+          const image = Array.isArray(record.image) ? record.image[0] : record.image;
+          const candidate = typeof image === 'string' ? image
+            : image && typeof image === 'object' ? (image as Record<string, unknown>).url : undefined;
+          if (typeof candidate === 'string') images.push(candidate);
+        }
+        if (record['@graph']) stack.push(record['@graph']);
+      }
+    } catch { /* Ignore malformed page metadata. */ }
+  });
+  const unique = [...new Set(images)];
+  // Several products on one page are ambiguous. The user can supply a photo instead.
+  const candidate = unique.length === 1 ? unique[0]
+    : unique.length === 0 ? $('#landingImage').attr('data-old-hires') || $('#landingImage').attr('src') : undefined;
+  if (!candidate) return undefined;
+  try {
+    const resolved = new URL(candidate, pageURL);
+    return resolved.protocol === 'https:' && !resolved.username && !resolved.password ? resolved.href : undefined;
+  } catch { return undefined; }
 }
 
 function ingredientTokenCount(s: string): number {
@@ -525,7 +561,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     try {
       const ai = await aiExtract(html, parsedUrl, extracted.brand, extracted.productName);
       if (ingredientTokenCount(ai.ingredients) >= ingredientTokenCount(extracted.ingredients)) {
-        extracted = ai;
+        extracted = { ...ai, imageUrl: extracted.imageUrl };
       }
     } catch (e: any) {
       if (!extracted.ingredients) {
@@ -553,5 +589,6 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     brand: extracted.brand,
     productName: extracted.productName,
     ingredients: extracted.ingredients,
+    imageUrl: extracted.imageUrl,
   });
 }

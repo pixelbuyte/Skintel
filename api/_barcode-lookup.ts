@@ -9,6 +9,7 @@ type LookupResult = {
   productName: string | null;
   ingredients: string;
   source: CacheSource | 'cache' | null;
+  imageUrl?: string | null;
 };
 
 type CacheRow = {
@@ -25,7 +26,8 @@ async function claudeFillIngredients(
   upc: string
 ): Promise<{ brand: string | null; productName: string | null; ingredients: string } | null> {
   if (!process.env.ANTHROPIC_API_KEY) return null;
-  const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
+  // A mobile lookup must not inherit the SDK's ten-minute timeout + two retries.
+  const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY, timeout: 20_000, maxRetries: 0 });
   const hint = [brand, productName].filter(Boolean).join(' ');
   const prompt = `Find the full INCI ingredient list for this skincare/cosmetic product. Use web_search to look up the brand's official page or major retailers (Sephora, Ulta, Boots, brand site).
 
@@ -82,7 +84,7 @@ async function fetchProduct(
   baseUrl: string,
   upc: string,
   timeoutMs = 5000
-): Promise<{ brand: string | null; productName: string | null; ingredients: string } | null> {
+): Promise<{ brand: string | null; productName: string | null; ingredients: string; imageUrl: string | null } | null> {
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), timeoutMs);
   try {
@@ -97,6 +99,8 @@ async function fetchProduct(
         product_name?: string;
         brands?: string;
         ingredients_text?: string;
+        image_front_url?: string;
+        image_front_small_url?: string;
       };
     };
     if (data.status !== 1 || !data.product) return null;
@@ -104,7 +108,9 @@ async function fetchProduct(
     const brand = (data.product.brands ?? '').trim() || null;
     const productName = (data.product.product_name ?? '').trim() || null;
     if (!ingredients && !brand && !productName) return null;
-    return { brand, productName, ingredients };
+    const rawImage = data.product.image_front_url || data.product.image_front_small_url;
+    const imageUrl = typeof rawImage === 'string' && rawImage.startsWith('https://') ? rawImage : null;
+    return { brand, productName, ingredients, imageUrl };
   } catch {
     return null;
   } finally {
@@ -160,8 +166,12 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     return json(res, result);
   }
 
-  const obf = await fetchProduct('https://world.openbeautyfacts.org', upc);
-  const off = obf ? null : await fetchProduct('https://world.openfoodfacts.org', upc);
+  // Independent catalogue requests overlap instead of spending up to 5s on each in
+  // series. Beauty Facts keeps priority; a fast hit doesn't wait for the other host.
+  const beautyLookup = fetchProduct('https://world.openbeautyfacts.org', upc);
+  const foodLookup = fetchProduct('https://world.openfoodfacts.org', upc);
+  const obf = await beautyLookup;
+  const off = obf ? null : await foodLookup;
   const dbHit = obf ?? off;
   const dbSource: 'openbeautyfacts' | 'openfoodfacts' | null = obf
     ? 'openbeautyfacts'
@@ -212,6 +222,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       productName: claude.productName,
       ingredients: claude.ingredients,
       source: finalSource,
+      imageUrl: dbHit?.imageUrl ?? null,
     };
     return json(res, result);
   }

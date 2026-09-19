@@ -73,8 +73,8 @@ struct ProfileStepView: View {
             ScrollView {
                 VStack(alignment: .leading, spacing: SKSpace.xl) {
                     VStack(alignment: .leading, spacing: SKSpace.sm) {
-                        Text("Tell us about your skin.").font(SKFont.hero).foregroundStyle(SKColor.ink)
-                        Text("Every verdict is matched against this profile.")
+                        Text("Tell us about your skin.").font(SKFont.editorialHero).foregroundStyle(SKColor.ink)
+                        Text("Your ingredient insights start with you.")
                             .font(SKFont.sans(17, relativeTo: .body)).foregroundStyle(SKColor.muted)
                     }
                     .padding(.top, SKSpace.xl)
@@ -122,7 +122,7 @@ struct CameraStepView: View {
             StepHeader(step: 3, back: back).skPagePadding().padding(.top, SKSpace.sm)
             ScrollView {
                 VStack(alignment: .leading, spacing: SKSpace.xl) {
-                    Text("Scan your first product.").font(SKFont.hero).foregroundStyle(SKColor.ink).padding(.top, SKSpace.xl)
+                    Text("Scan your first product.").font(SKFont.editorialHero).foregroundStyle(SKColor.ink).padding(.top, SKSpace.xl)
 
                     ScannerIllustration()
                         .frame(height: 220)
@@ -134,9 +134,9 @@ struct CameraStepView: View {
                         .accessibilityHidden(true)
 
                     VStack(alignment: .leading, spacing: SKSpace.lg) {
-                        stepRow(1, "Point at any barcode — front or back")
-                        stepRow(2, "AI reads the full ingredient list")
-                        stepRow(3, "Verdict for your skin in seconds")
+                        stepRow(1, "Scan a barcode or ingredient label")
+                        stepRow(2, "Check the product we find")
+                        stepRow(3, "See ingredient insights for your skin")
                     }
 
                     if let error = model.error {
@@ -182,6 +182,29 @@ struct CameraStepView: View {
                 .background(SKColor.goodBg, in: Circle())
             Text(text).font(SKFont.sans(17, relativeTo: .body)).foregroundStyle(SKColor.ink)
         }
+    }
+}
+
+/// The same sample product artwork used on the landing page. It is bundled so the
+/// welcome screen never depends on a network request. These are illustrations, not
+/// photographs of identified shelf products; only use them in clearly labelled demos.
+struct OnboardingProductArtwork: View {
+    enum Kind: Int { case moisturizer, lotion, serum }
+    let kind: Kind
+
+    var body: some View {
+        GeometryReader { geometry in
+            // The existing sprite contains three equal-width product panels.
+            let spriteWidth = geometry.size.height * 2 // bundled sprite: 1774 × 887
+            let panelWidth = spriteWidth / 3
+            Image(decorative: "OnboardingProducts")
+                .resizable()
+                .interpolation(.high)
+                .frame(width: spriteWidth, height: geometry.size.height)
+                .offset(x: (geometry.size.width - panelWidth) / 2 - CGFloat(kind.rawValue) * panelWidth)
+        }
+        .clipped()
+        .accessibilityHidden(true)
     }
 }
 

@@ -25,6 +25,9 @@ struct ScanCandidate: Hashable, Sendable {
     var inci: String
     var upc: String?
     var source: String
+    var imageURL: URL? = nil
+    /// A small copy of the user's actual scan photo, never a generated product picture.
+    var photoData: Data? = nil
 
     var displayName: String {
         productName?.isEmpty == false ? productName! : (brand ?? "Unknown product")
