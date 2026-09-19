@@ -13,12 +13,32 @@ struct RoutineView: View {
     @State private var showTemplates = false
     @State private var editMode: EditMode = .inactive
 
+    @State private var selectedTemplateID: String?
+    @State private var orderedTemplates: [RoutineTemplate] = RoutineTemplate.all
+    @State private var skippedSteps = 0
+
+    /// Applying a template overwrites both slots. This holds what was there before so a
+    /// hand-ordered routine is never destroyed silently.
+    @State private var undo: (am: [String], pm: [String])?
+    @State private var undoToken = UUID()
+
     private var ids: [String] { env.routine.ids(slot) }
 
     var body: some View {
         List {
             Section {
                 header.listRowBackground(Color.clear).listRowInsets(EdgeInsets()).listRowSeparator(.hidden)
+            }
+            // Directly under the header rather than above it: `BackButton` is an absolute
+            // `.overlay(alignment: .topLeading)` on this screen, so the literal first row
+            // of the List sits underneath the back chevron.
+            if undo != nil {
+                Section {
+                    undoBar
+                        .listRowBackground(Color.clear)
+                        .listRowInsets(EdgeInsets(top: 4, leading: SKSpace.xl, bottom: 0, trailing: SKSpace.xl))
+                        .listRowSeparator(.hidden)
+                }
             }
             if ids.isEmpty {
                 Section {
@@ -188,38 +208,141 @@ struct RoutineView: View {
         } catch { analysis = .failed(.network(error.localizedDescription)) }
     }
 
+    // MARK: Undo
+
+    private var undoBar: some View {
+        SKCard(padding: SKSpace.md) {
+            HStack {
+                Text("Template applied").font(SKFont.secondary).foregroundStyle(SKColor.ink)
+                Spacer()
+                SKLinkButton(title: "Undo", chevron: false) {
+                    if let snapshot = undo {
+                        env.routine.set(snapshot.am, for: .am)
+                        env.routine.set(snapshot.pm, for: .pm)
+                        Haptics.tap()
+                    }
+                    withAnimation(SKAnimation.ios(0.3)) { undo = nil }
+                }
+            }
+        }
+    }
+
     // MARK: Templates
+
+    private var selectedTemplate: RoutineTemplate? {
+        orderedTemplates.first { $0.id == selectedTemplateID } ?? orderedTemplates.first
+    }
 
     private var templatesSheet: some View {
         NavigationStack {
             ScrollView {
-                VStack(spacing: SKSpace.md) {
-                    ForEach(RoutineTemplate.all) { t in
-                        let am = t.fill(t.am, from: env.products.products), pm = t.fill(t.pm, from: env.products.products)
-                        Button {
-                            env.routine.set(am, for: .am); env.routine.set(pm, for: .pm)
-                            Haptics.success(); showTemplates = false
-                        } label: {
-                            SKCard {
-                                VStack(alignment: .leading, spacing: 6) {
-                                    Text(t.name).font(SKFont.cardTitle).foregroundStyle(SKColor.ink)
-                                    Text(t.blurb).font(SKFont.secondary).foregroundStyle(SKColor.muted)
-                                    Text("Fills \(am.count) AM · \(pm.count) PM steps from your shelf").font(SKFont.dataSmall).foregroundStyle(SKColor.primary)
+                VStack(alignment: .leading, spacing: SKSpace.lg) {
+                    // The only explanatory sentence in the sheet. The preview below says
+                    // the rest, in place, with her own products.
+                    Text("Pick a shape. Skintel fills it from your shelf.")
+                        .font(SKFont.secondary)
+                        .foregroundStyle(SKColor.muted)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+
+                    ScrollView(.horizontal, showsIndicators: false) {
+                        HStack(spacing: SKSpace.sm) {
+                            ForEach(orderedTemplates) { t in
+                                SKSelectChip(title: t.name, selected: t.id == selectedTemplateID) {
+                                    select(t)
                                 }
                             }
                         }
-                        .buttonStyle(SKPressStyle())
+                        .padding(.vertical, 2)
                     }
-                    Text("Templates match by category — a product whose category is “Serum” fills a serum slot. Unmatched slots are skipped.")
-                        .font(SKFont.caption).foregroundStyle(SKColor.muted).multilineTextAlignment(.center)
+
+                    if let t = selectedTemplate {
+                        templateCard(t)
+                        SKButton(title: "Use this routine") { applyTemplate(t) }
+                    }
                 }
                 .skPagePadding().padding(.vertical, SKSpace.lg)
             }
             .skPageBackground()
             .skNavigationTitle("Templates")
             .toolbar { ToolbarItem(placement: .topBarLeading) { Button("Cancel") { showTemplates = false }.font(SKFont.bodyMedium) } }
+            .onAppear { prepareTemplates() }
         }
         .tint(SKColor.primary)
+    }
+
+    private func templateCard(_ t: RoutineTemplate) -> some View {
+        let isBestFit = t.id == orderedTemplates.first?.id
+        let skippedLine = "\(skippedSteps) step\(skippedSteps == 1 ? "" : "s") skipped — nothing on your shelf fits those yet."
+        return SKCard {
+            VStack(alignment: .leading, spacing: SKSpace.md) {
+                HStack {
+                    Text(t.name).font(SKFont.cardTitle).foregroundStyle(SKColor.ink)
+                    Spacer(minLength: SKSpace.sm)
+                    if isBestFit { SKChip("Fits your shelf best", tone: .good) }
+                }
+                Text(t.blurb).font(SKFont.secondary).foregroundStyle(SKColor.muted)
+                TemplatePreview(template: t, products: env.products.products)
+                if skippedSteps > 0 {
+                    Text(skippedLine).font(SKFont.caption).foregroundStyle(SKColor.muted)
+                }
+            }
+        }
+    }
+
+    /// How many of a template's slots this shelf can actually fill.
+    private func fitCount(_ t: RoutineTemplate, _ shelf: [ProductWithIngredients]) -> Int {
+        t.fill(t.am, from: shelf).count + t.fill(t.pm, from: shelf).count
+    }
+
+    /// Ordered best-fit-first, computed once on appear rather than per frame. Ties keep
+    /// declaration order, so a shelf that fills everything lands on `beginner` — the
+    /// right default for a first-time user anyway.
+    private func prepareTemplates() {
+        let shelf = env.products.products
+        let all = RoutineTemplate.all
+        let ranked = all.indices.sorted { a, b in
+            let fa = fitCount(all[a], shelf), fb = fitCount(all[b], shelf)
+            return fa == fb ? a < b : fa > fb
+        }
+        let ordered = ranked.map { all[$0] }
+        orderedTemplates = ordered
+
+        let chosen = ordered.first { $0.id == selectedTemplateID } ?? ordered.first
+        selectedTemplateID = chosen?.id
+        recomputeSkipped(for: chosen)
+    }
+
+    private func select(_ t: RoutineTemplate) {
+        selectedTemplateID = t.id
+        recomputeSkipped(for: t)
+        Haptics.selection()
+    }
+
+    private func recomputeSkipped(for t: RoutineTemplate?) {
+        guard let t else { skippedSteps = 0; return }
+        skippedSteps = (t.am.count + t.pm.count) - fitCount(t, env.products.products)
+    }
+
+    private func applyTemplate(_ t: RoutineTemplate) {
+        let shelf = env.products.products
+        let snapshot = (am: env.routine.ids(.am), pm: env.routine.ids(.pm))
+
+        env.routine.set(t.fill(t.am, from: shelf), for: .am)
+        env.routine.set(t.fill(t.pm, from: shelf), for: .pm)
+        Haptics.success()
+        showTemplates = false
+
+        let token = UUID()
+        undoToken = token
+        withAnimation(SKAnimation.ios(0.3)) { undo = snapshot }
+
+        // Inherits this view's MainActor isolation. Re-applying bumps `undoToken`, which
+        // both restarts the six seconds and retires this timer.
+        Task {
+            try? await Task.sleep(for: .seconds(6))
+            guard !Task.isCancelled, undoToken == token else { return }
+            withAnimation(SKAnimation.ios(0.3)) { undo = nil }
+        }
     }
 }
 
