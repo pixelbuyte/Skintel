@@ -13,19 +13,19 @@ struct FoundSheet: View {
             switch model.phase {
             case .lookingUp(let upc):
                 header(name: upc.isEmpty ? "Reading…" : "Looking up \(upc)", sub: upc.isEmpty ? "" : "\(spaced(upc)) · searching")
-                progressCard(title: "Checking product databases…", subtitle: "Cache, Open Beauty Facts, then AI search")
+                progressCard(title: "Checking product databases…", subtitle: "Cache, then Open Beauty Facts, then a wider search")
             case .found(let c):
-                header(name: c.displayName, sub: c.upc.map { "\(spaced($0)) · matched ✓" } ?? "matched ✓")
+                header(name: c.displayName, sub: c.upc.map { "\(spaced($0)) · matched ✓" } ?? "matched ✓", imageURL: c.imageURL)
                 VStack(alignment: .leading, spacing: SKSpace.sm) {
                     Text("Found the product but not its ingredient list.").font(SKFont.secondary).foregroundStyle(SKColor.muted)
                     SKTextEditor(placeholder: "Paste the INCI list from the packaging", text: $pastedINCI, minHeight: 90, mono: true)
-                    SKButton(title: "Analyze") {
+                    SKButton(title: "Read the ingredients") {
                         Task { await model.usePasted(brand: c.brand, name: c.productName, inci: pastedINCI) }
                     }
                     .disabled(INCI.parse(pastedINCI).isEmpty)
                 }
             case .analyzing(let c):
-                header(name: c.displayName, sub: c.upc.map { "\(spaced($0)) · matched ✓" } ?? "\(c.source) · ready")
+                header(name: c.displayName, sub: c.upc.map { "\(spaced($0)) · matched ✓" } ?? "\(c.source) · ready", imageURL: c.imageURL)
                 progressCard(title: "Reading \(c.parsed.count) ingredients…",
                              subtitle: profileLine)
                 HStack {
@@ -36,12 +36,12 @@ struct FoundSheet: View {
                 }
             case .notFound(let upc):
                 header(name: "Not in our databases yet", sub: spaced(upc))
-                Text("Paste the ingredient list from the packaging and Skintel will analyze it — this barcode gets remembered for everyone next time.")
+                Text("Paste the ingredient list from the packaging and Skintel will read it — this barcode gets remembered for everyone next time.")
                     .font(SKFont.secondary).foregroundStyle(SKColor.muted)
                 SKTextEditor(placeholder: "Aqua, Glycerin, …", text: $pastedINCI, minHeight: 90, mono: true)
                 HStack(spacing: SKSpace.md) {
                     SKButton(title: "Scan again", kind: .secondary) { model.reset() }
-                    SKButton(title: "Analyze") { Task { await model.usePasted(brand: nil, name: nil, inci: pastedINCI) } }
+                    SKButton(title: "Read the ingredients") { Task { await model.usePasted(brand: nil, name: nil, inci: pastedINCI) } }
                         .disabled(INCI.parse(pastedINCI).isEmpty)
                 }
             case .failed(let e, let retry):
@@ -70,9 +70,9 @@ struct FoundSheet: View {
         return culprits > 0 ? "Matching against \(culprits) known trigger\(culprits == 1 ? "" : "s")" : "Matching against your shelf"
     }
 
-    private func header(name: String, sub: String) -> some View {
+    private func header(name: String, sub: String, imageURL: String? = nil) -> some View {
         HStack(alignment: .top, spacing: SKSpace.lg) {
-            SKProductMark(name: name, size: 60)
+            SKProductMark(name: name, size: 60, imageURL: imageURL)
             VStack(alignment: .leading, spacing: 4) {
                 Text(name).font(SKFont.sans(22, weight: .semibold, relativeTo: .title2)).foregroundStyle(SKColor.ink).lineLimit(2)
                 if !sub.isEmpty { Text(sub).font(SKFont.dataSmall).foregroundStyle(SKColor.muted) }

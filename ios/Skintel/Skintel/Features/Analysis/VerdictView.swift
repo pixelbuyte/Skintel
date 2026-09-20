@@ -27,7 +27,7 @@ struct VerdictView: View {
             VStack(alignment: .leading, spacing: SKSpace.lg) {
                 if let name = scan.productName ?? scan.brand {
                     HStack(spacing: SKSpace.md) {
-                        SKProductMark(name: name, size: 40)
+                        SKProductMark(name: name, size: 40, imageURL: scan.imageURL)
                         VStack(alignment: .leading, spacing: 2) {
                             Text(name).font(SKFont.cardTitle).foregroundStyle(SKColor.ink).lineLimit(1)
                             Text("\(parsed.count) ingredients · \(scan.source ?? "scan")").font(SKFont.dataSmall).foregroundStyle(SKColor.muted)

@@ -1,8 +1,8 @@
 import SwiftUI
 import SkintelCore
 
-/// Design §11: INCI list with a category chip and a personal verdict dot per row, and
-/// the AI insight (the stored `/api/scan-ai` result) on the second tab.
+/// Design §11: INCI list with a category chip and a personal tone dot per row, and
+/// the stored read (`/api/scan-ai` result) on the second tab.
 struct ProductDetailView: View {
     let productID: String
     @Environment(AppEnvironment.self) private var env
@@ -32,7 +32,8 @@ struct ProductDetailView: View {
         return ScrollView {
             VStack(alignment: .leading, spacing: SKSpace.lg) {
                 HStack(alignment: .top, spacing: SKSpace.lg) {
-                    SKProductMark(name: p.product.productName, size: 64)
+                    SKProductMark(name: p.product.productName, size: 64,
+                                  imageURL: env.scans.imageURL(for: p.id))
                     VStack(alignment: .leading, spacing: 6) {
                         if let b = p.product.brand, !b.isEmpty { Text(b).skLabelStyle() }
                         Text(p.product.productName).font(SKFont.serif(26, relativeTo: .title2)).foregroundStyle(SKColor.ink)
@@ -47,7 +48,7 @@ struct ProductDetailView: View {
                     }
                 }
 
-                SKSegmented(options: [(Tab.ingredients, "Ingredients · \(p.ingredients.count)"), (Tab.insight, "AI insight")], selection: $tab)
+                SKSegmented(options: [(Tab.ingredients, "Ingredients · \(p.ingredients.count)"), (Tab.insight, "The read")], selection: $tab)
 
                 switch tab {
                 case .ingredients: ingredientList(p, culprits: culprits)
@@ -166,15 +167,15 @@ struct ProductDetailView: View {
             VerdictCard(result: scan, goodCount: goodCount(p))
             FlagList(result: scan)
         } else if p.ingredients.isEmpty {
-            SKEmptyState(icon: "sparkles", title: "Nothing to analyze", message: "Add the ingredient list first.")
+            SKEmptyState(icon: "sparkles", title: "Nothing to read yet", message: "Add the ingredient list first.")
         } else {
             SKCard {
                 VStack(alignment: .leading, spacing: SKSpace.md) {
-                    Text("No AI verdict yet").font(SKFont.cardTitle).foregroundStyle(SKColor.ink)
-                    Text("Skintel scores every ingredient against your shelf's culprits and returns a plain-English verdict.")
+                    Text("Not read yet").font(SKFont.cardTitle).foregroundStyle(SKColor.ink)
+                    Text("Skintel checks every ingredient against the ones you've reacted to before, and says what it found in plain English.")
                         .font(SKFont.secondary).foregroundStyle(SKColor.muted)
                     if let analyzeError { SKInlineError(message: analyzeError) }
-                    SKButton(title: "Analyze with AI", systemImage: "sparkles", isLoading: analyzing) { Task { await analyze(p) } }
+                    SKButton(title: "Read the ingredients", systemImage: "sparkles", isLoading: analyzing) { Task { await analyze(p) } }
                 }
             }
         }

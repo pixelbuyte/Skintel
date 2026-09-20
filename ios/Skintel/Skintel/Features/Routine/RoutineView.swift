@@ -364,7 +364,7 @@ struct ShelfPickerSheet: View {
                         SKEmptyState(icon: "tray", title: "Nothing to add", message: exclude.isEmpty ? "Your shelf is empty." : "Everything on your shelf is already here.")
                     }
                     ForEach(items) { p in
-                        Button { onPick(p.id); dismiss() } label: { ProductRow(product: p, score: env.scans.score(for: p.id)) }
+                        Button { onPick(p.id); dismiss() } label: { ProductRow(product: p, score: env.scans.score(for: p.id), imageURL: env.scans.imageURL(for: p.id)) }
                             .buttonStyle(SKPressStyle())
                     }
                 }

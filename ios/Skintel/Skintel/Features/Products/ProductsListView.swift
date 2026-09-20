@@ -24,7 +24,7 @@ struct ProductsListView: View {
                     } else {
                         ForEach(products) { p in
                             NavigationLink(value: AppDestination.productDetail(id: p.id)) {
-                                ProductRow(product: p, score: env.scans.score(for: p.id))
+                                ProductRow(product: p, score: env.scans.score(for: p.id), imageURL: env.scans.imageURL(for: p.id))
                             }
                             .buttonStyle(SKPressStyle())
                             .contextMenu {

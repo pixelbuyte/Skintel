@@ -4,15 +4,49 @@ import SwiftUI
 struct SKProductMark: View {
     let name: String
     var size: CGFloat = 48
+    /// The product's own photo, when one is genuinely known. Most products have none —
+    /// nothing is stored server-side yet — so the lettered tile stays the normal case
+    /// rather than a failure state. Never pass another product's image to fill the space.
+    var imageURL: String? = nil
+
+    private var shape: RoundedRectangle {
+        RoundedRectangle(cornerRadius: size * 0.25, style: .continuous)
+    }
 
     var body: some View {
+        Group {
+            if let imageURL, let url = URL(string: imageURL) {
+                AsyncImage(url: url, transaction: Transaction(animation: .easeOut(duration: 0.18))) { phase in
+                    switch phase {
+                    case .success(let image):
+                        image.resizable().scaledToFill()
+                    case .failure:
+                        letterTile
+                    case .empty:
+                        // Deliberately blank, not the initial: a letter that appears for a
+                        // moment and is then replaced by the photo reads as a glitch.
+                        SKColor.tileLoading
+                    @unknown default:
+                        letterTile
+                    }
+                }
+            } else {
+                letterTile
+            }
+        }
+        .frame(width: size, height: size)
+        .clipShape(shape)
+        .overlay(shape.stroke(SKColor.line, lineWidth: imageURL == nil ? 0 : 1))
+        .accessibilityHidden(true)
+    }
+
+    private var letterTile: some View {
         let t = SKColor.tile(for: name)
-        Text(String(name.trimmingCharacters(in: .whitespaces).prefix(1)).uppercased())
+        return Text(String(name.trimmingCharacters(in: .whitespaces).prefix(1)).uppercased())
             .font(SKFont.sans(size * 0.42, weight: .semibold, relativeTo: .title2))
             .foregroundStyle(t.fg)
             .frame(width: size, height: size)
-            .background(t.bg, in: RoundedRectangle(cornerRadius: size * 0.25, style: .continuous))
-            .accessibilityHidden(true)
+            .background(t.bg)
     }
 }
 

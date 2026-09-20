@@ -74,7 +74,7 @@ struct ProfileStepView: View {
                 VStack(alignment: .leading, spacing: SKSpace.xl) {
                     VStack(alignment: .leading, spacing: SKSpace.sm) {
                         Text("Tell us about your skin.").font(SKFont.hero).foregroundStyle(SKColor.ink)
-                        Text("Every verdict is matched against this profile.")
+                        Text("Every read is matched against this profile.")
                             .font(SKFont.sans(17, relativeTo: .body)).foregroundStyle(SKColor.muted)
                     }
                     .padding(.top, SKSpace.xl)
@@ -135,8 +135,8 @@ struct CameraStepView: View {
 
                     VStack(alignment: .leading, spacing: SKSpace.lg) {
                         stepRow(1, "Point at any barcode — front or back")
-                        stepRow(2, "AI reads the full ingredient list")
-                        stepRow(3, "Verdict for your skin in seconds")
+                        stepRow(2, "Skintel reads the full ingredient list")
+                        stepRow(3, "You see what it means for your skin")
                     }
 
                     if let error = model.error {

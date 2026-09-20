@@ -88,7 +88,7 @@ final class ScanFlowModel {
     }
 
     func useSearchResult(_ r: ProductSearchResult) async {
-        let c = ScanCandidate(brand: r.brand, productName: r.productName, inci: r.ingredients ?? "", upc: r.code, source: "search")
+        let c = ScanCandidate(brand: r.brand, productName: r.productName, inci: r.ingredients ?? "", upc: r.code, source: "search", imageURL: r.imageUrl)
         env.analytics.track(.scanStarted(mode: "search"))
         if c.parsed.isEmpty { phase = .found(c) } else { await analyze(c) }
     }
@@ -113,7 +113,7 @@ final class ScanFlowModel {
         let matches = env.products.culprits.all.map(ScanAIRequest.Match.init)
         do {
             let result = try await env.api.scan(ScanAIRequest(inci: c.inci, matches: matches))
-            let stored = env.scans.record(productID: nil, brand: c.brand, productName: c.productName, inci: c.inci, source: c.source, result: result)
+            let stored = env.scans.record(productID: nil, brand: c.brand, productName: c.productName, inci: c.inci, source: c.source, imageURL: c.imageURL, result: result)
             env.analytics.track(.scanCompleted(verdict: result.verdict.rawValue))
             Haptics.success()
             phase = .result(scanID: stored.id)

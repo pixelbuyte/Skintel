@@ -2,7 +2,7 @@ import Foundation
 import Observation
 import SkintelCore
 
-/// AI verdicts persisted on this device, mirroring the web's `localStorage['skintel:scans:v1']`.
+/// Ingredient reads persisted on this device, mirroring the web's `localStorage['skintel:scans:v1']`.
 /// The `products` table has no score column, so the "82" next to a product lives here,
 /// keyed by product id once saved. Stored in Application Support as JSON (no PII beyond
 /// the ingredient text the user already entered).
@@ -20,6 +20,11 @@ final class ScanStore {
         /// drops the whole file on any decode error, and losing history is worse than a
         /// missing label.
         var source: String?
+        /// The catalogue's photo of this product, when the lookup happened to return one.
+        /// Nothing server-side stores an image yet, so this is nil for most scans and for
+        /// every scan recorded before this field existed. Optional for the same reason
+        /// `source` is: a decode failure drops the whole file, and losing history is worse.
+        var imageURL: String?
         var result: ScanResult
         var scannedAt: Date
     }
@@ -38,16 +43,20 @@ final class ScanStore {
     func result(for productID: String) -> ScanResult? { scans[productID]?.result }
     func score(for productID: String) -> Int? { scans[productID]?.result.score }
 
+    /// The product's own photo when the scan that created it carried one. Callers pass
+    /// this straight to `SKProductMark(imageURL:)`, which falls back to the lettered tile.
+    func imageURL(for productID: String) -> String? { scans[productID]?.imageURL }
+
     var recent: [StoredScan] {
         scans.values.sorted { $0.scannedAt > $1.scannedAt }
     }
 
     @discardableResult
     func record(productID: String?, brand: String?, productName: String?, inci: String,
-                source: String?, result: ScanResult) -> StoredScan {
+                source: String?, imageURL: String? = nil, result: ScanResult) -> StoredScan {
         let id = productID ?? UUID().uuidString
         let s = StoredScan(id: id, productID: productID, brand: brand, productName: productName,
-                           inci: inci, source: source, result: result, scannedAt: Date())
+                           inci: inci, source: source, imageURL: imageURL, result: result, scannedAt: Date())
         scans[id] = s
         persist()
         return s
