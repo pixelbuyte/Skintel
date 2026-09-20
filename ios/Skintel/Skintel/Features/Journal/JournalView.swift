@@ -22,27 +22,23 @@ struct JournalView: View {
 
     var body: some View {
         NavigationStack(path: $path) {
-            ScrollView {
-                VStack(alignment: .leading, spacing: SKSpace.lg) {
-                    HStack(alignment: .firstTextBaseline) {
-                        Text("Journal").font(SKFont.pageTitle).foregroundStyle(SKColor.ink)
-                        Spacer()
-                        if env.journal.streak > 0 {
-                            SKChip("🔥 \(env.journal.streak)-day streak", tone: .caution)
-                        }
-                    }
-                    .padding(.top, SKSpace.md)
-
-                    entryCard
-                    weekStrip
-                    analysisSection
-                    history
+            VStack(alignment: .leading, spacing: SKSpace.lg) {
+                HStack(alignment: .firstTextBaseline) {
+                    Text("Journal").font(SKFont.pageTitle).foregroundStyle(SKColor.ink)
+                    Spacer()
                 }
-                .skPagePadding()
-                .padding(.bottom, SKSpace.xxl)
+                .padding(.top, SKSpace.md)
+
+                entryCard
+                weekStrip
+                insightsCard
+                analysisSection
+                history
             }
+            .skPagePadding()
+            .padding(.bottom, SKSpace.xxl)
             .scrollDismissesKeyboard(.interactively)
-            .refreshable { await env.journal.load() }
+            .skMascotRefreshable { await env.journal.load() }
             .skPageBackground()
             .toolbar(.hidden, for: .navigationBar)
             .toolbar {
@@ -189,6 +185,15 @@ struct JournalView: View {
         }
     }
 
+    // MARK: Insights
+
+    @ViewBuilder
+    private var insightsCard: some View {
+        if let insights = JournalInsights.build(entries: env.journal.entries) {
+            JournalInsightsCard(insights: insights, streak: env.journal.streak)
+        }
+    }
+
     // MARK: Analysis
 
     private var analysisSection: some View {
@@ -259,6 +264,8 @@ struct JournalView: View {
             }
         } else if case .failed(let e) = env.journal.state {
             SKErrorState(error: e) { Task { await env.journal.load() } }
+        } else if env.journal.entries.isEmpty, env.journal.state.value != nil {
+            JournalEmptyHistory()
         }
     }
 }

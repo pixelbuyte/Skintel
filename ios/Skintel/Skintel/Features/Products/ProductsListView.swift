@@ -9,8 +9,7 @@ struct ProductsListView: View {
     @State private var deleteError: String?
 
     var body: some View {
-        ScrollView {
-            VStack(alignment: .leading, spacing: SKSpace.md) {
+        VStack(alignment: .leading, spacing: SKSpace.md) {
                 capBanner
                 switch env.products.state {
                 case .idle, .loading:
@@ -38,8 +37,7 @@ struct ProductsListView: View {
             .skPagePadding()
             .padding(.vertical, SKSpace.md)
             .padding(.bottom, SKSpace.xxl)
-        }
-        .refreshable { await env.products.load() }
+        .skMascotRefreshable { await env.products.load() }
         .skPageBackground()
         .skNavigationTitle("Shelf")
         .toolbar {

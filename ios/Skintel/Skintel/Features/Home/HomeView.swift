@@ -9,16 +9,14 @@ struct HomeView: View {
 
     var body: some View {
         NavigationStack(path: $path) {
-            ScrollView {
-                VStack(alignment: .leading, spacing: SKSpace.lg) {
-                    header
-                    content
-                }
-                .skPagePadding()
-                .padding(.top, SKSpace.sm)
-                .padding(.bottom, SKSpace.xxl)
+            VStack(alignment: .leading, spacing: SKSpace.lg) {
+                header
+                content
             }
-            .refreshable { await env.products.load(); await env.subscription.load() }
+            .skPagePadding()
+            .padding(.top, SKSpace.sm)
+            .padding(.bottom, SKSpace.xxl)
+            .skMascotRefreshable { await env.products.load(); await env.subscription.load() }
             .skPageBackground()
             .toolbar(.hidden, for: .navigationBar)
             .navigationDestination(for: AppDestination.self) { destination(for: $0) }
