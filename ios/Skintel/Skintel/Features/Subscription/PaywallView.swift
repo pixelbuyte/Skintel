@@ -9,8 +9,10 @@ struct PaywallView: View {
     let reason: PaywallReason
     @Environment(AppEnvironment.self) private var env
     @Environment(\.dismiss) private var dismiss
+    @Environment(\.openURL) private var openURL
     @State private var service: SubscriptionService?
     @State private var selected: SubscriptionService.ProductID = .founding
+    @State private var isUSStorefront = false
 
     var body: some View {
         NavigationStack {
@@ -23,6 +25,7 @@ struct PaywallView: View {
                         plans(service)
                         benefits
                         cta(service)
+                        if isUSStorefront { webOffer(service) }
                     } else {
                         SKLoadingView(message: "Loading plans…").frame(height: 200)
                     }
@@ -47,7 +50,9 @@ struct PaywallView: View {
             s.startObserving()
             async let p: () = s.loadProducts()
             async let f: () = env.subscription.loadFoundingSeats()
-            _ = await (p, f)
+            async let us: Bool = USStorefront.isActive()
+            let (_, _, usResult) = await (p, f, us)
+            isUSStorefront = usResult
             if (env.subscription.foundingSeatsRemaining ?? 1) <= 0 || s.product(.founding) == nil { selected = .proYearly }
         }
         .onChange(of: env.subscription.entitlement.isPro) { _, isPro in
@@ -177,8 +182,11 @@ struct PaywallView: View {
         VStack(spacing: SKSpace.md) {
             if let msg = s.lastMessage { Text(msg).font(SKFont.secondary).foregroundStyle(SKColor.cautionFg).multilineTextAlignment(.center) }
             if case .failed(let msg) = s.phase, !s.products.isEmpty { SKInlineError(message: msg) }
-            SKButton(title: ctaTitle(s), kind: .dark, isLoading: isBusy(s.phase)) { Task { await s.purchase(selected) } }
-                .disabled(s.product(selected) == nil)
+            SKButton(title: ctaTitle(s), kind: .dark, isLoading: isBusy(s.phase)) {
+                env.analytics.track(.appleSubscriptionTapped(productID: selected.rawValue))
+                Task { await s.purchase(selected) }
+            }
+            .disabled(s.product(selected) == nil)
             if selected != .founding {
                 Text("Auto-renews until cancelled in App Store settings. Cancel at least 24 hours before the period ends to avoid renewal.")
                     .font(SKFont.caption).foregroundStyle(SKColor.muted).multilineTextAlignment(.center)
@@ -204,6 +212,67 @@ struct PaywallView: View {
         case .purchasing, .verifying, .restoring: true
         default: false
         }
+    }
+
+    // MARK: Web offer (US storefront only)
+
+    /// Same Pro Monthly plan, purchased on skinstel.com instead of the App Store. Shown
+    /// only when `USStorefront.isActive()` is true — never as a replacement for Apple's
+    /// flow, just a second option underneath it. Apple's live `displayPrice` is never
+    /// hardcoded here; only the web price is a fixed constant (see `WebOffer`), since
+    /// there is no client-side way to read the live Stripe price.
+    private func webOffer(_ s: SubscriptionService) -> some View {
+        VStack(spacing: SKSpace.md) {
+            HStack(spacing: SKSpace.sm) {
+                Rectangle().fill(SKColor.line).frame(height: 1)
+                Text("OR").font(SKFont.mono(11)).foregroundStyle(SKColor.muted)
+                Rectangle().fill(SKColor.line).frame(height: 1)
+            }
+            .padding(.top, SKSpace.sm)
+
+            SKCard(tint: .good) {
+                VStack(alignment: .leading, spacing: SKSpace.md) {
+                    HStack {
+                        if let saving = webSavingsText(s) {
+                            Text("SAVE \(saving)/MO")
+                                .font(SKFont.mono(11)).textCase(.uppercase).tracking(1)
+                                .foregroundStyle(SKColor.goodFg)
+                                .padding(.horizontal, 12).padding(.vertical, 5)
+                                .background(SKColor.goodBg, in: Capsule())
+                        }
+                        Spacer()
+                    }
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text("Pro Monthly on the web").font(SKFont.cardTitle).foregroundStyle(SKColor.ink)
+                        Text("\(webPriceText)/mo · billed securely through skinstel.com, same account")
+                            .font(SKFont.secondary).foregroundStyle(SKColor.muted)
+                    }
+                    SKButton(title: "Subscribe on Web", kind: .secondary) {
+                        env.analytics.track(.webSubscriptionTapped)
+                        openURL(env.config.webSubscribeURL)
+                        env.analytics.track(.webSubscriptionOpened)
+                    }
+                    Button("Already subscribed on the web? Refresh") {
+                        Task {
+                            env.analytics.track(.subscriptionStatusRefreshed)
+                            await env.subscription.load()
+                        }
+                    }
+                    .font(SKFont.sans(13, weight: .medium)).foregroundStyle(SKColor.muted).underline()
+                }
+            }
+        }
+    }
+
+    private var webPriceText: String {
+        WebOffer.monthlyPrice.formatted(.currency(code: WebOffer.currencyCode))
+    }
+
+    private func webSavingsText(_ s: SubscriptionService) -> String? {
+        guard let apple = s.product(.proMonthly) else { return nil }
+        let saving = apple.price - WebOffer.monthlyPrice
+        guard saving > 0 else { return nil }
+        return saving.formatted(.currency(code: apple.priceFormatStyle.currencyCode))
     }
 
     private var alreadyPro: some View {

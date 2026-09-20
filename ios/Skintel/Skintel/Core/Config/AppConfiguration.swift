@@ -10,6 +10,9 @@ struct AppConfiguration: Sendable {
     let api: APIConfig
     let termsURL: URL
     let privacyURL: URL
+    /// Skinstel's existing web pricing page (src/pages/Pricing.tsx) — the destination for
+    /// the secondary "Subscribe on Web" offer shown to US App Store storefront users only.
+    let webSubscribeURL: URL
 
     enum ConfigurationError: LocalizedError {
         case missing(String)
@@ -35,7 +38,8 @@ struct AppConfiguration: Sendable {
             supabase: SupabaseConfig(url: try url("SUPABASE_URL"), anonKey: try value("SUPABASE_ANON_KEY")),
             api: APIConfig(baseURL: try url("API_BASE_URL")),
             termsURL: try url("LEGAL_TERMS_URL"),
-            privacyURL: try url("LEGAL_PRIVACY_URL")
+            privacyURL: try url("LEGAL_PRIVACY_URL"),
+            webSubscribeURL: try url("WEB_SUBSCRIBE_URL")
         )
     }
 
@@ -44,6 +48,7 @@ struct AppConfiguration: Sendable {
         supabase: SupabaseConfig(url: URL(string: "https://example.supabase.co")!, anonKey: "preview"),
         api: APIConfig(baseURL: URL(string: "https://example.invalid/api")!),
         termsURL: URL(string: "https://www.skinstel.com/terms")!,
-        privacyURL: URL(string: "https://www.skinstel.com/privacy")!
+        privacyURL: URL(string: "https://www.skinstel.com/privacy")!,
+        webSubscribeURL: URL(string: "https://www.skinstel.com/pricing")!
     )
 }

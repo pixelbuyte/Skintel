@@ -18,3 +18,9 @@ API_BASE_URL = https:/$()/www.skinstel.com/api
 // as required, so leaving them unset makes the app start on its configuration-error screen.
 LEGAL_TERMS_URL = https:/$()/www.skinstel.com/terms
 LEGAL_PRIVACY_URL = https:/$()/www.skinstel.com/privacy
+
+// Skinstel's existing web pricing page. Shown as a secondary "Subscribe on Web" option on
+// the paywall, US App Store storefront only (see USStorefront.swift). This is the same
+// page src/pages/Pricing.tsx already serves and api/stripe-checkout.ts already checks out
+// against — not a new or temporary URL.
+WEB_SUBSCRIBE_URL = https:/$()/www.skinstel.com/pricing
