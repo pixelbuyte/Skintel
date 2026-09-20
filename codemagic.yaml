@@ -115,7 +115,10 @@ workflows:
     # (APP_STORE_CONNECT_ISSUER_ID / APP_STORE_CONNECT_KEY_IDENTIFIER / APP_STORE_CONNECT_PRIVATE_KEY)
     # to every `auth: integration` reference below - none of it is ever stored in this file.
     integrations:
-      app_store_connect: skintel_app_store_connect
+      # Must match the nickname of the App Store Connect key in Codemagic exactly.
+      # It is "codemagic1" (key id VAQW9PH3D6) - not the name this file originally
+      # guessed. Rename it here if the key is ever replaced.
+      app_store_connect: codemagic1
     environment:
       xcode: latest
       groups:
