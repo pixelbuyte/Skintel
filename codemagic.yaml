@@ -119,13 +119,11 @@ workflows:
     environment:
       xcode: latest
       groups:
-        # Create this group under Codemagic > Team settings > Environment variables with:
-        #   DEVELOPMENT_TEAM  - your 10-character Apple Developer Team ID (Membership page)
-        #   APP_APPLE_ID      - the app's numeric Apple ID from App Store Connect > General >
-        #                       App Information (only exists once the app record is created there)
-        # Neither value is a secret, but keeping them out of the yaml means updating them never
-        # requires a commit.
-        - ios_release
+        # This group already exists in Codemagic and holds DEVELOPMENT_TEAM (plus the
+        # Supabase/API values). It still needs APP_APPLE_ID: the app's numeric Apple ID
+        # from App Store Connect > General > App Information, which only exists once the
+        # app record has been created there. Neither value is a secret.
+        - skintel_ios_release
       ios_signing:
         distribution_type: app_store
         bundle_identifier: com.skintel.app
