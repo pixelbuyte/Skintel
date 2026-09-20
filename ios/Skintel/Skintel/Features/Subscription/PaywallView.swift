@@ -244,9 +244,17 @@ struct PaywallView: View {
                     }
                     VStack(alignment: .leading, spacing: 2) {
                         Text("Pro Monthly on the web").font(SKFont.cardTitle).foregroundStyle(SKColor.ink)
-                        Text("\(webPriceText)/mo · billed securely through skinstel.com, same account")
+                        Text("\(webPriceText)/mo · billed securely through skinstel.com")
                             .font(SKFont.secondary).foregroundStyle(SKColor.muted)
                     }
+                    // Web checkout has no session handoff from the app, so the account is matched
+                    // by email. Saying so here is the difference between Pro unlocking and not.
+                    Text("Check out with the same email you use for this Skintel account — that's how Pro unlocks in the app.")
+                        .font(SKFont.caption).foregroundStyle(SKColor.ink)
+                        .fixedSize(horizontal: false, vertical: true)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .padding(SKSpace.md)
+                        .background(SKColor.cream, in: RoundedRectangle(cornerRadius: SKRadius.tile, style: .continuous))
                     SKButton(title: "Subscribe on Web", kind: .secondary) {
                         env.analytics.track(.webSubscriptionTapped)
                         openURL(env.config.webSubscribeURL)

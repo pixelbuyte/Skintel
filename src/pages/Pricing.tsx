@@ -386,7 +386,7 @@ export default function Pricing() {
           />
           <Card
             name="Pro Monthly"
-            priceNumber={9}
+            priceNumber={8.99}
             period="/month"
             highlight
             features={[

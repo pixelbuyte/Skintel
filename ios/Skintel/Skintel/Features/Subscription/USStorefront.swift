@@ -18,6 +18,6 @@ enum USStorefront {
 /// `src/pages/Pricing.tsx` / `api/stripe-checkout.ts`, not in this app). Keep this in sync
 /// with that Stripe price by hand.
 enum WebOffer {
-    static let monthlyPrice: Decimal = 8.49
+    static let monthlyPrice: Decimal = 8.99
     static let currencyCode = "USD"
 }
