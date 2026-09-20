@@ -177,3 +177,16 @@ workflows:
         auth: integration
         submit_to_testflight: true
         submit_to_app_store: false
+        # What testers see in TestFlight. This branch is a design draft, not a release
+        # candidate, so the note says so out loud - nothing here has been on a device yet.
+        beta_build_localizations:
+          - locale: en-US
+            whats_new: |
+              TESTING BETA ONLY - not for release.
+
+              Design draft from the swift-app-design branch. Rebuilt: Journal, Compare,
+              Home, the paywall wording, product photos, the scanner palette, haptics,
+              routine templates, and a mascot-led pull to refresh.
+
+              Known: this is the first time any of it has run on a real device. Please
+              report how the haptics feel and whether pull-to-refresh tracks properly.
