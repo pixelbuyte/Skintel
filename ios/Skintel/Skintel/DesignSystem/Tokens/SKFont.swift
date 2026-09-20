@@ -3,6 +3,11 @@ import SwiftUI
 /// Type tokens. Instrument Serif for display, DM Sans for UI, JetBrains Mono for data
 /// (INCI names, barcodes, confidence, section labels). Every style is registered
 /// `relativeTo` a text style so Dynamic Type scales it.
+///
+/// Only the Regular and Italic cuts of Instrument Serif are bundled — there is no bold
+/// serif, and asking for one silently returns Regular. Anything that needs to read as
+/// heavy (a price, a title) uses DM Sans Bold instead. Adding a serif bold means adding
+/// a font file, which means regenerating the Xcode project, which needs a Mac.
 enum SKFont {
     static let serifName = "InstrumentSerif-Regular"
     static let serifItalicName = "InstrumentSerif-Italic"
@@ -37,10 +42,14 @@ enum SKFont {
     static let section = serif(24, relativeTo: .title2)           // "Recent scans"
     static let stat = serif(28, relativeTo: .title)               // 128 / 62 / 41
     static let score = serif(44, relativeTo: .largeTitle)         // ring number
-    static let price = serif(56, relativeTo: .largeTitle)
+
+    /// The amount she is about to pay. Sans Bold, not the serif: at display size the serif
+    /// Regular reads as decoration rather than a number to act on.
+    static let price = sans(48, weight: .bold, relativeTo: .largeTitle)
+    static let priceRow = sans(19, weight: .bold, relativeTo: .title3)
 
     static let navTitle = sans(17, weight: .semibold, relativeTo: .headline)
-    static let cardTitle = sans(17, weight: .semibold, relativeTo: .headline)
+    static let cardTitle = sans(17, weight: .bold, relativeTo: .headline)
     static let body = sans(16, relativeTo: .body)
     static let bodyMedium = sans(16, weight: .medium, relativeTo: .body)
     static let secondary = sans(14, relativeTo: .subheadline)

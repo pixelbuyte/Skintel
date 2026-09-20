@@ -73,13 +73,13 @@ struct PaywallView: View {
 
     private var reasonLine: String {
         switch reason {
-        case .scanner: "Barcode, label and link scanning run through Skintel's AI."
-        case .productLimit: "Free shelves hold five products. Pro shelves are unlimited."
+        case .scanner: "Scanning is part of Pro — a barcode, the label, or a link you paste."
+        case .productLimit: "A free shelf holds five products. Pro doesn't stop."
         case .compare: "The full ingredient read on two products, line by line."
-        case .recommend: "Personal picks are built from your full history."
-        case .routine: "Conflict checks read every step of your routine."
-        case .journalAnalysis, .culprits: "Journal analysis correlates 90 days of entries with your shelf."
-        case .general: "Unlimited scans, culprit detection on your full history, and more."
+        case .recommend: "Suggestions built from everything that's worked for you so far."
+        case .routine: "Skintel checks every step of your routine for things that clash."
+        case .journalAnalysis, .culprits: "Skintel reads 90 days of your journal against every product you own."
+        case .general: "Unlimited scans, and every ingredient you own checked against your own skin."
         }
     }
 
@@ -143,7 +143,7 @@ struct PaywallView: View {
                     Text(caption).font(SKFont.caption).foregroundStyle(SKColor.muted)
                 }
                 Spacer()
-                (Text(product.displayPrice).font(SKFont.sans(17, weight: .semibold)) + Text(" \(service?.periodText(id) ?? "")").font(SKFont.secondary))
+                (Text(product.displayPrice).font(SKFont.priceRow) + Text(" \(service?.periodText(id) ?? "")").font(SKFont.secondary))
                     .foregroundStyle(SKColor.ink)
             }
             .padding(SKSpace.lg)
@@ -155,21 +155,27 @@ struct PaywallView: View {
         .accessibilityAddTraits(selected == id ? [.isButton, .isSelected] : .isButton)
     }
 
+    /// Only what the paid tier actually unlocks (see `Entitlement`): scanning, the deep
+    /// server reads, routine clash checks, suggestions, and the shelf cap. Spotting
+    /// patterns in her own log stays free and on the phone, so it is not sold here.
     private var benefits: some View {
         VStack(alignment: .leading, spacing: SKSpace.md) {
-            benefit("Unlimited scans & AI verdicts")
-            benefit("Culprit detection on your full history")
-            benefit("Compare, routines & conflict alerts")
-            benefit("Unlimited products on your shelf")
+            benefit("Unlimited scans — barcode, label, or a link")
+            benefit("Every ingredient you own, checked against the days your skin reacted")
+            benefit("Your morning and night routine, checked for steps that clash")
+            benefit("Suggestions for what to try next, from what's already worked for you")
+            benefit("An unlimited shelf — the free one stops at five")
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding(.top, SKSpace.sm)
     }
 
     private func benefit(_ text: String) -> some View {
-        HStack(spacing: SKSpace.md) {
-            Text("✓").font(SKFont.sans(15, weight: .semibold)).foregroundStyle(SKColor.goodFg)
-            Text(text).font(SKFont.sans(17, relativeTo: .body)).foregroundStyle(SKColor.ink)
+        HStack(alignment: .firstTextBaseline, spacing: SKSpace.md) {
+            Text("✓").font(SKFont.sans(15, weight: .bold)).foregroundStyle(SKColor.goodFg)
+            Text(text).font(SKFont.sans(16, relativeTo: .body)).foregroundStyle(SKColor.ink)
+                .fixedSize(horizontal: false, vertical: true)
+            Spacer(minLength: 0)
         }
     }
 
