@@ -138,9 +138,34 @@ workflows:
       - name: Set up public client configuration (Config.xcconfig)
         script: |
           set -euo pipefail
-          cp "$CM_BUILD_DIR/ios/Skintel/Config/Config.example.xcconfig" \
-             "$CM_BUILD_DIR/ios/Skintel/Config/Config.xcconfig"
-          echo "DEVELOPMENT_TEAM = $DEVELOPMENT_TEAM" >> "$CM_BUILD_DIR/ios/Skintel/Config/Config.xcconfig"
+          # Build this from the environment group, never by copying the example: the
+          # example carries a placeholder anon key whose JWT signature is empty, and a
+          # release built from it fails every Supabase call - sign-in included - while
+          # still compiling and passing CI perfectly.
+
+          # xcconfig treats "//" as the start of a comment, so a bare URL would be
+          # truncated to "https:". $() expands to nothing and keeps the slashes intact.
+          esc() { printf '%s' "$1" | sed 's|//|/$()/|g'; }
+
+          # A Supabase anon key is header.payload.signature. Refuse to ship one that is
+          # missing the signature rather than hand testers an app that cannot log in.
+          SEGMENTS=$(printf '%s' "$SUPABASE_ANON_KEY" | awk -F. '{print NF}')
+          LAST=${SUPABASE_ANON_KEY##*.}
+          if [ "$SEGMENTS" -ne 3 ] || [ -z "$LAST" ]; then
+            echo "SUPABASE_ANON_KEY is not a complete JWT: $SEGMENTS segment(s), signature empty=$([ -z "$LAST" ] && echo yes || echo no)."
+            echo "Copy the full anon key from Supabase > Project Settings > API into the"
+            echo "skintel_ios_release environment group."
+            exit 1
+          fi
+
+          CFG="$CM_BUILD_DIR/ios/Skintel/Config/Config.xcconfig"
+          {
+            echo "DEVELOPMENT_TEAM = $DEVELOPMENT_TEAM"
+            echo "SUPABASE_URL = $(esc "$SUPABASE_URL")"
+            echo "SUPABASE_ANON_KEY = $(esc "$SUPABASE_ANON_KEY")"
+            echo "API_BASE_URL = $(esc "$API_BASE_URL")"
+          } > "$CFG"
+          echo "Config.xcconfig written from the environment group (anon key: 3 segments, signed)."
 
       - name: Resolve Swift Package Manager dependencies
         script: |
