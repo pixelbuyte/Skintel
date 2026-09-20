@@ -160,7 +160,18 @@ workflows:
           # Falls back to 0 (-> build 1) the first time, before any build has ever been uploaded.
           LATEST_BUILD_NUMBER=$(app-store-connect get-latest-app-store-build-number "$APP_APPLE_ID" || echo 0)
           echo "Latest App Store Connect build number: $LATEST_BUILD_NUMBER"
-          echo "BUILD_NUMBER=$((LATEST_BUILD_NUMBER + 1))" >> "$CM_ENV"
+          CANDIDATE=$((LATEST_BUILD_NUMBER + 1))
+          # A build that uploads and then fails Apple's processing still burns its number,
+          # but get-latest-app-store-build-number keeps reporting the last *processed* one -
+          # so this would hand back the burnt number forever and collide. Codemagic's own
+          # counter only ever goes up, so use it whenever it is ahead.
+          CM_INDEX=${PROJECT_BUILD_NUMBER:-0}
+          if [ "$CM_INDEX" -gt "$CANDIDATE" ]; then
+            echo "App Store Connect says $CANDIDATE, Codemagic counter is $CM_INDEX - using $CM_INDEX"
+            CANDIDATE=$CM_INDEX
+          fi
+          echo "Using build number: $CANDIDATE"
+          echo "BUILD_NUMBER=$CANDIDATE" >> "$CM_ENV"
 
       - name: Build ipa for distribution
         script: |
