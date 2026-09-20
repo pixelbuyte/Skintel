@@ -61,14 +61,16 @@ struct ScannerHostView: View {
 
     private func scanner(_ model: ScanFlowModel) -> some View {
         ZStack {
-            SKColor.scannerBg.ignoresSafeArea()
+            SKColor.Scanner.ground.ignoresSafeArea()
 
             if permission == .authorized {
                 BarcodeScannerView(paused: model.phase != .scanning, torchOn: model.torchOn) { code in
                     model.handleBarcode(code)
                 }
                 .ignoresSafeArea()
-                LinearGradient(colors: [.black.opacity(0.45), .clear, .clear, .black.opacity(0.55)],
+                // Warm scrim top and bottom: enough to carry cream text over a bright
+                // kitchen counter, clear through the middle so the label stays readable.
+                LinearGradient(colors: [SKColor.Scanner.scrimTop, .clear, .clear, SKColor.Scanner.scrimBottom],
                                startPoint: .top, endPoint: .bottom)
                 .ignoresSafeArea()
                 .allowsHitTesting(false)
@@ -93,7 +95,7 @@ struct ScannerHostView: View {
 
                 if permission == .authorized {
                     ZStack {
-                        ViewfinderBrackets(color: .white, lineWidth: 3.5, corner: 26, length: 34)
+                        ViewfinderBrackets(color: SKColor.Scanner.bracket, lineWidth: 3.5, corner: 26, length: 34)
                             .frame(width: 290, height: 200)
                         ScanLine()
                     }
@@ -101,9 +103,9 @@ struct ScannerHostView: View {
 
                     Text(caption(model))
                         .font(SKFont.sans(15, weight: .medium, relativeTo: .subheadline))
-                        .foregroundStyle(.white)
+                        .foregroundStyle(SKColor.Scanner.captionInk)
                         .padding(.horizontal, 18).padding(.vertical, 12)
-                        .background(.black.opacity(0.55), in: Capsule())
+                        .background(SKColor.Scanner.captionBg, in: Capsule())
                         .padding(.top, SKSpace.lg)
                         .animation(SKAnimation.ios(0.3), value: model.phase)
                 }
@@ -165,11 +167,11 @@ struct ScannerHostView: View {
                 Image(systemName: icon).font(.system(size: 15, weight: .semibold))
                 Text(title).font(SKFont.sans(15, weight: .semibold, relativeTo: .subheadline)).lineLimit(1)
             }
-            .foregroundStyle(.white)
+            .foregroundStyle(SKColor.Scanner.pillInk)
             .frame(maxWidth: .infinity)
             .frame(height: 52)
-            .background(.white.opacity(0.14), in: RoundedRectangle(cornerRadius: SKRadius.button, style: .continuous))
-            .overlay(RoundedRectangle(cornerRadius: SKRadius.button, style: .continuous).stroke(.white.opacity(0.18)))
+            .background(SKColor.Scanner.pillFill, in: RoundedRectangle(cornerRadius: SKRadius.button, style: .continuous))
+            .overlay(RoundedRectangle(cornerRadius: SKRadius.button, style: .continuous).stroke(SKColor.Scanner.pillStroke))
         }
         .buttonStyle(SKPressStyle())
     }
@@ -178,13 +180,13 @@ struct ScannerHostView: View {
 
     private var permissionState: some View {
         VStack(spacing: SKSpace.lg) {
-            Image(systemName: "camera").font(.system(size: 34, weight: .light)).foregroundStyle(.white)
+            Image(systemName: "camera").font(.system(size: 34, weight: .light)).foregroundStyle(SKColor.Scanner.bracket)
             Text(permission == .denied ? "Camera is off for Skintel" : "Camera access")
-                .font(SKFont.section).foregroundStyle(.white)
+                .font(SKFont.section).foregroundStyle(SKColor.Scanner.bracket)
             Text(permission == .denied
                  ? "Turn it on in Settings to scan barcodes. You can still type a barcode or paste ingredients."
                  : "Skintel needs the camera to read barcodes.")
-                .font(SKFont.secondary).foregroundStyle(.white.opacity(0.75)).multilineTextAlignment(.center)
+                .font(SKFont.secondary).foregroundStyle(SKColor.Scanner.bracket.opacity(0.75)).multilineTextAlignment(.center)
             if permission == .denied {
                 SKButton(title: "Open Settings", kind: .secondary, fullWidth: false) { CameraPermission.openSettings() }
             }
@@ -202,7 +204,7 @@ struct ScannerHostView: View {
                 Spacer()
                 ScannerIllustration().frame(height: 200).frame(maxWidth: .infinity)
                 Text("Scanning is a Pro feature").font(SKFont.section).foregroundStyle(SKColor.ink)
-                Text("Barcode, label photo and link import all run through Skintel's AI. Free accounts can add up to five products by pasting the ingredient list.")
+                Text("Barcode, label photo and link import all read the full ingredient list for you. Free accounts can add up to five products by pasting the list in by hand.")
                     .font(SKFont.secondary).foregroundStyle(SKColor.muted).multilineTextAlignment(.center)
                 SKButton(title: "See Skintel Pro") { openPaywall(.scanner) }
                 SKButton(title: "Add a product by hand", kind: .secondary) { path.append(.productForm(.add(prefill: nil))) }
@@ -214,16 +216,16 @@ struct ScannerHostView: View {
     }
 }
 
-/// Terracotta line that breathes up and down inside the brackets.
+/// Peach line that breathes up and down inside the brackets.
 private struct ScanLine: View {
     @State private var down = false
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     var body: some View {
         Capsule()
-            .fill(LinearGradient(colors: [SKColor.primary.opacity(0), Color(hex: 0xE39A86), SKColor.primary.opacity(0)],
+            .fill(LinearGradient(colors: [SKColor.Scanner.scanCore.opacity(0), SKColor.Scanner.scanCore, SKColor.Scanner.scanCore.opacity(0)],
                                  startPoint: .leading, endPoint: .trailing))
             .frame(width: 260, height: 3)
-            .shadow(color: SKColor.primary.opacity(0.8), radius: 8)
+            .shadow(color: SKColor.Scanner.scanGlow.opacity(0.8), radius: 8)
             .offset(y: reduceMotion ? 0 : (down ? 62 : -62))
             .onAppear {
                 guard !reduceMotion else { return }

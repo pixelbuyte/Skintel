@@ -21,9 +21,35 @@ enum SKColor {
     static let cautionBg = Color(hex: 0xFFF4E0)
     static let cautionFg = Color(hex: 0x8B6914)
 
-    /// Scanner / camera surfaces.
-    static let scannerBg = Color(hex: 0x0B0A08)
-    static let scannerOverlay = Color.black.opacity(0.35)
+    /// Scanner / camera surfaces. Every colour the camera screen uses lives here so the
+    /// whole palette can be retuned from one place when the reference shot lands.
+    /// Warm cream and peach on a warm-black scrim, rather than pure white on pure black.
+    enum Scanner {
+        /// Warm near-black behind the camera feed; a hair warmer than the old 0x0B0A08.
+        static let ground = Color(hex: 0x120D0A)
+        /// Top and bottom scrims. Warm brown-black so the cream chrome doesn't read cold.
+        static let scrimTop = Color(hex: 0x120D0A).opacity(0.50)
+        static let scrimBottom = Color(hex: 0x120D0A).opacity(0.62)
+        /// Viewfinder brackets — warm cream, not pure white.
+        static let bracket = Color(hex: 0xFFF4E8)
+        /// The breathing scan line: peach core fading to nothing at both ends.
+        static let scanCore = Color(hex: 0xF0A88C)
+        static let scanGlow = Color(hex: 0xE08A6B)
+        /// Caption pill behind the instruction text.
+        static let captionBg = Color(hex: 0x120D0A).opacity(0.58)
+        static let captionInk = Color(hex: 0xFFF4E8)
+        /// "Type it" / "Photo of ingredients" pills.
+        static let pillFill = Color(hex: 0xFFF4E8).opacity(0.15)
+        static let pillStroke = Color(hex: 0xFFF4E8).opacity(0.28)
+        static let pillInk = Color(hex: 0xFFF4E8)
+    }
+
+    /// Kept for anything still referring to the flat overlay.
+    static let scannerBg = Scanner.ground
+    static let scannerOverlay = Scanner.scrimTop
+
+    /// Quiet placeholder while a product photo loads — never flashes the initial first.
+    static let tileLoading = Color(hex: 0xEDE6DB)
 
     /// Pastel tiles behind product initials (design §07/§11). Deterministic per name.
     static let tilePalette: [(bg: Color, fg: Color)] = [
