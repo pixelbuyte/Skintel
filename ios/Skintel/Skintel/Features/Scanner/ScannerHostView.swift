@@ -3,7 +3,8 @@ import SwiftUI
 import SkintelCore
 
 /// Design §08/§09. Full-bleed camera with the bracketed viewfinder and a breathing scan
-/// line; "Type it" and "Photo of ingredients" as the escape hatches. Scanning is Pro on
+/// line; "Type it" and "Photo of ingredients" as the escape hatches on the full-screen
+/// scanner. Scanning is Pro on
 /// the server (402), so free accounts see an honest locked state that still lets them add
 /// products by hand.
 struct ScannerHostView: View {
@@ -110,9 +111,13 @@ struct ScannerHostView: View {
 
                 Spacer()
 
-                actionPills
-                    .padding(.horizontal, SKSpace.xl)
-                    .padding(.bottom, embedded ? SKSpace.lg : SKSpace.xxl)
+                // Full-screen scanner (the + button) only. In the Scanner tab they'd sit under
+                // the floating glass tab bar, and + is one tap away there anyway.
+                if !embedded {
+                    actionPills
+                        .padding(.horizontal, SKSpace.xl)
+                        .padding(.bottom, SKSpace.xxl)
+                }
             }
         }
         .statusBarHidden(!embedded)

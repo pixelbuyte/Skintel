@@ -28,17 +28,35 @@ enum MainTab: Hashable, CaseIterable {
 struct MainTabView: View {
     @Environment(AppEnvironment.self) private var env
     @State private var tab: MainTab = .home
+    @State private var visited: Set<MainTab> = [.home]
+    @State private var scrubbing = false
+    /// Whether the Scanner tab's camera is mounted: false while a slide is passing over it.
+    @State private var scannerLive = false
     @State private var presentScanner = false
     @State private var paywall: PaywallReason?
 
     var body: some View {
         ZStack(alignment: .bottom) {
-            Group {
-                switch tab {
-                case .home: HomeView()
-                case .scanner: ScannerHostView(embedded: true)
-                case .compare: CompareView()
-                case .journal: JournalView()
+            ZStack {
+                // Like a system TabView, a visited page stays alive while hidden: switching
+                // back is instant, keeps scroll/navigation state, and doesn't re-run `.task`
+                // loads each time a finger slides across its tab.
+                ForEach([MainTab.home, .compare, .journal], id: \.self) { t in
+                    if tab == t || visited.contains(t) {
+                        page(t)
+                            .opacity(tab == t ? 1 : 0)
+                            .allowsHitTesting(tab == t)
+                            .accessibilityHidden(tab != t)
+                    }
+                }
+                // The camera is torn down whenever Scanner isn't showing, and only starts once
+                // a slide settles on it, so passing over the tab never spins it up.
+                if tab == .scanner {
+                    if scannerLive {
+                        ScannerHostView(embedded: true)
+                    } else {
+                        SKColor.scannerBg.ignoresSafeArea()
+                    }
                 }
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -46,7 +64,7 @@ struct MainTabView: View {
                 Color.clear.frame(height: SKTabBar.height)
             }
 
-            SKTabBar(selection: $tab) {
+            SKTabBar(selection: $tab, isScrubbing: $scrubbing) {
                 if env.subscription.entitlement.canUseScanner {
                     Haptics.medium()
                     presentScanner = true
@@ -56,6 +74,13 @@ struct MainTabView: View {
             }
         }
         .ignoresSafeArea(.keyboard, edges: .bottom)
+        .onChange(of: tab) { _, t in
+            visited.insert(t)
+            scannerLive = t == .scanner && !scrubbing
+        }
+        .onChange(of: scrubbing) { _, sliding in
+            if !sliding, tab == .scanner { scannerLive = true }
+        }
         .fullScreenCover(isPresented: $presentScanner) {
             ScannerHostView(embedded: false)
         }
@@ -64,10 +89,22 @@ struct MainTabView: View {
         }
         .environment(\.openPaywall, OpenPaywallAction { reason in paywall = reason })
     }
+
+    @ViewBuilder
+    private func page(_ t: MainTab) -> some View {
+        switch t {
+        case .home: HomeView()
+        case .compare: CompareView()
+        case .journal: JournalView()
+        case .scanner: EmptyView()
+        }
+    }
 }
 
 struct SKTabBar: View {
     @Binding var selection: MainTab
+    /// True while a finger is sliding across the tabs (the iOS 26 bar; the classic bar is tap-only).
+    @Binding var isScrubbing: Bool
     let fabAction: () -> Void
     /// Space reserved under screen content so the last row scrolls clear of the bar.
     static let height: CGFloat = 62
@@ -77,7 +114,7 @@ struct SKTabBar: View {
         // Xcode 26 ships Swift 6.2 alongside the SDK that has the Liquid Glass APIs.
         #if compiler(>=6.2)
         if #available(iOS 26, *) {
-            SKGlassTabBar(selection: $selection, fabAction: fabAction)
+            SKGlassTabBar(selection: $selection, isScrubbing: $isScrubbing, fabAction: fabAction)
         } else {
             classicBar
         }
@@ -150,23 +187,22 @@ private let glassTabBarSpace = "SKGlassTabBar"
 /// `Color.primary` rather than `SKColor.muted` so they stay legible when the glass adapts
 /// over dark content (the embedded Scanner tab is a black camera view).
 ///
-/// Like the system iOS 26 tab bar, you can press and slide: the pill follows the finger
-/// across both capsules (ticking on each tab) and the tab switches on lift. Switching only
-/// on lift keeps the Scanner tab's camera from starting and stopping mid-slide.
+/// Like the system iOS 26 tab bar you can press and slide: the pill tracks the finger on a
+/// spring, and the tab under it becomes the selected tab as you go (with a tick), so the
+/// screen changes live. The capsules use non-interactive glass so they don't stretch toward
+/// the finger mid-slide, and the container never blends them into the tinted FAB.
 @available(iOS 26, *)
 private struct SKGlassTabBar: View {
     @Binding var selection: MainTab
+    @Binding var isScrubbing: Bool
     let fabAction: () -> Void
-    @Namespace private var selectionPill
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State private var tabFrames: [MainTab: CGRect] = [:]
-    /// Tab under the finger while pressing; resets to nil when the touch ends or is cancelled.
-    @GestureState private var scrubbing: MainTab? = nil
-
-    private var highlighted: MainTab { scrubbing ?? selection }
+    /// Finger x in bar space while touching the tabs; resets to nil on lift or cancel.
+    @GestureState private var touchX: CGFloat? = nil
 
     var body: some View {
-        GlassEffectContainer(spacing: 8) {
+        GlassEffectContainer(spacing: 0) {
             HStack(spacing: 10) {
                 capsule(.home, .scanner)
                 fab
@@ -175,9 +211,37 @@ private struct SKGlassTabBar: View {
         }
         .coordinateSpace(.named(glassTabBarSpace))
         .padding(.horizontal, 16)
-        // Scoped here so only the selection pill animates, not MainTabView's screen swap.
-        // Reduce Motion still shows the pill move, just as an instant cut, not a slide.
-        .animation(reduceMotion ? nil : SKAnimation.emil(0.4), value: highlighted)
+        // Scoped here so only the bar animates, not MainTabView's screen swap.
+        .animation(lensAnimation, value: lensX)
+        // A cancelled touch skips onEnded; the gesture state resetting still clears it.
+        .onChange(of: touchX == nil) { _, idle in if idle { isScrubbing = false } }
+    }
+
+    /// Tight while following a finger, a softer settle once it lets go. Reduce Motion keeps
+    /// the pill moving with the finger, just without the spring.
+    private var lensAnimation: Animation? {
+        if reduceMotion { return nil }
+        return touchX == nil
+            ? Animation.spring(response: 0.38, dampingFraction: 0.74)
+            : Animation.interactiveSpring(response: 0.2, dampingFraction: 0.86)
+    }
+
+    /// Pill centre in bar space: under the finger while pressing (held inside that finger's
+    /// capsule), otherwise on the selected tab.
+    private var lensX: CGFloat? {
+        guard let x = touchX, let t = nearestTab(to: x) else { return tabFrames[selection]?.midX }
+        let pair = Self.capsulePair(containing: t)
+        guard let lo = tabFrames[pair.0]?.midX, let hi = tabFrames[pair.1]?.midX else {
+            return tabFrames[selection]?.midX
+        }
+        return min(max(x, lo), hi)
+    }
+
+    private static func capsulePair(containing t: MainTab) -> (MainTab, MainTab) {
+        switch t {
+        case .home, .scanner: return (MainTab.home, MainTab.scanner)
+        case .compare, .journal: return (MainTab.compare, MainTab.journal)
+        }
     }
 
     private func capsule(_ leading: MainTab, _ trailing: MainTab) -> some View {
@@ -185,25 +249,42 @@ private struct SKGlassTabBar: View {
             tabItem(leading)
             tabItem(trailing)
         }
+        .background { lens(from: leading) }
         .padding(4)
-        .glassEffect(.regular.interactive(), in: Capsule())
+        .glassEffect(.regular, in: Capsule())
         .contentShape(Capsule())
         .gesture(scrub)
+    }
+
+    /// Drawn in both capsules at the same bar x and clipped to each, so crossing between
+    /// them reads as the pill sliding under the FAB rather than jumping.
+    @ViewBuilder
+    private func lens(from leading: MainTab) -> some View {
+        if let x = lensX, let origin = tabFrames[leading] {
+            Capsule()
+                .fill(SKColor.primary.opacity(touchX == nil ? 0.12 : 0.18))
+                .frame(width: origin.width, height: origin.height)
+                .offset(x: x - origin.midX)
+                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .leading)
+                .clipShape(Capsule())
+        }
     }
 
     /// Starts on touch-down (so a plain tap still works) and keeps tracking after the finger
     /// leaves its capsule, so one slide can cross the FAB into the other capsule.
     private var scrub: some Gesture {
         DragGesture(minimumDistance: 0, coordinateSpace: .named(glassTabBarSpace))
-            .updating($scrubbing) { value, state, _ in
-                guard let t = nearestTab(to: value.location.x), t != state else { return }
-                if t != (state ?? selection) { Haptics.selection() }
-                state = t
+            .updating($touchX) { value, state, _ in
+                state = value.location.x
             }
-            .onEnded { value in
+            .onChanged { value in
+                // Set before `selection` so MainTabView sees the slide when the tab changes.
+                if !isScrubbing { isScrubbing = true }
                 guard let t = nearestTab(to: value.location.x), t != selection else { return }
+                Haptics.selection()
                 selection = t
             }
+            .onEnded { _ in isScrubbing = false }
     }
 
     private func nearestTab(to x: CGFloat) -> MainTab? {
@@ -211,21 +292,14 @@ private struct SKGlassTabBar: View {
     }
 
     private func tabItem(_ t: MainTab) -> some View {
-        let isHighlighted = highlighted == t
+        let isSelected = selection == t
         return VStack(spacing: 3) {
             Image(systemName: t.icon).font(.system(size: 20, weight: .regular))
             Text(t.title).font(SKFont.tab)
         }
-        .foregroundStyle(isHighlighted ? SKColor.primary : Color.primary)
+        .foregroundStyle(isSelected ? SKColor.primary : Color.primary)
         .frame(maxWidth: .infinity)
         .frame(height: 48)
-        .background {
-            if isHighlighted {
-                Capsule()
-                    .fill(SKColor.primary.opacity(0.12))
-                    .matchedGeometryEffect(id: "selection", in: selectionPill)
-            }
-        }
         .onGeometryChange(for: CGRect.self) { proxy in
             proxy.frame(in: .named(glassTabBarSpace))
         } action: { frame in
