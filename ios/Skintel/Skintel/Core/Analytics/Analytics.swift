@@ -23,6 +23,10 @@ enum AnalyticsEvent: Sendable {
     case purchaseStarted(productID: String)
     case purchaseCompleted(productID: String)
     case restoreCompleted
+    case appleSubscriptionTapped(productID: String)
+    case webSubscriptionTapped
+    case webSubscriptionOpened
+    case subscriptionStatusRefreshed
 
     var name: String {
         switch self {
@@ -39,6 +43,10 @@ enum AnalyticsEvent: Sendable {
         case .purchaseStarted: "purchase_started"
         case .purchaseCompleted: "purchase_completed"
         case .restoreCompleted: "restore_completed"
+        case .appleSubscriptionTapped: "apple_subscription_tapped"
+        case .webSubscriptionTapped: "web_subscription_tapped"
+        case .webSubscriptionOpened: "web_subscription_opened"
+        case .subscriptionStatusRefreshed: "subscription_status_refreshed"
         }
     }
 
@@ -49,6 +57,7 @@ enum AnalyticsEvent: Sendable {
         case .scanCompleted(let v): ["verdict": v]
         case .paywallViewed(let r): ["reason": r]
         case .purchaseStarted(let p), .purchaseCompleted(let p): ["product_id": p]
+        case .appleSubscriptionTapped(let p): ["product_id": p]
         default: [:]
         }
     }

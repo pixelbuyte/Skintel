@@ -1,3 +1,4 @@
+import Foundation
 import StoreKit
 import SwiftUI
 import SkintelCore
@@ -9,8 +10,11 @@ struct PaywallView: View {
     let reason: PaywallReason
     @Environment(AppEnvironment.self) private var env
     @Environment(\.dismiss) private var dismiss
+    @Environment(\.openURL) private var openURL
     @State private var service: SubscriptionService?
     @State private var selected: SubscriptionService.ProductID = .founding
+    @State private var isUSStorefront = false
+    @State private var appeared = false
 
     var body: some View {
         NavigationStack {
@@ -23,6 +27,7 @@ struct PaywallView: View {
                         plans(service)
                         benefits
                         cta(service)
+                        if isUSStorefront { webOffer(service) }
                     } else {
                         SKLoadingView(message: "Loading plans…").frame(height: 200)
                     }
@@ -47,8 +52,11 @@ struct PaywallView: View {
             s.startObserving()
             async let p: () = s.loadProducts()
             async let f: () = env.subscription.loadFoundingSeats()
-            _ = await (p, f)
+            async let us: Bool = USStorefront.isActive()
+            let (_, _, usResult) = await (p, f, us)
+            isUSStorefront = usResult
             if (env.subscription.foundingSeatsRemaining ?? 1) <= 0 || s.product(.founding) == nil { selected = .proYearly }
+            appeared = true
         }
         .onChange(of: env.subscription.entitlement.isPro) { _, isPro in
             if isPro { Task { try? await Task.sleep(for: .seconds(1.2)); dismiss() } }
@@ -155,30 +163,100 @@ struct PaywallView: View {
         .accessibilityAddTraits(selected == id ? [.isButton, .isSelected] : .isButton)
     }
 
+    private struct ProBenefit: Identifiable {
+        let order: Int
+        let symbol: String
+        let title: String
+        let detail: String
+        var id: String { symbol }
+    }
+
+    /// Every symbol here is either already used elsewhere in the app or a core SF Symbol.
+    /// `order` drives the entrance stagger — a plain `ForEach` over these avoids needing a
+    /// key path into `enumerated()`'s tuple, which Swift does not allow.
+    private static let proBenefits: [ProBenefit] = [
+        ProBenefit(order: 0, symbol: "barcode.viewfinder", title: "Scan before you buy",
+                   detail: "Barcode or label — a full ingredient read and a verdict in seconds."),
+        ProBenefit(order: 1, symbol: "exclamationmark.triangle", title: "Catches products that clash",
+                   detail: "Retinol stacked with acids and other conflicts, flagged before they cost you a barrier."),
+        ProBenefit(order: 2, symbol: "wand.and.stars", title: "Picks that suit your skin",
+                   detail: "Suggestions built from your own history — not a generic top-ten list."),
+        ProBenefit(order: 3, symbol: "square.stack", title: "Your whole shelf, no cap",
+                   detail: "Free stops at five products. Pro tracks everything you own.")
+    ]
+
     private var benefits: some View {
-        VStack(alignment: .leading, spacing: SKSpace.md) {
-            benefit("Unlimited scans & AI verdicts")
-            benefit("Culprit detection on your full history")
-            benefit("Compare, routines & conflict alerts")
-            benefit("Unlimited products on your shelf")
+        VStack(spacing: SKSpace.sm) {
+            Text("What Pro unlocks")
+                .font(SKFont.label).textCase(.uppercase).tracking(1.6)
+                .foregroundStyle(SKColor.muted)
+                .frame(maxWidth: .infinity)
+                .padding(.bottom, SKSpace.xs)
+            leadBenefit
+            ForEach(Self.proBenefits) { item in
+                benefitRow(item)
+                    .opacity(appeared ? 1 : 0)
+                    .offset(y: appeared ? 0 : 10)
+                    .animation(SKAnimation.emil().delay(0.08 + Double(item.order) * 0.07), value: appeared)
+            }
         }
-        .frame(maxWidth: .infinity, alignment: .leading)
         .padding(.top, SKSpace.sm)
     }
 
-    private func benefit(_ text: String) -> some View {
-        HStack(spacing: SKSpace.md) {
-            Text("✓").font(SKFont.sans(15, weight: .semibold)).foregroundStyle(SKColor.goodFg)
-            Text(text).font(SKFont.sans(17, relativeTo: .body)).foregroundStyle(SKColor.ink)
+    private var leadBenefit: some View {
+        VStack(alignment: .leading, spacing: SKSpace.sm) {
+            HStack(spacing: SKSpace.md) {
+                benefitIcon("magnifyingglass")
+                Text("Names your trigger ingredient").font(SKFont.cardTitle).foregroundStyle(SKColor.ink)
+            }
+            Text("Cross-checks every product you own against the days your skin actually reacted — and tells you which ingredient they share.")
+                .font(SKFont.secondary).foregroundStyle(SKColor.muted)
+                .fixedSize(horizontal: false, vertical: true)
         }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(SKSpace.lg)
+        .background(SKColor.cream, in: RoundedRectangle(cornerRadius: SKRadius.card, style: .continuous))
+        .overlay(RoundedRectangle(cornerRadius: SKRadius.card, style: .continuous)
+            .stroke(SKColor.primary.opacity(0.3), lineWidth: 1.5))
+        .opacity(appeared ? 1 : 0)
+        .offset(y: appeared ? 0 : 10)
+        .animation(SKAnimation.emil(), value: appeared)
+    }
+
+    private func benefitRow(_ item: ProBenefit) -> some View {
+        HStack(alignment: .top, spacing: SKSpace.md) {
+            benefitIcon(item.symbol)
+            VStack(alignment: .leading, spacing: 3) {
+                Text(item.title).font(SKFont.sans(15, weight: .semibold, relativeTo: .body)).foregroundStyle(SKColor.ink)
+                Text(item.detail).font(SKFont.caption).foregroundStyle(SKColor.muted)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+            Spacer(minLength: 0)
+        }
+        .padding(SKSpace.md)
+        .background(SKColor.cream, in: RoundedRectangle(cornerRadius: SKRadius.card, style: .continuous))
+        .overlay(RoundedRectangle(cornerRadius: SKRadius.card, style: .continuous)
+            .stroke(SKColor.line, lineWidth: 1))
+    }
+
+    private func benefitIcon(_ symbol: String) -> some View {
+        Image(systemName: symbol)
+            .font(.system(size: 15, weight: .medium))
+            .foregroundStyle(SKColor.primary)
+            .frame(width: 30, height: 30)
+            .background(SKColor.primary.opacity(0.11), in: RoundedRectangle(cornerRadius: 9, style: .continuous))
+            .symbolEffect(.bounce, value: appeared)
     }
 
     private func cta(_ s: SubscriptionService) -> some View {
         VStack(spacing: SKSpace.md) {
             if let msg = s.lastMessage { Text(msg).font(SKFont.secondary).foregroundStyle(SKColor.cautionFg).multilineTextAlignment(.center) }
             if case .failed(let msg) = s.phase, !s.products.isEmpty { SKInlineError(message: msg) }
-            SKButton(title: ctaTitle(s), kind: .dark, isLoading: isBusy(s.phase)) { Task { await s.purchase(selected) } }
-                .disabled(s.product(selected) == nil)
+            SKButton(title: ctaTitle(s), kind: .primary, isLoading: isBusy(s.phase)) {
+                env.analytics.track(.appleSubscriptionTapped(productID: selected.rawValue))
+                Task { await s.purchase(selected) }
+            }
+            .disabled(s.product(selected) == nil)
             if selected != .founding {
                 Text("Auto-renews until cancelled in App Store settings. Cancel at least 24 hours before the period ends to avoid renewal.")
                     .font(SKFont.caption).foregroundStyle(SKColor.muted).multilineTextAlignment(.center)
@@ -204,6 +282,88 @@ struct PaywallView: View {
         case .purchasing, .verifying, .restoring: true
         default: false
         }
+    }
+
+    // MARK: Web offer (US storefront only)
+
+    /// Same Pro Monthly plan, purchased on skinstel.com instead of the App Store. Shown
+    /// only when `USStorefront.isActive()` is true — never as a replacement for Apple's
+    /// flow, just a second option underneath it. Apple's live `displayPrice` is never
+    /// hardcoded here; only the web price is a fixed constant (see `WebOffer`), since
+    /// there is no client-side way to read the live Stripe price.
+    private func webOffer(_ s: SubscriptionService) -> some View {
+        VStack(spacing: SKSpace.md) {
+            HStack(spacing: SKSpace.sm) {
+                Rectangle().fill(SKColor.line).frame(height: 1)
+                Text("OR").font(SKFont.mono(11)).foregroundStyle(SKColor.muted)
+                Rectangle().fill(SKColor.line).frame(height: 1)
+            }
+            .padding(.top, SKSpace.sm)
+
+            VStack(alignment: .leading, spacing: SKSpace.md) {
+                HStack(spacing: SKSpace.sm) {
+                    Text("On skinstel.com")
+                        .font(SKFont.label).textCase(.uppercase).tracking(1.4)
+                        .foregroundStyle(SKColor.primary)
+                    Spacer(minLength: 0)
+                    if let saving = webSavingsText(s) {
+                        Text("Save \(saving)").font(SKFont.chip).foregroundStyle(SKColor.primary)
+                            .padding(.horizontal, 10).padding(.vertical, 5)
+                            .background(SKColor.cream, in: Capsule())
+                    }
+                }
+                HStack(alignment: .firstTextBaseline, spacing: 6) {
+                    Text(webPriceText).font(SKFont.serif(30, relativeTo: .title)).foregroundStyle(SKColor.ink)
+                    Text("/month").font(SKFont.secondary).foregroundStyle(SKColor.muted)
+                    Spacer(minLength: 0)
+                    if let apple = s.product(.proMonthly) {
+                        Text(apple.displayPrice).font(SKFont.secondary).foregroundStyle(SKColor.muted).strikethrough()
+                    }
+                }
+                // Web checkout has no session handoff from the app, so the account is matched
+                // by email. Saying so here is the difference between Pro unlocking and not.
+                Text("Check out with the same email you use for this Skintel account — that's how Pro unlocks in the app.")
+                    .font(SKFont.caption).foregroundStyle(SKColor.ink)
+                    .fixedSize(horizontal: false, vertical: true)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .padding(SKSpace.md)
+                    .background(SKColor.cream, in: RoundedRectangle(cornerRadius: SKRadius.tile, style: .continuous))
+                SKButton(title: "Subscribe on the web", kind: .secondary) {
+                    env.analytics.track(.webSubscriptionTapped)
+                    openURL(env.config.webSubscribeURL)
+                    env.analytics.track(.webSubscriptionOpened)
+                }
+                Button("Already subscribed? Refresh") {
+                    Task {
+                        env.analytics.track(.subscriptionStatusRefreshed)
+                        await env.subscription.load()
+                    }
+                }
+                .font(SKFont.sans(13, weight: .medium)).foregroundStyle(SKColor.muted).underline()
+                .frame(maxWidth: .infinity)
+            }
+            .padding(SKSpace.lg)
+            .background(LinearGradient(colors: [SKColor.cream, SKColor.blush], startPoint: .top, endPoint: .bottom),
+                        in: RoundedRectangle(cornerRadius: SKRadius.card, style: .continuous))
+            .overlay(RoundedRectangle(cornerRadius: SKRadius.card, style: .continuous)
+                .stroke(SKColor.primary.opacity(0.3), lineWidth: 1.5))
+        }
+    }
+
+    private var webPriceText: String {
+        WebOffer.monthlyPrice.formatted(.currency(code: WebOffer.currencyCode))
+    }
+
+    /// A percentage rather than a dollar figure, derived from Apple's live price so it can
+    /// never advertise a discount the user doesn't actually get. Truncated, so it rounds
+    /// down — understating the saving is safe, overstating it is not.
+    private func webSavingsText(_ s: SubscriptionService) -> String? {
+        guard let apple = s.product(.proMonthly), apple.price > 0 else { return nil }
+        let saving = apple.price - WebOffer.monthlyPrice
+        guard saving > 0 else { return nil }
+        let percent = NSDecimalNumber(decimal: saving / apple.price * 100).intValue
+        guard percent > 0 else { return nil }
+        return "\(percent)%"
     }
 
     /// Both an empty-but-not-thrown StoreKit response and a thrown load error land here

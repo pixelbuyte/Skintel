@@ -67,5 +67,7 @@
 	</array>
 	<key>UIUserInterfaceStyle</key>
 	<string>Light</string>
+	<key>WEB_SUBSCRIBE_URL</key>
+	<string>$(WEB_SUBSCRIBE_URL)</string>
 </dict>
 </plist>

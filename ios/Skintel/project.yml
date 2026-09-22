@@ -97,6 +97,7 @@ targets:
         API_BASE_URL: $(API_BASE_URL)
         LEGAL_TERMS_URL: $(LEGAL_TERMS_URL)
         LEGAL_PRIVACY_URL: $(LEGAL_PRIVACY_URL)
+        WEB_SUBSCRIBE_URL: $(WEB_SUBSCRIBE_URL)
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.skintel.app
