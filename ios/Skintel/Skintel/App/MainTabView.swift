@@ -143,16 +143,27 @@ struct SKTabBar: View {
 }
 
 #if compiler(>=6.2)
+private let glassTabBarSpace = "SKGlassTabBar"
+
 /// iOS 26 Liquid Glass bar: two floating glass capsules with the terracotta scan FAB between
 /// them, sharing one `GlassEffectContainer` so they sample the same backdrop. Labels use
 /// `Color.primary` rather than `SKColor.muted` so they stay legible when the glass adapts
 /// over dark content (the embedded Scanner tab is a black camera view).
+///
+/// Like the system iOS 26 tab bar, you can press and slide: the pill follows the finger
+/// across both capsules (ticking on each tab) and the tab switches on lift. Switching only
+/// on lift keeps the Scanner tab's camera from starting and stopping mid-slide.
 @available(iOS 26, *)
 private struct SKGlassTabBar: View {
     @Binding var selection: MainTab
     let fabAction: () -> Void
     @Namespace private var selectionPill
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @State private var tabFrames: [MainTab: CGRect] = [:]
+    /// Tab under the finger while pressing; resets to nil when the touch ends or is cancelled.
+    @GestureState private var scrubbing: MainTab? = nil
+
+    private var highlighted: MainTab { scrubbing ?? selection }
 
     var body: some View {
         GlassEffectContainer(spacing: 8) {
@@ -162,10 +173,11 @@ private struct SKGlassTabBar: View {
                 capsule(.compare, .journal)
             }
         }
+        .coordinateSpace(.named(glassTabBarSpace))
         .padding(.horizontal, 16)
         // Scoped here so only the selection pill animates, not MainTabView's screen swap.
         // Reduce Motion still shows the pill move, just as an instant cut, not a slide.
-        .animation(reduceMotion ? nil : SKAnimation.emil(0.4), value: selection)
+        .animation(reduceMotion ? nil : SKAnimation.emil(0.4), value: highlighted)
     }
 
     private func capsule(_ leading: MainTab, _ trailing: MainTab) -> some View {
@@ -175,33 +187,58 @@ private struct SKGlassTabBar: View {
         }
         .padding(4)
         .glassEffect(.regular.interactive(), in: Capsule())
+        .contentShape(Capsule())
+        .gesture(scrub)
+    }
+
+    /// Starts on touch-down (so a plain tap still works) and keeps tracking after the finger
+    /// leaves its capsule, so one slide can cross the FAB into the other capsule.
+    private var scrub: some Gesture {
+        DragGesture(minimumDistance: 0, coordinateSpace: .named(glassTabBarSpace))
+            .updating($scrubbing) { value, state, _ in
+                guard let t = nearestTab(to: value.location.x), t != state else { return }
+                if t != (state ?? selection) { Haptics.selection() }
+                state = t
+            }
+            .onEnded { value in
+                guard let t = nearestTab(to: value.location.x), t != selection else { return }
+                selection = t
+            }
+    }
+
+    private func nearestTab(to x: CGFloat) -> MainTab? {
+        tabFrames.min { abs($0.value.midX - x) < abs($1.value.midX - x) }?.key
     }
 
     private func tabItem(_ t: MainTab) -> some View {
-        let isSelected = selection == t
-        return Button {
-            if selection != t { Haptics.selection() }
-            selection = t
-        } label: {
-            VStack(spacing: 3) {
-                Image(systemName: t.icon).font(.system(size: 20, weight: .regular))
-                Text(t.title).font(SKFont.tab)
-            }
-            .foregroundStyle(isSelected ? SKColor.primary : Color.primary)
-            .frame(maxWidth: .infinity)
-            .frame(height: 48)
-            .background {
-                if isSelected {
-                    Capsule()
-                        .fill(SKColor.primary.opacity(0.12))
-                        .matchedGeometryEffect(id: "selection", in: selectionPill)
-                }
-            }
-            .contentShape(Capsule())
+        let isHighlighted = highlighted == t
+        return VStack(spacing: 3) {
+            Image(systemName: t.icon).font(.system(size: 20, weight: .regular))
+            Text(t.title).font(SKFont.tab)
         }
-        .buttonStyle(.plain)
+        .foregroundStyle(isHighlighted ? SKColor.primary : Color.primary)
+        .frame(maxWidth: .infinity)
+        .frame(height: 48)
+        .background {
+            if isHighlighted {
+                Capsule()
+                    .fill(SKColor.primary.opacity(0.12))
+                    .matchedGeometryEffect(id: "selection", in: selectionPill)
+            }
+        }
+        .onGeometryChange(for: CGRect.self) { proxy in
+            proxy.frame(in: .named(glassTabBarSpace))
+        } action: { frame in
+            tabFrames[t] = frame
+        }
+        .accessibilityElement(children: .ignore)
         .accessibilityLabel(t.title)
-        .accessibilityAddTraits(isSelected ? [.isButton, .isSelected] : .isButton)
+        .accessibilityAddTraits(selection == t ? [.isButton, .isSelected] : .isButton)
+        .accessibilityAction {
+            guard selection != t else { return }
+            Haptics.selection()
+            selection = t
+        }
     }
 
     private var fab: some View {
