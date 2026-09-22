@@ -115,7 +115,9 @@ struct CameraStepView: View {
     @Bindable var model: OnboardingViewModel
     let back: () -> Void
     @AppStorage("onboarding.skipped") private var onboardingSkipped = false
+    @State private var permission: CameraPermission.Status = CameraPermission.status
     @State private var showDenied = false
+    @State private var showRestricted = false
 
     var body: some View {
         VStack(spacing: 0) {
@@ -139,6 +141,9 @@ struct CameraStepView: View {
                         stepRow(3, "Verdict for your skin in seconds")
                     }
 
+                    Text("Skintel uses the camera to scan barcodes and photograph ingredient labels.")
+                        .font(SKFont.secondary).foregroundStyle(SKColor.muted)
+
                     if let error = model.error {
                         SKInlineError(message: error)
                         SKButton(title: "Skip for now", kind: .ghost) {
@@ -150,27 +155,42 @@ struct CameraStepView: View {
                 .padding(.bottom, SKSpace.xxl)
             }
             VStack(spacing: SKSpace.sm) {
-                SKButton(title: "Allow camera access", systemImage: "camera", isLoading: model.isSaving) {
-                    Task {
-                        let status = await CameraPermission.request()
-                        if status == .denied { showDenied = true }
-                        _ = await model.complete()
-                    }
+                SKButton(title: "Continue", isLoading: model.isSaving) {
+                    Task { await proceed() }
                 }
-                SKButton(title: "Maybe later", kind: .ghost, isLoading: false) {
-                    Task { _ = await model.complete() }
-                }
-                .disabled(model.isSaving)
             }
             .skPagePadding()
             .padding(.bottom, SKSpace.lg)
         }
+        .onAppear { permission = CameraPermission.status }
         .alert("Camera is off for Skintel", isPresented: $showDenied) {
             Button("Open Settings") { CameraPermission.openSettings() }
             Button("Not now", role: .cancel) {}
         } message: {
             Text("You can still add products by pasting the ingredient list. Turn the camera on in Settings whenever you're ready to scan.")
         }
+        .alert("Camera access is restricted", isPresented: $showRestricted) {
+            Button("OK", role: .cancel) {}
+        } message: {
+            Text("This device doesn't allow Skintel to use the camera. You can still add products by pasting the ingredient list.")
+        }
+    }
+
+    /// A neutral "Continue" always moves onboarding forward — it never blocks on the
+    /// camera. It triggers the native prompt only when status is still undetermined
+    /// (never re-prompts after a denial or restriction). Denied gets an explanation plus
+    /// an Open Settings action that will actually fix it; restricted gets an explanation
+    /// only — Settings can't reliably lift a device restriction, so we don't imply it will.
+    private func proceed() async {
+        if permission == .notDetermined {
+            permission = await CameraPermission.request()
+        }
+        switch permission {
+        case .denied: showDenied = true
+        case .restricted: showRestricted = true
+        case .notDetermined, .authorized: break
+        }
+        _ = await model.complete()
     }
 
     private func stepRow(_ n: Int, _ text: String) -> some View {

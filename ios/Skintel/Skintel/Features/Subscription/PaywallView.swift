@@ -93,8 +93,8 @@ struct PaywallView: View {
 
     private func plans(_ s: SubscriptionService) -> some View {
         VStack(spacing: SKSpace.md) {
-            if case .failed(let msg) = s.phase, s.products.isEmpty {
-                SKCard { VStack(alignment: .leading, spacing: SKSpace.md) { SKInlineError(message: msg); SKButton(title: "Try again", kind: .secondary) { Task { await s.loadProducts() } } } }
+            if s.products.isEmpty, let msg = emptyProductsMessage(s.phase) {
+                SKCard { VStack(alignment: .leading, spacing: SKSpace.md) { SKInlineError(message: msg); SKButton(title: "Try Again", kind: .secondary) { Task { await s.loadProducts() } } } }
             } else if s.products.isEmpty {
                 SKSkeleton(height: 180); SKSkeleton(height: 72); SKSkeleton(height: 72)
             } else {
@@ -364,6 +364,16 @@ struct PaywallView: View {
         let percent = NSDecimalNumber(decimal: saving / apple.price * 100).intValue
         guard percent > 0 else { return nil }
         return "\(percent)%"
+    }
+
+    /// Both an empty-but-not-thrown StoreKit response and a thrown load error land here
+    /// with the same "empty state + retry" card - they just carry different copy, so the
+    /// distinction upstream is preserved without duplicating this view.
+    private func emptyProductsMessage(_ p: SubscriptionService.Phase) -> String? {
+        switch p {
+        case .unavailable(let msg), .failed(let msg): msg
+        default: nil
+        }
     }
 
     private var alreadyPro: some View {

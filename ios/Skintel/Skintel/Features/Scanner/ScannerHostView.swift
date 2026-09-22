@@ -179,17 +179,32 @@ struct ScannerHostView: View {
     private var permissionState: some View {
         VStack(spacing: SKSpace.lg) {
             Image(systemName: "camera").font(.system(size: 34, weight: .light)).foregroundStyle(.white)
-            Text(permission == .denied ? "Camera is off for Skintel" : "Camera access")
-                .font(SKFont.section).foregroundStyle(.white)
-            Text(permission == .denied
-                 ? "Turn it on in Settings to scan barcodes. You can still type a barcode or paste ingredients."
-                 : "Skintel needs the camera to read barcodes.")
+            Text(permissionTitle).font(SKFont.section).foregroundStyle(.white)
+            Text(permissionMessage)
                 .font(SKFont.secondary).foregroundStyle(.white.opacity(0.75)).multilineTextAlignment(.center)
+            // Settings only helps for a plain denial. A restriction (parental controls/MDM)
+            // may not be something Settings can lift, so we don't offer it as a fix there.
             if permission == .denied {
                 SKButton(title: "Open Settings", kind: .secondary, fullWidth: false) { CameraPermission.openSettings() }
             }
         }
         .padding(SKSpace.xxl)
+    }
+
+    private var permissionTitle: String {
+        switch permission {
+        case .denied: "Camera is off for Skintel"
+        case .restricted: "Camera access is restricted"
+        case .notDetermined, .authorized: "Camera access"
+        }
+    }
+
+    private var permissionMessage: String {
+        switch permission {
+        case .denied: "Turn it on in Settings to scan barcodes. You can still type a barcode or paste ingredients."
+        case .restricted: "This device doesn't allow camera access for Skintel. You can still type a barcode or paste ingredients."
+        case .notDetermined, .authorized: "Skintel needs the camera to read barcodes."
+        }
     }
 
     private var lockedState: some View {
