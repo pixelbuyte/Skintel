@@ -62,10 +62,32 @@ struct RootView: View {
 }
 
 struct SplashView: View {
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @State private var shown = false
+
     var body: some View {
         ZStack {
             SKColor.bg.ignoresSafeArea()
-            SKAppMark(size: 84)
+            VStack(spacing: SKSpace.lg) {
+                Spacer()
+                VStack(spacing: SKSpace.md) {
+                    SKAppMark(size: 84)
+                    Text("Skintel").font(SKFont.serif(34, relativeTo: .largeTitle)).foregroundStyle(SKColor.ink)
+                    Capsule().fill(SKColor.primary.opacity(0.4)).frame(width: 28, height: 2)
+                }
+                .opacity(shown ? 1 : 0)
+                Spacer()
+                Text("Know what touches your skin.")
+                    .font(SKFont.secondary).foregroundStyle(SKColor.muted)
+                    .padding(.bottom, SKSpace.xxl)
+                    .opacity(shown ? 1 : 0)
+            }
+            .accessibilityElement(children: .combine)
+            .accessibilityLabel("Skintel. Know what touches your skin.")
+        }
+        .onAppear {
+            if reduceMotion { shown = true }
+            else { withAnimation(SKAnimation.emil(0.7)) { shown = true } }
         }
     }
 }
