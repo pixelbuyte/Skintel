@@ -2,7 +2,7 @@ import PhotosUI
 import SwiftUI
 import SkintelCore
 
-/// Design §08/§09. Full-bleed camera with the bracketed viewfinder and a breathing scan
+/// Warm Skinstel camera surface with the bracketed viewfinder and a breathing scan
 /// line; "Type it" and "Photo of ingredients" as the escape hatches. Scanning is Pro on
 /// the server (402), so free accounts see an honest locked state that still lets them add
 /// products by hand.
@@ -13,6 +13,7 @@ struct ScannerHostView: View {
     @Environment(AppEnvironment.self) private var env
     @Environment(\.openPaywall) private var openPaywall
     @Environment(\.dismiss) private var dismiss
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State private var model: ScanFlowModel?
     @State private var permission: CameraPermission.Status = CameraPermission.status
     @State private var showManual = false
@@ -31,7 +32,7 @@ struct ScannerHostView: View {
                         lockedState
                     }
                 } else {
-                    Color.black.ignoresSafeArea()
+                    SKColor.bg.ignoresSafeArea()
                 }
             }
             .navigationDestination(for: AppDestination.self) { d in
@@ -61,64 +62,72 @@ struct ScannerHostView: View {
 
     private func scanner(_ model: ScanFlowModel) -> some View {
         ZStack {
-            SKColor.scannerBg.ignoresSafeArea()
-
-            if permission == .authorized {
-                BarcodeScannerView(paused: model.phase != .scanning, torchOn: model.torchOn) { code in
-                    model.handleBarcode(code)
-                }
-                .ignoresSafeArea()
-                LinearGradient(colors: [.black.opacity(0.45), .clear, .clear, .black.opacity(0.55)],
-                               startPoint: .top, endPoint: .bottom)
-                .ignoresSafeArea()
-                .allowsHitTesting(false)
-            } else {
-                permissionState
-            }
-
-            VStack {
+            SKColor.bg.ignoresSafeArea()
+            GeometryReader { available in
+            ScrollView {
+            VStack(spacing: SKSpace.lg) {
                 HStack {
                     if !embedded {
                         SKGlassButton(systemImage: "xmark", label: "Close") { dismiss() }
                     }
+                    Text("Scan a product")
+                        .font(SKFont.editorial(28, relativeTo: .title))
+                        .foregroundStyle(SKColor.ink)
                     Spacer()
                     if permission == .authorized {
-                        SKGlassButton(systemImage: model.torchOn ? "bolt.fill" : "bolt", label: "Torch") { model.torchOn.toggle() }
+                        SKGlassButton(systemImage: model.torchOn ? "bolt.fill" : "bolt", label: model.torchOn ? "Turn torch off" : "Turn torch on") { model.torchOn.toggle() }
                     }
                 }
-                .padding(.horizontal, SKSpace.lg)
                 .padding(.top, SKSpace.sm)
-
-                Spacer()
-
                 if permission == .authorized {
                     ZStack {
-                        ViewfinderBrackets(color: .white, lineWidth: 3.5, corner: 26, length: 34)
-                            .frame(width: 290, height: 200)
-                        ScanLine()
+                        BarcodeScannerView(paused: model.phase != .scanning, torchOn: model.torchOn) { code in
+                            model.handleBarcode(code)
+                        }
+                        LinearGradient(colors: [.black.opacity(0.2), .clear, .black.opacity(0.25)],
+                                       startPoint: .top, endPoint: .bottom)
+                            .allowsHitTesting(false)
+                        GeometryReader { geometry in
+                            ZStack {
+                                ViewfinderBrackets(color: SKColor.cream, lineWidth: 3, corner: 24, length: 32)
+                                    .frame(width: min(290, geometry.size.width - 32), height: 180)
+                                ScanLine()
+                            }
+                            .frame(maxWidth: .infinity, maxHeight: .infinity)
+                        }
+                        .accessibilityHidden(true)
+                        .allowsHitTesting(false)
                     }
-                    .accessibilityHidden(true)
-
+                    .frame(height: max(220, min(420, available.size.height - 170)))
+                    .clipShape(RoundedRectangle(cornerRadius: 30, style: .continuous))
+                    .overlay(RoundedRectangle(cornerRadius: 30, style: .continuous).stroke(SKColor.line))
                     Text(caption(model))
                         .font(SKFont.sans(15, weight: .medium, relativeTo: .subheadline))
-                        .foregroundStyle(.white)
-                        .padding(.horizontal, 18).padding(.vertical, 12)
-                        .background(.black.opacity(0.55), in: Capsule())
-                        .padding(.top, SKSpace.lg)
-                        .animation(SKAnimation.ios(0.3), value: model.phase)
+                        .foregroundStyle(SKColor.muted)
+                        .multilineTextAlignment(.center)
+                        .animation(reduceMotion ? nil : .easeInOut(duration: 0.2), value: model.phase)
+                } else {
+                    permissionState.frame(maxHeight: .infinity)
                 }
-
-                Spacer()
-
-                HStack(spacing: SKSpace.md) {
-                    glassPill("Type it", icon: "keyboard") { showManual = true }
-                    glassPill("Photo of ingredients", icon: "doc.text") { showCamera = true }
-                }
-                .padding(.horizontal, SKSpace.xl)
-                .padding(.bottom, embedded ? SKSpace.lg : SKSpace.xxl)
+            }
+            .skGlassGroup()
+            .skPagePadding()
+            .padding(.bottom, SKSpace.lg)
+            }
+            .scrollIndicators(.hidden)
+            .scrollBounceBehavior(.basedOnSize)
             }
         }
-        .statusBarHidden(!embedded)
+        .safeAreaInset(edge: .bottom, spacing: 0) {
+            HStack(spacing: SKSpace.md) {
+                glassPill("Type it", icon: "keyboard") { showManual = true }
+                glassPill("Scan label", icon: "doc.text.viewfinder") { showCamera = true }
+            }
+            .skGlassGroup()
+            .skPagePadding()
+            .padding(.vertical, SKSpace.md)
+            .background(SKColor.bg)
+        }
         .toolbar(.hidden, for: .navigationBar)
         .sheet(isPresented: $showManual) { ManualEntrySheet(model: model) }
         .fullScreenCover(isPresented: $showCamera) {
@@ -130,7 +139,7 @@ struct ScannerHostView: View {
         }
         .sheet(isPresented: Binding(get: { isSheetPhase(model.phase) }, set: { if !$0 { model.reset() } })) {
             FoundSheet(model: model)
-                .presentationDetents([.height(360)])
+                .presentationDetents([.medium, .large])
                 .presentationDragIndicator(.visible)
                 .presentationBackground(SKColor.cream)
         }
@@ -163,13 +172,14 @@ struct ScannerHostView: View {
         Button(action: action) {
             HStack(spacing: SKSpace.sm) {
                 Image(systemName: icon).font(.system(size: 15, weight: .semibold))
-                Text(title).font(SKFont.sans(15, weight: .semibold, relativeTo: .subheadline)).lineLimit(1)
+                Text(title).font(SKFont.sans(15, weight: .semibold, relativeTo: .subheadline))
+                    .fixedSize(horizontal: false, vertical: true)
             }
-            .foregroundStyle(.white)
+            .foregroundStyle(SKColor.ink)
             .frame(maxWidth: .infinity)
-            .frame(height: 52)
-            .background(.white.opacity(0.14), in: RoundedRectangle(cornerRadius: SKRadius.button, style: .continuous))
-            .overlay(RoundedRectangle(cornerRadius: SKRadius.button, style: .continuous).stroke(.white.opacity(0.18)))
+            .frame(minHeight: 52)
+            .padding(.horizontal, SKSpace.sm)
+            .skGlassControl(in: RoundedRectangle(cornerRadius: SKRadius.button, style: .continuous))
         }
         .buttonStyle(SKPressStyle())
     }
@@ -178,13 +188,13 @@ struct ScannerHostView: View {
 
     private var permissionState: some View {
         VStack(spacing: SKSpace.lg) {
-            Image(systemName: "camera").font(.system(size: 34, weight: .light)).foregroundStyle(.white)
+            SKMascot(size: 100)
             Text(permission == .denied ? "Camera is off for Skintel" : "Camera access")
-                .font(SKFont.section).foregroundStyle(.white)
+                .font(SKFont.section).foregroundStyle(SKColor.ink)
             Text(permission == .denied
                  ? "Turn it on in Settings to scan barcodes. You can still type a barcode or paste ingredients."
                  : "Skintel needs the camera to read barcodes.")
-                .font(SKFont.secondary).foregroundStyle(.white.opacity(0.75)).multilineTextAlignment(.center)
+                .font(SKFont.secondary).foregroundStyle(SKColor.muted).multilineTextAlignment(.center)
             if permission == .denied {
                 SKButton(title: "Open Settings", kind: .secondary, fullWidth: false) { CameraPermission.openSettings() }
             }
@@ -202,7 +212,7 @@ struct ScannerHostView: View {
                 Spacer()
                 ScannerIllustration().frame(height: 200).frame(maxWidth: .infinity)
                 Text("Scanning is a Pro feature").font(SKFont.section).foregroundStyle(SKColor.ink)
-                Text("Barcode, label photo and link import all run through Skintel's AI. Free accounts can add up to five products by pasting the ingredient list.")
+                Text("Scan a barcode or ingredient label for a product breakdown. You can also add up to five products by hand for free.")
                     .font(SKFont.secondary).foregroundStyle(SKColor.muted).multilineTextAlignment(.center)
                 SKButton(title: "See Skintel Pro") { openPaywall(.scanner) }
                 SKButton(title: "Add a product by hand", kind: .secondary) { path.append(.productForm(.add(prefill: nil))) }
@@ -238,8 +248,12 @@ struct CameraCaptureView: UIViewControllerRepresentable {
 
     func makeUIViewController(context: Context) -> UIImagePickerController {
         let c = UIImagePickerController()
-        c.sourceType = UIImagePickerController.isSourceTypeAvailable(.camera) ? .camera : .photoLibrary
-        c.cameraCaptureMode = .photo
+        if UIImagePickerController.isSourceTypeAvailable(.camera) {
+            c.sourceType = .camera
+            c.cameraCaptureMode = .photo
+        } else {
+            c.sourceType = .photoLibrary
+        }
         c.delegate = context.coordinator
         return c
     }

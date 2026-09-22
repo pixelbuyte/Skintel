@@ -1,6 +1,7 @@
 import UIKit
 
-/// Sparse, deliberate haptics: scan hit, save, selection, error. Nothing on scroll.
+/// One soft pulse for deliberate actions. Coalescing prevents a scan/save sequence
+/// from stacking several vibrations. Navigation and scrolling stay quiet.
 /// Respects the Settings toggle (design §17 "Haptics").
 @MainActor
 enum Haptics {
@@ -10,10 +11,21 @@ enum Haptics {
         UserDefaults.standard.object(forKey: preferenceKey) as? Bool ?? true
     }
 
-    static func tap() { guard enabled else { return }; UIImpactFeedbackGenerator(style: .light).impactOccurred() }
-    static func medium() { guard enabled else { return }; UIImpactFeedbackGenerator(style: .medium).impactOccurred() }
-    static func selection() { guard enabled else { return }; UISelectionFeedbackGenerator().selectionChanged() }
-    static func success() { guard enabled else { return }; UINotificationFeedbackGenerator().notificationOccurred(.success) }
-    static func warning() { guard enabled else { return }; UINotificationFeedbackGenerator().notificationOccurred(.warning) }
-    static func error() { guard enabled else { return }; UINotificationFeedbackGenerator().notificationOccurred(.error) }
+    private static let generator = UIImpactFeedbackGenerator(style: .soft)
+    private static var lastFeedback: TimeInterval = -.infinity
+
+    private static func pulse(_ intensity: CGFloat) {
+        guard enabled else { return }
+        let now = ProcessInfo.processInfo.systemUptime
+        guard now - lastFeedback >= 0.2 else { return }
+        lastFeedback = now
+        generator.impactOccurred(intensity: intensity)
+    }
+
+    static func tap() { pulse(0.25) }
+    static func medium() { pulse(0.4) }
+    static func selection() { pulse(0.2) }
+    static func success() { pulse(0.35) }
+    static func warning() { pulse(0.3) }
+    static func error() { pulse(0.3) }
 }

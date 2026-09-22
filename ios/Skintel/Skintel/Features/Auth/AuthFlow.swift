@@ -27,27 +27,37 @@ struct WelcomeView: View {
 
     var body: some View {
         VStack(spacing: 0) {
-            Spacer(minLength: SKSpace.xxl)
-            FloatingShelfCards(appeared: appeared)
-                .frame(height: 300)
-                .accessibilityHidden(true)
-            Spacer(minLength: SKSpace.xl)
+            ScrollView {
+                VStack(alignment: .leading, spacing: SKSpace.xl) {
+                    VStack(spacing: SKSpace.sm) {
+                        FloatingShelfCards(appeared: appeared)
+                            .frame(height: 300)
+                            .accessibilityHidden(true)
+                        Text("Sample products · example results")
+                            .font(SKFont.caption).foregroundStyle(SKColor.muted)
+                    }
+                    .padding(.top, SKSpace.lg)
 
-            VStack(alignment: .leading, spacing: SKSpace.lg) {
-                (Text("Know what ").font(SKFont.hero)
-                 + Text("touches").font(SKFont.serif(40, relativeTo: .largeTitle, italic: true)).foregroundColor(SKColor.primary)
-                 + Text("\nyour skin.").font(SKFont.hero))
-                    .foregroundStyle(SKColor.ink)
-                    .lineSpacing(-2)
-                Text("Scan any skincare product and get an instant, honest verdict — for **your** skin, not skin in general.")
-                    .font(SKFont.sans(17, relativeTo: .body))
-                    .foregroundStyle(SKColor.muted)
-                    .lineSpacing(3)
+                    VStack(alignment: .leading, spacing: SKSpace.lg) {
+                        (Text("Know what ").font(SKFont.editorialHero)
+                         + Text("touches").font(SKFont.editorial(36, relativeTo: .largeTitle, italic: true)).foregroundColor(SKColor.primary)
+                         + Text(" your skin.").font(SKFont.editorialHero))
+                            .foregroundStyle(SKColor.ink)
+                            .tracking(-1.2)
+                            .fixedSize(horizontal: false, vertical: true)
+                        Text("Scan a skincare product. Understand its ingredients — for **your skin**.")
+                            .font(SKFont.sans(17, relativeTo: .body))
+                            .foregroundStyle(SKColor.muted)
+                            .lineSpacing(3)
+                            .fixedSize(horizontal: false, vertical: true)
+                    }
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .skPagePadding()
+                }
+                .padding(.bottom, SKSpace.xl)
             }
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .skPagePadding()
+            .scrollIndicators(.hidden)
 
-            Spacer(minLength: SKSpace.xl)
             PageDots(count: 3, index: 0).padding(.bottom, SKSpace.lg)
 
             VStack(spacing: SKSpace.sm) {
@@ -70,35 +80,44 @@ struct WelcomeView: View {
 private struct FloatingShelfCards: View {
     let appeared: Bool
 
-    private struct Card { let name: String; let score: Int; let tone: SKTone; let label: String; let tile: (Color, Color) }
+    private struct Card { let name: String; let score: Int; let tone: SKTone; let label: String; let artwork: OnboardingProductArtwork.Kind }
     private let cards: [Card] = [
-        Card(name: "CeraVe Moisturizer", score: 86, tone: .good, label: "Good", tile: (Color(hex: 0xD6E0EA), Color(hex: 0x3F5E7A))),
-        Card(name: "Fragrance-heavy lotion", score: 31, tone: .bad, label: "Skip it", tile: (Color(hex: 0xEED2CC), Color(hex: 0x8E4538))),
-        Card(name: "Paula's Choice 2% BHA", score: 64, tone: .caution, label: "Caution", tile: (Color(hex: 0xE9DEC3), Color(hex: 0x7A6230))),
+        Card(name: "Daily moisturizer", score: 86, tone: .good, label: "Good", artwork: .moisturizer),
+        Card(name: "Scented lotion", score: 31, tone: .bad, label: "Skip it", artwork: .lotion),
+        Card(name: "Exfoliating serum", score: 64, tone: .caution, label: "Caution", artwork: .serum),
     ]
 
     var body: some View {
-        ZStack {
-            card(cards[0]).rotationEffect(.degrees(-6)).offset(x: -95, y: -20)
-            card(cards[1]).rotationEffect(.degrees(5)).offset(x: 95, y: -60)
-            card(cards[2]).rotationEffect(.degrees(1)).offset(x: 8, y: 70)
+        GeometryReader { geometry in
+            let width = min(geometry.size.width, 430)
+            let cardWidth = width * 0.43
+            ZStack {
+                card(cards[0], width: cardWidth).rotationEffect(.degrees(-6)).offset(x: -width * 0.23, y: -40)
+                card(cards[1], width: cardWidth).rotationEffect(.degrees(5)).offset(x: width * 0.23, y: -49)
+                card(cards[2], width: cardWidth).rotationEffect(.degrees(1)).offset(x: 10, y: 64)
+            }
+            .frame(width: geometry.size.width, height: geometry.size.height)
         }
         .opacity(appeared ? 1 : 0)
         .scaleEffect(appeared ? 1 : 0.94)
+        // The hero is decorative. Keep the small demonstration cards legible and
+        // bounded; the actual introduction and controls still follow Dynamic Type.
+        .dynamicTypeSize(.large)
     }
 
-    private func card(_ c: Card) -> some View {
-        VStack(alignment: .leading, spacing: SKSpace.md) {
-            RoundedRectangle(cornerRadius: 14, style: .continuous)
-                .fill(LinearGradient(colors: [c.tile.0, c.tile.0.opacity(0.6)], startPoint: .top, endPoint: .bottom))
-                .frame(width: 46, height: 62)
-            Text(c.name).font(SKFont.sans(15, weight: .semibold, relativeTo: .subheadline)).foregroundStyle(SKColor.ink)
+    private func card(_ c: Card, width: CGFloat) -> some View {
+        VStack(alignment: .leading, spacing: SKSpace.sm) {
+            OnboardingProductArtwork(kind: c.artwork)
+                .frame(width: 56, height: 66)
+                .background(SKColor.bg, in: RoundedRectangle(cornerRadius: 12, style: .continuous))
+            Text(c.name).font(SKFont.sans(15, weight: .bold, relativeTo: .subheadline)).foregroundStyle(SKColor.ink)
                 .fixedSize(horizontal: false, vertical: true)
             SKChip("\(c.score) · \(c.label)", tone: c.tone, dot: true)
         }
-        .padding(SKSpace.lg)
-        .frame(width: 168, alignment: .leading)
+        .padding(SKSpace.md)
+        .frame(width: width, alignment: .leading)
         .background(SKColor.cream, in: RoundedRectangle(cornerRadius: 18, style: .continuous))
+        .overlay(RoundedRectangle(cornerRadius: 18, style: .continuous).stroke(SKColor.line))
         .skSoftShadow()
     }
 }

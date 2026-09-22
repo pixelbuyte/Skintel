@@ -10,15 +10,15 @@ struct RoutineTemplate: Identifiable, Sendable {
     let pm: [String]
 
     static let all: [RoutineTemplate] = [
-        .init(id: "beginner", name: "Beginner Barrier Repair", blurb: "Gentle 3-step. Cleanser → moisturizer → SPF.",
+        .init(id: "beginner", name: "Daily essentials", blurb: "A simple place to start.",
               am: ["cleanser", "moisturizer", "sunscreen"], pm: ["cleanser", "moisturizer"]),
-        .init(id: "antiaging", name: "Anti-Aging Stack", blurb: "Vitamin C AM, retinol PM, peptide layering.",
+        .init(id: "antiaging", name: "Serum + care", blurb: "Room for your go-to serum.",
               am: ["cleanser", "serum", "moisturizer", "sunscreen"], pm: ["cleanser", "toner", "serum", "moisturizer"]),
-        .init(id: "acne", name: "Acne-Prone Minimal", blurb: "Fewer actives, more barrier. BHA only PM.",
+        .init(id: "acne", name: "Evening reset", blurb: "An exfoliant step for evenings you choose.",
               am: ["cleanser", "moisturizer", "sunscreen"], pm: ["cleanser", "exfoliant", "moisturizer"]),
-        .init(id: "sensitive", name: "Reactive / Sensitive", blurb: "Strip actives. Cream cleanser, ceramides, mineral SPF.",
+        .init(id: "sensitive", name: "Keep it gentle", blurb: "Just the basics, morning and night.",
               am: ["cleanser", "moisturizer", "sunscreen"], pm: ["cleanser", "moisturizer"]),
-        .init(id: "glow", name: "Glass Skin Glow", blurb: "Hydration heavy. Niacinamide, HA, occlusive PM.",
+        .init(id: "glow", name: "Extra layers", blurb: "Make space for toner and serum.",
               am: ["cleanser", "toner", "serum", "moisturizer", "sunscreen"], pm: ["cleanser", "toner", "serum", "moisturizer"]),
     ]
 

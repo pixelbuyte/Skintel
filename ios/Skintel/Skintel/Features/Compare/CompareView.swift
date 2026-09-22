@@ -21,6 +21,10 @@ struct CompareView: View {
 
     private var ready: [Slot] { slots.filter { !INCI.parse($0.inci).isEmpty && !$0.name.isEmpty } }
 
+    private var suggestions: [CompareSuggestion] {
+        CompareSuggestions.build(from: env.products.products, culprits: env.products.culprits)
+    }
+
     var body: some View {
         NavigationStack {
             ScrollView {
@@ -39,6 +43,14 @@ struct CompareView: View {
                                 (Text("Winner: \(r.items[w.index].name). ").font(SKFont.sans(16, weight: .semibold)) + Text(w.reason ?? "").font(SKFont.body))
                                     .foregroundStyle(SKColor.ink)
                             }
+                        }
+                    }
+
+                    if ready.isEmpty {
+                        if !suggestions.isEmpty {
+                            CompareSuggestionsSection(suggestions: suggestions, onPick: applySuggestion)
+                        } else if env.products.products.count < 2 {
+                            CompareEmptyPrompt(scanCount: env.products.products.count)
                         }
                     }
 
@@ -126,6 +138,15 @@ struct CompareView: View {
         .background(SKColor.cream, in: RoundedRectangle(cornerRadius: SKRadius.card, style: .continuous))
         .overlay(RoundedRectangle(cornerRadius: SKRadius.card, style: .continuous).stroke(isWinner ? SKColor.goodFg : SKColor.line, lineWidth: isWinner ? 1.5 : 1))
         .skCardShadow()
+    }
+
+    private func applySuggestion(_ s: CompareSuggestion) {
+        func slot(_ p: ProductWithIngredients) -> Slot {
+            Slot(productID: p.id, name: p.product.productName, inci: p.ingredients.map(\.inciRaw).joined(separator: ", "))
+        }
+        slots = [slot(s.first), slot(s.second)]
+        result = .idle
+        Haptics.selection()
     }
 
     private func compare() async {

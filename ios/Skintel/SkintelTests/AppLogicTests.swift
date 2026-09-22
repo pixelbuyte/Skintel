@@ -59,6 +59,64 @@ private func session(onboarded: Bool) -> Session {
     #expect(store.recent.isEmpty)
 }
 
+@MainActor
+@Test func legacyScanHistoryLoadsWithoutAnImageSidecar() throws {
+    let directory = tempDir()
+    let legacy = #"{"old":{"id":"old","brand":"Brand","productName":"Cleanser","inci":"Aqua","result":{"verdict":"clean","score":82,"summary":"ok","flags":[]},"scannedAt":0}}"#
+    try Data(legacy.utf8).write(to: directory.appendingPathComponent("scans.v1.json"))
+    let store = ScanStore(directory: directory)
+    #expect(store.scans["old"]?.result.score == 82)
+    #expect(store.imageURL(for: "old") == nil)
+    let remote = URL(string: "https://images.openbeautyfacts.org/cleanser.jpg")!
+    store.setImage(for: "old", imageURL: remote)
+    let reloaded = ScanStore(directory: directory)
+    #expect(reloaded.scans["old"]?.result.score == 82)
+    #expect(reloaded.imageURL(for: "old") == remote)
+}
+
+@MainActor
+@Test func scanImageSurvivesSaveReloadAndReanalysis() throws {
+    let directory = tempDir()
+    let store = ScanStore(directory: directory)
+    let result = ScanResult(verdict: .clean, score: 82, summary: "ok", flags: [], notes: nil)
+    // The store treats bytes opaquely; encoding/decoding the actual image is the UI's job.
+    let bytes = Data([1, 2, 3])
+    let scan = store.record(productID: nil, brand: nil, productName: "Cleanser", inci: "Aqua", source: "photo", result: result, photoData: bytes)
+    let localURL = try #require(store.imageURL(for: scan.id))
+    #expect(try Data(contentsOf: localURL) == bytes)
+    store.attach(scanID: scan.id, to: "saved")
+    #expect(store.imageURL(for: scan.id) == nil)
+    #expect(store.imageURL(for: "saved") == localURL)
+    let reloaded = ScanStore(directory: directory)
+    reloaded.record(productID: "saved", brand: nil, productName: "Cleanser", inci: "Aqua", source: "shelf", result: result)
+    #expect(reloaded.imageURL(for: "saved") == localURL)
+    reloaded.remove(productID: "saved")
+    #expect(!FileManager.default.fileExists(atPath: localURL.path))
+}
+
+@MainActor
+@Test func productPhotosDoNotRequireAnAnalysisAndClearWithAccountData() throws {
+    let store = ScanStore(directory: tempDir())
+    store.setImage(for: "manual", photoData: Data([1]))
+    let photo = try #require(store.imageURL(for: "manual"))
+    #expect(store.scans.isEmpty)
+    store.reset()
+    #expect(store.imageURL(for: "manual") == nil)
+    #expect(!FileManager.default.fileExists(atPath: photo.path))
+}
+
+@MainActor
+@Test func lateCataloguePhotoFollowsScanOntoShelf() {
+    let store = ScanStore(directory: tempDir())
+    let result = ScanResult(verdict: .clean, score: 82, summary: "ok", flags: [], notes: nil)
+    let scan = store.record(productID: nil, brand: nil, productName: "Cleanser", inci: "Aqua", source: "lookup", result: result)
+    store.attach(scanID: scan.id, to: "saved")
+    let image = URL(string: "https://images.openbeautyfacts.org/front.jpg")!
+    store.setImage(for: scan.id, imageURL: image)
+    #expect(store.imageURL(for: "saved") == image)
+    #expect(store.imageURL(for: scan.id) == nil)
+}
+
 @Test func routineTemplateFillsByCategoryWithoutReusingAProduct() {
     func p(_ id: String, _ name: String, _ cat: String?) -> ProductWithIngredients {
         ProductWithIngredients(product: Product(id: id, userID: "u", brand: nil, productName: name, category: cat, outcome: .good,

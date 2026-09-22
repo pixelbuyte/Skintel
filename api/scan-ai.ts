@@ -89,7 +89,10 @@ ${inci}
 
 Return strict JSON only. No prose.`;
 
-  const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY! });
+  // One shared deadline covers primary + fallback. SDK retries can otherwise keep
+  // generating/billing after the native client's 45s request has already timed out.
+  const deadline = Date.now() + 35_000;
+  const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY!, timeout: 35_000, maxRetries: 0 });
 
   async function callModel(model: string) {
     return client.messages.create({
@@ -97,7 +100,7 @@ Return strict JSON only. No prose.`;
       max_tokens: 8192,
       system,
       messages: [{ role: 'user', content: userMsg }],
-    });
+    }, { timeout: Math.max(1, deadline - Date.now()) });
   }
 
   let resp: Awaited<ReturnType<typeof callModel>>;
@@ -111,6 +114,9 @@ Return strict JSON only. No prose.`;
       message: primaryErr?.message,
       type: primaryErr?.type,
     });
+    if (Date.now() >= deadline) {
+      return json(res, { error: 'The ingredient check took too long. Please try again.' }, 504);
+    }
     // Fall back to Sonnet if Opus 4.8 errors (account not yet entitled,
     // model not yet rolled out to this region, etc.)
     try {

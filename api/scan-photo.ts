@@ -66,7 +66,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     return json(res, { error: 'Image too large (base64 must be < 6MB)' }, 400);
   }
 
-  const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY! });
+  const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY!, timeout: 20_000, maxRetries: 0 });
 
   try {
     const resp = await client.messages.create({
