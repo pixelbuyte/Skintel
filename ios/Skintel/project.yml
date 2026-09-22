@@ -68,6 +68,7 @@ targets:
         CFBundleShortVersionString: $(MARKETING_VERSION)
         CFBundleVersion: $(CURRENT_PROJECT_VERSION)
         CFBundleDevelopmentRegion: en
+        CFBundleIconName: AppIcon
         LSRequiresIPhoneOS: true
         LSApplicationCategoryType: public.app-category.lifestyle
         ITSAppUsesNonExemptEncryption: false
