@@ -62,6 +62,7 @@ struct ProductFormView: View {
                                 VStack(spacing: 6) {
                                     Text(o == .good ? "✨" : o == .unsure ? "🤔" : "🌋").font(.system(size: 22))
                                     Text(o.label).font(SKFont.sans(14, weight: .semibold, relativeTo: .subheadline))
+                                        .lineLimit(1).minimumScaleFactor(0.8)
                                 }
                                 .foregroundStyle(outcome == o ? o.tone.fg : SKColor.muted)
                                 .frame(maxWidth: .infinity)

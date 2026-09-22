@@ -20,7 +20,8 @@ struct ProductsListView: View {
                 case .loaded(let products):
                     if products.isEmpty {
                         SKEmptyState(icon: "tray", title: "Nothing on the shelf",
-                                     message: "Add what you use and how your skin reacted. Skintel needs two “broke out” products to start finding patterns.")
+                                     message: "Add what you use and how your skin reacted. Skintel needs two “broke out” products to start finding patterns.",
+                                     actionTitle: "Add a product") { addTapped() }
                     } else {
                         ForEach(products) { p in
                             NavigationLink(value: AppDestination.productDetail(id: p.id)) {
@@ -71,7 +72,6 @@ struct ProductsListView: View {
         .alert("Couldn't delete", isPresented: Binding(get: { deleteError != nil }, set: { if !$0 { deleteError = nil } })) {
             Button("OK", role: .cancel) {}
         } message: { Text(deleteError ?? "") }
-        .environment(\.addProductAction, AddProductAction(handler: addTapped))
     }
 
     @State private var presentAdd = false
@@ -113,21 +113,5 @@ struct ProductsListView: View {
                     NavigationStack { ProductFormView(mode: .add(prefill: nil)) }
                 }
         }
-    }
-}
-
-struct AddProductAction {
-    let handler: @MainActor () -> Void
-    @MainActor func callAsFunction() { handler() }
-}
-
-private struct AddProductKey: EnvironmentKey {
-    static let defaultValue = AddProductAction { }
-}
-
-extension EnvironmentValues {
-    var addProductAction: AddProductAction {
-        get { self[AddProductKey.self] }
-        set { self[AddProductKey.self] = newValue }
     }
 }
