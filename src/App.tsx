@@ -8,6 +8,7 @@ import Login from '@/pages/Login';
 const AuthCallback = lazy(() => import('@/pages/AuthCallback'));
 const Pricing = lazy(() => import('@/pages/Pricing'));
 const Discount = lazy(() => import('@/pages/Discount'));
+const Founding = lazy(() => import('@/pages/Founding'));
 const CheckoutSuccess = lazy(() => import('@/pages/CheckoutSuccess'));
 const Dashboard = lazy(() => import('@/pages/Dashboard'));
 const ProductsList = lazy(() => import('@/pages/ProductsList'));
@@ -44,6 +45,7 @@ function App() {
         <Route path="/auth/callback" element={<AuthCallback />} />
         <Route path="/pricing" element={<Pricing />} />
         <Route path="/discount" element={<Discount />} />
+        <Route path="/founding" element={<Founding />} />
         <Route path="/checkout/success" element={<CheckoutSuccess />} />
         <Route path="/roadmap" element={<Roadmap />} />
         <Route path="/privacy" element={<Privacy />} />
