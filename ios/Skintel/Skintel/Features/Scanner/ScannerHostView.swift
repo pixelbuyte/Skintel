@@ -110,12 +110,9 @@ struct ScannerHostView: View {
 
                 Spacer()
 
-                HStack(spacing: SKSpace.md) {
-                    glassPill("Type it", icon: "keyboard") { showManual = true }
-                    glassPill("Photo of ingredients", icon: "doc.text") { showCamera = true }
-                }
-                .padding(.horizontal, SKSpace.xl)
-                .padding(.bottom, embedded ? SKSpace.lg : SKSpace.xxl)
+                actionPills
+                    .padding(.horizontal, SKSpace.xl)
+                    .padding(.bottom, embedded ? SKSpace.lg : SKSpace.xxl)
             }
         }
         .statusBarHidden(!embedded)
@@ -159,6 +156,25 @@ struct ScannerHostView: View {
         }
     }
 
+    /// The two escape-hatch pills, real Liquid Glass on iOS 26+ sharing one
+    /// `GlassEffectContainer` since they sit side by side, translucent white before that.
+    @ViewBuilder
+    private var actionPills: some View {
+        let pills = HStack(spacing: SKSpace.md) {
+            glassPill("Type it", icon: "keyboard") { showManual = true }
+            glassPill("Photo of ingredients", icon: "doc.text") { showCamera = true }
+        }
+        #if compiler(>=6.2)
+        if #available(iOS 26, *) {
+            GlassEffectContainer(spacing: 10) { pills }
+        } else {
+            pills
+        }
+        #else
+        pills
+        #endif
+    }
+
     private func glassPill(_ title: String, icon: String, action: @escaping () -> Void) -> some View {
         Button(action: action) {
             HStack(spacing: SKSpace.sm) {
@@ -168,8 +184,7 @@ struct ScannerHostView: View {
             .foregroundStyle(.white)
             .frame(maxWidth: .infinity)
             .frame(height: 52)
-            .background(.white.opacity(0.14), in: RoundedRectangle(cornerRadius: SKRadius.button, style: .continuous))
-            .overlay(RoundedRectangle(cornerRadius: SKRadius.button, style: .continuous).stroke(.white.opacity(0.18)))
+            .modifier(SKGlassPill())
         }
         .buttonStyle(SKPressStyle())
     }
@@ -226,6 +241,24 @@ struct ScannerHostView: View {
             .skPagePadding()
         }
         .toolbar(.hidden, for: .navigationBar)
+    }
+}
+
+private struct SKGlassPill: ViewModifier {
+    func body(content: Content) -> some View {
+        #if compiler(>=6.2)
+        if #available(iOS 26, *) {
+            content.glassEffect(.regular.interactive(), in: RoundedRectangle(cornerRadius: SKRadius.button, style: .continuous))
+        } else {
+            content
+                .background(.white.opacity(0.14), in: RoundedRectangle(cornerRadius: SKRadius.button, style: .continuous))
+                .overlay(RoundedRectangle(cornerRadius: SKRadius.button, style: .continuous).stroke(.white.opacity(0.18)))
+        }
+        #else
+        content
+            .background(.white.opacity(0.14), in: RoundedRectangle(cornerRadius: SKRadius.button, style: .continuous))
+            .overlay(RoundedRectangle(cornerRadius: SKRadius.button, style: .continuous).stroke(.white.opacity(0.18)))
+        #endif
     }
 }
 

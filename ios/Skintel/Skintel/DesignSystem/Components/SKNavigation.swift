@@ -44,7 +44,9 @@ struct SKSectionHeader: View {
     }
 }
 
-/// Circular glass button for dark surfaces (scanner close / torch).
+/// Circular glass button for dark surfaces (scanner close / torch). Real Liquid Glass on
+/// iOS 26+ — which also honours Reduce Transparency automatically, unlike the flat
+/// translucent overlay used as the pre-26 fallback.
 struct SKGlassButton: View {
     let systemImage: String
     let label: String
@@ -56,9 +58,23 @@ struct SKGlassButton: View {
                 .font(.system(size: 17, weight: .semibold))
                 .foregroundStyle(.white)
                 .frame(width: 44, height: 44)
-                .background(.white.opacity(0.14), in: Circle())
+                .modifier(SKGlassCircle())
         }
         .buttonStyle(SKPressStyle(scale: 0.92))
         .accessibilityLabel(label)
+    }
+}
+
+private struct SKGlassCircle: ViewModifier {
+    func body(content: Content) -> some View {
+        #if compiler(>=6.2)
+        if #available(iOS 26, *) {
+            content.glassEffect(.regular.interactive(), in: Circle())
+        } else {
+            content.background(.white.opacity(0.14), in: Circle())
+        }
+        #else
+        content.background(.white.opacity(0.14), in: Circle())
+        #endif
     }
 }

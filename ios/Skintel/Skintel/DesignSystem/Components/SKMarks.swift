@@ -31,8 +31,9 @@ struct SKAvatar: View {
     }
 }
 
-/// The app mark used on splash and sign-in: terracotta squircle with a serif S and the
-/// hairline "shelf" across it (matches designs/app-icon.svg).
+/// The app mark used on splash and sign-in: terracotta squircle with the same sparkle
+/// glyph as the real App Store icon (public/icons/skintel.svg), so the mark a user sees
+/// on launch matches the one on their home screen instead of a leftover serif "S".
 struct SKAppMark: View {
     var size: CGFloat = 64
 
@@ -41,17 +42,35 @@ struct SKAppMark: View {
             RoundedRectangle(cornerRadius: size * 0.22, style: .continuous)
                 .fill(LinearGradient(colors: [Color(hex: 0xB2634F), SKColor.primary, SKColor.primaryPressed],
                                      startPoint: .topLeading, endPoint: .bottomTrailing))
-            Rectangle()
-                .fill(SKColor.cream.opacity(0.45))
-                .frame(height: max(1, size * 0.02))
-            Text("S")
-                .font(SKFont.serif(size * 0.62, relativeTo: .largeTitle))
-                .foregroundStyle(SKColor.cream)
-                .offset(y: -size * 0.02)
+            SparkleMark()
+                .fill(SKColor.cream)
+                .frame(width: size * 0.46, height: size * 0.46)
         }
         .frame(width: size, height: size)
         .skPrimaryGlow(strength: 0.3)
         .accessibilityLabel("Skintel")
+    }
+}
+
+/// The four-point sparkle from the brand mark, traced from public/icons/skintel.svg's
+/// star path (0..144 local space, normalized to a unit square here).
+private struct SparkleMark: Shape {
+    func path(in rect: CGRect) -> Path {
+        let w = rect.width, h = rect.height
+        func pt(_ fx: CGFloat, _ fy: CGFloat) -> CGPoint {
+            CGPoint(x: rect.minX + fx * w, y: rect.minY + fy * h)
+        }
+        var p = Path()
+        p.move(to: pt(0.5, 0))
+        p.addLine(to: pt(0.6111, 0.3889))
+        p.addLine(to: pt(1, 0.5))
+        p.addLine(to: pt(0.6111, 0.6111))
+        p.addLine(to: pt(0.5, 1))
+        p.addLine(to: pt(0.3889, 0.6111))
+        p.addLine(to: pt(0, 0.5))
+        p.addLine(to: pt(0.3889, 0.3889))
+        p.closeSubpath()
+        return p
     }
 }
 

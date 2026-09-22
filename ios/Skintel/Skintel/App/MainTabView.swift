@@ -152,6 +152,7 @@ private struct SKGlassTabBar: View {
     @Binding var selection: MainTab
     let fabAction: () -> Void
     @Namespace private var selectionPill
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     var body: some View {
         GlassEffectContainer(spacing: 8) {
@@ -163,7 +164,8 @@ private struct SKGlassTabBar: View {
         }
         .padding(.horizontal, 16)
         // Scoped here so only the selection pill animates, not MainTabView's screen swap.
-        .animation(SKAnimation.emil(0.4), value: selection)
+        // Reduce Motion still shows the pill move, just as an instant cut, not a slide.
+        .animation(reduceMotion ? nil : SKAnimation.emil(0.4), value: selection)
     }
 
     private func capsule(_ leading: MainTab, _ trailing: MainTab) -> some View {
