@@ -22,8 +22,9 @@ enum AppRoute: Equatable {
 
 struct RootView: View {
     @Environment(AppEnvironment.self) private var env
-    /// Users who tap "Maybe later" on the last onboarding step shouldn't be re-asked
-    /// every launch on this device; the server flag is still the durable truth.
+    /// Users who tap "Skip for now" after a profile-save failure on the last onboarding
+    /// step shouldn't be stuck re-attempting it every launch on this device; the server
+    /// flag (`onboardingComplete`) is still the durable truth once the save succeeds.
     @AppStorage("onboarding.skipped") private var onboardingSkipped = false
     @State private var warmed = false
 
