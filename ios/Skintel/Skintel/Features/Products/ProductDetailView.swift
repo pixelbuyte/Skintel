@@ -8,6 +8,7 @@ struct ProductDetailView: View {
     @Environment(AppEnvironment.self) private var env
     @Environment(\.openPaywall) private var openPaywall
     @Environment(\.dismiss) private var dismiss
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     private enum Tab: Hashable { case ingredients, insight }
     @State private var tab: Tab = .ingredients
@@ -137,7 +138,7 @@ struct ProductDetailView: View {
                 .skCardShadow()
 
                 if rows.count > 6 {
-                    Button { withAnimation(SKAnimation.ios(0.3)) { showAll.toggle() } } label: {
+                    Button { withAnimation(reduceMotion ? nil : SKAnimation.ios(0.3)) { showAll.toggle() } } label: {
                         Text(showAll ? "Show fewer ▴" : "Show all \(rows.count) ingredients ▾")
                             .font(SKFont.sans(15, weight: .semibold)).foregroundStyle(SKColor.primary)
                             .frame(maxWidth: .infinity)

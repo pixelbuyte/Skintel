@@ -124,6 +124,7 @@ struct HomeView: View {
                             .foregroundStyle(SKColor.badFg)
                             .frame(width: 48, height: 48)
                             .background(SKColor.badBg, in: RoundedRectangle(cornerRadius: 14, style: .continuous))
+                            .accessibilityHidden(true)
                         VStack(alignment: .leading, spacing: 3) {
                             Text(culprits.all.count == 1 ? "1 suspect found" : "\(culprits.all.count) suspects found")
                                 .font(SKFont.cardTitle).foregroundStyle(SKColor.ink)
@@ -145,6 +146,7 @@ struct HomeView: View {
                         .foregroundStyle(SKColor.primary)
                         .frame(width: 48, height: 48)
                         .background(SKColor.blush, in: RoundedRectangle(cornerRadius: 14, style: .continuous))
+                        .accessibilityHidden(true)
                     VStack(alignment: .leading, spacing: 3) {
                         Text("No suspects yet").font(SKFont.cardTitle).foregroundStyle(SKColor.ink)
                         Text("Mark two products as “Broke out” and Skintel finds what they share.")
@@ -219,6 +221,7 @@ struct HomeView: View {
                         .foregroundStyle(SKColor.primary)
                         .frame(width: 48, height: 48)
                         .background(SKColor.blush, in: RoundedRectangle(cornerRadius: 14, style: .continuous))
+                        .accessibilityHidden(true)
                     VStack(alignment: .leading, spacing: 3) {
                         Text("Find a product that fits").font(SKFont.cardTitle).foregroundStyle(SKColor.ink)
                         Text("Picks built around what your shelf says works and what doesn't.")
@@ -226,6 +229,7 @@ struct HomeView: View {
                     }
                     Spacer(minLength: 0)
                     Image(systemName: "chevron.right").font(.system(size: 13, weight: .semibold)).foregroundStyle(SKColor.muted)
+                        .accessibilityHidden(true)
                 }
             }
         }
