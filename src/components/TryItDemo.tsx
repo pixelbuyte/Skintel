@@ -1,12 +1,11 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { AlertTriangle, ArrowRight, Beaker, Check, ScanBarcode, ScanLine, Zap, ShieldCheck, Wand2 } from 'lucide-react';
+import { ArrowRight, Beaker, ScanBarcode, ScanLine, Zap, ShieldCheck, Wand2 } from 'lucide-react';
 import { AnimatedBorder, SparkleField } from './Tilt3D';
 import { parseInci } from '@/lib/inci';
 import {
   categorizeIngredients,
   generateVerdict,
-  type BucketRow,
   type Culprit,
 } from '@/lib/ingredient-knowledge';
 import { VerdictCard } from './VerdictCard';
@@ -39,7 +38,6 @@ const SHELF_PRODUCTS = [
 const EMPTY_MAP: Map<string, Culprit> = new Map();
 
 export function TryItDemo() {
-  const [demoMode, setDemoMode] = useState<'scan' | 'paste'>('scan');
   const [analyzed, setAnalyzed] = useState<string | null>(null);
   const [scanning, setScanning] = useState(false);
   const [selectedProductIndex, setSelectedProductIndex] = useState<number | null>(null);
@@ -54,14 +52,13 @@ export function TryItDemo() {
     if (!analyzed) return null;
     const parsed = parseInci(analyzed);
     if (parsed.length === 0) return null;
-    const verdictProduct = demoMode === 'scan' ? selectedProduct : SHELF_PRODUCTS[1];
-    const culpritMap = verdictProduct
-      ? new Map(verdictProduct.triggers.map((name) => [name.toLowerCase(), { name, risk: 'high' as const, badCount: 3 }]))
+    const culpritMap = selectedProduct
+      ? new Map(selectedProduct.triggers.map((name) => [name.toLowerCase(), { name, risk: 'high' as const, badCount: 3 }]))
       : EMPTY_MAP;
     const buckets = categorizeIngredients(parsed, culpritMap);
     const verdict = generateVerdict(buckets);
     return { buckets, verdict, count: parsed.length };
-  }, [analyzed, demoMode, selectedProduct]);
+  }, [analyzed, selectedProduct]);
 
   function triggerScan(value: string) {
     setAnalyzed(null);
@@ -82,7 +79,7 @@ export function TryItDemo() {
       setAnalyzed(value);
       setScanning(false);
       setShowResult(true);
-      if (demoMode === 'scan') setScanStage('result');
+      setScanStage('result');
       window.setTimeout(() => setVerdictGlow(true), 200);
     }, 1100);
   }
@@ -108,19 +105,6 @@ export function TryItDemo() {
     if (!selectedProduct) return;
     setScanStage('scanning');
     triggerScan(selectedProduct.ingredients);
-  }
-
-  function scanIngredientLabel() {
-    triggerScan(SHELF_PRODUCTS[1].ingredients);
-  }
-
-  function switchDemoMode(mode: 'scan' | 'paste') {
-    setDemoMode(mode);
-    setAnalyzed(null);
-    setShowResult(false);
-    setVerdictGlow(false);
-    setScanning(false);
-    setScanCount(0);
   }
 
   return (
@@ -186,38 +170,11 @@ export function TryItDemo() {
             </div>
           </div>
 
-          <div className="grid grid-cols-2 gap-1 rounded-xl border border-border bg-bg/70 p-1 mb-6" role="tablist" aria-label="Choose demo input">
-            <button
-              type="button"
-              role="tab"
-              aria-selected={demoMode === 'scan'}
-              onClick={() => switchDemoMode('scan')}
-              className={`inline-flex items-center justify-center gap-2 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors ${demoMode === 'scan' ? 'bg-card text-ink shadow-sm' : 'text-muted hover:text-ink'}`}
-            >
-              <ScanBarcode size={15} /> Scan barcode
-            </button>
-            <button
-              type="button"
-              role="tab"
-              aria-selected={demoMode === 'paste'}
-              onClick={() => switchDemoMode('paste')}
-              className={`inline-flex items-center justify-center gap-2 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors ${demoMode === 'paste' ? 'bg-card text-ink shadow-sm' : 'text-muted hover:text-ink'}`}
-            >
-              <ScanLine size={15} /> Scan ingredients
-            </button>
-          </div>
-
           <h3 className="font-display text-4xl md:text-5xl mb-4 leading-[1.02] tracking-tight">
-            {demoMode === 'scan' ? (
-              <>Scan the barcode.<br /><span className="italic text-primary font-light">See what’s inside.</span></>
-            ) : (
-              <>Scan the ingredients.<br /><span className="italic text-primary font-light">See your match.</span></>
-            )}
+            Scan the barcode.<br /><span className="italic text-primary font-light">See what’s inside.</span>
           </h3>
           <p className="text-muted text-base md:text-lg mb-5 max-w-[58ch] leading-relaxed">
-            {demoMode === 'scan'
-              ? 'Point Skintel at a product barcode. It finds the ingredient list, checks every ingredient, and tells you if it is a good match.'
-              : 'Point Skintel at the ingredient list on the back of a bottle. It reads the label, checks every ingredient, and returns the same personal verdict.'}
+            Point Skintel at a product barcode. It finds the ingredient list, checks every ingredient, and tells you if it is a good match.
           </p>
 
           <div className="flex flex-wrap items-center gap-x-5 gap-y-2 mb-6 text-[11px] uppercase tracking-[0.14em] text-muted/80 font-medium">
@@ -226,51 +183,35 @@ export function TryItDemo() {
             <span className="inline-flex items-center gap-1.5"><Wand2 size={11} className="text-primary" /> 2,400+ markers</span>
           </div>
 
-          {demoMode === 'scan' ? (
-            <ShelfScanner
-              selectedIndex={selectedProductIndex}
-              flipped={productFlipped}
-              stage={scanStage}
-              scanCount={scanCount}
-              onSelect={selectShelfProduct}
-            />
-          ) : (
-            <IngredientLabelScanner
-              scanning={scanning}
-              scanCount={scanCount}
-              result={showResult && result ? {
-                count: result.count,
-                watchOut: result.buckets.watchOut,
-                good: result.buckets.good,
-                restCount: result.buckets.rest.length,
-              } : null}
-            />
-          )}
+          <ShelfScanner
+            selectedIndex={selectedProductIndex}
+            flipped={productFlipped}
+            stage={scanStage}
+            scanCount={scanCount}
+            onSelect={selectShelfProduct}
+          />
 
           <div className="flex flex-wrap items-center gap-2 mt-4">
             <button
               type="button"
-              onClick={demoMode === 'scan' ? scanSampleBarcode : scanIngredientLabel}
-              disabled={(demoMode === 'scan' && selectedProductIndex === null) || scanning}
+              onClick={scanSampleBarcode}
+              disabled={selectedProductIndex === null || scanning}
               className="btn-primary active:scale-[0.96] transition-all duration-200 ease-emil disabled:opacity-50 group/btn"
             >
               {scanning
-                ? <><ScanLine size={14} className="animate-pulse" /> {demoMode === 'scan' ? 'Reading barcode…' : 'Reading ingredient label…'}</>
-                : demoMode === 'scan'
-                  ? <><ScanBarcode size={14} /> {selectedProduct ? `Scan ${selectedProduct.shortName}` : 'Pick a product to scan'}</>
-                  : <><ScanLine size={14} /> {showResult ? 'Scan again' : 'Scan ingredient label'}</>}
+                ? <><ScanLine size={14} className="animate-pulse" /> Reading barcode…</>
+                : <><ScanBarcode size={14} /> {selectedProduct ? `Scan ${selectedProduct.shortName}` : 'Pick a product to scan'}</>}
             </button>
-            {demoMode === 'scan' && selectedProduct && !scanning && (
+            {selectedProduct && !scanning && (
               <button type="button" onClick={resetShelf} className="btn-secondary active:scale-[0.96] transition-all duration-200 ease-emil">
                 Back to shelf
               </button>
             )}
           </div>
 
-          {result && showResult && demoMode === 'scan' && (
+          {result && showResult && (
             <div className="mt-7 space-y-3">
-              {demoMode === 'scan' && (
-                <ResultReveal delay={0}>
+              <ResultReveal delay={0}>
                   <div className="rounded-xl border border-border bg-bg/70 px-4 py-3 flex items-center justify-between gap-4">
                     <div>
                       <div className="text-[10px] uppercase tracking-[0.16em] text-primary font-semibold">Barcode found</div>
@@ -282,7 +223,6 @@ export function TryItDemo() {
                     </div>
                   </div>
                 </ResultReveal>
-              )}
               <ResultReveal delay={0} variant="verdict">
                 <div className={`transition-all duration-700 ${verdictGlow ? 'verdict-glow' : ''}`}>
                   <VerdictCard
@@ -366,12 +306,6 @@ export function TryItDemo() {
           82% { opacity: 1; }
           100% { transform: translateY(250px); opacity: 0; }
         }
-        @keyframes ingredientScan {
-          0% { transform: translateY(-24px); opacity: 0; }
-          14% { opacity: 1; }
-          86% { opacity: 1; }
-          100% { transform: translateY(142px); opacity: 0; }
-        }
         .animate-product-lift { animation: productLift 520ms cubic-bezier(0.22,1,0.36,1) both; }
         .animate-shelf-scan { animation: shelfScan 1.1s ease-in-out forwards; }
         @keyframes resultReveal {
@@ -424,112 +358,6 @@ function ProductSprite({ index, side = 'front', className = '' }: { index: numbe
         backgroundPosition: index === 0 ? '0% 50%' : index === 1 ? '50% 50%' : '100% 50%',
       }}
     />
-  );
-}
-
-type InlineIngredientResult = {
-  count: number;
-  watchOut: BucketRow[];
-  good: BucketRow[];
-  restCount: number;
-};
-
-function IngredientLabelScanner({
-  scanning,
-  scanCount,
-  result,
-}: {
-  scanning: boolean;
-  scanCount: number;
-  result: InlineIngredientResult | null;
-}) {
-  return (
-    <div className="rounded-2xl bg-ink p-3 sm:p-4 shadow-soft" data-testid="ingredient-label-scanner">
-      <div className="relative isolate overflow-hidden rounded-xl min-h-[390px] sm:min-h-[430px] bg-[#ECE3D5]">
-        <div aria-hidden className="absolute inset-0 bg-[radial-gradient(circle_at_50%_8%,rgba(255,255,255,0.96),transparent_44%),linear-gradient(180deg,#F7F0E6_0%,#E8DCCC_100%)]" />
-
-        <div className="absolute inset-x-4 top-4 z-20 flex items-center justify-between text-[10px] uppercase tracking-[0.15em]">
-          <span className="text-ink/65">{result ? 'Scan complete' : 'Ingredient label in frame'}</span>
-          <span className="font-mono text-primary">{scanning ? `OCR ${scanCount}/10` : result ? `${result.count} READ` : 'TEXT FOUND'}</span>
-        </div>
-
-        <div className={`absolute inset-x-5 sm:inset-x-8 top-11 bottom-[68px] z-10 flex transition-all duration-700 ease-emil ${result ? 'items-start justify-start gap-3 pt-3 sm:items-center sm:gap-6 sm:pt-0' : 'items-center justify-center'}`}>
-          <div className={`shrink-0 transition-all duration-700 ease-emil ${result ? 'absolute left-0 top-3 h-[126px] w-[78px] sm:relative sm:left-auto sm:top-auto sm:h-[250px] sm:w-[158px]' : 'relative h-[300px] w-[190px] sm:h-[330px] sm:w-[210px]'}`}>
-            <ProductSprite
-              index={1}
-              side="back"
-              className="h-full w-full drop-shadow-[0_22px_18px_rgba(62,42,30,0.22)]"
-            />
-            <div
-              aria-hidden
-              className="absolute inset-x-[24%] top-[23%] bottom-[38%] overflow-hidden rounded-lg border border-primary/45 shadow-[0_0_0_1px_rgba(255,255,255,0.45),0_0_28px_rgba(163,88,72,0.14)]"
-            >
-              <div className={`absolute inset-x-0 top-0 h-10 bg-gradient-to-b from-transparent via-primary/55 to-transparent ${scanning ? 'animate-[ingredientScan_1.1s_ease-in-out_forwards]' : 'animate-[ingredientScan_2.8s_ease-in-out_infinite]'}`} />
-            </div>
-          </div>
-
-          {result && (
-            <div className="result-reveal ml-[88px] min-w-0 flex-1 rounded-2xl border border-white/70 bg-card/92 p-2.5 shadow-[0_18px_45px_rgba(70,48,32,0.14)] backdrop-blur-sm sm:ml-0 sm:p-4">
-              <div className="flex items-end justify-between gap-3 border-b border-border/80 pb-2.5 mb-2.5">
-                <div>
-                  <div className="text-[8px] sm:text-[9px] uppercase tracking-[0.14em] sm:tracking-[0.17em] text-primary font-semibold">Ingredients found</div>
-                  <div className="font-display text-lg sm:text-2xl leading-none mt-1">Your match</div>
-                </div>
-                <span className="hidden sm:block font-mono text-[9px] text-muted">{result.count} total</span>
-              </div>
-
-              {result.watchOut.length > 0 && (
-                <div className="mb-2.5">
-                  <div className="mb-1.5 flex items-center gap-1.5 whitespace-nowrap text-[8px] sm:text-[9px] uppercase tracking-[0.1em] sm:tracking-[0.14em] font-semibold text-bad-fg">
-                    <AlertTriangle size={10} /> Watch out · {result.watchOut.length}
-                  </div>
-                  <div className="space-y-1">
-                    {result.watchOut.slice(0, 2).map((row) => (
-                      <div key={row.raw} className="flex items-center justify-between gap-2 rounded-lg border border-bad-fg/15 bg-bad-bg/65 px-2 py-1.5">
-                        <span className="truncate text-[10px] sm:text-xs font-semibold text-ink">{row.raw}</span>
-                        <span className="hidden sm:inline shrink-0 text-[8px] uppercase tracking-wide text-bad-fg">flagged</span>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              <div>
-                <div className="mb-1.5 flex items-center gap-1.5 whitespace-nowrap text-[8px] sm:text-[9px] uppercase tracking-[0.1em] sm:tracking-[0.14em] font-semibold text-good-fg">
-                  <Check size={10} strokeWidth={2.5} /> Good for you · {result.good.length}
-                </div>
-                <div className="space-y-1">
-                  {result.good.slice(0, 3).map((row) => (
-                    <div key={row.raw} className="flex items-center justify-between gap-2 rounded-lg border border-good-fg/15 bg-good-bg/65 px-2 py-1.5">
-                      <span className="truncate text-[10px] sm:text-xs font-semibold text-ink">{row.raw}</span>
-                      <span className="hidden sm:block truncate text-[9px] text-good-fg/80">{row.info?.benefit ?? 'good match'}</span>
-                    </div>
-                  ))}
-                </div>
-              </div>
-
-              {result.restCount > 0 && (
-                <div className="mt-2 text-[9px] font-mono text-muted">+ {result.restCount} more with no known issues</div>
-              )}
-            </div>
-          )}
-        </div>
-
-        <div className="absolute bottom-4 inset-x-4 z-20 flex items-center justify-between rounded-xl border border-white/60 bg-card/90 px-3 py-2.5 text-[10px] shadow-sm backdrop-blur-sm">
-          <span className="text-muted">
-            {scanning
-              ? `Reading ${scanCount || 1} ingredients from the label…`
-              : result
-                ? <><span className="sm:hidden">{result.count} ingredients · match ready</span><span className="hidden sm:inline">{result.count} ingredients read — personal match ready</span></>
-                : 'Back label detected — ready to read'}
-          </span>
-          <span className="inline-flex items-center gap-1.5 font-mono text-primary">
-            <ScanLine size={11} />
-            <span className={result ? 'hidden sm:inline' : ''}>{scanning ? 'SCANNING' : result ? 'VERDICT READY' : 'OCR READY'}</span>
-          </span>
-        </div>
-      </div>
-    </div>
   );
 }
 
