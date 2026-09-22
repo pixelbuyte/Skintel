@@ -22,8 +22,9 @@ enum MainTab: Hashable, CaseIterable {
     }
 }
 
-/// Four tabs + a raised centre FAB (design §07). The FAB opens the scanner from anywhere
-/// as a full-screen cover; the Scanner tab hosts the same surface inline.
+/// Four tabs + a centre FAB (design §07): floating Liquid Glass on iOS 26+, the raised FAB
+/// over a cream bar before that. The FAB opens the scanner from anywhere as a full-screen
+/// cover; the Scanner tab hosts the same surface inline.
 struct MainTabView: View {
     @Environment(AppEnvironment.self) private var env
     @State private var tab: MainTab = .home
@@ -68,9 +69,22 @@ struct MainTabView: View {
 struct SKTabBar: View {
     @Binding var selection: MainTab
     let fabAction: () -> Void
+    /// Space reserved under screen content so the last row scrolls clear of the bar.
     static let height: CGFloat = 62
 
     var body: some View {
+        #if compiler(>=6.2)
+        if #available(iOS 26, *) {
+            SKGlassTabBar(selection: $selection, fabAction: fabAction)
+        } else {
+            classicBar
+        }
+        #else
+        classicBar
+        #endif
+    }
+
+    private var classicBar: some View {
         HStack(alignment: .top, spacing: 0) {
             tabItem(.home)
             tabItem(.scanner)
@@ -125,6 +139,83 @@ struct SKTabBar: View {
         .accessibilityLabel("Scan a product")
     }
 }
+
+#if compiler(>=6.2)
+/// iOS 26 Liquid Glass bar: two floating glass capsules (Home/Scanner, Compare/Journal)
+/// with the terracotta-tinted scan FAB between them, in one `GlassEffectContainer` so they
+/// sample the same backdrop. Unselected items use `Color.primary` rather than
+/// `SKColor.muted` so they follow the glass's legibility adaptation over dark content
+/// (the embedded Scanner tab is a black camera view).
+@available(iOS 26, *)
+private struct SKGlassTabBar: View {
+    @Binding var selection: MainTab
+    let fabAction: () -> Void
+    @Namespace private var selectionPill
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+
+    var body: some View {
+        GlassEffectContainer(spacing: 10) {
+            HStack(spacing: 10) {
+                capsule(.home, .scanner)
+                fab
+                capsule(.compare, .journal)
+            }
+        }
+        .padding(.horizontal, SKSpace.lg)
+        // Scoped to the bar so only the selection pill moves, never MainTabView's screen swap.
+        .animation(reduceMotion ? nil : SKAnimation.emil(0.4), value: selection)
+    }
+
+    private func capsule(_ leading: MainTab, _ trailing: MainTab) -> some View {
+        HStack(spacing: 0) {
+            tabItem(leading)
+            tabItem(trailing)
+        }
+        .padding(4)
+        .glassEffect(Glass.regular.interactive(), in: Capsule())
+    }
+
+    private func tabItem(_ t: MainTab) -> some View {
+        let isSelected = selection == t
+        return Button {
+            if selection != t { Haptics.selection() }
+            selection = t
+        } label: {
+            VStack(spacing: 3) {
+                Image(systemName: t.icon).font(.system(size: 20, weight: isSelected ? .semibold : .regular))
+                Text(t.title).font(SKFont.tab)
+            }
+            .foregroundStyle(isSelected ? SKColor.primary : Color.primary)
+            .frame(maxWidth: .infinity)
+            .frame(height: 48)
+            .background {
+                if isSelected {
+                    Capsule()
+                        .fill(SKColor.primary.opacity(0.12))
+                        .matchedGeometryEffect(id: "selection", in: selectionPill)
+                }
+            }
+            .contentShape(Capsule())
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel(t.title)
+        .accessibilityAddTraits(isSelected ? [.isButton, .isSelected] : .isButton)
+    }
+
+    private var fab: some View {
+        Button(action: fabAction) {
+            Image(systemName: "plus")
+                .font(.system(size: 24, weight: .semibold))
+                .foregroundStyle(SKColor.cream)
+                .frame(width: 56, height: 56)
+                .glassEffect(Glass.regular.tint(SKColor.primary).interactive(), in: Circle())
+                .contentShape(Circle())
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel("Scan a product")
+    }
+}
+#endif
 
 // MARK: - Paywall routing available to every screen
 
