@@ -22,6 +22,11 @@ final class SubscriptionService {
         case idle
         case loadingProducts
         case ready
+        /// StoreKit answered but returned no products for our ids — e.g. they aren't
+        /// submitted for review yet, or the catalog hasn't propagated. Distinct from
+        /// `.failed`: nothing threw, so this isn't a network/StoreKit error to blame on
+        /// the user's connection, and the retry path is identical either way.
+        case unavailable(String)
         case purchasing(String)
         case verifying
         case restoring
@@ -56,9 +61,17 @@ final class SubscriptionService {
             products = fetched.sorted { a, b in
                 (ProductID.allCases.firstIndex { $0.rawValue == a.id } ?? 0) < (ProductID.allCases.firstIndex { $0.rawValue == b.id } ?? 0)
             }
-            phase = fetched.isEmpty ? .failed("Plans aren't available right now. Check your connection and try again.") : .ready
+            // Empty is a legitimate StoreKit answer (nothing thrown), not the same failure
+            // as a network/StoreKit error below - keep them distinguishable so the copy
+            // doesn't blame the user's connection for a catalog/App Store Connect gap.
+            phase = fetched.isEmpty ? .unavailable("Plans are temporarily unavailable. Please try again in a moment.") : .ready
         } catch {
-            phase = .failed("Couldn't load plans from the App Store.")
+            // The technical error is diagnostics-only - never surface raw Apple/system
+            // error text in production UI; the user-facing message stays calm and generic.
+            #if DEBUG
+            print("[StoreKit] Failed to load products: \(error)")
+            #endif
+            phase = .failed("Couldn't load plans right now. Please try again.")
         }
     }
 
