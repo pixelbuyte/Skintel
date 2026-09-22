@@ -1,10 +1,96 @@
+import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Package, Check, X, HelpCircle, ScanLine, ArrowRight, TrendingUp, Sparkles, AlertTriangle } from 'lucide-react';
+import {
+  Package,
+  Check,
+  X,
+  HelpCircle,
+  ScanLine,
+  ArrowRight,
+  ChevronRight,
+  TrendingUp,
+  Sparkles,
+  AlertTriangle,
+  Sun,
+  Lightbulb,
+} from 'lucide-react';
 import { useProducts } from '@/hooks/useProducts';
 import { useCulprits } from '@/hooks/useCulprits';
 import { useAuth } from '@/hooks/useAuth';
 import { OutcomeBadge } from '@/components/OutcomeBadge';
 import { isPreview } from '@/lib/preview';
+import { haptic } from '@/lib/haptics';
+
+function greeting(): string {
+  const h = new Date().getHours();
+  if (h < 5) return 'Up late';
+  if (h < 12) return 'Good morning';
+  if (h < 18) return 'Good afternoon';
+  return 'Good evening';
+}
+
+function ClarityRing({ score }: { score: number }) {
+  const R = 40;
+  const C = 2 * Math.PI * R;
+  const [drawn, setDrawn] = useState(false);
+  useEffect(() => {
+    const raf = requestAnimationFrame(() => setDrawn(true));
+    return () => cancelAnimationFrame(raf);
+  }, []);
+  const offset = drawn ? C * (1 - score / 100) : C;
+  return (
+    <div className="relative size-[104px] shrink-0" role="img" aria-label={`Skin clarity score ${score} out of 100`}>
+      <svg viewBox="0 0 96 96" className="size-full -rotate-90">
+        <circle cx="48" cy="48" r={R} fill="none" strokeWidth="7" className="stroke-ink/[0.08]" />
+        <circle
+          cx="48"
+          cy="48"
+          r={R}
+          fill="none"
+          strokeWidth="7"
+          strokeLinecap="round"
+          strokeDasharray={C}
+          strokeDashoffset={offset}
+          className="stroke-primary"
+          style={{ transition: 'stroke-dashoffset 1100ms cubic-bezier(0.32, 0.72, 0, 1)' }}
+        />
+      </svg>
+      <div className="absolute inset-0 flex flex-col items-center justify-center">
+        <span className="font-display text-3xl leading-none">{score}</span>
+        <span className="text-[9px] uppercase tracking-[0.14em] text-muted font-semibold mt-0.5">clarity</span>
+      </div>
+    </div>
+  );
+}
+
+function clarityLabel(score: number, bad: number): { title: string; blurb: string } {
+  if (score >= 75) return { title: 'Skin is thriving', blurb: 'Most of your routine agrees with you. Keep the streak going.' };
+  if (score >= 45) return { title: 'Finding your fit', blurb: 'A mixed shelf — a few more logs and the pattern gets sharp.' };
+  if (bad > 0) return { title: 'Trigger hunt mode', blurb: 'Several products flared you. Check your suspect ingredients below.' };
+  return { title: 'Early days', blurb: 'Log outcomes as you go and this score starts meaning something.' };
+}
+
+const QUICK_ACTIONS = [
+  { to: '/app/products', label: 'Shelf', icon: Package },
+  { to: '/app/culprits', label: 'Culprits', icon: AlertTriangle },
+  { to: '/app/routine', label: 'Routine', icon: Sun },
+  { to: '/app/recommend', label: 'For you', icon: Lightbulb },
+];
+
+function DashboardSkeleton() {
+  return (
+    <div aria-hidden className="space-y-4">
+      <div className="skeleton h-9 w-56" />
+      <div className="skeleton h-36 rounded-card" />
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4">
+        {[0, 1, 2, 3].map((i) => (
+          <div key={i} className="skeleton h-28 rounded-card" style={{ animationDelay: `${i * 120}ms` }} />
+        ))}
+      </div>
+      <div className="skeleton h-64 rounded-card" />
+    </div>
+  );
+}
 
 function PremiumStatCard({
   label,
@@ -63,11 +149,14 @@ export default function Dashboard() {
   const topSuspects = [...high, ...medium].slice(0, 5);
   const recent = products.slice(0, 6);
   const previewing = isPreview();
-  const firstName = previewing
-    ? 'preview'
-    : user?.email
-      ? user.email.split('@')[0]
-      : '';
+  const rawName = previewing ? 'preview' : user?.email ? user.email.split('@')[0] : '';
+  const firstName = rawName ? rawName.charAt(0).toUpperCase() + rawName.slice(1) : '';
+
+  const score = total > 0 ? Math.round(((good + unsure * 0.5) / total) * 100) : 0;
+  const clarity = clarityLabel(score, bad);
+  const today = new Date()
+    .toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })
+    .toUpperCase();
 
   return (
     <div className="relative">
@@ -78,20 +167,21 @@ export default function Dashboard() {
         </div>
       )}
 
-      <div className="mb-8 flex items-end justify-between flex-wrap gap-3">
+      <div className="mb-6 md:mb-8 flex items-end justify-between flex-wrap gap-3">
         <div>
-          <p className="text-muted text-sm flex items-center gap-1.5">
-            <Sparkles size={12} className="text-primary" />
-            Welcome back{firstName ? `, ${firstName}` : ''}
-          </p>
-          <h1 className="font-display text-4xl md:text-5xl mt-1 tracking-tight">
-            Your skin, <span className="italic text-primary">decoded.</span>
+          <p className="text-[10px] uppercase tracking-[0.2em] text-muted font-semibold">{today}</p>
+          <h1 className="font-display text-4xl md:text-5xl mt-1.5 tracking-tight">
+            {greeting()}
+            {firstName ? (
+              <>
+                , <span className="italic text-primary">{firstName}.</span>
+              </>
+            ) : (
+              '.'
+            )}
           </h1>
-          <p className="text-muted text-sm mt-2 max-w-[52ch]">
-            Track what works. Skip what doesn't. Your personal trigger map updates with every product you log.
-          </p>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="hidden md:flex items-center gap-2">
           <Link to="/app/scanner" className="btn-secondary">
             <ScanLine size={14} /> Scan label
           </Link>
@@ -102,10 +192,72 @@ export default function Dashboard() {
       </div>
 
       {loading ? (
-        <div className="text-muted">Loading…</div>
+        <DashboardSkeleton />
       ) : (
         <>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4 mb-8">
+          <div className="card p-5 md:p-6 mb-4 md:mb-6 relative overflow-hidden animate-rise-in">
+            <div aria-hidden className="absolute -top-20 -right-20 size-56 bg-primary/10 blur-3xl rounded-full pointer-events-none" />
+            {total === 0 ? (
+              <div className="relative flex items-center gap-5">
+                <div className="size-[104px] shrink-0 rounded-full border-[7px] border-ink/[0.08] flex items-center justify-center">
+                  <Sparkles size={28} className="text-primary" />
+                </div>
+                <div className="min-w-0">
+                  <div className="text-[10px] uppercase tracking-[0.18em] text-muted font-semibold mb-1">Skin clarity</div>
+                  <h2 className="font-display text-2xl leading-tight">Your score starts here</h2>
+                  <p className="text-muted text-sm mt-1 max-w-[42ch]">
+                    Log your first product and tag how your skin reacted — the ring fills as the picture forms.
+                  </p>
+                  <Link
+                    to="/app/products/new"
+                    onClick={() => haptic.tap()}
+                    className="btn-primary pressable inline-flex mt-3"
+                  >
+                    Log a product <ArrowRight size={14} />
+                  </Link>
+                </div>
+              </div>
+            ) : (
+              <div className="relative flex items-center gap-5 md:gap-7">
+                <ClarityRing score={score} />
+                <div className="min-w-0 flex-1">
+                  <div className="text-[10px] uppercase tracking-[0.18em] text-muted font-semibold mb-1">Skin clarity</div>
+                  <h2 className="font-display text-2xl md:text-3xl leading-tight">{clarity.title}</h2>
+                  <p className="text-muted text-sm mt-1 max-w-[46ch]">{clarity.blurb}</p>
+                  <div className="flex items-center flex-wrap gap-x-4 gap-y-1.5 mt-3 text-xs text-muted font-medium">
+                    <span className="inline-flex items-center gap-1.5 whitespace-nowrap">
+                      <span className="size-1.5 rounded-full bg-good-fg" /> {good} worked
+                    </span>
+                    <span className="inline-flex items-center gap-1.5 whitespace-nowrap">
+                      <span className="size-1.5 rounded-full bg-bad-fg" /> {bad} broke out
+                    </span>
+                    <span className="inline-flex items-center gap-1.5 whitespace-nowrap">
+                      <span className="size-1.5 rounded-full bg-unsure-fg" /> {unsure} unsure
+                    </span>
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+
+          <div className="grid grid-cols-4 gap-2 mb-6 md:hidden">
+            {QUICK_ACTIONS.map(({ to, label, icon: Icon }, i) => (
+              <Link
+                key={to}
+                to={to}
+                onClick={() => haptic.tap()}
+                className="pressable flex flex-col items-center gap-1.5 py-3 rounded-2xl bg-card border border-border shadow-card"
+                style={{ animation: 'cardSlide 360ms ease-out forwards', animationDelay: `${80 + i * 60}ms`, opacity: 0 }}
+              >
+                <span className="size-9 rounded-xl bg-primary/10 text-primary flex items-center justify-center">
+                  <Icon size={17} />
+                </span>
+                <span className="text-[11px] font-semibold tracking-tight">{label}</span>
+              </Link>
+            ))}
+          </div>
+
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4 mb-6 md:mb-8">
             <PremiumStatCard
               label="Logged"
               value={total}
@@ -140,7 +292,7 @@ export default function Dashboard() {
           </div>
 
           <div className="grid md:grid-cols-3 gap-4 md:gap-6 mb-6">
-            <div className="card p-6 md:col-span-2 relative overflow-hidden">
+            <div className="card p-5 md:p-6 md:col-span-2 relative overflow-hidden">
               <div aria-hidden className="absolute -top-24 -right-24 size-64 bg-primary/10 blur-3xl rounded-full pointer-events-none" />
               <div className="relative flex items-center justify-between mb-5">
                 <div>
@@ -204,7 +356,8 @@ export default function Dashboard() {
 
             <Link
               to="/app/scanner"
-              className="card p-6 hover:border-primary hover:shadow-soft transition-all duration-300 flex flex-col relative overflow-hidden group"
+              onClick={() => haptic.tap()}
+              className="card pressable p-5 md:p-6 hover:border-primary hover:shadow-soft transition-all duration-300 flex flex-col relative overflow-hidden group"
             >
               <div aria-hidden className="absolute -bottom-12 -right-12 size-40 bg-primary/15 blur-3xl rounded-full group-hover:bg-primary/25 transition-colors duration-500" />
               <div className="relative">
@@ -223,7 +376,7 @@ export default function Dashboard() {
             </Link>
           </div>
 
-          <div className="card p-6 relative overflow-hidden">
+          <div className="card p-5 md:p-6 relative overflow-hidden">
             <div className="flex items-center justify-between mb-4">
               <div>
                 <div className="text-[10px] uppercase tracking-[0.18em] text-muted font-semibold mb-1">Recent activity</div>
@@ -253,27 +406,35 @@ export default function Dashboard() {
                 {recent.map((p, i) => (
                   <li
                     key={p.id}
-                    className="py-3 flex items-center justify-between gap-3 hover:bg-bg/40 -mx-2 px-2 rounded-lg transition-colors"
                     style={{ animation: `streamIn 300ms ease-out forwards`, animationDelay: `${i * 50}ms`, opacity: 0 }}
                   >
-                    <Link to={`/app/products/${p.id}`} className="flex items-center gap-3 min-w-0 flex-1 hover:text-primary transition-colors">
-                      <div
-                        className={`size-9 rounded-lg flex items-center justify-center shrink-0 ${
-                          p.outcome === 'good'
-                            ? 'bg-good-bg text-good-fg'
-                            : p.outcome === 'bad'
-                              ? 'bg-bad-bg text-bad-fg'
-                              : 'bg-unsure-bg text-unsure-fg'
-                        }`}
-                      >
-                        {p.outcome === 'good' ? <Check size={14} /> : p.outcome === 'bad' ? <X size={14} /> : <HelpCircle size={14} />}
+                    <Link
+                      to={`/app/products/${p.id}`}
+                      onClick={() => haptic.tap()}
+                      className="pressable py-3 flex items-center justify-between gap-3 hover:bg-bg/40 -mx-2 px-2 rounded-lg transition-colors"
+                    >
+                      <div className="flex items-center gap-3 min-w-0 flex-1">
+                        <div
+                          className={`size-9 rounded-lg flex items-center justify-center shrink-0 ${
+                            p.outcome === 'good'
+                              ? 'bg-good-bg text-good-fg'
+                              : p.outcome === 'bad'
+                                ? 'bg-bad-bg text-bad-fg'
+                                : 'bg-unsure-bg text-unsure-fg'
+                          }`}
+                        >
+                          {p.outcome === 'good' ? <Check size={14} /> : p.outcome === 'bad' ? <X size={14} /> : <HelpCircle size={14} />}
+                        </div>
+                        <div className="min-w-0">
+                          <div className="font-medium truncate">{p.product_name}</div>
+                          {p.brand && <div className="text-xs text-muted truncate">{p.brand}</div>}
+                        </div>
                       </div>
-                      <div className="min-w-0">
-                        <div className="font-medium truncate">{p.product_name}</div>
-                        {p.brand && <div className="text-xs text-muted truncate">{p.brand}</div>}
+                      <div className="flex items-center gap-1.5 shrink-0">
+                        <OutcomeBadge outcome={p.outcome} size="sm" />
+                        <ChevronRight size={16} className="text-muted/60" />
                       </div>
                     </Link>
-                    <OutcomeBadge outcome={p.outcome} size="sm" />
                   </li>
                 ))}
               </ul>

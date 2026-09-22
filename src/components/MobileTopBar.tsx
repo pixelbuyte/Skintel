@@ -50,7 +50,7 @@ export function MobileTopBar() {
           <button
             type="button"
             onClick={() => setOpen(true)}
-            className="min-h-11 min-w-11 inline-flex items-center justify-center rounded-full hover:bg-bg transition-colors"
+            className="pressable min-h-11 min-w-11 inline-flex items-center justify-center rounded-full hover:bg-bg"
             aria-label="Open menu"
           >
             <Menu size={22} />
@@ -61,12 +61,16 @@ export function MobileTopBar() {
       {open && (
         <div
           className="md:hidden fixed inset-0 z-50 bg-ink/40 backdrop-blur-sm"
+          style={{ animation: 'modalFade 200ms ease-out' }}
           onClick={() => setOpen(false)}
           aria-hidden="true"
         >
           <aside
             className="absolute top-0 right-0 h-full w-72 max-w-[85vw] bg-card border-l border-border p-4 flex flex-col shadow-2xl"
-            style={{ paddingTop: 'calc(env(safe-area-inset-top) + 1rem)' }}
+            style={{
+              paddingTop: 'calc(env(safe-area-inset-top) + 1rem)',
+              animation: 'drawerIn 320ms cubic-bezier(0.32, 0.72, 0, 1)',
+            }}
             onClick={(e) => e.stopPropagation()}
           >
             <div className="flex items-center justify-between mb-4">
