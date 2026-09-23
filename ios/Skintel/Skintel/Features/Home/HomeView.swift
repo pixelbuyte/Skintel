@@ -9,6 +9,7 @@ struct HomeView: View {
     @State private var path: [AppDestination] = []
     @State private var slot: RoutineStore.Slot = RoutineStore.currentSlot()
     @State private var showCheckIn = false
+    @State private var showAssistant = false
     @State private var savingMood = false
     @State private var moodError: String?
 
@@ -34,6 +35,7 @@ struct HomeView: View {
         }
         .tint(SKColor.primary)
         .sheet(isPresented: $showCheckIn) { CheckInSheet() }
+        .sheet(isPresented: $showAssistant) { AssistantView() }
         .task { await env.journal.load() }
     }
 
@@ -84,6 +86,7 @@ struct HomeView: View {
             } else {
                 routineCard
                 checkInCard
+                askCard
                 suspectCard
                 recommendRow
             }
@@ -230,6 +233,39 @@ struct HomeView: View {
                 Haptics.error()
             }
         }
+    }
+
+    // MARK: Ask Skintel
+
+    /// A chat-style prompt bar that opens the assistant preview.
+    private var askCard: some View {
+        Button { showAssistant = true } label: {
+            HStack(spacing: SKSpace.md) {
+                Image(systemName: "sparkles")
+                    .font(.system(size: 16, weight: .semibold))
+                    .foregroundStyle(SKColor.cream)
+                    .frame(width: 36, height: 36)
+                    .background(SKColor.primary, in: Circle())
+                VStack(alignment: .leading, spacing: 2) {
+                    Text("Ask Skintel").font(SKFont.cardTitle).foregroundStyle(SKColor.ink)
+                    Text("What order should I use my products in?")
+                        .font(SKFont.secondary).foregroundStyle(SKColor.muted).lineLimit(1)
+                }
+                Spacer(minLength: 0)
+                Image(systemName: "arrow.up")
+                    .font(.system(size: 14, weight: .bold))
+                    .foregroundStyle(SKColor.cream)
+                    .frame(width: 32, height: 32)
+                    .background(SKColor.ink, in: Circle())
+            }
+            .padding(.vertical, SKSpace.md)
+            .padding(.horizontal, SKSpace.md)
+            .background(SKColor.cream, in: RoundedRectangle(cornerRadius: 26, style: .continuous))
+            .overlay(RoundedRectangle(cornerRadius: 26, style: .continuous).stroke(SKColor.line))
+            .skCardShadow()
+        }
+        .buttonStyle(SKPressStyle())
+        .accessibilityLabel("Ask Skintel")
     }
 
     // MARK: Alerts

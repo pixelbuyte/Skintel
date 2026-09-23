@@ -142,3 +142,387 @@ struct RecommendView: View {
         } catch { result = .failed(.network(error.localizedDescription)) }
     }
 }
+
+// MARK: - Ask Skintel (preview)
+
+/// A preview of the Skintel assistant. Nothing here calls a model yet: the suggested
+/// questions have written answers (personalised from the shelf and routine where that is
+/// accurate), and a typed question gets a clear "not connected yet" reply.
+struct AssistantView: View {
+    @Environment(AppEnvironment.self) private var env
+    @Environment(\.dismiss) private var dismiss
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @State private var messages: [AssistantMessage] = []
+    @State private var draft = ""
+    @State private var isAnswering = false
+    @FocusState private var inputFocused: Bool
+
+    var body: some View {
+        NavigationStack {
+            ScrollViewReader { proxy in
+                ScrollView {
+                    VStack(alignment: .leading, spacing: SKSpace.lg) {
+                        if messages.isEmpty {
+                            welcome
+                        } else {
+                            ForEach(messages) { m in
+                                AssistantBubble(message: m).id(m.id)
+                            }
+                            if isAnswering && messages.last?.role == .user {
+                                TypingDots()
+                            }
+                        }
+                    }
+                    .skPagePadding()
+                    .padding(.top, SKSpace.md)
+                    .padding(.bottom, SKSpace.lg)
+                }
+                .scrollDismissesKeyboard(.interactively)
+                .onChange(of: messages.count) { _, _ in scrollToEnd(proxy) }
+                .onChange(of: messages.last?.text) { _, _ in scrollToEnd(proxy) }
+            }
+            .safeAreaInset(edge: .bottom, spacing: 0) { composer }
+            .skPageBackground()
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .topBarLeading) {
+                    Button("Close") { dismiss() }.font(SKFont.bodyMedium)
+                }
+                ToolbarItem(placement: .principal) {
+                    VStack(spacing: 1) {
+                        Text("Ask Skintel").font(SKFont.navTitle).foregroundStyle(SKColor.ink)
+                        Text("Preview").font(SKFont.caption).foregroundStyle(SKColor.muted)
+                    }
+                }
+                ToolbarItem(placement: .topBarTrailing) {
+                    Button {
+                        messages = []
+                        draft = ""
+                    } label: {
+                        Image(systemName: "square.and.pencil")
+                    }
+                    .disabled(messages.isEmpty || isAnswering)
+                    .accessibilityLabel("New chat")
+                }
+            }
+        }
+        .tint(SKColor.primary)
+    }
+
+    // MARK: Empty state
+
+    private var welcome: some View {
+        VStack(alignment: .leading, spacing: SKSpace.lg) {
+            VStack(alignment: .leading, spacing: SKSpace.sm) {
+                AssistantAvatar(size: 44)
+                Text("What can I help with?").font(SKFont.hero).foregroundStyle(SKColor.ink)
+                Text("Ask about your routine, ingredients or a reaction. Answers use your shelf and routine.")
+                    .font(SKFont.sans(16, relativeTo: .body)).foregroundStyle(SKColor.muted)
+            }
+            .padding(.top, SKSpace.xl)
+            VStack(spacing: SKSpace.sm) {
+                ForEach(AssistantPrompt.allCases) { p in
+                    Button { ask(p) } label: { suggestionCard(p) }
+                        .buttonStyle(SKPressStyle())
+                }
+            }
+        }
+    }
+
+    private func suggestionCard(_ p: AssistantPrompt) -> some View {
+        HStack(spacing: SKSpace.md) {
+            Image(systemName: p.icon)
+                .font(.system(size: 16, weight: .semibold))
+                .foregroundStyle(SKColor.primary)
+                .frame(width: 36, height: 36)
+                .background(SKColor.blush, in: RoundedRectangle(cornerRadius: 11, style: .continuous))
+            Text(p.question)
+                .font(SKFont.sans(16, weight: .medium, relativeTo: .body))
+                .foregroundStyle(SKColor.ink)
+                .multilineTextAlignment(.leading)
+            Spacer(minLength: 0)
+            Image(systemName: "arrow.up.right")
+                .font(.system(size: 12, weight: .semibold))
+                .foregroundStyle(SKColor.muted)
+        }
+        .padding(SKSpace.md)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(SKColor.cream, in: RoundedRectangle(cornerRadius: SKRadius.card, style: .continuous))
+        .overlay(RoundedRectangle(cornerRadius: SKRadius.card, style: .continuous).stroke(SKColor.line))
+    }
+
+    // MARK: Composer
+
+    private var remainingPrompts: [AssistantPrompt] {
+        AssistantPrompt.allCases.filter { p in !messages.contains { $0.role == .user && $0.text == p.question } }
+    }
+
+    private var canSend: Bool {
+        !draft.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty && !isAnswering
+    }
+
+    private var composer: some View {
+        VStack(spacing: SKSpace.sm) {
+            if !messages.isEmpty && !remainingPrompts.isEmpty {
+                ScrollView(.horizontal, showsIndicators: false) {
+                    HStack(spacing: SKSpace.sm) {
+                        ForEach(remainingPrompts) { p in
+                            Button { ask(p) } label: {
+                                Text(p.question)
+                                    .font(SKFont.sans(14, weight: .medium, relativeTo: .subheadline))
+                                    .foregroundStyle(SKColor.ink)
+                                    .lineLimit(1)
+                                    .padding(.horizontal, 14)
+                                    .frame(height: 38)
+                                    .background(SKColor.cream, in: Capsule())
+                                    .overlay(Capsule().stroke(SKColor.line))
+                            }
+                            .buttonStyle(SKPressStyle())
+                            .disabled(isAnswering)
+                        }
+                    }
+                    .padding(.horizontal, SKSpace.lg)
+                }
+            }
+            HStack(spacing: SKSpace.sm) {
+                TextField("Ask about your skin or products", text: $draft)
+                    .font(SKFont.body)
+                    .foregroundStyle(SKColor.ink)
+                    .focused($inputFocused)
+                    .submitLabel(.send)
+                    .onSubmit(sendDraft)
+                    .padding(.leading, 18)
+                    .padding(.vertical, 14)
+                Button(action: sendDraft) {
+                    Image(systemName: "arrow.up")
+                        .font(.system(size: 16, weight: .bold))
+                        .foregroundStyle(SKColor.cream)
+                        .frame(width: 36, height: 36)
+                        .background(canSend ? SKColor.primary : SKColor.muted.opacity(0.35), in: Circle())
+                }
+                .buttonStyle(.plain)
+                .disabled(!canSend)
+                .accessibilityLabel("Send")
+                .padding(.trailing, 8)
+            }
+            .skGlass(in: RoundedRectangle(cornerRadius: 26, style: .continuous), interactive: false, fallback: SKColor.cream)
+            .overlay(RoundedRectangle(cornerRadius: 26, style: .continuous).stroke(SKColor.line))
+            .padding(.horizontal, SKSpace.lg)
+            Text("Preview: suggested questions only. The full assistant is coming soon.")
+                .font(SKFont.caption)
+                .foregroundStyle(SKColor.muted)
+                .multilineTextAlignment(.center)
+                .padding(.horizontal, SKSpace.xl)
+        }
+        .padding(.top, SKSpace.sm)
+        .padding(.bottom, SKSpace.sm)
+        .background {
+            LinearGradient(colors: [SKColor.bg.opacity(0), SKColor.bg], startPoint: .top, endPoint: .center)
+                .ignoresSafeArea(edges: .bottom)
+        }
+    }
+
+    // MARK: Conversation
+
+    private func ask(_ p: AssistantPrompt) {
+        guard !isAnswering else { return }
+        inputFocused = false
+        Haptics.tap()
+        respond(to: p.question, with: answer(for: p), notice: false)
+    }
+
+    private func sendDraft() {
+        let q = draft.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !q.isEmpty, !isAnswering else { return }
+        draft = ""
+        Haptics.tap()
+        respond(to: q,
+                with: "I'm not connected yet, so I can't answer typed questions. Try one of the suggested questions. The full Skintel assistant is coming soon.",
+                notice: true)
+    }
+
+    /// Shows the question, a short typing pause, then the answer word by word the way a
+    /// live assistant streams. With Reduce Motion the answer appears at once.
+    private func respond(to question: String, with answer: String, notice: Bool) {
+        messages.append(AssistantMessage(role: .user, text: question))
+        isAnswering = true
+        let reduce = reduceMotion
+        let role: AssistantMessage.Role = notice ? .notice : .assistant
+        Task {
+            try? await Task.sleep(for: .milliseconds(reduce ? 150 : 700))
+            if reduce {
+                messages.append(AssistantMessage(role: role, text: answer))
+            } else {
+                messages.append(AssistantMessage(role: role, text: ""))
+                let index = messages.count - 1
+                let words = answer.split(separator: " ", omittingEmptySubsequences: false)
+                var shown = ""
+                for (i, w) in words.enumerated() {
+                    shown += i == 0 ? String(w) : " " + String(w)
+                    if index < messages.count { messages[index].text = shown }
+                    try? await Task.sleep(for: .milliseconds(22))
+                }
+            }
+            isAnswering = false
+        }
+    }
+
+    private func scrollToEnd(_ proxy: ScrollViewProxy) {
+        guard let last = messages.last else { return }
+        if reduceMotion {
+            proxy.scrollTo(last.id, anchor: .bottom)
+        } else {
+            withAnimation(SKAnimation.ios(0.3)) { proxy.scrollTo(last.id, anchor: .bottom) }
+        }
+    }
+
+    // MARK: Written answers
+
+    private func answer(for p: AssistantPrompt) -> String {
+        switch p {
+        case .order:
+            return orderAnswer()
+        case .retinolVitaminC:
+            return "They're usually best kept apart rather than layered together:\n\n• **Vitamin C in the morning.** It pairs well with sunscreen.\n• **Retinol at night.** Sunlight breaks it down.\n\nIf you're new to retinol, start with 2–3 nights a week and build up slowly. Skip exfoliating acids on retinol nights, and wear sunscreen every morning, because retinol makes skin more sensitive to the sun."
+        case .irritated:
+            return irritatedAnswer()
+        case .patchTest:
+            return "The American Academy of Dermatology suggests:\n\n1. Put a small amount on a spot where it won't be washed off, like the bend of your elbow.\n2. Do this twice a day for 7 to 10 days.\n3. If there's no reaction, it's likely fine to use on your face.\n\nTry one new product at a time, about a week apart. Otherwise you can't tell which one caused a reaction."
+        }
+    }
+
+    private func names(_ slot: RoutineStore.Slot) -> [String] {
+        env.routine.ids(slot).compactMap { env.products.product(id: $0)?.product.productName }
+    }
+
+    private func numbered(_ items: [String]) -> String {
+        items.enumerated().map { "\($0.offset + 1). \($0.element)" }.joined(separator: "\n")
+    }
+
+    private func orderAnswer() -> String {
+        let am = names(.am)
+        let pm = names(.pm)
+        if am.isEmpty && pm.isEmpty {
+            return "An order that works for most routines:\n\n1. Cleanser\n2. Toner or essence\n3. Serums and treatments\n4. Moisturiser\n5. Sunscreen, in the morning\n\nAdd your products to a routine and Skintel keeps them in this order on Today."
+        }
+        var parts = ["Here's your routine as you've set it up:"]
+        if !am.isEmpty { parts.append("**Morning**\n" + numbered(am)) }
+        if !pm.isEmpty { parts.append("**Night**\n" + numbered(pm)) }
+        parts.append("The rule of thumb is thinnest to thickest: cleanser, toner, serums, moisturiser, then sunscreen last in the morning. You can reorder steps in Routine.")
+        return parts.joined(separator: "\n\n")
+    }
+
+    private func irritatedAnswer() -> String {
+        var s = "Keep tonight simple:\n\n• A gentle cleanser\n• A plain, fragrance-free moisturiser\n• Pause strong actives for a couple of nights: retinoids, exfoliating acids and vitamin C\n\nIf you started something new in the last two weeks, that's the first thing to suspect. Log how your skin feels on Today so Skintel can spot a pattern."
+        if let top = env.products.culprits.all.first {
+            s += "\n\nYour shelf's top suspect ingredient is **\(top.name)**. Check whether anything you used recently contains it."
+        }
+        s += "\n\nIf the irritation is severe, spreading, or lasts more than a few days, see a dermatologist."
+        return s
+    }
+}
+
+private struct AssistantMessage: Identifiable, Equatable {
+    enum Role { case user, assistant, notice }
+    let id = UUID()
+    let role: Role
+    var text: String
+}
+
+private enum AssistantPrompt: String, CaseIterable, Identifiable {
+    case order, retinolVitaminC, irritated, patchTest
+
+    var id: String { rawValue }
+
+    var question: String {
+        switch self {
+        case .order: "What order should I use my products in?"
+        case .retinolVitaminC: "Can I use retinol and vitamin C together?"
+        case .irritated: "My skin feels irritated. What should I do tonight?"
+        case .patchTest: "How do I patch test a new product?"
+        }
+    }
+
+    var icon: String {
+        switch self {
+        case .order: "list.number"
+        case .retinolVitaminC: "drop"
+        case .irritated: "bandage"
+        case .patchTest: "hand.raised"
+        }
+    }
+}
+
+private struct AssistantBubble: View {
+    let message: AssistantMessage
+
+    var body: some View {
+        switch message.role {
+        case .user:
+            HStack {
+                Spacer(minLength: 48)
+                Text(message.text)
+                    .font(SKFont.body)
+                    .foregroundStyle(SKColor.cream)
+                    .padding(.horizontal, 16)
+                    .padding(.vertical, 11)
+                    .background(SKColor.primary, in: RoundedRectangle(cornerRadius: 20, style: .continuous))
+            }
+        case .assistant, .notice:
+            HStack(alignment: .top, spacing: SKSpace.md) {
+                AssistantAvatar(size: 28)
+                Text(Self.rich(message.text))
+                    .font(SKFont.sans(16, relativeTo: .body))
+                    .foregroundStyle(message.role == .notice ? SKColor.muted : SKColor.ink)
+                    .lineSpacing(3)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .textSelection(.enabled)
+            }
+        }
+    }
+
+    /// Inline markdown only (bold), keeping the answer's line breaks and numbering as written.
+    static func rich(_ s: String) -> AttributedString {
+        let options = AttributedString.MarkdownParsingOptions(interpretedSyntax: .inlineOnlyPreservingWhitespace)
+        return (try? AttributedString(markdown: s, options: options)) ?? AttributedString(s)
+    }
+}
+
+private struct AssistantAvatar: View {
+    let size: CGFloat
+
+    var body: some View {
+        Image(systemName: "sparkles")
+            .font(.system(size: size * 0.46, weight: .semibold))
+            .foregroundStyle(SKColor.cream)
+            .frame(width: size, height: size)
+            .background(SKColor.primary, in: Circle())
+            .accessibilityHidden(true)
+    }
+}
+
+private struct TypingDots: View {
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @State private var on = false
+
+    var body: some View {
+        HStack(spacing: SKSpace.md) {
+            AssistantAvatar(size: 28)
+            HStack(spacing: 5) {
+                ForEach(0..<3, id: \.self) { i in
+                    Circle()
+                        .fill(SKColor.muted)
+                        .frame(width: 7, height: 7)
+                        .opacity(on ? 1 : 0.3)
+                        .animation(reduceMotion ? nil : .easeInOut(duration: 0.6).repeatForever().delay(Double(i) * 0.2), value: on)
+                }
+            }
+            .padding(.horizontal, 14)
+            .padding(.vertical, 12)
+            .background(SKColor.cream, in: Capsule())
+        }
+        .onAppear { on = true }
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel("Skintel is typing")
+    }
+}
