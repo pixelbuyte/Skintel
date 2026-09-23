@@ -1,5 +1,5 @@
-import Anthropic from '@anthropic-ai/sdk';
 import type { VercelRequest, VercelResponse } from '@vercel/node';
+import { complete, parseJsonObject, SCAN_MODELS } from './_ai.js';
 import { getServiceClient, getUserFromAuthHeader, json } from './_lib.js';
 
 type CacheSource = 'openbeautyfacts' | 'openfoodfacts' | 'claude';
@@ -19,51 +19,27 @@ type CacheRow = {
   source: string;
 };
 
-async function claudeFillIngredients(
+async function aiFillIngredients(
   brand: string | null,
   productName: string | null,
   upc: string
 ): Promise<{ brand: string | null; productName: string | null; ingredients: string } | null> {
-  if (!process.env.ANTHROPIC_API_KEY) return null;
-  const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
   const hint = [brand, productName].filter(Boolean).join(' ');
-  const prompt = `Find the full INCI ingredient list for this skincare/cosmetic product. Use web_search to look up the brand's official page or major retailers (Sephora, Ulta, Boots, brand site).
+  const prompt = `Find the full INCI ingredient list for this skincare/cosmetic product using web search: the brand's official page or major retailers (Sephora, Ulta, Boots).
 
 Product: ${hint || '(unknown — look up by UPC)'}
 UPC/EAN: ${upc}
 
-Steps:
-1. Search web for the product (use UPC and/or brand + product name).
-2. Find the INCI / ingredients list from official brand site or reputable retailer.
-3. Return strict JSON only — no commentary, no markdown.
-
-Output format:
+Return strict JSON only — no commentary, no markdown:
 {"brand": string|null, "productName": string|null, "ingredients": string}
 
 - ingredients = full INCI, comma-separated, no "Ingredients:" prefix
-- If after searching you cannot find an authoritative list, return ingredients: ""
+- If you cannot find an authoritative list, return ingredients: ""
 - Do NOT invent ingredients`;
 
   try {
-    const resp = await client.messages.create({
-      model: 'claude-haiku-4-5-20251001',
-      max_tokens: 4096,
-      tools: [
-        {
-          type: 'web_search_20250305',
-          name: 'web_search',
-          max_uses: 4,
-        } as any,
-      ],
-      messages: [{ role: 'user', content: prompt }],
-    });
-    const text = resp.content
-      .filter((b): b is Anthropic.TextBlock => b.type === 'text')
-      .map((b) => b.text)
-      .join('');
-    const fenced = text.match(/```(?:json)?\s*([\s\S]*?)```/);
-    const candidate = fenced ? fenced[1] : (text.match(/\{[\s\S]*\}/)?.[0] ?? text);
-    const parsed = JSON.parse(candidate) as {
+    const ai = await complete({ models: SCAN_MODELS, prompt, maxTokens: 2048, json: true, webSearch: true });
+    const parsed = parseJsonObject(ai.text) as {
       brand?: string | null;
       productName?: string | null;
       ingredients?: string;
@@ -144,7 +120,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     return json(res, { error: 'Invalid UPC (must be 8-13 digits)' }, 400);
   }
 
-  // 1) Cache hit short-circuits everything (incl. Claude web_search billing).
+  // 1) Cache hit short-circuits everything (incl. AI web-search billing).
   const { data: cached } = await sb
     .from('barcode_cache')
     .select('upc, brand, product_name, ingredients, source')
@@ -191,26 +167,26 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     return json(res, result);
   }
 
-  const claude = await claudeFillIngredients(
+  const found = await aiFillIngredients(
     dbHit?.brand ?? null,
     dbHit?.productName ?? null,
     upc
   );
 
-  if (claude && (claude.ingredients || claude.brand || claude.productName)) {
+  if (found && (found.ingredients || found.brand || found.productName)) {
     const finalSource: CacheSource = dbSource ?? 'claude';
-    if (claude.ingredients) {
+    if (found.ingredients) {
       await persist({
-        brand: claude.brand,
-        productName: claude.productName,
-        ingredients: claude.ingredients,
+        brand: found.brand,
+        productName: found.productName,
+        ingredients: found.ingredients,
         source: finalSource,
       });
     }
     const result: LookupResult = {
-      brand: claude.brand,
-      productName: claude.productName,
-      ingredients: claude.ingredients,
+      brand: found.brand,
+      productName: found.productName,
+      ingredients: found.ingredients,
       source: finalSource,
     };
     return json(res, result);

@@ -1,9 +1,6 @@
-import Anthropic from '@anthropic-ai/sdk';
 import type { VercelRequest, VercelResponse } from '@vercel/node';
+import { complete, parseJsonObject, SCAN_MODELS } from './_ai.js';
 import { getServiceClient, getUserFromAuthHeader, json } from './_lib.js';
-
-const PRIMARY_MODEL = 'claude-opus-4-8';
-const FALLBACK_MODEL = 'claude-sonnet-4-6';
 
 type IncomingProduct = { name?: unknown; inci?: unknown };
 
@@ -120,57 +117,18 @@ ${productsBlock}
 
 Return strict JSON only. Items must be in the SAME ORDER as the products above.`;
 
-  const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY! });
-
-  async function callModel(model: string) {
-    return client.messages.create({
-      model,
-      max_tokens: 4096,
-      system,
-      messages: [{ role: 'user', content: userMsg }],
-    });
-  }
-
-  let resp: Awaited<ReturnType<typeof callModel>>;
-  let usedModel = PRIMARY_MODEL;
+  let ai: Awaited<ReturnType<typeof complete>>;
   try {
-    resp = await callModel(PRIMARY_MODEL);
-  } catch (primaryErr: any) {
-    console.error('compare primary model failed', {
-      model: PRIMARY_MODEL,
-      status: primaryErr?.status,
-      message: primaryErr?.message,
-    });
-    try {
-      resp = await callModel(FALLBACK_MODEL);
-      usedModel = FALLBACK_MODEL;
-    } catch (fallbackErr: any) {
-      console.error('compare fallback model failed', {
-        model: FALLBACK_MODEL,
-        status: fallbackErr?.status,
-        message: fallbackErr?.message,
-      });
-      return json(
-        res,
-        {
-          error: 'Compare failed on both models',
-          primary: { model: PRIMARY_MODEL, detail: String(primaryErr?.message ?? primaryErr) },
-          fallback: { model: FALLBACK_MODEL, detail: String(fallbackErr?.message ?? fallbackErr) },
-        },
-        500,
-      );
-    }
+    ai = await complete({ models: SCAN_MODELS, system, prompt: userMsg, maxTokens: 3072, temperature: 0.2, json: true });
+  } catch (e) {
+    console.error('compare failed', { message: String((e as Error)?.message ?? e) });
+    return json(res, { error: 'Compare failed', detail: String((e as Error)?.message ?? e) }, 500);
   }
-
-  const text = resp.content
-    .filter((b): b is Anthropic.TextBlock => b.type === 'text')
-    .map((b) => b.text)
-    .join('');
+  const text = ai.text;
 
   let parsed: { items?: CompareItem[]; winner?: { index: number; reason: string } };
   try {
-    const match = text.match(/\{[\s\S]*\}/);
-    parsed = JSON.parse(match ? match[0] : text);
+    parsed = parseJsonObject(text) as { items?: CompareItem[]; winner?: { index: number; reason: string } };
   } catch {
     return json(res, { error: 'Model returned invalid JSON', raw: text.slice(0, 500) }, 502);
   }
@@ -187,6 +145,6 @@ Return strict JSON only. Items must be in the SAME ORDER as the products above.`
   return json(res, {
     items: parsed.items,
     winner: { index: winnerIndex, reason: String(parsed.winner.reason ?? '') },
-    usage: { model: usedModel },
+    usage: { model: ai.model },
   });
 }

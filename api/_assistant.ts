@@ -1,22 +1,50 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
+import { AiError, openRouterChat } from './_ai.js';
 import { getServiceClient, getUserFromAuthHeader, json } from './_lib.js';
 
 /**
  * Ask Skintel: POST /api/assistant (rewritten to /api/recommend?action=assistant, because
  * the Hobby plan caps the project at 12 serverless functions).
  *
- * Body: { messages: [{ role: 'user' | 'assistant', content }], routine?: { am: string[], pm: string[] } }
- * Reply: { reply, model }
+ * Body: { messages: [{ role: 'user' | 'assistant', content }], routine?: { am: string[], pm: string[] },
+ *         model?: 'luna' | 'sol' }
+ * Reply: { reply, model, assistant }
  *
- * The OpenRouter key lives only in Vercel env (OPENROUTER_API_KEY); the app never sees it.
+ * The OpenRouter key lives only in Vercel env (OPENROUTER_API_KEY); the app never sees it,
+ * and it only ever names a Skintel model, never a provider model id.
  * Pro-only, like every other AI feature, which also keeps spend bounded to paying users.
  * 503 means the key isn't configured, and the app falls back to its preview reply.
  */
 
-const DEFAULT_MODEL = 'anthropic/claude-haiku-4.5';
+type AssistantTier = {
+  models: readonly string[];
+  maxTokens: number;
+  words: number;
+  extra: Record<string, unknown>;
+};
+
+// Luna: GPT-5.6 Luna, fast and cheap, with light reasoning so it answers quickly. Its token
+// cap leaves room for that reasoning. Sol: Claude Haiku 4.5, for longer, more careful answers.
+const TIERS: Record<'luna' | 'sol', AssistantTier> = {
+  luna: {
+    models: ['openai/gpt-5.6-luna', 'google/gemini-3.1-flash-lite'],
+    maxTokens: 1200,
+    words: 150,
+    extra: { reasoning: { effort: 'low', exclude: true } },
+  },
+  sol: {
+    models: ['anthropic/claude-haiku-4.5', 'openai/gpt-5.6-luna'],
+    maxTokens: 900,
+    words: 260,
+    extra: { temperature: 0.4 },
+  },
+};
+
 const MAX_MESSAGES = 12;
 const MAX_MESSAGE_CHARS = 1500;
 const MAX_REPLY_CHARS = 6000;
+// Older turns only need the gist; trimming them keeps long chats cheap.
+const MAX_HISTORY_CHARS = 600;
 
 type ChatMessage = { role: 'user' | 'assistant'; content: string };
 
@@ -72,10 +100,14 @@ export async function handleAssistant(req: VercelRequest, res: VercelResponse) {
       const r = (m ?? {}) as { role?: unknown; content?: unknown };
       return { role: r.role === 'assistant' ? 'assistant' : 'user', content: clean(r.content, MAX_MESSAGE_CHARS) };
     })
-    .filter((m) => m.content.length > 0);
+    .filter((m) => m.content.length > 0)
+    .map((m, i, all) => (i === all.length - 1 ? m : { ...m, content: m.content.slice(0, MAX_HISTORY_CHARS) }));
   if (messages.length === 0 || messages[messages.length - 1].role !== 'user') {
     return json(res, { error: 'The last message must be a question.' }, 400);
   }
+
+  const tierName = body.model === 'sol' ? 'sol' : 'luna';
+  const tier = TIERS[tierName];
 
   const routine = (body.routine ?? {}) as { am?: unknown; pm?: unknown };
   const am = cleanList(routine.am, 12, 120);
@@ -104,7 +136,7 @@ export async function handleAssistant(req: VercelRequest, res: VercelResponse) {
   const system = `You are Skintel's skincare assistant inside the Skintel iOS app. You help one person with their own skincare routine, products and ingredients.
 
 Rules:
-- Be concise and practical: short paragraphs or a few bullets, under 180 words unless they ask for more.
+- Be concise and practical: short paragraphs or a few bullets, under ${tier.words} words unless they ask for more.
 - Use their skin profile, routine and shelf below whenever relevant, and name their actual products.
 - You are not a doctor. Do not diagnose conditions or give prescription dosing. For severe, spreading, painful, blistering or persistent (more than a few days) reactions, or anything like an allergic reaction, tell them to see a dermatologist or doctor.
 - Do not invent facts about specific products. Say when you're not sure.
@@ -116,38 +148,21 @@ Night routine: ${pm.join(' → ') || 'not set'}
 Shelf, newest first:
 ${shelf}`;
 
-  const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), 25_000);
   try {
-    const r = await fetch('https://openrouter.ai/api/v1/chat/completions', {
-      method: 'POST',
-      signal: controller.signal,
-      headers: {
-        Authorization: `Bearer ${apiKey}`,
-        'Content-Type': 'application/json',
-        'HTTP-Referer': 'https://www.skinstel.com',
-        'X-Title': 'Skintel',
-      },
-      body: JSON.stringify({
-        model: process.env.OPENROUTER_MODEL || DEFAULT_MODEL,
-        max_tokens: 600,
-        temperature: 0.4,
-        messages: [{ role: 'system', content: system }, ...messages],
-      }),
-    });
-    const data = (await r.json().catch(() => null)) as
-      | { model?: string; choices?: { message?: { content?: unknown } }[] }
-      | null;
-    if (!r.ok) {
-      if (r.status === 429) return json(res, { error: 'Ask Skintel is busy. Try again in a moment.' }, 429);
-      return json(res, { error: 'Ask Skintel is unavailable right now.' }, 502);
-    }
-    const reply = clean(data?.choices?.[0]?.message?.content, MAX_REPLY_CHARS);
+    const ai = await openRouterChat(
+      apiKey,
+      tier.models,
+      { max_tokens: tier.maxTokens, messages: [{ role: 'system', content: system }, ...messages], ...tier.extra },
+      25_000,
+    );
+    const reply = clean(ai.text, MAX_REPLY_CHARS);
     if (!reply) return json(res, { error: 'Ask Skintel returned an empty reply.' }, 502);
-    return json(res, { reply, model: data?.model ?? null });
-  } catch {
+    return json(res, { reply, model: ai.model, assistant: tierName });
+  } catch (e) {
+    if (e instanceof AiError && e.status === 429) {
+      return json(res, { error: 'Ask Skintel is busy. Try again in a moment.' }, 429);
+    }
+    console.error('assistant failed', { tier: tierName, message: String((e as Error)?.message ?? e) });
     return json(res, { error: 'Ask Skintel is unavailable right now.' }, 502);
-  } finally {
-    clearTimeout(timeout);
   }
 }

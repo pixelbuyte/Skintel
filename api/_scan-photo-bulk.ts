@@ -1,8 +1,7 @@
-import Anthropic from '@anthropic-ai/sdk';
 import type { VercelRequest, VercelResponse } from '@vercel/node';
+import { complete, parseJsonObject, SCAN_MODELS } from './_ai.js';
 import { getServiceClient, getUserFromAuthHeader, json } from './_lib.js';
 
-const MODEL = 'claude-haiku-4-5-20251001';
 const MAX_IMAGES = 5;
 const MAX_TOTAL_BYTES = 15 * 1024 * 1024; // ~15MB across all images (under 16MB body limit)
 
@@ -57,36 +56,20 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   const instruction =
     'Each image shows skincare products. For EVERY product visible across all images, extract brand, product name, and full INCI ingredient list. Return ONLY strict JSON: {"products": [{"brand": string|null, "productName": string|null, "ingredients": string}]}. If a product\'s ingredient list is not visible, omit that product. Do not invent ingredients.';
 
-  const content: Anthropic.ContentBlockParam[] = images.map((img) => ({
-    type: 'image' as const,
-    source: {
-      type: 'base64' as const,
-      media_type: img.mimeType as AllowedMime,
-      data: img.imageBase64,
-    },
-  }));
-  content.push({ type: 'text', text: instruction });
-
-  const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY! });
-
   try {
-    const resp = await client.messages.create({
-      model: MODEL,
-      max_tokens: 4096,
-      messages: [{ role: 'user', content }],
+    const ai = await complete({
+      models: SCAN_MODELS,
+      prompt: instruction,
+      images: images.map((img) => ({ base64: img.imageBase64, mimeType: img.mimeType })),
+      maxTokens: 4096,
+      json: true,
     });
-
-    const text = resp.content
-      .filter((b): b is Anthropic.TextBlock => b.type === 'text')
-      .map((b) => b.text)
-      .join('');
 
     let parsed: { products?: unknown } = {};
     try {
-      const match = text.match(/\{[\s\S]*\}/);
-      parsed = JSON.parse(match ? match[0] : text);
+      parsed = parseJsonObject(ai.text) as { products?: unknown };
     } catch {
-      return json(res, { error: 'Model returned invalid JSON', raw: text.slice(0, 500) }, 502);
+      return json(res, { error: 'Model returned invalid JSON', raw: ai.text.slice(0, 500) }, 502);
     }
 
     const rawProducts = Array.isArray(parsed.products) ? parsed.products : [];
@@ -99,7 +82,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         ingredients: (p.ingredients as string).trim(),
       }));
 
-    return json(res, { products, usage: resp.usage });
+    return json(res, { products, usage: ai.usage });
   } catch (e: any) {
     return json(res, { error: 'AI bulk scan failed', detail: String(e?.message ?? e) }, 500);
   }

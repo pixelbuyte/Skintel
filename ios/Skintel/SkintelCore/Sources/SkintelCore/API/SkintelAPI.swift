@@ -88,13 +88,16 @@ public struct SkintelAPI: Sendable {
     }
 
     /// `POST /api/assistant`. The server adds the user's shelf and skin profile; the routine
-    /// is sent because it only lives on the device. Throws `.proRequired` for free accounts
-    /// and `.server(503, …)` while the model isn't configured.
-    public func askAssistant(messages: [AssistantTurn], amRoutine: [String], pmRoutine: [String]) async throws -> String {
+    /// is sent because it only lives on the device. `model` is a Skintel model name
+    /// ("luna" or "sol"); the server maps it to a provider model and treats anything else as
+    /// Luna. Throws `.proRequired` for free accounts and `.server(503, …)` while the model
+    /// isn't configured.
+    public func askAssistant(messages: [AssistantTurn], amRoutine: [String], pmRoutine: [String],
+                             model: String = "luna") async throws -> String {
         struct Routine: Encodable { let am: [String]; let pm: [String] }
-        struct Body: Encodable { let messages: [AssistantTurn]; let routine: Routine }
+        struct Body: Encodable { let messages: [AssistantTurn]; let routine: Routine; let model: String }
         struct Reply: Decodable { let reply: String }
-        let body = Body(messages: messages, routine: Routine(am: amRoutine, pm: pmRoutine))
+        let body = Body(messages: messages, routine: Routine(am: amRoutine, pm: pmRoutine), model: model)
         return try await post(Reply.self, "assistant", body: body).reply
     }
 
