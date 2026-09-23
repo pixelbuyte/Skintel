@@ -47,6 +47,33 @@ private func session(onboarded: Bool) -> Session {
 }
 
 @MainActor
+@MainActor
+@Test func routineStoreRecordsCompletedDaysPerSlot() {
+    let dir = tempDir()
+    let store = RoutineStore(directory: dir)
+    store.add("a", to: .am); store.add("b", to: .am); store.add("a", to: .pm)
+    store.toggleDone("a", in: .am)
+    #expect(store.daysCompleted(.am) == 0)          // one of two steps is not a completed day
+    store.toggleDone("b", in: .am)
+    #expect(store.daysCompleted(.am) == 1)
+    #expect(store.daysCompleted(.pm) == 0)          // PM was never ticked as a routine
+    store.toggleDone("b", in: .am)                  // un-tick: the day is no longer complete
+    #expect(store.daysCompleted(.am) == 0)
+    store.markAllDone(.pm)
+    #expect(store.daysCompleted(.pm) == 1)
+    #expect(RoutineStore(directory: dir).daysCompleted(.pm) == 1)   // survives a relaunch
+}
+
+@MainActor
+@Test func routineFileSavedBeforeCompletionHistoryStillLoads() throws {
+    let dir = tempDir()
+    let legacy = #"{"am":["a"],"pm":["b"],"doneToday":[],"doneDay":"2000-01-01"}"#
+    try Data(legacy.utf8).write(to: dir.appendingPathComponent("routine.v1.json"))
+    let store = RoutineStore(directory: dir)
+    #expect(store.ids(.am) == ["a"] && store.ids(.pm) == ["b"])     // not wiped by the new field
+    #expect(store.daysCompleted(.am) == 0)
+}
+
 @Test func scanStoreReKeysUnsavedScanOntoProduct() {
     let store = ScanStore(directory: tempDir())
     let result = ScanResult(verdict: .clean, score: 82, summary: "ok", flags: [], notes: nil)

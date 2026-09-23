@@ -99,7 +99,7 @@ struct RoutineView: View {
         let done = env.routine.isDone(id)
         let score = env.scans.score(for: id)
         return Button {
-            env.routine.toggleDone(id); Haptics.selection()
+            env.routine.toggleDone(id, in: slot); Haptics.selection()
         } label: {
             HStack(spacing: SKSpace.md) {
                 ZStack {

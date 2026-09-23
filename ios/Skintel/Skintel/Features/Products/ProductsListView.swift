@@ -7,6 +7,7 @@ struct ProductsListView: View {
     @Environment(\.openPaywall) private var openPaywall
     @State private var pendingDelete: ProductWithIngredients?
     @State private var deleteError: String?
+    @State private var showCompare = false
 
     var body: some View {
         ScrollView {
@@ -44,10 +45,15 @@ struct ProductsListView: View {
         .skNavigationTitle("Shelf")
         .toolbar {
             ToolbarItem(placement: .topBarTrailing) {
+                Button { showCompare = true } label: { Image(systemName: "arrow.left.arrow.right").font(.system(size: 16, weight: .semibold)) }
+                    .accessibilityLabel("Compare products")
+            }
+            ToolbarItem(placement: .topBarTrailing) {
                 Button { addTapped() } label: { Image(systemName: "plus").font(.system(size: 17, weight: .semibold)) }
                     .accessibilityLabel("Add product")
             }
         }
+        .sheet(isPresented: $showCompare) { CompareView() }
         .navigationDestination(for: AppDestination.self) { d in
             switch d {
             case .productDetail(let id): ProductDetailView(productID: id)

@@ -262,3 +262,323 @@ struct JournalView: View {
         }
     }
 }
+
+// MARK: - Check-in detail sheet
+
+/// The check-in with a little more detail: how the skin is, what specifically, and an
+/// optional note. The mood is saved as the server's condition; symptoms ride along in the
+/// note as a "Symptoms:" line, which the journal analysis already reads.
+struct CheckInSheet: View {
+    @Environment(AppEnvironment.self) private var env
+    @Environment(\.dismiss) private var dismiss
+    @State private var condition: JournalCondition?
+    @State private var symptoms: Set<String> = []
+    @State private var note = ""
+    @State private var primed = false
+    @State private var saving = false
+    @State private var error: String?
+
+    private static let symptomOptions = ["Redness", "Stinging", "Dryness", "Flaking", "Bumps", "Oily T-zone", "Itching"]
+    private static let symptomPrefix = "Symptoms: "
+
+    var body: some View {
+        NavigationStack {
+            ScrollView {
+                VStack(alignment: .leading, spacing: SKSpace.lg) {
+                    VStack(alignment: .leading, spacing: 6) {
+                        Text("How's your skin today?").font(SKFont.pageTitle).foregroundStyle(SKColor.ink)
+                        Text("One tap is enough. The rest is optional.").font(SKFont.secondary).foregroundStyle(SKColor.muted)
+                    }
+
+                    LazyVGrid(columns: [GridItem(.flexible(), spacing: SKSpace.sm), GridItem(.flexible(), spacing: SKSpace.sm)], spacing: SKSpace.sm) {
+                        ForEach(JournalCondition.allCases, id: \.self) { c in
+                            MoodChoiceButton(condition: c, selected: condition == c) {
+                                condition = c
+                                Haptics.selection()
+                            }
+                        }
+                    }
+
+                    VStack(alignment: .leading, spacing: SKSpace.md) {
+                        SKFieldLabel("Anything specific? · optional")
+                        FlowLayout(spacing: SKSpace.sm) {
+                            ForEach(Self.symptomOptions, id: \.self) { s in
+                                SKSelectChip(title: s, selected: symptoms.contains(s)) {
+                                    if symptoms.contains(s) { symptoms.remove(s) } else { symptoms.insert(s) }
+                                    Haptics.selection()
+                                }
+                            }
+                        }
+                    }
+
+                    VStack(alignment: .leading, spacing: SKSpace.md) {
+                        SKFieldLabel("Note · optional")
+                        SKTextEditor(placeholder: "Anything else worth remembering…", text: $note, minHeight: 90)
+                    }
+
+                    if let error { SKInlineError(message: error) }
+
+                    SKButton(title: "Save for today", isLoading: saving) { Task { await save() } }
+                        .disabled(condition == nil)
+                }
+                .skPagePadding()
+                .padding(.top, SKSpace.md)
+                .padding(.bottom, SKSpace.xxl)
+            }
+            .scrollDismissesKeyboard(.interactively)
+            .skPageBackground()
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar { ToolbarItem(placement: .topBarLeading) { Button("Cancel") { dismiss() }.font(SKFont.bodyMedium) } }
+        }
+        .tint(SKColor.primary)
+        .task {
+            await env.journal.load()
+            prime()
+        }
+    }
+
+    /// Start from today's saved entry, splitting the "Symptoms:" line back out of the note.
+    private func prime() {
+        guard !primed, env.journal.state.value != nil else { return }
+        primed = true
+        guard let t = env.journal.today else { return }
+        condition = t.condition
+        var rest: [String] = []
+        for line in (t.notes ?? "").components(separatedBy: "\n") {
+            if line.hasPrefix(Self.symptomPrefix) {
+                let names = line.dropFirst(Self.symptomPrefix.count).split(separator: ",").map { $0.trimmingCharacters(in: .whitespaces) }
+                symptoms = Set(names)
+            } else {
+                rest.append(line)
+            }
+        }
+        note = rest.joined(separator: "\n").trimmingCharacters(in: .whitespacesAndNewlines)
+    }
+
+    private func save() async {
+        guard let condition else { return }
+        saving = true
+        error = nil
+        defer { saving = false }
+        var lines: [String] = []
+        let trimmed = note.trimmingCharacters(in: .whitespacesAndNewlines)
+        if !trimmed.isEmpty { lines.append(trimmed) }
+        let chosen = Self.symptomOptions.filter { symptoms.contains($0) }
+        if !chosen.isEmpty { lines.append(Self.symptomPrefix + chosen.joined(separator: ", ")) }
+        let text = lines.joined(separator: "\n")
+        do {
+            try await env.journal.save(day: ISO8601.dayString(Date()), condition: condition, notes: text.isEmpty ? nil : String(text.prefix(2000)))
+            env.analytics.track(.journalSaved)
+            Haptics.success()
+            dismiss()
+        } catch {
+            self.error = (error as? APIError)?.userMessage ?? error.localizedDescription
+            Haptics.error()
+        }
+    }
+}
+
+// MARK: - Insights tab
+
+/// The weekly picture, built only from what the person has actually done: routine ticks,
+/// skin check-ins and their shelf. Nothing here is estimated; when there isn't enough data
+/// it says so.
+struct InsightsView: View {
+    @Environment(AppEnvironment.self) private var env
+    @State private var path: [AppDestination] = []
+    @State private var showJournal = false
+    @State private var showCheckIn = false
+
+    var body: some View {
+        NavigationStack(path: $path) {
+            ScrollView {
+                VStack(alignment: .leading, spacing: SKSpace.lg) {
+                    VStack(alignment: .leading, spacing: 6) {
+                        Text("Insights").font(SKFont.pageTitle).foregroundStyle(SKColor.ink)
+                        Text("Your last seven days").font(SKFont.sans(17, relativeTo: .body)).foregroundStyle(SKColor.muted)
+                    }
+                    .padding(.top, SKSpace.md)
+
+                    consistencyCard
+                    skinDaysCard
+                    suspectsCard
+                    patternRow
+                    historyRow
+                }
+                .skPagePadding()
+                .padding(.bottom, SKSpace.xxl)
+            }
+            .refreshable {
+                await env.journal.load()
+                await env.products.load()
+            }
+            .skPageBackground()
+            .toolbar(.hidden, for: .navigationBar)
+            .navigationDestination(for: AppDestination.self) { d in
+                switch d {
+                case .culprits: CulpritsView()
+                case .routine: RoutineView()
+                default: EmptyView()
+                }
+            }
+        }
+        .tint(SKColor.primary)
+        .sheet(isPresented: $showJournal) { JournalView() }
+        .sheet(isPresented: $showCheckIn) { CheckInSheet() }
+        .task { await env.journal.load() }
+    }
+
+    // MARK: Routine kept
+
+    private var consistencyCard: some View {
+        let hasRoutine = !env.routine.ids(.am).isEmpty || !env.routine.ids(.pm).isEmpty
+        return SKCard {
+            VStack(alignment: .leading, spacing: SKSpace.md) {
+                Text("Routine kept").font(SKFont.cardTitle).foregroundStyle(SKColor.ink)
+                if hasRoutine {
+                    ForEach(RoutineStore.Slot.allCases) { slot in
+                        if !env.routine.ids(slot).isEmpty { consistencyRow(slot) }
+                    }
+                    Text("A day counts when every step in that routine is ticked on Today.")
+                        .font(SKFont.caption).foregroundStyle(SKColor.muted)
+                } else {
+                    Text("Build your routine and tick it off on Today to see how consistent you are.")
+                        .font(SKFont.secondary).foregroundStyle(SKColor.muted)
+                    SKButton(title: "Build your routine", kind: .secondary) { path.append(.routine) }
+                }
+            }
+        }
+    }
+
+    private func consistencyRow(_ slot: RoutineStore.Slot) -> some View {
+        let n = env.routine.daysCompleted(slot)
+        return VStack(alignment: .leading, spacing: 6) {
+            HStack {
+                Text(slot == .am ? "Morning" : "Night").font(SKFont.sans(15, weight: .medium, relativeTo: .subheadline)).foregroundStyle(SKColor.ink)
+                Spacer()
+                Text("\(n) of 7").font(SKFont.dataSmall).foregroundStyle(SKColor.muted)
+            }
+            SKProgressBar(fraction: Double(n) / 7, tone: n >= 5 ? .good : .neutral, height: 6)
+        }
+        .accessibilityElement(children: .combine)
+    }
+
+    // MARK: Skin days
+
+    private var skinDaysCard: some View {
+        let week = env.journal.week
+        let logged = week.filter { $0.entry != nil }.count
+        let clear = week.filter { $0.entry?.condition == .clear }.count
+        return SKCard {
+            VStack(alignment: .leading, spacing: SKSpace.md) {
+                HStack(alignment: .firstTextBaseline) {
+                    Text(logged == 0 ? "No check-ins yet this week" : "\(clear) clear \(clear == 1 ? "day" : "days") this week")
+                        .font(SKFont.cardTitle).foregroundStyle(SKColor.ink)
+                    Spacer()
+                    if env.journal.state.value != nil && env.journal.today == nil {
+                        Button("Check in") { showCheckIn = true }
+                            .font(SKFont.sans(14, weight: .semibold, relativeTo: .subheadline))
+                            .foregroundStyle(SKColor.primary)
+                    }
+                }
+                HStack {
+                    ForEach(Array(week.enumerated()), id: \.offset) { _, day in
+                        VStack(spacing: 10) {
+                            Text(DateFormatting.weekdayShort(day.date)).font(SKFont.mono(11)).textCase(.uppercase).foregroundStyle(SKColor.muted)
+                            SKDot(tone: day.entry?.condition.tone ?? .neutral, size: 16)
+                                .overlay {
+                                    if Calendar.current.isDateInToday(day.date) { Circle().stroke(SKColor.primary, lineWidth: 2).frame(width: 22, height: 22) }
+                                }
+                        }
+                        .frame(maxWidth: .infinity)
+                        .accessibilityElement(children: .ignore)
+                        .accessibilityLabel("\(DateFormatting.weekdayShort(day.date)): \(day.entry?.condition.checkInLabel ?? "not logged")")
+                    }
+                }
+                if logged < 3 {
+                    Text("Insights get sharper after about a week of check-ins.")
+                        .font(SKFont.caption).foregroundStyle(SKColor.muted)
+                }
+            }
+        }
+    }
+
+    // MARK: Suspects and patterns
+
+    @ViewBuilder
+    private var suspectsCard: some View {
+        let culprits = env.products.culprits
+        let bad = env.products.badProductCount
+        Button { path.append(.culprits) } label: {
+            SKCard(tint: culprits.all.isEmpty ? nil : SKTone.bad) {
+                HStack(spacing: SKSpace.lg) {
+                    Image(systemName: culprits.all.isEmpty ? "magnifyingglass" : "exclamationmark.triangle")
+                        .font(.system(size: 18, weight: .semibold))
+                        .foregroundStyle(culprits.all.isEmpty ? SKColor.primary : SKColor.badFg)
+                        .frame(width: 48, height: 48)
+                        .background(culprits.all.isEmpty ? SKColor.blush : SKColor.badBg, in: RoundedRectangle(cornerRadius: 14, style: .continuous))
+                    VStack(alignment: .leading, spacing: 3) {
+                        if let top = culprits.all.first {
+                            Text("Suspect: \(top.name)").font(SKFont.cardTitle).foregroundStyle(SKColor.ink).lineLimit(2)
+                            Text("In \(top.badCount) products that broke you out").font(SKFont.secondary).foregroundStyle(SKColor.muted)
+                        } else {
+                            Text("Culprit detection").font(SKFont.cardTitle).foregroundStyle(SKColor.ink)
+                            Text(bad < 2 ? "Mark two products as “Broke out” and Skintel finds what they share."
+                                 : "No shared ingredient yet. Add ingredient lists to widen the net.")
+                                .font(SKFont.secondary).foregroundStyle(SKColor.muted)
+                        }
+                    }
+                    Spacer(minLength: 0)
+                    Image(systemName: "chevron.right").font(.system(size: 13, weight: .semibold)).foregroundStyle(SKColor.muted)
+                }
+            }
+        }
+        .buttonStyle(SKPressStyle())
+    }
+
+    private var patternRow: some View {
+        Button { path.append(.culprits) } label: {
+            SKCard {
+                HStack(spacing: SKSpace.lg) {
+                    Image(systemName: "waveform.path.ecg")
+                        .font(.system(size: 18, weight: .semibold))
+                        .foregroundStyle(SKColor.primary)
+                        .frame(width: 48, height: 48)
+                        .background(SKColor.blush, in: RoundedRectangle(cornerRadius: 14, style: .continuous))
+                    VStack(alignment: .leading, spacing: 3) {
+                        HStack(spacing: SKSpace.sm) {
+                            Text("Journal patterns").font(SKFont.cardTitle).foregroundStyle(SKColor.ink)
+                            if !env.subscription.entitlement.isPro { SKChip("Pro") }
+                        }
+                        Text("Lines up your check-ins with when each product joined your shelf.")
+                            .font(SKFont.secondary).foregroundStyle(SKColor.muted)
+                    }
+                    Spacer(minLength: 0)
+                    Image(systemName: "chevron.right").font(.system(size: 13, weight: .semibold)).foregroundStyle(SKColor.muted)
+                }
+            }
+        }
+        .buttonStyle(SKPressStyle())
+    }
+
+    private var historyRow: some View {
+        Button { showJournal = true } label: {
+            SKCard {
+                HStack(spacing: SKSpace.lg) {
+                    Image(systemName: "book.closed")
+                        .font(.system(size: 18, weight: .semibold))
+                        .foregroundStyle(SKColor.ink)
+                        .frame(width: 48, height: 48)
+                        .background(SKColor.neutralChip, in: RoundedRectangle(cornerRadius: 14, style: .continuous))
+                    VStack(alignment: .leading, spacing: 3) {
+                        Text("Check-in history").font(SKFont.cardTitle).foregroundStyle(SKColor.ink)
+                        Text("Every day you've logged, with your notes.").font(SKFont.secondary).foregroundStyle(SKColor.muted)
+                    }
+                    Spacer(minLength: 0)
+                    Image(systemName: "chevron.right").font(.system(size: 13, weight: .semibold)).foregroundStyle(SKColor.muted)
+                }
+            }
+        }
+        .buttonStyle(SKPressStyle())
+    }
+}
