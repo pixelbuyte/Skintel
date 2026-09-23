@@ -1,12 +1,13 @@
 import SwiftUI
 
 enum MainTab: Hashable, CaseIterable {
-    case today, shelf, insights, you
+    case today, shelf, ask, insights, you
 
     var title: String {
         switch self {
         case .today: "Today"
         case .shelf: "Shelf"
+        case .ask: "Ask"
         case .insights: "Insights"
         case .you: "You"
         }
@@ -16,6 +17,7 @@ enum MainTab: Hashable, CaseIterable {
         switch self {
         case .today: "sun.max"
         case .shelf: "tray.full"
+        case .ask: "sparkles"
         case .insights: "chart.bar"
         case .you: "person"
         }
@@ -35,6 +37,8 @@ struct MainTabView: View {
     @State private var showAddProduct = false
     @State private var showCompare = false
     @State private var showAssistant = false
+    @State private var showShelf = false
+    @AppStorage(AssistantPlacement.key) private var assistantPlacement = AssistantPlacement.tab
 
     var body: some View {
         ZStack(alignment: .bottom) {
@@ -42,6 +46,7 @@ struct MainTabView: View {
                 switch tab {
                 case .today: HomeView()
                 case .shelf: ShelfTab()
+                case .ask: AssistantView(showsClose: false)
                 case .insights: InsightsView()
                 case .you: YouTab()
                 }
@@ -55,8 +60,12 @@ struct MainTabView: View {
                 Haptics.medium()
                 showQuick = true
             }
+            .ignoresSafeArea(.keyboard, edges: .bottom)
         }
-        .ignoresSafeArea(.keyboard, edges: .bottom)
+        .onChange(of: assistantPlacement) { _, placement in
+            if placement == AssistantPlacement.tab && tab == .shelf { tab = .today }
+            if placement == AssistantPlacement.corner && tab == .ask { tab = .today }
+        }
         .fullScreenCover(isPresented: $presentScanner) {
             ScannerHostView(embedded: false)
         }
@@ -64,7 +73,8 @@ struct MainTabView: View {
             PaywallView(reason: reason)
         }
         .sheet(isPresented: $showQuick, onDismiss: runPending) {
-            QuickActionsSheet(canScan: env.subscription.entitlement.canUseScanner) { action in
+            QuickActionsSheet(canScan: env.subscription.entitlement.canUseScanner,
+                              assistantInTab: assistantPlacement == AssistantPlacement.tab) { action in
                 pending = action
                 showQuick = false
             }
@@ -76,6 +86,7 @@ struct MainTabView: View {
         .sheet(isPresented: $showAddProduct) { NavigationStack { ProductFormView(mode: .add(prefill: nil)) } }
         .sheet(isPresented: $showCompare) { CompareView() }
         .sheet(isPresented: $showAssistant) { AssistantView() }
+        .sheet(isPresented: $showShelf) { ShelfTab() }
         .environment(\.openPaywall, OpenPaywallAction { reason in paywall = reason })
     }
 
@@ -98,17 +109,21 @@ struct MainTabView: View {
             showCompare = true
         case .ask:
             showAssistant = true
+        case .shelf:
+            showShelf = true
         }
     }
 }
 
 enum QuickAction: Hashable {
-    case scan, checkIn, ask, addByHand, compare
+    case scan, checkIn, ask, shelf, addByHand, compare
 }
 
 /// What the + button opens: the four things people do outside their routine.
 private struct QuickActionsSheet: View {
     let canScan: Bool
+    /// Ask Skintel has its own tab, so the menu offers Shelf (which lost its tab) instead.
+    let assistantInTab: Bool
     let choose: (QuickAction) -> Void
 
     var body: some View {
@@ -119,8 +134,13 @@ private struct QuickActionsSheet: View {
                 subtitle: "Barcode or ingredient label", badge: canScan ? nil : "Pro", action: .scan)
             row(icon: "face.smiling", tint: SKColor.goodFg, title: "Check in skin",
                 subtitle: "How is your skin today?", badge: nil, action: .checkIn)
-            row(icon: "sparkles", tint: SKColor.primary, title: "Ask Skintel",
-                subtitle: "Questions about your skin and products", badge: "Preview", action: .ask)
+            if assistantInTab {
+                row(icon: "tray.full", tint: SKColor.ink, title: "Your shelf",
+                    subtitle: "Every product you've added", badge: nil, action: .shelf)
+            } else {
+                row(icon: "sparkles", tint: SKColor.primary, title: "Ask Skintel",
+                    subtitle: "Questions about your skin and products", badge: nil, action: .ask)
+            }
             row(icon: "square.and.pencil", tint: SKColor.ink, title: "Add by hand",
                 subtitle: "Search or paste an ingredient list", badge: nil, action: .addByHand)
             row(icon: "arrow.left.arrow.right", tint: SKColor.ink, title: "Compare products",
@@ -174,11 +194,14 @@ struct SKTabBar: View {
     let fabAction: () -> Void
     /// Space reserved under screen content so the last row scrolls clear of the bar.
     static let height: CGFloat = 62
+    @AppStorage(AssistantPlacement.key) private var assistantPlacement = AssistantPlacement.tab
+
+    private var secondTab: MainTab { assistantPlacement == AssistantPlacement.tab ? .ask : .shelf }
 
     var body: some View {
         #if compiler(>=6.2)
         if #available(iOS 26, *) {
-            SKGlassTabBar(selection: $selection, fabAction: fabAction)
+            SKGlassTabBar(selection: $selection, fabAction: fabAction, second: secondTab)
         } else {
             classicBar
         }
@@ -190,7 +213,7 @@ struct SKTabBar: View {
     private var classicBar: some View {
         HStack(alignment: .top, spacing: 0) {
             tabItem(.today)
-            tabItem(.shelf)
+            tabItem(secondTab)
             fab
             tabItem(.insights)
             tabItem(.you)
@@ -253,13 +276,14 @@ struct SKTabBar: View {
 private struct SKGlassTabBar: View {
     @Binding var selection: MainTab
     let fabAction: () -> Void
+    let second: MainTab
     @Namespace private var selectionPill
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     var body: some View {
         GlassEffectContainer(spacing: 10) {
             HStack(spacing: 10) {
-                capsule(.today, .shelf)
+                capsule(.today, second)
                 fab
                 capsule(.insights, .you)
             }

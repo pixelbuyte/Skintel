@@ -12,6 +12,7 @@ struct SettingsView: View {
     @Environment(\.openPaywall) private var openPaywall
 
     @AppStorage(Haptics.preferenceKey) private var hapticsOn = true
+    @AppStorage(AssistantPlacement.key) private var assistantPlacement = AssistantPlacement.tab
     @State private var showEditProfile = false
     @State private var showManageSubs = false
     @State private var restoring = false
@@ -56,6 +57,18 @@ struct SettingsView: View {
                         Toggle("Haptics", isOn: $hapticsOn).labelsHidden().tint(SKColor.goodFg)
                     }
                     .padding(.horizontal, SKSpace.lg).padding(.vertical, 14)
+                    divider
+                    HStack {
+                        Text("Ask Skintel").font(SKFont.sans(17, relativeTo: .body)).foregroundStyle(SKColor.ink)
+                        Spacer()
+                        Picker("Ask Skintel", selection: $assistantPlacement) {
+                            Text("Tab bar").tag(AssistantPlacement.tab)
+                            Text("Top of Today").tag(AssistantPlacement.corner)
+                        }
+                        .pickerStyle(.menu)
+                        .tint(SKColor.primary)
+                    }
+                    .padding(.horizontal, SKSpace.lg).padding(.vertical, 6)
                     divider
                     row(title: "Camera & photo access", trailing: { chevron }, last: true) { CameraPermission.openSettings() }
                 }
