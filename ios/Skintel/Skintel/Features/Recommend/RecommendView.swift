@@ -143,19 +143,98 @@ struct RecommendView: View {
     }
 }
 
-// MARK: - Ask Skintel (preview)
+// MARK: - Ask Skintel
 
-/// A preview of the Skintel assistant. Nothing here calls a model yet: the suggested
-/// questions have written answers (personalised from the shelf and routine where that is
-/// accurate), and a typed question gets a clear "not connected yet" reply.
+/// Where Ask Skintel lives, chosen in You › Preferences: its own tab, or a button at the
+/// top of Today (with Shelf taking the tab slot back).
+enum AssistantPlacement {
+    static let key = "assistant.placement"
+    static let tab = "tab"
+    static let corner = "corner"
+}
+
+struct AssistantMessage: Codable, Identifiable, Sendable, Equatable {
+    enum Role: String, Codable, Sendable { case user, assistant, notice, upsell }
+    var id = UUID()
+    var role: Role
+    var text: String
+}
+
+/// A saved Ask Skintel conversation.
+struct AssistantConversation: Codable, Identifiable, Sendable, Equatable {
+    var id: UUID
+    var title: String
+    var updatedAt: Date
+    var messages: [AssistantMessage]
+}
+
+/// Chat history, kept on this device only (like the routine) and cleared on sign-out.
+@MainActor
+@Observable
+final class AssistantStore {
+    private(set) var conversations: [AssistantConversation] = []
+    private let fileURL: URL
+    private static let maxConversations = 50
+
+    init(directory: URL? = nil) {
+        let dir = directory ?? FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0]
+            .appendingPathComponent("Skintel", isDirectory: true)
+        try? FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
+        fileURL = dir.appendingPathComponent("assistant.v1.json")
+        load()
+    }
+
+    func save(_ conversation: AssistantConversation) {
+        var list = conversations.filter { $0.id != conversation.id }
+        list.append(conversation)
+        list.sort { $0.updatedAt > $1.updatedAt }
+        conversations = Array(list.prefix(Self.maxConversations))
+        persist()
+    }
+
+    func delete(id: UUID) {
+        conversations.removeAll { $0.id == id }
+        persist()
+    }
+
+    func reset() {
+        conversations = []
+        try? FileManager.default.removeItem(at: fileURL)
+    }
+
+    private func load() {
+        guard let data = try? Data(contentsOf: fileURL),
+              let list = try? JSONDecoder().decode([AssistantConversation].self, from: data) else { return }
+        conversations = list
+    }
+
+    private func persist() {
+        guard let data = try? JSONEncoder().encode(conversations) else { return }
+        try? data.write(to: fileURL, options: [.atomic, .completeFileProtection])
+    }
+}
+
+/// The Skintel assistant. Suggested questions have written answers (free, instant, and
+/// personalised from the shelf and routine where that is accurate). Typed questions go to
+/// the model through `/api/assistant` for Pro accounts; the key never leaves the server.
 struct AssistantView: View {
+    /// False when hosted as a tab: there is nothing to close.
+    var showsClose = true
+
     @Environment(AppEnvironment.self) private var env
     @Environment(\.dismiss) private var dismiss
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @State private var conversationID = UUID()
     @State private var messages: [AssistantMessage] = []
     @State private var draft = ""
     @State private var isAnswering = false
+    @State private var showHistory = false
+    @State private var paywall: PaywallReason?
     @FocusState private var inputFocused: Bool
+
+    private static let upsellText = "Typing your own questions is part of Skintel Pro. The suggested questions stay free."
+
+    private var isPro: Bool { env.subscription.entitlement.isPro }
 
     var body: some View {
         NavigationStack {
@@ -170,6 +249,10 @@ struct AssistantView: View {
                             }
                             if isAnswering && messages.last?.role == .user {
                                 TypingDots()
+                            }
+                            if !isAnswering && messages.last?.role == .upsell {
+                                SKButton(title: "See Skintel Pro", kind: .secondary, fullWidth: false) { paywall = .general }
+                                    .padding(.leading, 40)
                             }
                         }
                     }
@@ -186,27 +269,29 @@ struct AssistantView: View {
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .topBarLeading) {
-                    Button("Close") { dismiss() }.font(SKFont.bodyMedium)
+                    if showsClose {
+                        Button("Close") { dismiss() }.font(SKFont.bodyMedium)
+                    }
                 }
                 ToolbarItem(placement: .principal) {
-                    VStack(spacing: 1) {
-                        Text("Ask Skintel").font(SKFont.navTitle).foregroundStyle(SKColor.ink)
-                        Text("Preview").font(SKFont.caption).foregroundStyle(SKColor.muted)
-                    }
+                    Text("Ask Skintel").font(SKFont.navTitle).foregroundStyle(SKColor.ink)
                 }
-                ToolbarItem(placement: .topBarTrailing) {
-                    Button {
-                        messages = []
-                        draft = ""
-                    } label: {
-                        Image(systemName: "square.and.pencil")
-                    }
-                    .disabled(messages.isEmpty || isAnswering)
-                    .accessibilityLabel("New chat")
+                ToolbarItemGroup(placement: .topBarTrailing) {
+                    Button { showHistory = true } label: { Image(systemName: "clock.arrow.circlepath") }
+                        .disabled(isAnswering)
+                        .accessibilityLabel("Chat history")
+                    Button { startNewChat() } label: { Image(systemName: "square.and.pencil") }
+                        .disabled(messages.isEmpty || isAnswering)
+                        .accessibilityLabel("New chat")
                 }
             }
         }
         .tint(SKColor.primary)
+        .sheet(isPresented: $showHistory) {
+            AssistantHistoryView { open($0) }
+                .presentationDetents([.medium, .large])
+        }
+        .sheet(item: $paywall) { PaywallView(reason: $0) }
     }
 
     // MARK: Empty state
@@ -308,7 +393,7 @@ struct AssistantView: View {
             .skGlass(in: RoundedRectangle(cornerRadius: 26, style: .continuous), interactive: false, fallback: SKColor.cream)
             .overlay(RoundedRectangle(cornerRadius: 26, style: .continuous).stroke(SKColor.line))
             .padding(.horizontal, SKSpace.lg)
-            Text("Preview: suggested questions only. The full assistant is coming soon.")
+            Text(isPro ? "Answers can be wrong. Skintel isn't a doctor." : "Suggested questions are free. Typing your own is part of Skintel Pro.")
                 .font(SKFont.caption)
                 .foregroundStyle(SKColor.muted)
                 .multilineTextAlignment(.center)
@@ -328,43 +413,97 @@ struct AssistantView: View {
         guard !isAnswering else { return }
         inputFocused = false
         Haptics.tap()
-        respond(to: p.question, with: answer(for: p), notice: false)
+        messages.append(AssistantMessage(role: .user, text: p.question))
+        deliver(answer(for: p), role: .assistant)
     }
 
     private func sendDraft() {
-        let q = draft.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !q.isEmpty, !isAnswering else { return }
+        let question = draft.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !question.isEmpty, !isAnswering else { return }
         draft = ""
         Haptics.tap()
-        respond(to: q,
-                with: "I'm not connected yet, so I can't answer typed questions. Try one of the suggested questions. The full Skintel assistant is coming soon.",
-                notice: true)
+        messages.append(AssistantMessage(role: .user, text: question))
+        guard isPro else {
+            deliver(Self.upsellText, role: .upsell)
+            return
+        }
+        var turns: [SkintelAPI.AssistantTurn] = []
+        for m in messages {
+            if m.role == .user { turns.append(SkintelAPI.AssistantTurn(role: "user", content: m.text)) }
+            if m.role == .assistant { turns.append(SkintelAPI.AssistantTurn(role: "assistant", content: m.text)) }
+        }
+        let am = names(.am)
+        let pm = names(.pm)
+        let api = env.api
+        isAnswering = true
+        Task {
+            do {
+                let reply = try await api.askAssistant(messages: turns, amRoutine: am, pmRoutine: pm)
+                deliver(reply, role: .assistant, alreadyWaited: true)
+            } catch let e as APIError {
+                if e.requiresPaywall {
+                    deliver(Self.upsellText, role: .upsell, alreadyWaited: true)
+                } else if case .server(let status, _) = e, status == 503 {
+                    deliver("Ask Skintel isn't switched on yet. Try one of the suggested questions for now.", role: .notice, alreadyWaited: true)
+                } else {
+                    deliver(e.userMessage, role: .notice, alreadyWaited: true)
+                }
+            } catch {
+                deliver(error.localizedDescription, role: .notice, alreadyWaited: true)
+            }
+        }
     }
 
-    /// Shows the question, a short typing pause, then the answer word by word the way a
-    /// live assistant streams. With Reduce Motion the answer appears at once.
-    private func respond(to question: String, with answer: String, notice: Bool) {
-        messages.append(AssistantMessage(role: .user, text: question))
+    /// A short typing pause (skipped when the network already made them wait), then answers
+    /// are revealed word by word the way a live assistant streams. Reduce Motion shows the
+    /// text at once. Every finished exchange is saved to history.
+    private func deliver(_ text: String, role: AssistantMessage.Role, alreadyWaited: Bool = false) {
         isAnswering = true
         let reduce = reduceMotion
-        let role: AssistantMessage.Role = notice ? .notice : .assistant
+        let chatID = conversationID
         Task {
-            try? await Task.sleep(for: .milliseconds(reduce ? 150 : 700))
-            if reduce {
-                messages.append(AssistantMessage(role: role, text: answer))
+            if !alreadyWaited {
+                try? await Task.sleep(for: .milliseconds(reduce ? 150 : 700))
+            }
+            guard chatID == conversationID else {
+                isAnswering = false
+                return
+            }
+            if reduce || role != .assistant {
+                messages.append(AssistantMessage(role: role, text: text))
             } else {
-                messages.append(AssistantMessage(role: role, text: ""))
-                let index = messages.count - 1
-                let words = answer.split(separator: " ", omittingEmptySubsequences: false)
+                let message = AssistantMessage(role: role, text: "")
+                messages.append(message)
                 var shown = ""
-                for (i, w) in words.enumerated() {
-                    shown += i == 0 ? String(w) : " " + String(w)
-                    if index < messages.count { messages[index].text = shown }
+                for (i, word) in text.split(separator: " ", omittingEmptySubsequences: false).enumerated() {
+                    shown += i == 0 ? String(word) : " " + String(word)
+                    if let index = messages.firstIndex(where: { $0.id == message.id }) { messages[index].text = shown }
                     try? await Task.sleep(for: .milliseconds(22))
                 }
             }
             isAnswering = false
+            saveConversation()
         }
+    }
+
+    private func saveConversation() {
+        guard let first = messages.first(where: { $0.role == .user }) else { return }
+        env.assistant.save(AssistantConversation(id: conversationID,
+                                                 title: String(first.text.prefix(80)),
+                                                 updatedAt: Date(),
+                                                 messages: messages))
+    }
+
+    private func startNewChat() {
+        conversationID = UUID()
+        messages = []
+        draft = ""
+    }
+
+    private func open(_ conversation: AssistantConversation) {
+        conversationID = conversation.id
+        messages = conversation.messages
+        draft = ""
     }
 
     private func scrollToEnd(_ proxy: ScrollViewProxy) {
@@ -422,11 +561,60 @@ struct AssistantView: View {
     }
 }
 
-private struct AssistantMessage: Identifiable, Equatable {
-    enum Role { case user, assistant, notice }
-    let id = UUID()
-    let role: Role
-    var text: String
+/// Past conversations, newest first. Swipe to delete.
+private struct AssistantHistoryView: View {
+    let onOpen: (AssistantConversation) -> Void
+    @Environment(AppEnvironment.self) private var env
+    @Environment(\.dismiss) private var dismiss
+
+    var body: some View {
+        NavigationStack {
+            Group {
+                if env.assistant.conversations.isEmpty {
+                    SKEmptyState(icon: "bubble.left.and.bubble.right",
+                                 title: "No chats yet",
+                                 message: "Your conversations with Ask Skintel are saved here, on this device.")
+                        .padding(SKSpace.xl)
+                        .frame(maxHeight: .infinity)
+                } else {
+                    List {
+                        ForEach(env.assistant.conversations) { c in
+                            Button {
+                                onOpen(c)
+                                dismiss()
+                            } label: {
+                                VStack(alignment: .leading, spacing: 3) {
+                                    Text(c.title).font(SKFont.cardTitle).foregroundStyle(SKColor.ink).lineLimit(2)
+                                    Text(subtitle(c)).font(SKFont.secondary).foregroundStyle(SKColor.muted)
+                                }
+                                .padding(.vertical, 4)
+                            }
+                            .listRowBackground(SKColor.cream)
+                        }
+                        .onDelete { offsets in
+                            let ids = offsets.map { env.assistant.conversations[$0].id }
+                            for id in ids { env.assistant.delete(id: id) }
+                        }
+                    }
+                    .scrollContentBackground(.hidden)
+                }
+            }
+            .skPageBackground()
+            .navigationTitle("Chats")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .topBarTrailing) {
+                    Button("Done") { dismiss() }.font(SKFont.bodyMedium)
+                }
+            }
+        }
+        .tint(SKColor.primary)
+    }
+
+    private func subtitle(_ c: AssistantConversation) -> String {
+        let questions = c.messages.filter { $0.role == .user }.count
+        return "\(DateFormatting.relative(c.updatedAt)) · \(questions) \(questions == 1 ? "question" : "questions")"
+    }
 }
 
 private enum AssistantPrompt: String, CaseIterable, Identifiable {
@@ -468,12 +656,12 @@ private struct AssistantBubble: View {
                     .padding(.vertical, 11)
                     .background(SKColor.primary, in: RoundedRectangle(cornerRadius: 20, style: .continuous))
             }
-        case .assistant, .notice:
+        case .assistant, .notice, .upsell:
             HStack(alignment: .top, spacing: SKSpace.md) {
                 AssistantAvatar(size: 28)
                 Text(Self.rich(message.text))
                     .font(SKFont.sans(16, relativeTo: .body))
-                    .foregroundStyle(message.role == .notice ? SKColor.muted : SKColor.ink)
+                    .foregroundStyle(message.role == .assistant ? SKColor.ink : SKColor.muted)
                     .lineSpacing(3)
                     .frame(maxWidth: .infinity, alignment: .leading)
                     .textSelection(.enabled)

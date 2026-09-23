@@ -74,6 +74,27 @@ private func session(onboarded: Bool) -> Session {
 }
 
 @MainActor
+@Test func assistantHistoryPersistsNewestFirstAndDeletes() {
+    let dir = tempDir()
+    let store = AssistantStore(directory: dir)
+    let a = AssistantConversation(id: UUID(), title: "Order?", updatedAt: Date(timeIntervalSince1970: 100),
+                                  messages: [AssistantMessage(role: .user, text: "Order?")])
+    let b = AssistantConversation(id: UUID(), title: "Patch test?", updatedAt: Date(timeIntervalSince1970: 200),
+                                  messages: [AssistantMessage(role: .user, text: "Patch test?"), AssistantMessage(role: .assistant, text: "Elbow.")])
+    store.save(a); store.save(b)
+    #expect(store.conversations.map(\.title) == ["Patch test?", "Order?"])
+    var updated = a
+    updated.updatedAt = Date(timeIntervalSince1970: 300)
+    store.save(updated)                                             // re-saving replaces, doesn't duplicate
+    #expect(store.conversations.map(\.title) == ["Order?", "Patch test?"])
+    let reloaded = AssistantStore(directory: dir)
+    #expect(reloaded.conversations.count == 2)
+    #expect(reloaded.conversations.last?.messages.last?.text == "Elbow.")
+    reloaded.delete(id: a.id)
+    #expect(AssistantStore(directory: dir).conversations.map(\.id) == [b.id])
+}
+
+@MainActor
 @Test func scanStoreReKeysUnsavedScanOntoProduct() {
     let store = ScanStore(directory: tempDir())
     let result = ScanResult(verdict: .clean, score: 82, summary: "ok", flags: [], notes: nil)

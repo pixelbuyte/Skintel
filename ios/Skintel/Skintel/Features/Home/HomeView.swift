@@ -10,6 +10,7 @@ struct HomeView: View {
     @State private var slot: RoutineStore.Slot = RoutineStore.currentSlot()
     @State private var showCheckIn = false
     @State private var showAssistant = false
+    @AppStorage(AssistantPlacement.key) private var assistantPlacement = AssistantPlacement.tab
     @State private var savingMood = false
     @State private var moodError: String?
 
@@ -44,25 +45,40 @@ struct HomeView: View {
     private var header: some View {
         let amSteps = env.routine.ids(.am)
         let pmSteps = env.routine.ids(.pm)
-        return VStack(alignment: .leading, spacing: SKSpace.sm) {
-            Text(DateFormatting.header()).skLabelStyle()
-            Text("\(DateFormatting.greeting()), \(env.session.user?.firstName ?? "there")")
-                .font(SKFont.greeting)
-                .foregroundStyle(SKColor.ink)
-                .lineLimit(2)
-                .minimumScaleFactor(0.8)
-            if !amSteps.isEmpty || !pmSteps.isEmpty {
-                HStack(spacing: SKSpace.sm) {
-                    if !amSteps.isEmpty {
-                        let n = env.routine.daysCompleted(.am)
-                        SKChip("AM \(n) of 7", tone: n >= 5 ? .good : .neutral)
+        return HStack(alignment: .top, spacing: SKSpace.md) {
+            VStack(alignment: .leading, spacing: SKSpace.sm) {
+                Text(DateFormatting.header()).skLabelStyle()
+                Text("\(DateFormatting.greeting()), \(env.session.user?.firstName ?? "there")")
+                    .font(SKFont.greeting)
+                    .foregroundStyle(SKColor.ink)
+                    .lineLimit(2)
+                    .minimumScaleFactor(0.8)
+                if !amSteps.isEmpty || !pmSteps.isEmpty {
+                    HStack(spacing: SKSpace.sm) {
+                        if !amSteps.isEmpty {
+                            let n = env.routine.daysCompleted(.am)
+                            SKChip("AM \(n) of 7", tone: n >= 5 ? .good : .neutral)
+                        }
+                        if !pmSteps.isEmpty {
+                            let n = env.routine.daysCompleted(.pm)
+                            SKChip("PM \(n) of 7", tone: n >= 5 ? .good : .neutral)
+                        }
+                        Text("this week").font(SKFont.caption).foregroundStyle(SKColor.muted)
                     }
-                    if !pmSteps.isEmpty {
-                        let n = env.routine.daysCompleted(.pm)
-                        SKChip("PM \(n) of 7", tone: n >= 5 ? .good : .neutral)
-                    }
-                    Text("this week").font(SKFont.caption).foregroundStyle(SKColor.muted)
                 }
+            }
+            if assistantPlacement == AssistantPlacement.corner {
+                Spacer(minLength: 0)
+                Button { showAssistant = true } label: {
+                    Image(systemName: "sparkles")
+                        .font(.system(size: 19, weight: .semibold))
+                        .foregroundStyle(SKColor.cream)
+                        .frame(width: 50, height: 50)
+                        .background(SKColor.primary, in: Circle())
+                        .skPrimaryGlow(strength: 0.3)
+                }
+                .buttonStyle(SKPressStyle(scale: 0.92))
+                .accessibilityLabel("Ask Skintel")
             }
         }
         .padding(.top, SKSpace.md)

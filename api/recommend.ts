@@ -1,6 +1,7 @@
 import Anthropic from '@anthropic-ai/sdk';
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { getServiceClient, getUserFromAuthHeader, json } from './_lib.js';
+import { handleAssistant } from './_assistant.js';
 
 const MODEL = 'claude-haiku-4-5-20251001';
 
@@ -17,6 +18,9 @@ const BUDGET_DESC: Record<Budget, string> = {
 };
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
+  // /api/assistant is rewritten here (vercel.json) to stay within the 12-function limit.
+  if (req.query?.action === 'assistant') return handleAssistant(req, res);
+
   if (req.method !== 'POST') return json(res, { error: 'Method not allowed' }, 405);
 
   const user = await getUserFromAuthHeader(req);
