@@ -34,6 +34,7 @@ struct MainTabView: View {
     @State private var showCheckIn = false
     @State private var showAddProduct = false
     @State private var showCompare = false
+    @State private var showAssistant = false
 
     var body: some View {
         ZStack(alignment: .bottom) {
@@ -67,13 +68,14 @@ struct MainTabView: View {
                 pending = action
                 showQuick = false
             }
-            .presentationDetents([.height(430)])
+            .presentationDetents([.height(500)])
             .presentationDragIndicator(.visible)
             .presentationBackground(SKColor.cream)
         }
         .sheet(isPresented: $showCheckIn) { CheckInSheet() }
         .sheet(isPresented: $showAddProduct) { NavigationStack { ProductFormView(mode: .add(prefill: nil)) } }
         .sheet(isPresented: $showCompare) { CompareView() }
+        .sheet(isPresented: $showAssistant) { AssistantView() }
         .environment(\.openPaywall, OpenPaywallAction { reason in paywall = reason })
     }
 
@@ -94,12 +96,14 @@ struct MainTabView: View {
             }
         case .compare:
             showCompare = true
+        case .ask:
+            showAssistant = true
         }
     }
 }
 
 enum QuickAction: Hashable {
-    case scan, checkIn, addByHand, compare
+    case scan, checkIn, ask, addByHand, compare
 }
 
 /// What the + button opens: the four things people do outside their routine.
@@ -115,6 +119,8 @@ private struct QuickActionsSheet: View {
                 subtitle: "Barcode or ingredient label", badge: canScan ? nil : "Pro", action: .scan)
             row(icon: "face.smiling", tint: SKColor.goodFg, title: "Check in skin",
                 subtitle: "How is your skin today?", badge: nil, action: .checkIn)
+            row(icon: "sparkles", tint: SKColor.primary, title: "Ask Skintel",
+                subtitle: "Questions about your skin and products", badge: "Preview", action: .ask)
             row(icon: "square.and.pencil", tint: SKColor.ink, title: "Add by hand",
                 subtitle: "Search or paste an ingredient list", badge: nil, action: .addByHand)
             row(icon: "arrow.left.arrow.right", tint: SKColor.ink, title: "Compare products",
