@@ -139,7 +139,7 @@ struct HomeView: View {
                         .font(SKFont.secondary).foregroundStyle(SKColor.muted)
                     SKButton(title: "Build your \(slot.rawValue) routine", kind: .secondary) { path.append(.routine) }
                 } else {
-                    SKProgressBar(fraction: Double(done) / Double(steps.count), tone: allDone ? .good : .neutral, height: 6)
+                    SKProgressBar(fraction: Double(done) / Double(steps.count), height: 6)
                     VStack(spacing: 0) {
                         ForEach(Array(steps.enumerated()), id: \.element.id) { index, p in
                             if index > 0 { Rectangle().fill(SKColor.line).frame(height: 1) }
@@ -147,7 +147,7 @@ struct HomeView: View {
                         }
                     }
                     SKButton(title: allDone ? "\(slot.rawValue) routine done" : "Mark all done",
-                             kind: allDone ? .secondary : .primary,
+                             kind: allDone ? .done : .primary,
                              systemImage: allDone ? "checkmark" : nil) {
                         if !allDone {
                             env.routine.markAllDone(slot)
@@ -167,8 +167,8 @@ struct HomeView: View {
                 if done { Haptics.selection() } else { Haptics.success() }
             } label: {
                 ZStack {
-                    Circle().fill(done ? SKColor.goodFg : SKColor.cream)
-                    Circle().stroke(done ? SKColor.goodFg : SKColor.line, lineWidth: 1.5)
+                    Circle().fill(done ? SKColor.primary : SKColor.cream)
+                    Circle().stroke(done ? SKColor.primary : SKColor.line, lineWidth: 1.5)
                     if done {
                         Image(systemName: "checkmark").font(.system(size: 13, weight: .bold)).foregroundStyle(SKColor.cream)
                     }
@@ -187,7 +187,6 @@ struct HomeView: View {
                     Text(p.product.productName)
                         .font(SKFont.sans(16, weight: .medium, relativeTo: .body))
                         .foregroundStyle(done ? SKColor.muted : SKColor.ink)
-                        .strikethrough(done, color: SKColor.muted.opacity(0.5))
                         .lineLimit(2)
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
@@ -272,7 +271,8 @@ struct HomeView: View {
                     .font(.system(size: 14, weight: .bold))
                     .foregroundStyle(SKColor.cream)
                     .frame(width: 32, height: 32)
-                    .background(SKColor.ink, in: Circle())
+                    .background(SKColor.primary, in: Circle())
+                    .skPrimaryGlow(strength: 0.3)
             }
             .padding(.vertical, SKSpace.md)
             .padding(.horizontal, SKSpace.md)

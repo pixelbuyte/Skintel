@@ -153,6 +153,77 @@ enum AssistantPlacement {
     static let corner = "corner"
 }
 
+/// Ask Skintel's two models, switched with the toggle in the composer. The raw value is
+/// the name the server maps to a provider model; the app never sends provider model ids.
+enum AskModel: String, CaseIterable, Identifiable {
+    case luna, sol
+    static let key = "assistant.model"
+
+    var id: String { rawValue }
+
+    var name: String {
+        switch self {
+        case .luna: "Luna"
+        case .sol: "Sol"
+        }
+    }
+
+    var blurb: String {
+        switch self {
+        case .luna: "Fastest for everyday questions"
+        case .sol: "Most thorough for ingredients and reactions"
+        }
+    }
+
+    var icon: String {
+        switch self {
+        case .luna: "moon.stars.fill"
+        case .sol: "sun.max.fill"
+        }
+    }
+}
+
+/// Two-model switch in the Ask Skintel composer: the selected side is a Skintel-brown pill
+/// that slides across, like the AM/PM toggle on Today.
+private struct AskModelToggle: View {
+    @Binding var selection: AskModel
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @Namespace private var ns
+
+    var body: some View {
+        HStack(spacing: 0) {
+            ForEach(AskModel.allCases) { m in
+                let on = selection == m
+                Button {
+                    guard !on else { return }
+                    Haptics.selection()
+                    withAnimation(reduceMotion ? nil : SKAnimation.ios(0.3)) { selection = m }
+                } label: {
+                    HStack(spacing: 5) {
+                        Image(systemName: m.icon).font(.system(size: 11, weight: .semibold))
+                        Text(m.name).font(SKFont.sans(14, weight: .semibold, relativeTo: .subheadline))
+                    }
+                    .foregroundStyle(on ? SKColor.cream : SKColor.muted)
+                    .padding(.horizontal, 12)
+                    .frame(height: 30)
+                    .background {
+                        if on {
+                            Capsule().fill(SKColor.primary).matchedGeometryEffect(id: "askModel", in: ns)
+                        }
+                    }
+                    .contentShape(Capsule())
+                }
+                .buttonStyle(.plain)
+                .accessibilityLabel(m.name)
+                .accessibilityHint(m.blurb)
+                .accessibilityAddTraits(on ? [.isButton, .isSelected] : .isButton)
+            }
+        }
+        .padding(3)
+        .background(SKColor.neutralChip, in: Capsule())
+    }
+}
+
 struct AssistantMessage: Codable, Identifiable, Sendable, Equatable {
     enum Role: String, Codable, Sendable { case user, assistant, notice, upsell }
     var id = UUID()
@@ -230,6 +301,7 @@ struct AssistantView: View {
     @State private var isAnswering = false
     @State private var showHistory = false
     @State private var paywall: PaywallReason?
+    @AppStorage(AskModel.key) private var askModel: AskModel = .luna
     @FocusState private var inputFocused: Bool
 
     private static let upsellText = "Typing your own questions is part of Skintel Pro. The suggested questions stay free."
@@ -369,35 +441,55 @@ struct AssistantView: View {
                     .padding(.horizontal, SKSpace.lg)
                 }
             }
-            HStack(spacing: SKSpace.sm) {
+            VStack(alignment: .leading, spacing: 6) {
                 TextField("Ask about your skin or products", text: $draft)
                     .font(SKFont.body)
                     .foregroundStyle(SKColor.ink)
                     .focused($inputFocused)
                     .submitLabel(.send)
                     .onSubmit(sendDraft)
-                    .padding(.leading, 18)
-                    .padding(.vertical, 14)
-                Button(action: sendDraft) {
-                    Image(systemName: "arrow.up")
-                        .font(.system(size: 16, weight: .bold))
-                        .foregroundStyle(SKColor.cream)
-                        .frame(width: 36, height: 36)
-                        .background(canSend ? SKColor.primary : SKColor.muted.opacity(0.35), in: Circle())
+                    .padding(.horizontal, 18)
+                    .padding(.top, 14)
+                HStack(spacing: SKSpace.sm) {
+                    AskModelToggle(selection: $askModel)
+                    Spacer(minLength: 0)
+                    Button(action: sendDraft) {
+                        Image(systemName: "arrow.up")
+                            .font(.system(size: 16, weight: .bold))
+                            .foregroundStyle(SKColor.cream)
+                            .frame(width: 36, height: 36)
+                            .background(canSend ? SKColor.primary : SKColor.muted.opacity(0.35), in: Circle())
+                    }
+                    .buttonStyle(.plain)
+                    .disabled(!canSend)
+                    .accessibilityLabel("Send")
                 }
-                .buttonStyle(.plain)
-                .disabled(!canSend)
-                .accessibilityLabel("Send")
+                .padding(.leading, 10)
                 .padding(.trailing, 8)
+                .padding(.bottom, 8)
             }
             .skGlass(in: RoundedRectangle(cornerRadius: 26, style: .continuous), interactive: false, fallback: SKColor.cream)
             .overlay(RoundedRectangle(cornerRadius: 26, style: .continuous).stroke(SKColor.line))
             .padding(.horizontal, SKSpace.lg)
-            Text(isPro ? "Answers can be wrong. Skintel isn't a doctor." : "Suggested questions are free. Typing your own is part of Skintel Pro.")
-                .font(SKFont.caption)
-                .foregroundStyle(SKColor.muted)
-                .multilineTextAlignment(.center)
-                .padding(.horizontal, SKSpace.xl)
+            Group {
+                if isPro {
+                    VStack(spacing: 2) {
+                        HStack(spacing: 4) {
+                            Text(askModel.name)
+                                .font(SKFont.sans(12, weight: .semibold, relativeTo: .caption))
+                                .foregroundStyle(SKColor.primary)
+                            Text("· \(askModel.blurb)")
+                        }
+                        Text("Answers can be wrong. Skintel isn't a doctor.")
+                    }
+                } else {
+                    Text("Suggested questions are free. Typing your own is part of Skintel Pro.")
+                }
+            }
+            .font(SKFont.caption)
+            .foregroundStyle(SKColor.muted)
+            .multilineTextAlignment(.center)
+            .padding(.horizontal, SKSpace.xl)
         }
         .padding(.top, SKSpace.sm)
         .padding(.bottom, SKSpace.sm)
@@ -435,10 +527,11 @@ struct AssistantView: View {
         let am = names(.am)
         let pm = names(.pm)
         let api = env.api
+        let model = askModel.rawValue
         isAnswering = true
         Task {
             do {
-                let reply = try await api.askAssistant(messages: turns, amRoutine: am, pmRoutine: pm)
+                let reply = try await api.askAssistant(messages: turns, amRoutine: am, pmRoutine: pm, model: model)
                 deliver(reply, role: .assistant, alreadyWaited: true)
             } catch let e as APIError {
                 if e.requiresPaywall {

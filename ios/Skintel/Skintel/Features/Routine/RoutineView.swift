@@ -103,13 +103,13 @@ struct RoutineView: View {
         } label: {
             HStack(spacing: SKSpace.md) {
                 ZStack {
-                    Circle().fill(done ? SKColor.goodBg : SKColor.neutralChip).frame(width: 36, height: 36)
-                    if done { Text("✓").font(SKFont.sans(15, weight: .semibold)).foregroundStyle(SKColor.goodFg) }
+                    Circle().fill(done ? SKColor.primary : SKColor.neutralChip).frame(width: 36, height: 36)
+                    if done { Text("✓").font(SKFont.sans(15, weight: .semibold)).foregroundStyle(SKColor.cream) }
                     else { Text("\(index + 1)").font(SKFont.mono(13)).foregroundStyle(SKColor.muted) }
                 }
                 VStack(alignment: .leading, spacing: 3) {
                     Text(p?.product.productName ?? "Removed product")
-                        .font(SKFont.cardTitle).foregroundStyle(SKColor.ink).strikethrough(done, color: SKColor.muted).lineLimit(1)
+                        .font(SKFont.cardTitle).foregroundStyle(SKColor.ink).lineLimit(1)
                     Text([p?.product.category, p?.product.brand].compactMap { $0 }.filter { !$0.isEmpty }.joined(separator: " · "))
                         .font(SKFont.secondary).foregroundStyle(SKColor.muted).lineLimit(1)
                 }
