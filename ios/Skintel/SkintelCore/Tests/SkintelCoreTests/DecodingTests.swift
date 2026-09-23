@@ -52,6 +52,17 @@ private func decode<T: Decodable>(_ t: T.Type, _ json: String) throws -> T {
     #expect(j.entries.first?.entryDate == "2026-08-17")
 }
 
+// The exact row `/api/journal` returned before it selected `user_id`: this used to fail the
+// whole list with "Unexpected reply from the server." on Today's check-in card.
+@Test func decodesJournalRowWithoutUserID() throws {
+    let j = try decode(JournalEntriesResponse.self, """
+    {"entries":[{"id":"j1","entry_date":"2026-09-23","condition":"clear","notes":null,"photo_url":null,"created_at":"2026-09-23T21:10:00+00:00"}]}
+    """)
+    #expect(j.entries.count == 1)
+    #expect(j.entries.first?.userID == "")
+    #expect(j.entries.first?.condition == .clear)
+}
+
 @Test func scanResultToleratesLLMShapedFields() throws {
     let r = try decode(ScanAIResponse.self, """
     {"result":{"verdict":"Clean","score":"82","summary":"Gentle gel cleanser.","flags":[
