@@ -1,11 +1,16 @@
 import SwiftUI
 import SkintelCore
 
-/// Design §07. Answers "what should I do next?": the four shelf counts, the top
-/// suspect, tonight's routine progress, and recent products with their scores.
+/// Today: what to do right now. The current AM or PM routine as a tickable checklist, a
+/// one-tap skin check-in, and only the alerts that need attention. Everything shown comes
+/// from what the person has actually done: ticks, check-ins and their shelf.
 struct HomeView: View {
     @Environment(AppEnvironment.self) private var env
     @State private var path: [AppDestination] = []
+    @State private var slot: RoutineStore.Slot = RoutineStore.currentSlot()
+    @State private var showCheckIn = false
+    @State private var savingMood = false
+    @State private var moodError: String?
 
     var body: some View {
         NavigationStack(path: $path) {
@@ -18,32 +23,45 @@ struct HomeView: View {
                 .padding(.top, SKSpace.sm)
                 .padding(.bottom, SKSpace.xxl)
             }
-            .refreshable { await env.products.load(); await env.subscription.load() }
+            .refreshable {
+                await env.products.load()
+                await env.subscription.load()
+                await env.journal.load()
+            }
             .skPageBackground()
             .toolbar(.hidden, for: .navigationBar)
             .navigationDestination(for: AppDestination.self) { destination(for: $0) }
         }
         .tint(SKColor.primary)
+        .sheet(isPresented: $showCheckIn) { CheckInSheet() }
+        .task { await env.journal.load() }
     }
 
     // MARK: Header
 
     private var header: some View {
-        HStack(alignment: .top) {
-            VStack(alignment: .leading, spacing: SKSpace.sm) {
-                Text(DateFormatting.header()).skLabelStyle()
-                Text("\(DateFormatting.greeting()), \(env.session.user?.firstName ?? "there")")
-                    .font(SKFont.greeting)
-                    .foregroundStyle(SKColor.ink)
-                    .lineLimit(2)
-                    .minimumScaleFactor(0.8)
+        let amSteps = env.routine.ids(.am)
+        let pmSteps = env.routine.ids(.pm)
+        return VStack(alignment: .leading, spacing: SKSpace.sm) {
+            Text(DateFormatting.header()).skLabelStyle()
+            Text("\(DateFormatting.greeting()), \(env.session.user?.firstName ?? "there")")
+                .font(SKFont.greeting)
+                .foregroundStyle(SKColor.ink)
+                .lineLimit(2)
+                .minimumScaleFactor(0.8)
+            if !amSteps.isEmpty || !pmSteps.isEmpty {
+                HStack(spacing: SKSpace.sm) {
+                    if !amSteps.isEmpty {
+                        let n = env.routine.daysCompleted(.am)
+                        SKChip("AM \(n) of 7", tone: n >= 5 ? .good : .neutral)
+                    }
+                    if !pmSteps.isEmpty {
+                        let n = env.routine.daysCompleted(.pm)
+                        SKChip("PM \(n) of 7", tone: n >= 5 ? .good : .neutral)
+                    }
+                    Text("this week").font(SKFont.caption).foregroundStyle(SKColor.muted)
+                }
             }
-            Spacer()
-            Button { path.append(.settings) } label: {
-                SKAvatar(name: env.session.user?.displayName ?? env.session.user?.email)
-            }
-            .buttonStyle(SKPressStyle(scale: 0.92))
-            .accessibilityLabel("Settings")
         }
         .padding(.top, SKSpace.md)
     }
@@ -55,62 +73,166 @@ struct HomeView: View {
         switch env.products.state {
         case .idle, .loading:
             VStack(spacing: SKSpace.md) {
-                HStack(spacing: SKSpace.md) { ForEach(0..<4, id: \.self) { _ in SKSkeleton(height: 92) } }
-                SKSkeleton(height: 110)
-                SKSkeleton(height: 170)
+                SKSkeleton(height: 300)
+                SKSkeleton(height: 150)
             }
         case .failed(let e):
             SKErrorState(error: e) { Task { await env.products.load() } }
         case .loaded(let products):
             if products.isEmpty {
-                emptyShelf
+                newUserCard
             } else {
-                stats
-                suspectCard
                 routineCard
-                recentScans(products)
+                checkInCard
+                suspectCard
                 recommendRow
             }
         }
     }
 
-    private var emptyShelf: some View {
-        VStack(spacing: SKSpace.lg) {
-            SKEmptyState(icon: "sparkles",
-                         title: "Your shelf is empty",
-                         message: "Scan a product or paste its ingredient list, then tell Skintel how your skin reacted. Patterns start with the second product.",
-                         actionTitle: "Add your first product") {
-                path.append(.productForm(.add(prefill: nil)))
-            }
-            recommendRow
+    private var newUserCard: some View {
+        SKEmptyState(icon: "sparkles",
+                     title: "Let's build your routine",
+                     message: "Add what's on your bathroom shelf. Skintel puts it in order and flags anything that shouldn't be mixed.",
+                     actionTitle: "Add your first product") {
+            path.append(.productForm(.add(prefill: nil)))
         }
     }
 
-    private var stats: some View {
-        let c = env.products.counts
-        return HStack(spacing: SKSpace.md) {
-            statTile(c.total, "Logged", SKColor.ink)
-            statTile(c.good, "Worked", SKColor.goodFg)
-            statTile(c.unsure, "Unsure", SKColor.cautionFg)
-            statTile(c.bad, "Broke out", SKColor.badFg)
+    // MARK: Routine
+
+    private var routineCard: some View {
+        let steps = env.routine.ids(slot).compactMap { env.products.product(id: $0) }
+        let done = steps.filter { env.routine.isDone($0.id) }.count
+        let allDone = !steps.isEmpty && done == steps.count
+        return SKCard {
+            VStack(alignment: .leading, spacing: SKSpace.md) {
+                HStack(alignment: .firstTextBaseline) {
+                    Text(slot == .am ? "This morning" : "Tonight").font(SKFont.section).foregroundStyle(SKColor.ink)
+                    Spacer()
+                    if !steps.isEmpty {
+                        Text("\(done) of \(steps.count)").font(SKFont.dataSmall).foregroundStyle(SKColor.muted)
+                    }
+                }
+                SKSegmented(options: [(RoutineStore.Slot.am, "AM"), (.pm, "PM")], selection: $slot)
+                if steps.isEmpty {
+                    Text("No \(slot.rawValue) steps yet. Add products from your shelf and Skintel keeps them in order.")
+                        .font(SKFont.secondary).foregroundStyle(SKColor.muted)
+                    SKButton(title: "Build your \(slot.rawValue) routine", kind: .secondary) { path.append(.routine) }
+                } else {
+                    SKProgressBar(fraction: Double(done) / Double(steps.count), tone: allDone ? .good : .neutral, height: 6)
+                    VStack(spacing: 0) {
+                        ForEach(Array(steps.enumerated()), id: \.element.id) { index, p in
+                            if index > 0 { Rectangle().fill(SKColor.line).frame(height: 1) }
+                            stepRow(index: index, product: p)
+                        }
+                    }
+                    SKButton(title: allDone ? "\(slot.rawValue) routine done" : "Mark all done",
+                             kind: allDone ? .secondary : .primary,
+                             systemImage: allDone ? "checkmark" : nil) {
+                        if !allDone {
+                            env.routine.markAllDone(slot)
+                            Haptics.success()
+                        }
+                    }
+                }
+            }
         }
     }
 
-    private func statTile(_ n: Int, _ label: String, _ color: Color) -> some View {
-        Button { path.append(.products) } label: {
-            VStack(spacing: 6) {
-                Text("\(n)").font(SKFont.stat).foregroundStyle(color)
-                Text(label).font(SKFont.sans(13, relativeTo: .caption)).foregroundStyle(SKColor.muted)
+    private func stepRow(index: Int, product p: ProductWithIngredients) -> some View {
+        let done = env.routine.isDone(p.id)
+        return HStack(spacing: SKSpace.sm) {
+            Button {
+                env.routine.toggleDone(p.id, in: slot)
+                if done { Haptics.selection() } else { Haptics.success() }
+            } label: {
+                ZStack {
+                    Circle().fill(done ? SKColor.goodFg : SKColor.cream)
+                    Circle().stroke(done ? SKColor.goodFg : SKColor.line, lineWidth: 1.5)
+                    if done {
+                        Image(systemName: "checkmark").font(.system(size: 13, weight: .bold)).foregroundStyle(SKColor.cream)
+                    }
+                }
+                .frame(width: 28, height: 28)
+                .frame(width: 44, height: 44)
+                .contentShape(Rectangle())
             }
-            .frame(maxWidth: .infinity)
-            .padding(.vertical, SKSpace.lg)
-            .background(SKColor.cream, in: RoundedRectangle(cornerRadius: SKRadius.card, style: .continuous))
-            .overlay(RoundedRectangle(cornerRadius: SKRadius.card, style: .continuous).stroke(SKColor.line))
-            .skCardShadow()
+            .buttonStyle(.plain)
+            .accessibilityLabel(done ? "Undo \(p.product.productName)" : "Mark \(p.product.productName) done")
+
+            Button { path.append(.productDetail(id: p.id)) } label: {
+                VStack(alignment: .leading, spacing: 2) {
+                    Text("\(index + 1) · \((p.product.category ?? "Step").uppercased())")
+                        .font(SKFont.mono(10.5)).tracking(1).foregroundStyle(SKColor.muted)
+                    Text(p.product.productName)
+                        .font(SKFont.sans(16, weight: .medium, relativeTo: .body))
+                        .foregroundStyle(done ? SKColor.muted : SKColor.ink)
+                        .strikethrough(done, color: SKColor.muted.opacity(0.5))
+                        .lineLimit(2)
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .frame(minHeight: 54)
+                .contentShape(Rectangle())
+            }
+            .buttonStyle(.plain)
         }
-        .buttonStyle(SKPressStyle())
-        .accessibilityLabel("\(n) \(label)")
     }
+
+    // MARK: Skin check-in
+
+    private var checkInCard: some View {
+        let today = env.journal.today
+        return SKCard {
+            VStack(alignment: .leading, spacing: SKSpace.md) {
+                HStack(alignment: .firstTextBaseline) {
+                    Text(today == nil ? "How's your skin today?" : "Skin today").font(SKFont.cardTitle).foregroundStyle(SKColor.ink)
+                    Spacer()
+                    Button("Add detail") { showCheckIn = true }
+                        .font(SKFont.sans(14, weight: .semibold, relativeTo: .subheadline))
+                        .foregroundStyle(SKColor.primary)
+                }
+                if env.journal.state.value != nil {
+                    LazyVGrid(columns: [GridItem(.flexible(), spacing: SKSpace.sm), GridItem(.flexible(), spacing: SKSpace.sm)], spacing: SKSpace.sm) {
+                        ForEach(JournalCondition.allCases, id: \.self) { c in
+                            MoodChoiceButton(condition: c, selected: today?.condition == c) { quickSave(c) }
+                        }
+                    }
+                    Text(today == nil ? "One tap is enough. Details are optional." : "Saved for today. Tap another to change it.")
+                        .font(SKFont.secondary).foregroundStyle(SKColor.muted)
+                } else if let e = env.journal.state.error {
+                    SKInlineError(message: e.userMessage)
+                    SKButton(title: "Try again", kind: .secondary) { Task { await env.journal.load() } }
+                } else {
+                    HStack(spacing: SKSpace.sm) {
+                        ProgressView().tint(SKColor.primary)
+                        Text("Loading your check-ins…").font(SKFont.secondary).foregroundStyle(SKColor.muted)
+                    }
+                }
+                if let moodError { SKInlineError(message: moodError) }
+            }
+        }
+    }
+
+    /// One tap saves. Existing notes are kept, so changing the mood never erases detail.
+    private func quickSave(_ c: JournalCondition) {
+        guard env.journal.state.value != nil, !savingMood else { return }
+        savingMood = true
+        moodError = nil
+        Task {
+            defer { savingMood = false }
+            do {
+                try await env.journal.save(day: ISO8601.dayString(Date()), condition: c, notes: env.journal.today?.notes)
+                env.analytics.track(.journalSaved)
+                Haptics.success()
+            } catch {
+                moodError = (error as? APIError)?.userMessage ?? error.localizedDescription
+                Haptics.error()
+            }
+        }
+    }
+
+    // MARK: Alerts
 
     @ViewBuilder
     private var suspectCard: some View {
@@ -137,76 +259,6 @@ struct HomeView: View {
                 }
             }
             .buttonStyle(SKPressStyle())
-        } else if env.products.badProductCount < 2 {
-            SKCard {
-                HStack(spacing: SKSpace.lg) {
-                    Image(systemName: "magnifyingglass")
-                        .font(.system(size: 18, weight: .semibold))
-                        .foregroundStyle(SKColor.primary)
-                        .frame(width: 48, height: 48)
-                        .background(SKColor.blush, in: RoundedRectangle(cornerRadius: 14, style: .continuous))
-                    VStack(alignment: .leading, spacing: 3) {
-                        Text("No suspects yet").font(SKFont.cardTitle).foregroundStyle(SKColor.ink)
-                        Text("Mark two products as “Broke out” and Skintel finds what they share.")
-                            .font(SKFont.secondary).foregroundStyle(SKColor.muted)
-                    }
-                }
-            }
-        }
-    }
-
-    private var routineCard: some View {
-        let slot = RoutineStore.currentSlot()
-        let ids = env.routine.ids(slot)
-        let progress = env.routine.progress(for: slot)
-        return Button { path.append(.routine) } label: {
-            SKCard {
-                VStack(alignment: .leading, spacing: SKSpace.md) {
-                    HStack {
-                        Text(slot == .pm ? "Tonight's routine" : "This morning's routine")
-                            .font(SKFont.cardTitle).foregroundStyle(SKColor.ink)
-                        Spacer()
-                        Text(slot.rawValue).font(SKFont.sans(13, weight: .semibold)).foregroundStyle(SKColor.muted)
-                            .padding(.horizontal, 12).padding(.vertical, 6)
-                            .background(SKColor.neutralChip, in: Capsule())
-                    }
-                    if ids.isEmpty {
-                        Text("No steps yet — build it from your shelf.")
-                            .font(SKFont.secondary).foregroundStyle(SKColor.muted)
-                    } else {
-                        HStack(spacing: SKSpace.md) {
-                            SKProgressBar(fraction: Double(progress.done) / Double(max(1, progress.total)))
-                            Text("\(progress.done)/\(progress.total)").font(SKFont.secondary).foregroundStyle(SKColor.muted)
-                        }
-                        FlowLayout(spacing: SKSpace.sm) {
-                            ForEach(ids.prefix(4), id: \.self) { id in
-                                let done = env.routine.isDone(id)
-                                let name = env.products.product(id: id)?.product.productName ?? "Product"
-                                SKChip(done ? "✓ \(shortName(name))" : shortName(name), tone: done ? .good : .neutral)
-                            }
-                            if ids.count > 4 { SKChip("+\(ids.count - 4)") }
-                        }
-                    }
-                }
-            }
-        }
-        .buttonStyle(SKPressStyle())
-    }
-
-    private func shortName(_ s: String) -> String {
-        let words = s.split(separator: " ")
-        return words.count > 2 ? words.prefix(2).joined(separator: " ") + "…" : s
-    }
-
-    private func recentScans(_ products: [ProductWithIngredients]) -> some View {
-        VStack(alignment: .leading, spacing: SKSpace.md) {
-            SKSectionHeader(title: "Recent scans", linkTitle: "Shelf") { path.append(.products) }
-            ForEach(products.prefix(3)) { p in
-                Button { path.append(.productDetail(id: p.id)) } label: {
-                    ProductRow(product: p, score: env.scans.score(for: p.id))
-                }
-                .buttonStyle(SKPressStyle())
-            }
         }
     }
 
@@ -276,5 +328,42 @@ struct ProductRow: View {
         if let c = product.product.category, !c.isEmpty { parts.append(c) }
         else if let b = product.product.brand, !b.isEmpty { parts.append(b) }
         return parts.joined(separator: " · ")
+    }
+}
+
+extension JournalCondition {
+    /// Wording for the one-tap check-in. The stored values stay the server's four.
+    var checkInLabel: String {
+        switch self {
+        case .clear: "Clear"
+        case .mild: "A bit off"
+        case .moderate: "Irritated"
+        case .breakout: "Breaking out"
+        }
+    }
+}
+
+/// One choice in the skin check-in (Today card and the detail sheet).
+struct MoodChoiceButton: View {
+    let condition: JournalCondition
+    let selected: Bool
+    let action: () -> Void
+
+    var body: some View {
+        Button(action: action) {
+            HStack(spacing: 8) {
+                SKDot(tone: condition.tone, size: 10)
+                Text(condition.checkInLabel).font(SKFont.sans(15, weight: .semibold, relativeTo: .subheadline))
+            }
+            .foregroundStyle(selected ? condition.tone.fg : SKColor.ink)
+            .frame(maxWidth: .infinity)
+            .frame(minHeight: 48)
+            .background(selected ? condition.tone.bg : SKColor.cream, in: RoundedRectangle(cornerRadius: SKRadius.button, style: .continuous))
+            .overlay(RoundedRectangle(cornerRadius: SKRadius.button, style: .continuous)
+                .stroke(selected ? condition.tone.fg : SKColor.line, lineWidth: selected ? 1.5 : 1))
+        }
+        .buttonStyle(SKPressStyle())
+        .accessibilityLabel(condition.checkInLabel)
+        .accessibilityAddTraits(selected ? [.isButton, .isSelected] : .isButton)
     }
 }

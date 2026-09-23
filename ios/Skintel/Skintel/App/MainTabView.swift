@@ -1,44 +1,48 @@
 import SwiftUI
 
 enum MainTab: Hashable, CaseIterable {
-    case home, scanner, compare, journal
+    case today, shelf, insights, you
 
     var title: String {
         switch self {
-        case .home: "Home"
-        case .scanner: "Scanner"
-        case .compare: "Compare"
-        case .journal: "Journal"
+        case .today: "Today"
+        case .shelf: "Shelf"
+        case .insights: "Insights"
+        case .you: "You"
         }
     }
 
     var icon: String {
         switch self {
-        case .home: "square.grid.2x2"
-        case .scanner: "viewfinder"
-        case .compare: "arrow.left.arrow.right"
-        case .journal: "book.closed"
+        case .today: "sun.max"
+        case .shelf: "tray.full"
+        case .insights: "chart.bar"
+        case .you: "person"
         }
     }
 }
 
-/// Four tabs + a centre FAB (design §07): floating Liquid Glass on iOS 26+, the raised FAB
-/// over a cream bar before that. The FAB opens the scanner from anywhere as a full-screen
-/// cover; the Scanner tab hosts the same surface inline.
+/// Today · Shelf · (+) · Insights · You: floating Liquid Glass on iOS 26+, the raised FAB
+/// over a cream bar before that. The + opens quick actions (scan, check in, add, compare).
 struct MainTabView: View {
     @Environment(AppEnvironment.self) private var env
-    @State private var tab: MainTab = .home
+    @State private var tab: MainTab = .today
     @State private var presentScanner = false
     @State private var paywall: PaywallReason?
+    @State private var showQuick = false
+    @State private var pending: QuickAction?
+    @State private var showCheckIn = false
+    @State private var showAddProduct = false
+    @State private var showCompare = false
 
     var body: some View {
         ZStack(alignment: .bottom) {
             Group {
                 switch tab {
-                case .home: HomeView()
-                case .scanner: ScannerHostView(embedded: true)
-                case .compare: CompareView()
-                case .journal: JournalView()
+                case .today: HomeView()
+                case .shelf: ShelfTab()
+                case .insights: InsightsView()
+                case .you: YouTab()
                 }
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -47,12 +51,8 @@ struct MainTabView: View {
             }
 
             SKTabBar(selection: $tab) {
-                if env.subscription.entitlement.canUseScanner {
-                    Haptics.medium()
-                    presentScanner = true
-                } else {
-                    paywall = .scanner
-                }
+                Haptics.medium()
+                showQuick = true
             }
         }
         .ignoresSafeArea(.keyboard, edges: .bottom)
@@ -62,7 +62,104 @@ struct MainTabView: View {
         .sheet(item: $paywall) { reason in
             PaywallView(reason: reason)
         }
+        .sheet(isPresented: $showQuick, onDismiss: runPending) {
+            QuickActionsSheet(canScan: env.subscription.entitlement.canUseScanner) { action in
+                pending = action
+                showQuick = false
+            }
+            .presentationDetents([.height(430)])
+            .presentationDragIndicator(.visible)
+            .presentationBackground(SKColor.cream)
+        }
+        .sheet(isPresented: $showCheckIn) { CheckInSheet() }
+        .sheet(isPresented: $showAddProduct) { NavigationStack { ProductFormView(mode: .add(prefill: nil)) } }
+        .sheet(isPresented: $showCompare) { CompareView() }
         .environment(\.openPaywall, OpenPaywallAction { reason in paywall = reason })
+    }
+
+    /// The menu sheet has to finish dismissing before the next sheet or cover can present.
+    private func runPending() {
+        guard let action = pending else { return }
+        pending = nil
+        switch action {
+        case .scan:
+            if env.subscription.entitlement.canUseScanner { presentScanner = true } else { paywall = .scanner }
+        case .checkIn:
+            showCheckIn = true
+        case .addByHand:
+            if env.subscription.entitlement.canAddProduct(currentCount: env.products.products.count) {
+                showAddProduct = true
+            } else {
+                paywall = .productLimit
+            }
+        case .compare:
+            showCompare = true
+        }
+    }
+}
+
+enum QuickAction: Hashable {
+    case scan, checkIn, addByHand, compare
+}
+
+/// What the + button opens: the four things people do outside their routine.
+private struct QuickActionsSheet: View {
+    let canScan: Bool
+    let choose: (QuickAction) -> Void
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: SKSpace.sm) {
+            Text("Add or log").font(SKFont.section).foregroundStyle(SKColor.ink)
+                .padding(.horizontal, SKSpace.xs).padding(.top, SKSpace.lg).padding(.bottom, SKSpace.xs)
+            row(icon: "viewfinder", tint: SKColor.primary, title: "Scan a product",
+                subtitle: "Barcode or ingredient label", badge: canScan ? nil : "Pro", action: .scan)
+            row(icon: "face.smiling", tint: SKColor.goodFg, title: "Check in skin",
+                subtitle: "How is your skin today?", badge: nil, action: .checkIn)
+            row(icon: "square.and.pencil", tint: SKColor.ink, title: "Add by hand",
+                subtitle: "Search or paste an ingredient list", badge: nil, action: .addByHand)
+            row(icon: "arrow.left.arrow.right", tint: SKColor.ink, title: "Compare products",
+                subtitle: "Side by side, up to three", badge: nil, action: .compare)
+            Spacer(minLength: 0)
+        }
+        .padding(.horizontal, SKSpace.xl)
+    }
+
+    private func row(icon: String, tint: Color, title: String, subtitle: String, badge: String?, action: QuickAction) -> some View {
+        Button { choose(action) } label: {
+            HStack(spacing: SKSpace.md) {
+                Image(systemName: icon)
+                    .font(.system(size: 18, weight: .semibold))
+                    .foregroundStyle(tint)
+                    .frame(width: 44, height: 44)
+                    .background(tint.opacity(0.10), in: RoundedRectangle(cornerRadius: 13, style: .continuous))
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(title).font(SKFont.cardTitle).foregroundStyle(SKColor.ink)
+                    Text(subtitle).font(SKFont.secondary).foregroundStyle(SKColor.muted)
+                }
+                Spacer(minLength: 0)
+                if let badge { SKChip(badge, tone: .neutral) }
+            }
+            .frame(minHeight: 60)
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(SKPressStyle())
+        .accessibilityElement(children: .combine)
+    }
+}
+
+/// The shelf as a tab: every product, newest first.
+struct ShelfTab: View {
+    var body: some View {
+        NavigationStack { ProductsListView() }
+            .tint(SKColor.primary)
+    }
+}
+
+/// Profile, membership and settings as a tab.
+struct YouTab: View {
+    var body: some View {
+        NavigationStack { SettingsView(isRoot: true) }
+            .tint(SKColor.primary)
     }
 }
 
@@ -86,11 +183,11 @@ struct SKTabBar: View {
 
     private var classicBar: some View {
         HStack(alignment: .top, spacing: 0) {
-            tabItem(.home)
-            tabItem(.scanner)
+            tabItem(.today)
+            tabItem(.shelf)
             fab
-            tabItem(.compare)
-            tabItem(.journal)
+            tabItem(.insights)
+            tabItem(.you)
         }
         .padding(.top, 9)
         .frame(maxWidth: .infinity)
@@ -136,7 +233,7 @@ struct SKTabBar: View {
         .buttonStyle(SKPressStyle(scale: 0.92))
         .offset(y: -26)
         .frame(maxWidth: .infinity)
-        .accessibilityLabel("Scan a product")
+        .accessibilityLabel("Add or log")
     }
 }
 
@@ -156,9 +253,9 @@ private struct SKGlassTabBar: View {
     var body: some View {
         GlassEffectContainer(spacing: 10) {
             HStack(spacing: 10) {
-                capsule(.home, .scanner)
+                capsule(.today, .shelf)
                 fab
-                capsule(.compare, .journal)
+                capsule(.insights, .you)
             }
         }
         .padding(.horizontal, SKSpace.lg)
@@ -212,7 +309,7 @@ private struct SKGlassTabBar: View {
                 .contentShape(Circle())
         }
         .buttonStyle(.plain)
-        .accessibilityLabel("Scan a product")
+        .accessibilityLabel("Add or log")
     }
 }
 #endif

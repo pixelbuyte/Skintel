@@ -5,6 +5,9 @@ import SkintelCore
 /// Design §17. Profile first (it drives every verdict), then membership, preferences,
 /// data, and the destructive actions in verdict-red.
 struct SettingsView: View {
+    /// True when hosted as the You tab: no back button, no room reserved for one.
+    var isRoot = false
+
     @Environment(AppEnvironment.self) private var env
     @Environment(\.openPaywall) private var openPaywall
 
@@ -25,7 +28,7 @@ struct SettingsView: View {
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: SKSpace.xl) {
-                Text("Settings").font(SKFont.pageTitle).foregroundStyle(SKColor.ink).padding(.leading, 44).padding(.top, SKSpace.md)
+                Text(isRoot ? "You" : "Settings").font(SKFont.pageTitle).foregroundStyle(SKColor.ink).padding(.leading, isRoot ? 0 : 44).padding(.top, SKSpace.md)
 
                 profileCard
 
@@ -87,7 +90,7 @@ struct SettingsView: View {
         }
         .skPageBackground()
         .toolbar(.hidden, for: .navigationBar)
-        .overlay(alignment: .topLeading) { BackButton().padding(.top, 2) }
+        .overlay(alignment: .topLeading) { if !isRoot { BackButton().padding(.top, 2) } }
         .sheet(isPresented: $showEditProfile) { EditProfileSheet() }
         .manageSubscriptionsSheet(isPresented: $showManageSubs)
         .sheet(item: $exportURL) { url in ShareSheet(items: [url]) }

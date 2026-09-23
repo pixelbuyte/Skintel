@@ -16,6 +16,9 @@ final class RoutineStore {
         /// Product ids ticked off today, reset when the day changes.
         var doneToday: [String] = []
         var doneDay: String? = nil
+        /// Day (`YYYY-MM-DD`, UTC like `doneDay`) → slots whose every step was ticked that day.
+        /// Optional so routines saved before this field existed still decode.
+        var completed: [String: [String]]? = nil
     }
 
     enum Slot: String, CaseIterable, Identifiable, Sendable {
@@ -62,11 +65,32 @@ final class RoutineStore {
 
     func isDone(_ productID: String) -> Bool { routine.doneToday.contains(productID) }
 
-    func toggleDone(_ productID: String) {
+    /// Pass `slot` when the tick belongs to a specific routine, so the day is recorded as
+    /// completed (or un-completed) for that slot.
+    func toggleDone(_ productID: String, in slot: Slot? = nil) {
         rollDayIfNeeded()
         if let i = routine.doneToday.firstIndex(of: productID) { routine.doneToday.remove(at: i) }
         else { routine.doneToday.append(productID) }
         persist()
+        if let slot { recordCompletion(slot) }
+    }
+
+    func markAllDone(_ slot: Slot) {
+        rollDayIfNeeded()
+        for id in ids(slot) where !routine.doneToday.contains(id) { routine.doneToday.append(id) }
+        persist()
+        recordCompletion(slot)
+    }
+
+    /// Days out of the last `days` (today included) on which every step of `slot` was ticked.
+    func daysCompleted(_ slot: Slot, lastDays days: Int = 7) -> Int {
+        let log = routine.completed ?? [:]
+        var count = 0
+        for offset in 0..<days {
+            guard let day = Calendar.current.date(byAdding: .day, value: -offset, to: Date()) else { continue }
+            if (log[ISO8601.dayString(day)] ?? []).contains(slot.rawValue) { count += 1 }
+        }
+        return count
     }
 
     /// Progress for the Home card ("2/5") for the slot that is current right now.
@@ -82,6 +106,22 @@ final class RoutineStore {
     func reset() {
         routine = Routine()
         try? FileManager.default.removeItem(at: fileURL)
+    }
+
+    private func recordCompletion(_ slot: Slot) {
+        let today = ISO8601.dayString(Date())
+        let list = ids(slot)
+        var log = routine.completed ?? [:]
+        var slots = Set(log[today] ?? [])
+        if !list.isEmpty && list.allSatisfy(isDone) { slots.insert(slot.rawValue) } else { slots.remove(slot.rawValue) }
+        log[today] = slots.isEmpty ? nil : slots.sorted()
+        // Keep about four months; day strings sort lexicographically.
+        if let cutoff = Calendar.current.date(byAdding: .day, value: -120, to: Date()) {
+            let oldest = ISO8601.dayString(cutoff)
+            log = log.filter { $0.key >= oldest }
+        }
+        routine.completed = log
+        persist()
     }
 
     private func rollDayIfNeeded() {
