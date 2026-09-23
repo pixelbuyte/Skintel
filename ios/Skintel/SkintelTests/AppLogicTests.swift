@@ -47,7 +47,6 @@ private func session(onboarded: Bool) -> Session {
 }
 
 @MainActor
-@MainActor
 @Test func routineStoreRecordsCompletedDaysPerSlot() {
     let dir = tempDir()
     let store = RoutineStore(directory: dir)
@@ -74,6 +73,7 @@ private func session(onboarded: Bool) -> Session {
     #expect(store.daysCompleted(.am) == 0)
 }
 
+@MainActor
 @Test func scanStoreReKeysUnsavedScanOntoProduct() {
     let store = ScanStore(directory: tempDir())
     let result = ScanResult(verdict: .clean, score: 82, summary: "ok", flags: [], notes: nil)
