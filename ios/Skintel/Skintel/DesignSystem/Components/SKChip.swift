@@ -110,18 +110,39 @@ struct SKSegmented<T: Hashable>: View {
                         .frame(maxWidth: .infinity)
                         .frame(height: 40)
                         .background {
-                            if selection == value {
-                                RoundedRectangle(cornerRadius: 10, style: .continuous)
-                                    .fill(SKColor.cream)
-                                    .skCardShadow()
-                                    .matchedGeometryEffect(id: "seg", in: ns)
-                            }
+                            if selection == value { thumb }
                         }
                 }
                 .buttonStyle(.plain)
+                .accessibilityAddTraits(selection == value ? [.isButton, .isSelected] : .isButton)
             }
         }
         .padding(4)
         .background(SKColor.neutralChip, in: RoundedRectangle(cornerRadius: 13, style: .continuous))
+    }
+
+    /// The sliding selection. On iOS 26 it is a Liquid Glass lens over the solid track (the
+    /// track stays solid so the labels keep full contrast); before that, the cream pill.
+    @ViewBuilder
+    private var thumb: some View {
+        #if compiler(>=6.2)
+        if #available(iOS 26, *) {
+            Color.clear
+                .matchedGeometryEffect(id: "seg", in: ns)
+                // Cream tint keeps the selected segment clearly brighter than the warm track.
+                .glassEffect(Glass.regular.tint(SKColor.cream), in: RoundedRectangle(cornerRadius: 10, style: .continuous))
+        } else {
+            classicThumb
+        }
+        #else
+        classicThumb
+        #endif
+    }
+
+    private var classicThumb: some View {
+        RoundedRectangle(cornerRadius: 10, style: .continuous)
+            .fill(SKColor.cream)
+            .skCardShadow()
+            .matchedGeometryEffect(id: "seg", in: ns)
     }
 }

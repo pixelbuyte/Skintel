@@ -168,8 +168,16 @@ struct ScannerHostView: View {
             .foregroundStyle(.white)
             .frame(maxWidth: .infinity)
             .frame(height: 52)
-            .background(.white.opacity(0.14), in: RoundedRectangle(cornerRadius: SKRadius.button, style: .continuous))
-            .overlay(RoundedRectangle(cornerRadius: SKRadius.button, style: .continuous).stroke(.white.opacity(0.18)))
+            .skGlass(in: RoundedRectangle(cornerRadius: SKRadius.button, style: .continuous),
+                     tint: SKGlass.cameraTint, fallback: .white.opacity(0.14))
+            .overlay {
+                // The hairline is the pre-26 stand-in for glass's own edge highlight.
+                if #available(iOS 26, *) {
+                    EmptyView()
+                } else {
+                    RoundedRectangle(cornerRadius: SKRadius.button, style: .continuous).stroke(.white.opacity(0.18))
+                }
+            }
         }
         .buttonStyle(SKPressStyle())
     }

@@ -56,9 +56,36 @@ struct SKGlassButton: View {
                 .font(.system(size: 17, weight: .semibold))
                 .foregroundStyle(.white)
                 .frame(width: 44, height: 44)
-                .background(.white.opacity(0.14), in: Circle())
+                .skGlass(in: Circle(), tint: SKGlass.cameraTint, fallback: .white.opacity(0.14))
         }
         .buttonStyle(SKPressStyle(scale: 0.92))
         .accessibilityLabel(label)
+    }
+}
+
+/// Shared Liquid Glass tuning. Glass is for controls and navigation only; content cards,
+/// status chips and prices stay on solid surfaces so they read at full contrast.
+enum SKGlass {
+    /// Darkens glass that floats over the live camera so white icons and labels stay
+    /// legible even when the lens points at a bright white label.
+    static let cameraTint = Color.black.opacity(0.28)
+}
+
+extension View {
+    /// Liquid Glass in `shape` on iOS 26+, and the pre-26 `fallback` fill otherwise, so older
+    /// supported iOS versions keep the existing look. Apply after layout modifiers.
+    /// Native glass already respects Reduce Transparency, so no extra branch is needed.
+    @ViewBuilder
+    func skGlass<S: Shape>(in shape: S, interactive: Bool = true, tint: Color? = nil, fallback: Color) -> some View {
+        // Compiler check keeps the file building on a pre-Xcode-26 toolchain.
+        #if compiler(>=6.2)
+        if #available(iOS 26, *) {
+            self.glassEffect(Glass.regular.tint(tint).interactive(interactive), in: shape)
+        } else {
+            self.background(fallback, in: shape)
+        }
+        #else
+        self.background(fallback, in: shape)
+        #endif
     }
 }
