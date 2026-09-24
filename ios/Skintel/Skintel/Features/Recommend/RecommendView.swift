@@ -153,11 +153,87 @@ enum AssistantPlacement {
     static let corner = "corner"
 }
 
+/// Ask Skintel's two models, switched with the toggle in the composer. The raw value is
+/// the name the server maps to a provider model; the app never sends provider model ids.
+enum AskModel: String, CaseIterable, Identifiable {
+    case luna, sol
+    static let key = "assistant.model"
+
+    var id: String { rawValue }
+
+    var name: String {
+        switch self {
+        case .luna: "Luna"
+        case .sol: "Sol"
+        }
+    }
+
+    var blurb: String {
+        switch self {
+        case .luna: "Fastest for everyday questions"
+        case .sol: "Most thorough for ingredients and reactions"
+        }
+    }
+
+    var icon: String {
+        switch self {
+        case .luna: "moon.stars.fill"
+        case .sol: "sun.max.fill"
+        }
+    }
+}
+
+/// Two-model switch in the Ask Skintel composer: the selected side is a Skintel-brown pill
+/// that slides across, like the AM/PM toggle on Today.
+private struct AskModelToggle: View {
+    @Binding var selection: AskModel
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @Namespace private var ns
+
+    var body: some View {
+        HStack(spacing: 0) {
+            ForEach(AskModel.allCases) { m in
+                let on = selection == m
+                Button {
+                    guard !on else { return }
+                    Haptics.selection()
+                    withAnimation(reduceMotion ? nil : SKAnimation.ios(0.3)) { selection = m }
+                } label: {
+                    HStack(spacing: 5) {
+                        Image(systemName: m.icon).font(.system(size: 11, weight: .semibold))
+                        Text(m.name).font(SKFont.sans(14, weight: .semibold, relativeTo: .subheadline))
+                    }
+                    .foregroundStyle(on ? SKColor.cream : SKColor.muted)
+                    .padding(.horizontal, 12)
+                    .frame(height: 30)
+                    .background {
+                        if on {
+                            Capsule().fill(SKColor.primary).matchedGeometryEffect(id: "askModel", in: ns)
+                        }
+                    }
+                    .contentShape(Capsule())
+                }
+                .buttonStyle(.plain)
+                .accessibilityLabel(m.name)
+                .accessibilityHint(m.blurb)
+                .accessibilityAddTraits(on ? [.isButton, .isSelected] : .isButton)
+            }
+        }
+        .padding(3)
+        .background(SKColor.neutralChip, in: Capsule())
+    }
+}
+
 struct AssistantMessage: Codable, Identifiable, Sendable, Equatable {
     enum Role: String, Codable, Sendable { case user, assistant, notice, upsell }
     var id = UUID()
     var role: Role
     var text: String
+    /// Products the person mentioned that aren't on their shelf yet. Optional so chats saved
+    /// before this field existed still load.
+    var suggestions: [SuggestedProduct]? = nil
+    /// Names of shelf products tagged in this question (optional for older chats).
+    var tags: [String]? = nil
 }
 
 /// A saved Ask Skintel conversation.
@@ -220,6 +296,10 @@ final class AssistantStore {
 struct AssistantView: View {
     /// False when hosted as a tab: there is nothing to close.
     var showsClose = true
+    /// Room kept under the composer for the floating tab bar when hosted as a tab.
+    var tabBarClearance: CGFloat = 0
+    /// Put in the composer (not sent) when opened from a check-in's "Go deeper".
+    var initialQuestion: String? = nil
 
     @Environment(AppEnvironment.self) private var env
     @Environment(\.dismiss) private var dismiss
@@ -230,6 +310,10 @@ struct AssistantView: View {
     @State private var isAnswering = false
     @State private var showHistory = false
     @State private var paywall: PaywallReason?
+    @State private var addingProduct: SuggestedProduct?
+    @State private var tagged: [Product] = []
+    @State private var showTagPicker = false
+    @AppStorage(AskModel.key) private var askModel: AskModel = .luna
     @FocusState private var inputFocused: Bool
 
     private static let upsellText = "Typing your own questions is part of Skintel Pro. The suggested questions stay free."
@@ -245,14 +329,14 @@ struct AssistantView: View {
                             welcome
                         } else {
                             ForEach(messages) { m in
-                                AssistantBubble(message: m).id(m.id)
+                                if m.role == .upsell {
+                                    AskProGate { paywall = .assistant }.id(m.id)
+                                } else {
+                                    AssistantBubble(message: m, shelfNames: shelfNames) { addingProduct = $0 }.id(m.id)
+                                }
                             }
                             if isAnswering && messages.last?.role == .user {
                                 TypingDots()
-                            }
-                            if !isAnswering && messages.last?.role == .upsell {
-                                SKButton(title: "See Skintel Pro", kind: .secondary, fullWidth: false) { paywall = .general }
-                                    .padding(.leading, 40)
                             }
                         }
                     }
@@ -292,6 +376,18 @@ struct AssistantView: View {
                 .presentationDetents([.medium, .large])
         }
         .sheet(item: $paywall) { PaywallView(reason: $0) }
+        .sheet(isPresented: $showTagPicker) {
+            ShelfTagPicker(products: env.products.products.map(\.product), selected: $tagged)
+                .presentationDetents([.medium, .large])
+        }
+        .sheet(item: $addingProduct) { p in
+            NavigationStack {
+                ProductFormView(mode: .add(prefill: ScanCandidate(brand: p.brand, productName: p.productName, inci: "", upc: nil, source: "assistant")))
+            }
+        }
+        .onAppear {
+            if messages.isEmpty, draft.isEmpty, let initialQuestion { draft = initialQuestion }
+        }
     }
 
     // MARK: Empty state
@@ -369,38 +465,81 @@ struct AssistantView: View {
                     .padding(.horizontal, SKSpace.lg)
                 }
             }
-            HStack(spacing: SKSpace.sm) {
-                TextField("Ask about your skin or products", text: $draft)
+            VStack(alignment: .leading, spacing: 6) {
+                if !tagged.isEmpty {
+                    ScrollView(.horizontal, showsIndicators: false) {
+                        HStack(spacing: 6) {
+                            ForEach(tagged) { p in
+                                ProductTagChip(name: p.productName, category: p.category) {
+                                    withAnimation(SKAnimation.ios(0.25)) { tagged.removeAll { $0.id == p.id } }
+                                }
+                            }
+                        }
+                        .padding(.horizontal, 14)
+                    }
+                    .padding(.top, 12)
+                }
+                TextField(tagged.isEmpty ? "Ask about your skin or products" : "Ask about \(tagged.count == 1 ? "this product" : "these products")", text: $draft)
                     .font(SKFont.body)
                     .foregroundStyle(SKColor.ink)
                     .focused($inputFocused)
                     .submitLabel(.send)
                     .onSubmit(sendDraft)
-                    .padding(.leading, 18)
-                    .padding(.vertical, 14)
-                Button(action: sendDraft) {
-                    Image(systemName: "arrow.up")
-                        .font(.system(size: 16, weight: .bold))
-                        .foregroundStyle(SKColor.cream)
-                        .frame(width: 36, height: 36)
-                        .background(canSend ? SKColor.primary : SKColor.muted.opacity(0.35), in: Circle())
+                    .padding(.horizontal, 18)
+                    .padding(.top, 14)
+                HStack(spacing: SKSpace.sm) {
+                    Button { inputFocused = false; showTagPicker = true } label: {
+                        Image(systemName: "at")
+                            .font(.system(size: 15, weight: .semibold))
+                            .foregroundStyle(tagged.isEmpty ? SKColor.ink : SKColor.primary)
+                            .frame(width: 34, height: 34)
+                            .background(tagged.isEmpty ? SKColor.neutralChip : SKColor.blush, in: Circle())
+                    }
+                    .buttonStyle(.plain)
+                    .disabled(env.products.products.isEmpty)
+                    .accessibilityLabel("Tag products from your shelf")
+                    AskModelToggle(selection: $askModel)
+                    Spacer(minLength: 0)
+                    Button(action: sendDraft) {
+                        Image(systemName: "arrow.up")
+                            .font(.system(size: 16, weight: .bold))
+                            .foregroundStyle(SKColor.cream)
+                            .frame(width: 36, height: 36)
+                            .background(canSend ? SKColor.primary : SKColor.muted.opacity(0.35), in: Circle())
+                    }
+                    .buttonStyle(.plain)
+                    .disabled(!canSend)
+                    .accessibilityLabel("Send")
                 }
-                .buttonStyle(.plain)
-                .disabled(!canSend)
-                .accessibilityLabel("Send")
+                .padding(.leading, 10)
                 .padding(.trailing, 8)
+                .padding(.bottom, 8)
             }
             .skGlass(in: RoundedRectangle(cornerRadius: 26, style: .continuous), interactive: false, fallback: SKColor.cream)
             .overlay(RoundedRectangle(cornerRadius: 26, style: .continuous).stroke(SKColor.line))
             .padding(.horizontal, SKSpace.lg)
-            Text(isPro ? "Answers can be wrong. Skintel isn't a doctor." : "Suggested questions are free. Typing your own is part of Skintel Pro.")
-                .font(SKFont.caption)
-                .foregroundStyle(SKColor.muted)
-                .multilineTextAlignment(.center)
-                .padding(.horizontal, SKSpace.xl)
+            Group {
+                if isPro {
+                    VStack(spacing: 2) {
+                        HStack(spacing: 4) {
+                            Text(askModel.name)
+                                .font(SKFont.sans(12, weight: .semibold, relativeTo: .caption))
+                                .foregroundStyle(SKColor.primary)
+                            Text("· \(askModel.blurb)")
+                        }
+                        Text("Answers can be wrong. Skintel isn't a doctor.")
+                    }
+                } else {
+                    Text("Suggested questions are free. Typing your own is part of Skintel Pro.")
+                }
+            }
+            .font(SKFont.caption)
+            .foregroundStyle(SKColor.muted)
+            .multilineTextAlignment(.center)
+            .padding(.horizontal, SKSpace.xl)
         }
         .padding(.top, SKSpace.sm)
-        .padding(.bottom, SKSpace.sm)
+        .padding(.bottom, SKSpace.sm + tabBarClearance)
         .background {
             LinearGradient(colors: [SKColor.bg.opacity(0), SKColor.bg], startPoint: .top, endPoint: .center)
                 .ignoresSafeArea(edges: .bottom)
@@ -422,7 +561,9 @@ struct AssistantView: View {
         guard !question.isEmpty, !isAnswering else { return }
         draft = ""
         Haptics.tap()
-        messages.append(AssistantMessage(role: .user, text: question))
+        let tags = tagged
+        tagged = []
+        messages.append(AssistantMessage(role: .user, text: question, tags: tags.isEmpty ? nil : tags.map(\.productName)))
         guard isPro else {
             deliver(Self.upsellText, role: .upsell)
             return
@@ -435,11 +576,13 @@ struct AssistantView: View {
         let am = names(.am)
         let pm = names(.pm)
         let api = env.api
+        let model = askModel.rawValue
         isAnswering = true
         Task {
             do {
-                let reply = try await api.askAssistant(messages: turns, amRoutine: am, pmRoutine: pm)
-                deliver(reply, role: .assistant, alreadyWaited: true)
+                let reply = try await api.askAssistant(messages: turns, amRoutine: am, pmRoutine: pm, model: model,
+                                                       tagged: tags.map(\.id))
+                deliver(reply.reply, role: .assistant, alreadyWaited: true, suggestions: reply.products)
             } catch let e as APIError {
                 if e.requiresPaywall {
                     deliver(Self.upsellText, role: .upsell, alreadyWaited: true)
@@ -457,10 +600,12 @@ struct AssistantView: View {
     /// A short typing pause (skipped when the network already made them wait), then answers
     /// are revealed word by word the way a live assistant streams. Reduce Motion shows the
     /// text at once. Every finished exchange is saved to history.
-    private func deliver(_ text: String, role: AssistantMessage.Role, alreadyWaited: Bool = false) {
+    private func deliver(_ text: String, role: AssistantMessage.Role, alreadyWaited: Bool = false,
+                         suggestions: [SuggestedProduct] = []) {
         isAnswering = true
         let reduce = reduceMotion
         let chatID = conversationID
+        let offered: [SuggestedProduct]? = suggestions.isEmpty ? nil : suggestions
         Task {
             if !alreadyWaited {
                 try? await Task.sleep(for: .milliseconds(reduce ? 150 : 700))
@@ -470,7 +615,7 @@ struct AssistantView: View {
                 return
             }
             if reduce || role != .assistant {
-                messages.append(AssistantMessage(role: role, text: text))
+                messages.append(AssistantMessage(role: role, text: text, suggestions: offered))
             } else {
                 let message = AssistantMessage(role: role, text: "")
                 messages.append(message)
@@ -480,10 +625,17 @@ struct AssistantView: View {
                     if let index = messages.firstIndex(where: { $0.id == message.id }) { messages[index].text = shown }
                     try? await Task.sleep(for: .milliseconds(22))
                 }
+                // The shelf card appears once the answer has finished writing out.
+                if let index = messages.firstIndex(where: { $0.id == message.id }) { messages[index].suggestions = offered }
             }
             isAnswering = false
             saveConversation()
         }
+    }
+
+    /// Lower-cased names already on the shelf, so an added suggestion shows as done.
+    private var shelfNames: Set<String> {
+        Set(env.products.products.map { $0.product.productName.lowercased() })
     }
 
     private func saveConversation() {
@@ -498,6 +650,7 @@ struct AssistantView: View {
         conversationID = UUID()
         messages = []
         draft = ""
+        tagged = []
     }
 
     private func open(_ conversation: AssistantConversation) {
@@ -643,30 +796,86 @@ private enum AssistantPrompt: String, CaseIterable, Identifiable {
 
 private struct AssistantBubble: View {
     let message: AssistantMessage
+    var shelfNames: Set<String> = []
+    var onAdd: (SuggestedProduct) -> Void = { _ in }
 
     var body: some View {
         switch message.role {
         case .user:
-            HStack {
-                Spacer(minLength: 48)
-                Text(message.text)
-                    .font(SKFont.body)
-                    .foregroundStyle(SKColor.cream)
-                    .padding(.horizontal, 16)
-                    .padding(.vertical, 11)
-                    .background(SKColor.primary, in: RoundedRectangle(cornerRadius: 20, style: .continuous))
+            VStack(alignment: .trailing, spacing: 6) {
+                if let tags = message.tags, !tags.isEmpty {
+                    HStack(spacing: 6) {
+                        Spacer(minLength: 48)
+                        ForEach(tags, id: \.self) { ProductTagChip(name: $0) }
+                    }
+                }
+                HStack {
+                    Spacer(minLength: 48)
+                    Text(message.text)
+                        .font(SKFont.body)
+                        .foregroundStyle(SKColor.cream)
+                        .padding(.horizontal, 16)
+                        .padding(.vertical, 11)
+                        .background(SKColor.primary, in: RoundedRectangle(cornerRadius: 20, style: .continuous))
+                }
             }
         case .assistant, .notice, .upsell:
             HStack(alignment: .top, spacing: SKSpace.md) {
                 AssistantAvatar(size: 28)
-                Text(Self.rich(message.text))
-                    .font(SKFont.sans(16, relativeTo: .body))
-                    .foregroundStyle(message.role == .assistant ? SKColor.ink : SKColor.muted)
-                    .lineSpacing(3)
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                    .textSelection(.enabled)
+                VStack(alignment: .leading, spacing: SKSpace.md) {
+                    Text(Self.rich(message.text))
+                        .font(SKFont.sans(16, relativeTo: .body))
+                        .foregroundStyle(message.role == .assistant ? SKColor.ink : SKColor.muted)
+                        .lineSpacing(3)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .textSelection(.enabled)
+                    if let suggestions = message.suggestions, !suggestions.isEmpty {
+                        shelfCard(suggestions)
+                    }
+                }
             }
         }
+    }
+
+    private func shelfCard(_ items: [SuggestedProduct]) -> some View {
+        VStack(alignment: .leading, spacing: SKSpace.sm) {
+            Label("Add \(items.count == 1 ? "this" : "these") to your shelf?", systemImage: "square.stack")
+                .font(SKFont.sans(14.5, weight: .semibold, relativeTo: .subheadline))
+                .foregroundStyle(SKColor.ink)
+            ForEach(items) { p in
+                let added = shelfNames.contains(p.productName.lowercased())
+                HStack(spacing: SKSpace.md) {
+                    SKProductMark(name: p.productName, size: 36)
+                    VStack(alignment: .leading, spacing: 1) {
+                        Text(p.productName).font(SKFont.sans(15, weight: .semibold, relativeTo: .subheadline)).foregroundStyle(SKColor.ink).lineLimit(2)
+                        let meta = [p.brand, p.category].compactMap { $0 }.joined(separator: " · ")
+                        if !meta.isEmpty { Text(meta).font(SKFont.caption).foregroundStyle(SKColor.muted) }
+                    }
+                    Spacer(minLength: 0)
+                    if added {
+                        Label("Added", systemImage: "checkmark")
+                            .font(SKFont.sans(13.5, weight: .semibold, relativeTo: .caption))
+                            .foregroundStyle(SKColor.goodFg)
+                    } else {
+                        Button { onAdd(p) } label: {
+                            Text("Add")
+                                .font(SKFont.sans(14, weight: .semibold, relativeTo: .subheadline))
+                                .foregroundStyle(SKColor.cream)
+                                .padding(.horizontal, 14)
+                                .frame(height: 34)
+                                .background(SKColor.primary, in: Capsule())
+                        }
+                        .buttonStyle(SKPressStyle())
+                        .accessibilityLabel("Add \(p.productName) to your shelf")
+                    }
+                }
+            }
+            Text("Opens the product form filled in. You check it before it's saved.")
+                .font(SKFont.caption).foregroundStyle(SKColor.muted)
+        }
+        .padding(SKSpace.md)
+        .background(SKColor.cream, in: RoundedRectangle(cornerRadius: 18, style: .continuous))
+        .overlay(RoundedRectangle(cornerRadius: 18, style: .continuous).stroke(SKColor.line))
     }
 
     /// Inline markdown only (bold), keeping the answer's line breaks and numbering as written.
@@ -712,5 +921,157 @@ private struct TypingDots: View {
         .onAppear { on = true }
         .accessibilityElement(children: .ignore)
         .accessibilityLabel("Skintel is typing")
+    }
+}
+
+/// A shelf product tagged into a question: bottle or photo, name, and (in the composer) a remove button.
+private struct ProductTagChip: View {
+    let name: String
+    var category: String? = nil
+    var onRemove: (() -> Void)? = nil
+
+    var body: some View {
+        HStack(spacing: 6) {
+            SKProductMark(name: name, size: 22, category: category)
+            Text(name)
+                .font(SKFont.sans(13, weight: .semibold, relativeTo: .caption))
+                .foregroundStyle(SKColor.ink)
+                .lineLimit(1)
+            if let onRemove {
+                Button(action: onRemove) {
+                    Image(systemName: "xmark")
+                        .font(.system(size: 10, weight: .bold))
+                        .foregroundStyle(SKColor.muted)
+                        .frame(width: 20, height: 20)
+                }
+                .buttonStyle(.plain)
+                .accessibilityLabel("Remove \(name)")
+            }
+        }
+        .padding(.leading, 4)
+        .padding(.trailing, onRemove == nil ? 10 : 6)
+        .frame(height: 30)
+        .background(SKColor.cream, in: Capsule())
+        .overlay(Capsule().stroke(SKColor.line))
+    }
+}
+
+/// Pick up to three shelf products to ask about; the server reads their ingredient lists.
+private struct ShelfTagPicker: View {
+    let products: [Product]
+    @Binding var selected: [Product]
+    @Environment(\.dismiss) private var dismiss
+    @State private var query = ""
+    private static let limit = 3
+
+    private var filtered: [Product] {
+        let q = query.trimmingCharacters(in: .whitespaces).lowercased()
+        guard !q.isEmpty else { return products }
+        return products.filter { "\($0.brand ?? "") \($0.productName)".lowercased().contains(q) }
+    }
+
+    var body: some View {
+        NavigationStack {
+            List {
+                ForEach(filtered) { p in
+                    let on = selected.contains { $0.id == p.id }
+                    Button { toggle(p) } label: {
+                        HStack(spacing: SKSpace.md) {
+                            SKProductMark(name: p.productName, size: 40, category: p.category)
+                            VStack(alignment: .leading, spacing: 2) {
+                                Text(p.productName).font(SKFont.bodyMedium).foregroundStyle(SKColor.ink).lineLimit(1)
+                                if let b = p.brand, !b.isEmpty {
+                                    Text(b).font(SKFont.caption).foregroundStyle(SKColor.muted)
+                                }
+                            }
+                            Spacer(minLength: 0)
+                            Image(systemName: on ? "checkmark.circle.fill" : "circle")
+                                .font(.system(size: 22))
+                                .foregroundStyle(on ? SKColor.primary : SKColor.line)
+                        }
+                        .contentShape(Rectangle())
+                    }
+                    .buttonStyle(.plain)
+                    .disabled(!on && selected.count >= Self.limit)
+                    .listRowBackground(SKColor.cream)
+                    .accessibilityAddTraits(on ? [.isButton, .isSelected] : .isButton)
+                }
+            }
+            .scrollContentBackground(.hidden)
+            .background(SKColor.bg)
+            .searchable(text: $query, prompt: "Search your shelf")
+            .navigationTitle("Tag products")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .confirmationAction) {
+                    Button("Done") { dismiss() }.font(SKFont.bodyMedium)
+                }
+            }
+            .safeAreaInset(edge: .bottom) {
+                Text("Tag up to \(Self.limit). Ask Skintel reads their full ingredient lists.")
+                    .font(SKFont.caption)
+                    .foregroundStyle(SKColor.muted)
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, SKSpace.sm)
+                    .background(SKColor.bg)
+            }
+        }
+        .tint(SKColor.primary)
+    }
+
+    private func toggle(_ p: Product) {
+        Haptics.selection()
+        if let i = selected.firstIndex(where: { $0.id == p.id }) {
+            selected.remove(at: i)
+        } else if selected.count < Self.limit {
+            selected.append(p)
+        }
+    }
+}
+
+/// The upgrade card a free account sees after typing its own question: a looping demo of
+/// what Pro answers look like (tagging, adding a mentioned product, spotting one already on
+/// the shelf), then one clear way to upgrade.
+private struct AskProGate: View {
+    let onUpgrade: () -> Void
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: SKSpace.md) {
+            FeatureDemo(reason: .assistant)
+            HStack(spacing: 8) {
+                Text("PRO")
+                    .font(SKFont.mono(11, bold: true))
+                    .tracking(1.5)
+                    .foregroundStyle(SKColor.cream)
+                    .padding(.horizontal, 8)
+                    .padding(.vertical, 4)
+                    .background(SKColor.primary, in: Capsule())
+                Text("Ask anything with Skintel Pro").font(SKFont.cardTitle).foregroundStyle(SKColor.ink)
+            }
+            VStack(alignment: .leading, spacing: 10) {
+                row("at", "Tag products from your shelf and ask about them")
+                row("plus.square.on.square", "Mention a product and add it to your shelf")
+                row("checkmark.seal", "Knows your shelf, routine and check-ins")
+            }
+            SKButton(title: "Upgrade to Pro", kind: .dark, action: onUpgrade)
+            Text("Suggested questions stay free.")
+                .font(SKFont.caption)
+                .foregroundStyle(SKColor.muted)
+                .frame(maxWidth: .infinity)
+        }
+        .padding(SKSpace.md)
+        .background(SKColor.blush, in: RoundedRectangle(cornerRadius: 28, style: .continuous))
+        .overlay(RoundedRectangle(cornerRadius: 28, style: .continuous).stroke(SKColor.line))
+    }
+
+    private func row(_ icon: String, _ text: String) -> some View {
+        HStack(spacing: SKSpace.sm) {
+            Image(systemName: icon)
+                .font(.system(size: 13, weight: .semibold))
+                .foregroundStyle(SKColor.primary)
+                .frame(width: 26, height: 26)
+                .background(SKColor.cream, in: Circle())
+            Text(text).font(SKFont.sans(15, relativeTo: .subheadline)).foregroundStyle(SKColor.ink)
+        }
     }
 }

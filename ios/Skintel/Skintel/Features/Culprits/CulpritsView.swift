@@ -8,12 +8,13 @@ struct CulpritsView: View {
     @Environment(AppEnvironment.self) private var env
     @Environment(\.openPaywall) private var openPaywall
     @State private var expanded: Set<String> = []
+    @State private var demo: PaywallReason?
 
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: SKSpace.lg) {
                 VStack(alignment: .leading, spacing: 6) {
-                    Text("Culprits").font(SKFont.pageTitle).foregroundStyle(SKColor.ink)
+                    Text("Culprits").font(SKFont.pageTitle).foregroundStyle(SKColor.ink).padding(.leading, 44)
                     Text("Shelf × journal correlation").font(SKFont.sans(17, relativeTo: .body)).foregroundStyle(SKColor.muted)
                 }
                 .padding(.top, SKSpace.sm)
@@ -43,6 +44,13 @@ struct CulpritsView: View {
         .toolbar(.hidden, for: .navigationBar)
         .overlay(alignment: .topLeading) { BackButton() }
         .onAppear { env.analytics.track(.culpritViewed) }
+        .sheet(item: $demo) { reason in
+            FeatureDemoSheet(reason: reason,
+                             title: reason == .culprits ? "What you'll see" : "What your journal will show",
+                             message: reason == .culprits
+                                ? "Once two products are marked “broke out”, Skintel compares their ingredient lists and names what they share."
+                                : "After a few check-ins, Skintel lines them up with when each product joined your shelf and names what keeps showing up before a bad day.")
+        }
     }
 
     private var gate: some View {
@@ -52,6 +60,7 @@ struct CulpritsView: View {
                 Text("Skintel compares the ingredient lists of everything that broke you out and surfaces what they share. You have \(env.products.badProductCount) so far.")
                     .font(SKFont.secondary).foregroundStyle(SKColor.muted)
                 SKProgressBar(fraction: Double(env.products.badProductCount) / 2, tone: .bad, height: 6)
+                SKLinkButton(title: "See an example") { demo = .culprits }
             }
         }
     }
@@ -129,6 +138,7 @@ struct CulpritsView: View {
                             .disabled(env.journal.entries.count < 3)
                         if env.journal.entries.count < 3 {
                             Text("Needs at least 3 journal entries.").font(SKFont.caption).foregroundStyle(SKColor.muted)
+                            SKLinkButton(title: "See an example") { demo = .journalAnalysis }
                         }
                     }
                 }

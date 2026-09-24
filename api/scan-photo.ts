@@ -1,8 +1,6 @@
-import Anthropic from '@anthropic-ai/sdk';
 import type { VercelRequest, VercelResponse } from '@vercel/node';
+import { complete, parseJsonObject, SCAN_MODELS } from './_ai.js';
 import { getServiceClient, getUserFromAuthHeader, json } from './_lib.js';
-
-const MODEL = 'claude-haiku-4-5-20251001';
 
 export const config = {
   api: {
@@ -66,45 +64,24 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     return json(res, { error: 'Image too large (base64 must be < 6MB)' }, 400);
   }
 
-  const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY! });
-
   try {
-    const resp = await client.messages.create({
-      model: MODEL,
-      max_tokens: 4096,
-      messages: [
-        {
-          role: 'user',
-          content: [
-            {
-              type: 'image',
-              source: {
-                type: 'base64',
-                media_type: mimeType as AllowedMime,
-                data: imageBase64,
-              },
-            },
-            { type: 'text', text: PROMPT },
-          ],
-        },
-      ],
+    // A full INCI list is ~400 tokens; 2k leaves room for long labels.
+    const ai = await complete({
+      models: SCAN_MODELS,
+      prompt: PROMPT,
+      images: [{ base64: imageBase64, mimeType }],
+      maxTokens: 2048,
+      json: true,
     });
-
-    const text = resp.content
-      .filter((b): b is Anthropic.TextBlock => b.type === 'text')
-      .map((b) => b.text)
-      .join('');
 
     let parsed: unknown;
     try {
-      const fenced = text.match(/```(?:json)?\s*([\s\S]*?)```/);
-      const candidate = fenced ? fenced[1] : (text.match(/\{[\s\S]*\}/)?.[0] ?? text);
-      parsed = JSON.parse(candidate);
+      parsed = parseJsonObject(ai.text);
     } catch {
-      return json(res, { error: 'Model returned invalid JSON', raw: text.slice(0, 500) }, 502);
+      return json(res, { error: 'Model returned invalid JSON', raw: ai.text.slice(0, 500) }, 502);
     }
 
-    return json(res, { result: parsed, usage: resp.usage });
+    return json(res, { result: parsed, usage: ai.usage });
   } catch (e: any) {
     return json(res, { error: 'Photo scan failed', detail: String(e?.message ?? e) }, 500);
   }

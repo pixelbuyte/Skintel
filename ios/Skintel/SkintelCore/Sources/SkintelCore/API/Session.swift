@@ -56,6 +56,14 @@ public struct AuthUser: Codable, Sendable, Hashable, Identifiable {
     public static let concernsKey = "concerns"
     public static let onboardingCompleteKey = "onboarding_complete"
     public static let fullNameKey = "full_name"   // set by Sign in with Apple on first sign-in
+    /// Free text the person wrote for Ask Skintel ("pregnant, no retinoids"); the server
+    /// adds it to the assistant's context.
+    public static let assistantAboutKey = "assistant_about"
+    public static let assistantAboutLimit = 500
+
+    public var assistantAbout: String {
+        userMetadata[Self.assistantAboutKey]?.stringValue ?? ""
+    }
 
     public var displayName: String? {
         userMetadata[Self.displayNameKey]?.stringValue

@@ -60,6 +60,7 @@ final class ScanFlowModel {
         env.analytics.track(.scanStarted(mode: "barcode"))
         do {
             let hit = try await env.api.lookupBarcode(upc)
+            ProductImages.remember(hit.imageUrl, for: [hit.productName])
             let c = ScanCandidate(brand: hit.brand, productName: hit.productName, inci: hit.ingredients, upc: upc, source: hit.source ?? "lookup")
             if c.parsed.isEmpty { phase = .found(c) }   // matched but no INCI: user can paste it
             else { await analyze(c) }
@@ -89,6 +90,7 @@ final class ScanFlowModel {
 
     func useSearchResult(_ r: ProductSearchResult) async {
         let c = ScanCandidate(brand: r.brand, productName: r.productName, inci: r.ingredients ?? "", upc: r.code, source: "search")
+        ProductImages.remember(r.imageUrl, for: [r.productName])
         env.analytics.track(.scanStarted(mode: "search"))
         if c.parsed.isEmpty { phase = .found(c) } else { await analyze(c) }
     }

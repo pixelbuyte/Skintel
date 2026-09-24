@@ -52,6 +52,37 @@ private func decode<T: Decodable>(_ t: T.Type, _ json: String) throws -> T {
     #expect(j.entries.first?.entryDate == "2026-08-17")
 }
 
+@Test func decodesAssistantReplyWithAndWithoutProducts() throws {
+    let bare = try decode(AssistantReply.self, #"{"reply":"Hi","model":"x"}"#)
+    #expect(bare.reply == "Hi")
+    #expect(bare.products.isEmpty)
+
+    let withProducts = try decode(AssistantReply.self, """
+    {"reply":"Ok","products":[{"brand":"The Ordinary","productName":"Niacinamide 10% + Zinc 1%","category":null}]}
+    """)
+    #expect(withProducts.products.count == 1)
+    #expect(withProducts.products.first?.brand == "The Ordinary")
+    #expect(withProducts.products.first?.id == "The Ordinary|Niacinamide 10% + Zinc 1%")
+}
+
+@Test func decodesBarcodeLookupWithAndWithoutImage() throws {
+    let cached = try decode(BarcodeLookup.self, #"{"brand":"CeraVe","productName":"PM Lotion","ingredients":"Aqua","source":"cache"}"#)
+    #expect(cached.imageUrl == nil)
+    let fresh = try decode(BarcodeLookup.self, #"{"brand":null,"productName":"Gel","ingredients":"","source":"openbeautyfacts","imageUrl":"https://images.openbeautyfacts.org/images/products/1/front.200.jpg"}"#)
+    #expect(fresh.imageUrl?.hasPrefix("https://images.openbeautyfacts.org/") == true)
+}
+
+// The exact row `/api/journal` returned before it selected `user_id`: this used to fail the
+// whole list with "Unexpected reply from the server." on Today's check-in card.
+@Test func decodesJournalRowWithoutUserID() throws {
+    let j = try decode(JournalEntriesResponse.self, """
+    {"entries":[{"id":"j1","entry_date":"2026-09-23","condition":"clear","notes":null,"photo_url":null,"created_at":"2026-09-23T21:10:00+00:00"}]}
+    """)
+    #expect(j.entries.count == 1)
+    #expect(j.entries.first?.userID == "")
+    #expect(j.entries.first?.condition == .clear)
+}
+
 @Test func scanResultToleratesLLMShapedFields() throws {
     let r = try decode(ScanAIResponse.self, """
     {"result":{"verdict":"Clean","score":"82","summary":"Gentle gel cleanser.","flags":[

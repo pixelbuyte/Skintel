@@ -142,6 +142,9 @@ private func sub(_ tier: Tier, _ status: String?) -> Subscription {
     #expect(user.onboardingComplete)
     #expect(user.displayName == "Riya Patel")
     #expect(user.firstName == "Riya")
+    #expect(user.assistantAbout == "")
+    let noted = AuthUser(id: "u", email: nil, userMetadata: [AuthUser.assistantAboutKey: .string("No retinoids")])
+    #expect(noted.assistantAbout == "No retinoids")
 
     let s = Session(accessToken: "a", refreshToken: "r", expiresAt: Date().addingTimeInterval(30), user: user)
     #expect(s.isExpiring())
@@ -172,5 +175,8 @@ private func sub(_ tier: Tier, _ status: String?) -> Subscription {
     #expect(ISO8601.date("2026-08-17") != nil)
     #expect(ISO8601.date(nil) == nil)
     #expect(ISO8601.date("") == nil)
-    #expect(ISO8601.dayString(Date(timeIntervalSince1970: 0)) == "1970-01-01")
+    // Local noon keeps this true in every time zone the tests run in.
+    let noon = Calendar.current.date(from: DateComponents(year: 2026, month: 9, day: 23, hour: 12))!
+    #expect(ISO8601.dayString(noon) == "2026-09-23")
+    #expect(ISO8601.date("2026-09-23").map(ISO8601.dayString) == "2026-09-23")
 }

@@ -1,5 +1,5 @@
-import Anthropic from '@anthropic-ai/sdk';
 import type { VercelRequest, VercelResponse } from '@vercel/node';
+import { complete, parseJsonObject, SCAN_MODELS } from './_ai.js';
 import { getServiceClient, getUserFromAuthHeader, json } from './_lib.js';
 
 type CacheSource = 'openbeautyfacts' | 'openfoodfacts' | 'claude';
@@ -9,7 +9,16 @@ type LookupResult = {
   productName: string | null;
   ingredients: string;
   source: CacheSource | 'cache' | null;
+  imageUrl?: string | null;
 };
+
+type DbProduct = { brand: string | null; productName: string | null; ingredients: string; imageUrl: string | null };
+
+/** Only https images from the Open Facts CDNs are passed to the app. */
+function safeImage(url: unknown): string | null {
+  if (typeof url !== 'string') return null;
+  return /^https:\/\/images\.open(beauty|food)facts\.org\//.test(url) ? url : null;
+}
 
 type CacheRow = {
   upc: string;
@@ -19,51 +28,27 @@ type CacheRow = {
   source: string;
 };
 
-async function claudeFillIngredients(
+async function aiFillIngredients(
   brand: string | null,
   productName: string | null,
   upc: string
 ): Promise<{ brand: string | null; productName: string | null; ingredients: string } | null> {
-  if (!process.env.ANTHROPIC_API_KEY) return null;
-  const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
   const hint = [brand, productName].filter(Boolean).join(' ');
-  const prompt = `Find the full INCI ingredient list for this skincare/cosmetic product. Use web_search to look up the brand's official page or major retailers (Sephora, Ulta, Boots, brand site).
+  const prompt = `Find the full INCI ingredient list for this skincare/cosmetic product using web search: the brand's official page or major retailers (Sephora, Ulta, Boots).
 
 Product: ${hint || '(unknown — look up by UPC)'}
 UPC/EAN: ${upc}
 
-Steps:
-1. Search web for the product (use UPC and/or brand + product name).
-2. Find the INCI / ingredients list from official brand site or reputable retailer.
-3. Return strict JSON only — no commentary, no markdown.
-
-Output format:
+Return strict JSON only — no commentary, no markdown:
 {"brand": string|null, "productName": string|null, "ingredients": string}
 
 - ingredients = full INCI, comma-separated, no "Ingredients:" prefix
-- If after searching you cannot find an authoritative list, return ingredients: ""
+- If you cannot find an authoritative list, return ingredients: ""
 - Do NOT invent ingredients`;
 
   try {
-    const resp = await client.messages.create({
-      model: 'claude-haiku-4-5-20251001',
-      max_tokens: 4096,
-      tools: [
-        {
-          type: 'web_search_20250305',
-          name: 'web_search',
-          max_uses: 4,
-        } as any,
-      ],
-      messages: [{ role: 'user', content: prompt }],
-    });
-    const text = resp.content
-      .filter((b): b is Anthropic.TextBlock => b.type === 'text')
-      .map((b) => b.text)
-      .join('');
-    const fenced = text.match(/```(?:json)?\s*([\s\S]*?)```/);
-    const candidate = fenced ? fenced[1] : (text.match(/\{[\s\S]*\}/)?.[0] ?? text);
-    const parsed = JSON.parse(candidate) as {
+    const ai = await complete({ models: SCAN_MODELS, prompt, maxTokens: 2048, json: true, webSearch: true });
+    const parsed = parseJsonObject(ai.text) as {
       brand?: string | null;
       productName?: string | null;
       ingredients?: string;
@@ -81,12 +66,13 @@ Output format:
 async function fetchProduct(
   baseUrl: string,
   upc: string,
-  timeoutMs = 5000
-): Promise<{ brand: string | null; productName: string | null; ingredients: string } | null> {
+  timeoutMs = 5000,
+  fields = 'product_name,brands,ingredients_text,image_front_small_url,image_front_url,image_url'
+): Promise<DbProduct | null> {
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), timeoutMs);
   try {
-    const r = await fetch(`${baseUrl}/api/v2/product/${encodeURIComponent(upc)}.json`, {
+    const r = await fetch(`${baseUrl}/api/v2/product/${encodeURIComponent(upc)}.json?fields=${fields}`, {
       signal: controller.signal,
       headers: { 'User-Agent': 'Skintel/1.0 (https://skintel.app)' },
     });
@@ -97,14 +83,19 @@ async function fetchProduct(
         product_name?: string;
         brands?: string;
         ingredients_text?: string;
+        image_front_small_url?: string;
+        image_front_url?: string;
+        image_url?: string;
       };
     };
     if (data.status !== 1 || !data.product) return null;
     const ingredients = (data.product.ingredients_text ?? '').trim();
     const brand = (data.product.brands ?? '').trim() || null;
     const productName = (data.product.product_name ?? '').trim() || null;
-    if (!ingredients && !brand && !productName) return null;
-    return { brand, productName, ingredients };
+    const p = data.product;
+    const imageUrl = safeImage(p.image_front_small_url) ?? safeImage(p.image_front_url) ?? safeImage(p.image_url);
+    if (!ingredients && !brand && !productName && !imageUrl) return null;
+    return { brand, productName, ingredients, imageUrl };
   } catch {
     return null;
   } finally {
@@ -144,7 +135,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     return json(res, { error: 'Invalid UPC (must be 8-13 digits)' }, 400);
   }
 
-  // 1) Cache hit short-circuits everything (incl. Claude web_search billing).
+  // 1) Cache hit short-circuits everything (incl. AI web-search billing).
   const { data: cached } = await sb
     .from('barcode_cache')
     .select('upc, brand, product_name, ingredients, source')
@@ -156,7 +147,13 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       productName: cached.product_name,
       ingredients: cached.ingredients,
       source: 'cache',
+      imageUrl: null,
     };
+    // The cache has no image column; a fast image-only fetch keeps the photo.
+    if (cached.source === 'openbeautyfacts' || cached.source === 'openfoodfacts') {
+      const img = await fetchProduct(`https://world.${cached.source}.org`, upc, 1500, 'image_front_small_url,image_front_url,image_url');
+      result.imageUrl = img?.imageUrl ?? null;
+    }
     return json(res, result);
   }
 
@@ -191,27 +188,28 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     return json(res, result);
   }
 
-  const claude = await claudeFillIngredients(
+  const found = await aiFillIngredients(
     dbHit?.brand ?? null,
     dbHit?.productName ?? null,
     upc
   );
 
-  if (claude && (claude.ingredients || claude.brand || claude.productName)) {
+  if (found && (found.ingredients || found.brand || found.productName)) {
     const finalSource: CacheSource = dbSource ?? 'claude';
-    if (claude.ingredients) {
+    if (found.ingredients) {
       await persist({
-        brand: claude.brand,
-        productName: claude.productName,
-        ingredients: claude.ingredients,
+        brand: found.brand,
+        productName: found.productName,
+        ingredients: found.ingredients,
         source: finalSource,
       });
     }
     const result: LookupResult = {
-      brand: claude.brand,
-      productName: claude.productName,
-      ingredients: claude.ingredients,
+      brand: found.brand,
+      productName: found.productName,
+      ingredients: found.ingredients,
       source: finalSource,
+      imageUrl: dbHit?.imageUrl ?? null,
     };
     return json(res, result);
   }

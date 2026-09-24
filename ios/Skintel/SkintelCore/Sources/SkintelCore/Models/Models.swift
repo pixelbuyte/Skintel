@@ -162,6 +162,19 @@ public struct JournalEntry: Codable, Sendable, Identifiable, Hashable {
         self.id = id; self.userID = userID; self.entryDate = entryDate; self.condition = condition
         self.notes = notes; self.photoURL = photoURL; self.createdAt = createdAt
     }
+
+    // Deployments of `/api/journal` before this fix omit `user_id`; a missing owner must not
+    // fail the whole list, since every entry it returns is already scoped to the caller.
+    public init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        id = try c.decode(String.self, forKey: .id)
+        userID = try c.decodeIfPresent(String.self, forKey: .userID) ?? ""
+        entryDate = try c.decode(String.self, forKey: .entryDate)
+        condition = try c.decode(JournalCondition.self, forKey: .condition)
+        notes = try c.decodeIfPresent(String.self, forKey: .notes)
+        photoURL = try c.decodeIfPresent(String.self, forKey: .photoURL)
+        createdAt = try c.decodeIfPresent(String.self, forKey: .createdAt) ?? ""
+    }
 }
 
 /// Output of the local co-occurrence engine (src/lib/correlate.ts).
@@ -252,7 +265,9 @@ public enum ISO8601 {
         let f = DateFormatter()
         f.calendar = Calendar(identifier: .gregorian)
         f.locale = Locale(identifier: "en_US_POSIX")
-        f.timeZone = TimeZone(identifier: "UTC")
+        // Journal and routine days are the person's calendar days (the web app keys them the
+        // same way); UTC filed evening check-ins in the Americas under tomorrow.
+        f.timeZone = TimeZone.autoupdatingCurrent
         f.dateFormat = "yyyy-MM-dd"
         return f
     }()
@@ -269,7 +284,7 @@ public enum ISO8601 {
         return dayOnly.date(from: s)
     }
 
-    /// YYYY-MM-DD in UTC — the shape `/api/journal` expects for `entryDate`.
+    /// YYYY-MM-DD in the device's time zone — the shape `/api/journal` expects for `entryDate`.
     public static func dayString(_ date: Date) -> String {
         dayOnly.string(from: date)
     }

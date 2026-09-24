@@ -11,8 +11,10 @@ struct HomeView: View {
     @State private var showCheckIn = false
     @State private var showAssistant = false
     @AppStorage(AssistantPlacement.key) private var assistantPlacement = AssistantPlacement.tab
-    @State private var savingMood = false
     @State private var moodError: String?
+    @AppStorage(CheckInPrompt.enabledKey) private var autoPrompt = true
+    @AppStorage(CheckInPrompt.lastKey) private var lastPrompt = ""
+    @Environment(\.scenePhase) private var scenePhase
 
     var body: some View {
         NavigationStack(path: $path) {
@@ -37,7 +39,35 @@ struct HomeView: View {
         .tint(SKColor.primary)
         .sheet(isPresented: $showCheckIn) { CheckInSheet() }
         .sheet(isPresented: $showAssistant) { AssistantView() }
-        .task { await env.journal.load() }
+        .task {
+            await env.journal.load()
+            promptCheckInIfDue()
+        }
+        .onChange(of: scenePhase) { _, phase in
+            guard phase == .active else { return }
+            Task {
+                await env.journal.load()
+                promptCheckInIfDue()
+            }
+        }
+    }
+
+    /// Morning: ask when nothing is logged yet today. Evening: ask when tonight's part isn't
+    /// answered. At most once per part of the day, and never over another sheet.
+    private func promptCheckInIfDue() {
+        guard autoPrompt, !showCheckIn, !showAssistant, env.journal.state.value != nil,
+              !env.products.products.isEmpty, let part = CheckInPrompt.window() else { return }
+        let key = "\(ISO8601.dayString(Date()))-\(part == .morning ? "am" : "pm")"
+        guard lastPrompt != key else { return }
+        let today = env.journal.today
+        switch part {
+        case .morning:
+            guard today == nil else { return }
+        case .night:
+            guard !CheckInSheet.hasLine(today?.notes, prefix: CheckInSheet.todayPrefix) else { return }
+        }
+        lastPrompt = key
+        showCheckIn = true
     }
 
     // MARK: Header
@@ -139,7 +169,7 @@ struct HomeView: View {
                         .font(SKFont.secondary).foregroundStyle(SKColor.muted)
                     SKButton(title: "Build your \(slot.rawValue) routine", kind: .secondary) { path.append(.routine) }
                 } else {
-                    SKProgressBar(fraction: Double(done) / Double(steps.count), tone: allDone ? .good : .neutral, height: 6)
+                    SKProgressBar(fraction: Double(done) / Double(steps.count), height: 6)
                     VStack(spacing: 0) {
                         ForEach(Array(steps.enumerated()), id: \.element.id) { index, p in
                             if index > 0 { Rectangle().fill(SKColor.line).frame(height: 1) }
@@ -147,7 +177,7 @@ struct HomeView: View {
                         }
                     }
                     SKButton(title: allDone ? "\(slot.rawValue) routine done" : "Mark all done",
-                             kind: allDone ? .secondary : .primary,
+                             kind: allDone ? .done : .primary,
                              systemImage: allDone ? "checkmark" : nil) {
                         if !allDone {
                             env.routine.markAllDone(slot)
@@ -167,8 +197,8 @@ struct HomeView: View {
                 if done { Haptics.selection() } else { Haptics.success() }
             } label: {
                 ZStack {
-                    Circle().fill(done ? SKColor.goodFg : SKColor.cream)
-                    Circle().stroke(done ? SKColor.goodFg : SKColor.line, lineWidth: 1.5)
+                    Circle().fill(done ? SKColor.primary : SKColor.cream)
+                    Circle().stroke(done ? SKColor.primary : SKColor.line, lineWidth: 1.5)
                     if done {
                         Image(systemName: "checkmark").font(.system(size: 13, weight: .bold)).foregroundStyle(SKColor.cream)
                     }
@@ -187,7 +217,6 @@ struct HomeView: View {
                     Text(p.product.productName)
                         .font(SKFont.sans(16, weight: .medium, relativeTo: .body))
                         .foregroundStyle(done ? SKColor.muted : SKColor.ink)
-                        .strikethrough(done, color: SKColor.muted.opacity(0.5))
                         .lineLimit(2)
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
@@ -235,15 +264,13 @@ struct HomeView: View {
 
     /// One tap saves. Existing notes are kept, so changing the mood never erases detail.
     private func quickSave(_ c: JournalCondition) {
-        guard env.journal.state.value != nil, !savingMood else { return }
-        savingMood = true
+        guard env.journal.state.value != nil else { return }
         moodError = nil
+        Haptics.selection()
         Task {
-            defer { savingMood = false }
             do {
                 try await env.journal.save(day: ISO8601.dayString(Date()), condition: c, notes: env.journal.today?.notes)
                 env.analytics.track(.journalSaved)
-                Haptics.success()
             } catch {
                 moodError = (error as? APIError)?.userMessage ?? error.localizedDescription
                 Haptics.error()
@@ -272,7 +299,8 @@ struct HomeView: View {
                     .font(.system(size: 14, weight: .bold))
                     .foregroundStyle(SKColor.cream)
                     .frame(width: 32, height: 32)
-                    .background(SKColor.ink, in: Circle())
+                    .background(SKColor.primary, in: Circle())
+                    .skPrimaryGlow(strength: 0.3)
             }
             .padding(.vertical, SKSpace.md)
             .padding(.horizontal, SKSpace.md)
@@ -361,7 +389,7 @@ struct ProductRow: View {
     var body: some View {
         SKCard(padding: SKSpace.md) {
             HStack(spacing: SKSpace.md) {
-                SKProductMark(name: product.product.productName)
+                SKProductMark(name: product.product.productName, category: product.product.category)
                 VStack(alignment: .leading, spacing: 3) {
                     Text(product.product.productName)
                         .font(SKFont.cardTitle).foregroundStyle(SKColor.ink).lineLimit(1)

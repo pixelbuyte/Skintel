@@ -111,7 +111,7 @@ struct ManualEntrySheet: View {
                     } label: {
                         SKCard(padding: SKSpace.md) {
                             HStack(spacing: SKSpace.md) {
-                                SKProductMark(name: r.productName ?? r.brand ?? "?", size: 40)
+                                SKProductMark(name: r.productName ?? r.brand ?? "?", size: 40, imageURL: r.imageUrl)
                                 VStack(alignment: .leading, spacing: 2) {
                                     Text(r.productName ?? "Unnamed").font(SKFont.bodyMedium).foregroundStyle(SKColor.ink).lineLimit(1)
                                     Text([r.brand, (r.ingredients?.isEmpty == false) ? "has INCI" : "no INCI listed"].compactMap { $0 }.joined(separator: " · "))
