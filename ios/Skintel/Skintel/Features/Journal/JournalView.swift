@@ -1,5 +1,6 @@
 import SwiftUI
 import SkintelCore
+import SkintelMascot
 
 /// Design §14 with the product's real four states. "Used today" chips come from the
 /// routine and are written into the entry's notes ("Used: …") so the journal AI sees
@@ -50,7 +51,7 @@ struct JournalView: View {
                 .padding(.bottom, SKSpace.xxl)
             }
             .scrollDismissesKeyboard(.interactively)
-            .refreshable { await env.journal.load() }
+            .mascotRefreshable { await env.journal.load() }
             .skPageBackground()
             .toolbar(.hidden, for: .navigationBar)
             .toolbar {
@@ -680,7 +681,7 @@ struct InsightsView: View {
                 .skPagePadding()
                 .padding(.bottom, SKSpace.xxl)
             }
-            .refreshable {
+            .mascotRefreshable {
                 await env.journal.load()
                 await env.products.load()
             }

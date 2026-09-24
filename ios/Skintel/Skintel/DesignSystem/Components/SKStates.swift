@@ -1,5 +1,6 @@
 import SwiftUI
 import SkintelCore
+import SkintelMascot
 
 /// One loading/loaded/failed shape for every async screen, so no view invents its own.
 enum Loadable<Value: Sendable>: Sendable {
@@ -51,11 +52,8 @@ struct SKEmptyState: View {
 
     var body: some View {
         VStack(spacing: SKSpace.md) {
-            Image(systemName: icon)
-                .font(.system(size: 30, weight: .light))
-                .foregroundStyle(SKColor.primary)
-                .frame(width: 64, height: 64)
-                .background(SKColor.blush, in: RoundedRectangle(cornerRadius: 18, style: .continuous))
+            SkintelMascot(.wave, size: 112)
+                .overlay(alignment: .bottomTrailing) { StateBadge(icon: icon, tint: SKColor.primary, fill: SKColor.cream) }
             Text(title).font(SKFont.section).foregroundStyle(SKColor.ink).multilineTextAlignment(.center)
             Text(message).font(SKFont.secondary).foregroundStyle(SKColor.muted).multilineTextAlignment(.center)
             if let actionTitle, let action {
@@ -73,11 +71,10 @@ struct SKErrorState: View {
 
     var body: some View {
         VStack(spacing: SKSpace.md) {
-            Image(systemName: error == .offline ? "wifi.slash" : "exclamationmark.triangle")
-                .font(.system(size: 26, weight: .light))
-                .foregroundStyle(SKColor.badFg)
-                .frame(width: 56, height: 56)
-                .background(SKColor.badBg, in: RoundedRectangle(cornerRadius: 16, style: .continuous))
+            SkintelMascot(.idle, mood: .worried, size: 104)
+                .overlay(alignment: .bottomTrailing) {
+                    StateBadge(icon: error == .offline ? "wifi.slash" : "exclamationmark", tint: SKColor.badFg, fill: SKColor.badBg)
+                }
             Text(error == .offline ? "You're offline" : "Something went wrong")
                 .font(SKFont.cardTitle).foregroundStyle(SKColor.ink)
             Text(error.userMessage).font(SKFont.secondary).foregroundStyle(SKColor.muted).multilineTextAlignment(.center)
@@ -87,6 +84,23 @@ struct SKErrorState: View {
         }
         .padding(SKSpace.xxl)
         .frame(maxWidth: .infinity)
+    }
+}
+
+/// The small icon that says what an empty or error state is about, tucked beside the droplet.
+private struct StateBadge: View {
+    let icon: String
+    let tint: Color
+    let fill: Color
+
+    var body: some View {
+        Image(systemName: icon)
+            .font(.system(size: 13, weight: .semibold))
+            .foregroundStyle(tint)
+            .frame(width: 32, height: 32)
+            .background(fill, in: Circle())
+            .overlay(Circle().stroke(SKColor.line))
+            .accessibilityHidden(true)
     }
 }
 

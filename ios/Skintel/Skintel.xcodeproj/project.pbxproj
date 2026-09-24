@@ -13,6 +13,7 @@
 		0F98B62C4FE97957D68E64C9 /* CameraPermission.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5CE0405B2427CBC9CE1B6FF2 /* CameraPermission.swift */; };
 		1D3C5E3BC9FA1C343C88E6DD /* RoutineView.swift in Sources */ = {isa = PBXBuildFile; fileRef = FB75EFA44E8933D0CE278CC3 /* RoutineView.swift */; };
 		21A738E63A8D5B94542FC8DF /* SkintelCore in Frameworks */ = {isa = PBXBuildFile; productRef = AFB88C4177C8695BA6013C4A /* SkintelCore */; };
+		CE69016F3F0A533E9517B58D /* SkintelMascot in Frameworks */ = {isa = PBXBuildFile; productRef = 15F3E2E8190F5A532B98582C /* SkintelMascot */; };
 		21BA985B72A8F5F8BB705823 /* AppRouter.swift in Sources */ = {isa = PBXBuildFile; fileRef = B89A39D514937525E18C27B4 /* AppRouter.swift */; };
 		26D6887E6274AC97AF751C7A /* SKFont.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5EB6ECEEDFE684AAC7A74EB6 /* SKFont.swift */; };
 		3232FA965DEEF944CFACE886 /* DMSans-Regular.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 4D7EB960E431B7BA8662737B /* DMSans-Regular.ttf */; };
@@ -149,6 +150,7 @@
 		8D54AD044221C0042055DD6F /* SKCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SKCard.swift; sourceTree = "<group>"; };
 		99F83044ED8A56FBA4E68E83 /* ProductStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProductStore.swift; sourceTree = "<group>"; };
 		9D68606BF67F46CE73ABE3DE /* SkintelCore */ = {isa = PBXFileReference; lastKnownFileType = folder; name = SkintelCore; path = SkintelCore; sourceTree = SOURCE_ROOT; };
+		7EF40BCFD2963A4F1E8AA6F9 /* SkintelMascot */ = {isa = PBXFileReference; lastKnownFileType = folder; name = SkintelMascot; path = ../Packages/SkintelMascot; sourceTree = SOURCE_ROOT; };
 		9E6F58C8201C7A36357C684C /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
 		A068F81223A2085CD0463B6C /* SKColor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SKColor.swift; sourceTree = "<group>"; };
 		A08627A5CA5D26ABC1D3C4D7 /* ScannerHostView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScannerHostView.swift; sourceTree = "<group>"; };
@@ -180,6 +182,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				21A738E63A8D5B94542FC8DF /* SkintelCore in Frameworks */,
+				CE69016F3F0A533E9517B58D /* SkintelMascot in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -339,6 +342,7 @@
 			isa = PBXGroup;
 			children = (
 				9D68606BF67F46CE73ABE3DE /* SkintelCore */,
+				7EF40BCFD2963A4F1E8AA6F9 /* SkintelMascot */,
 			);
 			name = Packages;
 			sourceTree = "<group>";
@@ -569,6 +573,7 @@
 			name = Skintel;
 			packageProductDependencies = (
 				AFB88C4177C8695BA6013C4A /* SkintelCore */,
+				15F3E2E8190F5A532B98582C /* SkintelMascot */,
 			);
 			productName = Skintel;
 			productReference = 22CF73FEDEF580D2E42474D2 /* Skintel.app */;
@@ -622,6 +627,7 @@
 			minimizedProjectReferenceProxies = 1;
 			packageReferences = (
 				431C7ACA7F6AEDD0E7622707 /* XCLocalSwiftPackageReference "SkintelCore" */,
+				C11855EA161F5FC9A7C0CE61 /* XCLocalSwiftPackageReference "../Packages/SkintelMascot" */,
 			);
 			preferredProjectObjectVersion = 77;
 			projectDirPath = "";
@@ -1047,6 +1053,10 @@
 			isa = XCLocalSwiftPackageReference;
 			relativePath = SkintelCore;
 		};
+		C11855EA161F5FC9A7C0CE61 /* XCLocalSwiftPackageReference "../Packages/SkintelMascot" */ = {
+			isa = XCLocalSwiftPackageReference;
+			relativePath = ../Packages/SkintelMascot;
+		};
 /* End XCLocalSwiftPackageReference section */
 
 /* Begin XCSwiftPackageProductDependency section */
@@ -1057,6 +1067,10 @@
 		AFB88C4177C8695BA6013C4A /* SkintelCore */ = {
 			isa = XCSwiftPackageProductDependency;
 			productName = SkintelCore;
+		};
+		15F3E2E8190F5A532B98582C /* SkintelMascot */ = {
+			isa = XCSwiftPackageProductDependency;
+			productName = SkintelMascot;
 		};
 /* End XCSwiftPackageProductDependency section */
 	};

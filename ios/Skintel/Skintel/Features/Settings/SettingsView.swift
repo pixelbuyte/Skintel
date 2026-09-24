@@ -2,6 +2,7 @@ import StoreKit
 import SwiftUI
 import UserNotifications
 import SkintelCore
+import SkintelMascot
 
 /// You: a profile the person shapes up top, then settings in layers. Everyday choices live
 /// one tap down in Personalization; account, data and the destructive actions live in
@@ -24,6 +25,7 @@ struct SettingsView: View {
     @State private var showEditProfile = false
     @State private var showPersonalization = false
     @State private var showAccount = false
+    @State private var showMascot = false
 
     var body: some View {
         ScrollView {
@@ -53,6 +55,12 @@ struct SettingsView: View {
                     SettingsLinkRow(title: "Terms", url: env.config.termsURL, last: true)
                 }
 
+                SettingsGroup(title: "Labs") {
+                    SettingsRow(icon: "drop", title: "Mascot playground", subtitle: "Try the droplet's animations", last: true) {
+                        showMascot = true
+                    }
+                }
+
                 Text("Skintel \(Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "") · Not medical advice. Patterns, not prescriptions.")
                     .font(SKFont.caption).foregroundStyle(SKColor.muted).frame(maxWidth: .infinity).multilineTextAlignment(.center)
             }
@@ -64,6 +72,7 @@ struct SettingsView: View {
         .overlay(alignment: .topLeading) { if !isRoot { BackButton().padding(.top, 2) } }
         .navigationDestination(isPresented: $showPersonalization) { PersonalizationView() }
         .navigationDestination(isPresented: $showAccount) { AccountDataView() }
+        .navigationDestination(isPresented: $showMascot) { MascotPlayground() }
         .sheet(isPresented: $showEditProfile) { EditProfileSheet() }
         .task {
             await env.subscription.load()

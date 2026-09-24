@@ -1,4 +1,5 @@
 import SwiftUI
+import SkintelMascot
 
 @main
 struct SkintelApp: App {
@@ -6,6 +7,7 @@ struct SkintelApp: App {
     @State private var configError: Error?
 
     init() {
+        MascotRefresh.hideSystemSpinner()
         do {
             let config = try AppConfiguration.load()
             _environment = State(initialValue: AppEnvironment(config: config))
