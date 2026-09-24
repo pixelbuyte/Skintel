@@ -1,5 +1,6 @@
 import SwiftUI
 import SkintelCore
+import SkintelMascot
 
 /// Today: what to do right now. The current AM or PM routine as a tickable checklist, a
 /// one-tap skin check-in, and only the alerts that need attention. Everything shown comes
@@ -27,7 +28,7 @@ struct HomeView: View {
                 .padding(.top, SKSpace.sm)
                 .padding(.bottom, SKSpace.xxl)
             }
-            .refreshable {
+            .mascotRefreshable {
                 await env.products.load()
                 await env.subscription.load()
                 await env.journal.load()

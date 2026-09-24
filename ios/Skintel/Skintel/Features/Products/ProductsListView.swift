@@ -1,5 +1,6 @@
 import SwiftUI
 import SkintelCore
+import SkintelMascot
 
 /// The shelf: every product, newest first, with the free-tier cap made visible.
 struct ProductsListView: View {
@@ -40,7 +41,7 @@ struct ProductsListView: View {
             .padding(.vertical, SKSpace.md)
             .padding(.bottom, SKSpace.xxl)
         }
-        .refreshable { await env.products.load() }
+        .mascotRefreshable { await env.products.load() }
         .skPageBackground()
         .skNavigationTitle("Shelf")
         .toolbar {

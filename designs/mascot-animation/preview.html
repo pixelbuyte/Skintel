@@ -1,0 +1,119 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Skintel mascot animation</title>
+<style>
+:root{--bg:#F4EDE0;--ink:#1A1814;--muted:#6B6760;--line:#EAE6DF;--card:#FFFEFA}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);font-family:-apple-system,system-ui,sans-serif;color:var(--ink)}
+main{max-width:1100px;margin:0 auto;padding:24px 16px 48px}
+h1{font-size:22px;margin:0 0 4px}p{color:var(--muted);margin:0 0 20px;font-size:14px}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(190px,1fr));gap:14px}
+.cell{background:var(--card);border:1px solid var(--line);border-radius:20px;padding:10px 10px 14px;text-align:center}
+.cell svg{width:100%;height:auto;display:block}.cell b{font-size:14px}.cell span{display:block;color:var(--muted);font-size:12px;margin-top:2px}
+.controls{display:flex;gap:16px;align-items:center;margin:0 0 16px;font-size:14px;flex-wrap:wrap}
+</style></head><body><main>
+<h1>Skintel droplet — native animation preview</h1>
+<p>Same geometry and pose math as <code>ios/Packages/SkintelMascot</code> (MascotGeometry + MascotRig), drawn in SVG for the browser. The app draws it in SwiftUI.</p>
+<div class="controls"><label><input type="checkbox" id="still"> Still frames (what Reduce Motion shows)</label></div>
+<div class="grid" id="grid"></div>
+</main>
+<script>
+const G = {
+  body: "M139.1 40.0 C141.5 40.0 141.8 43.6 143.0 47.3 C144.2 51.0 144.8 57.1 146.0 62.0 C147.2 66.9 148.7 71.8 150.4 76.7 C152.2 81.6 154.3 86.5 156.5 91.4 C158.7 96.3 161.3 101.2 163.8 106.1 C166.3 111.0 169.1 115.9 171.4 120.8 C173.7 125.7 176.0 130.6 177.6 135.5 C179.2 140.4 180.3 146.5 181.0 150.2 C181.7 153.9 181.6 155.1 181.7 157.6 C181.8 160.1 181.9 161.2 181.5 164.9 C181.1 168.6 179.9 175.9 179.0 179.6 C178.1 183.3 177.2 184.4 176.1 186.9 C175.0 189.4 173.9 191.9 172.2 194.3 C170.5 196.8 168.4 199.2 166.0 201.6 C163.6 204.0 161.4 206.6 157.5 209.0 C153.6 211.4 148.8 214.5 142.5 216.3 C136.2 218.1 127.4 219.9 120.0 220.0 C112.6 220.1 104.1 218.6 98.0 217.1 C91.9 215.6 87.0 212.8 83.3 210.9 C79.6 209.1 78.3 208.4 75.9 206.0 C73.5 203.6 70.6 199.9 68.6 196.2 C66.6 192.5 64.9 188.5 63.7 184.0 C62.5 179.5 61.8 174.2 61.2 169.3 C60.6 164.4 60.3 159.3 60.2 154.6 C60.1 149.9 60.4 145.5 60.7 141.1 C61.0 136.7 61.5 131.6 62.2 128.2 C62.9 124.8 63.1 124.5 65.1 120.8 C67.1 117.1 70.5 111.0 74.0 106.1 C77.5 101.2 81.7 96.3 86.0 91.4 C90.3 86.5 95.2 81.6 99.9 76.7 C104.6 71.8 109.3 66.9 114.1 62.0 C118.9 57.1 124.6 51.0 128.8 47.3 C133.0 43.6 136.7 40.0 139.1 40.0 Z",
+  feet: [120,240],
+  legL: {l:91,r:106.5,t:206,b:236,toe:3.5}, legR: {l:125.5,r:142,t:206,b:242,toe:3},
+  arms: {
+    downL:{s:[72,170],c:[62,180],h:[58,192],p:[72,170]}, downR:{s:[172,176],c:[182,186],h:[184,198],p:[172,176]},
+    upL:{s:[70,150],c:[50,132],h:[46,110],p:[70,152]}, upR:{s:[172,150],c:[192,132],h:[196,110],p:[172,152]},
+    holdProduct:{s:[70,176],c:[52,182],h:[40,172],p:[70,176]}, holdScanner:{s:[174,186],c:[134,212],h:[104,194],p:[174,186]},
+  },
+  leftEye:[82.4,136.9,6.3,6.8], rightEye:[129.7,143.2,6.7,6.8],
+  blush:[140.8,157.3,11,5.4], shadow:[120,240,46,6],
+  glass:[32,128,48,62], collar:[45,113,22,17], bulb:[56,104,8,11], tilt:-14, pivot:[56,160],
+  scannerBody:[80,180,28,15], scannerWindow:[80,183,5,9],
+  sparkles:[[34,62,20],[198,44,16],[212,122,12],[24,150,12]],
+};
+const C = {skin:"#D3725F", light:"#D97A66", shade:"#A04C41", outline:"#44272C", eye:"#442632", shine:"#E8A596",
+  blush:"#C45D4C", mouth:"#7A2E28", glass:"#F4DCD8", tube:"#C9A9A4", cap:"#B8574A", bulb:"#C4604F", gold:"#E0B24A",
+  scanner:"#E7E4DD", laser:"#E04040", sparkle:"#E3A04A"};
+const period = {idle:2.8, walk:0.9, wave:1.0, scan:1.6, celebrate:1.1};
+const JUMP = 34, BLINK = 3.6, BLINK_LEN = 0.16;
+const frac = x => x - Math.floor(x);
+
+// ---- MascotRig (same math as MascotRig.swift) ----
+function blank(){return {lift:0,squash:0,tilt:0,la:{style:"down",angle:0},ra:{style:"down",angle:0},ll:{lift:0,stride:0},rl:{lift:0,stride:0},eyes:1,effect:0}}
+function breathe(p,t){const b=Math.sin(2*Math.PI*t/period.idle);p.squash=-0.02*b;p.lift=1.5*Math.max(0,b)}
+function pose(action,t){
+  const p=blank(), ph=frac(t/period[action]), a=2*Math.PI*ph;
+  if(action==="idle"){breathe(p,t);p.la.angle=3*Math.sin(2*Math.PI*t/period.idle);p.ra.angle=-p.la.angle}
+  if(action==="walk"){p.ll={lift:Math.max(0,-Math.sin(a))*7,stride:-Math.cos(a)*5};p.rl={lift:Math.max(0,Math.sin(a))*7,stride:Math.cos(a)*5};
+    p.lift=Math.abs(Math.sin(a))*3;p.tilt=2.5*Math.sin(a);p.la.angle=-14*Math.cos(a);p.ra.angle=14*Math.cos(a)}
+  if(action==="wave"){breathe(p,t);p.tilt=-2;p.ra={style:"up",angle:6+20*Math.sin(a)}}
+  if(action==="scan"){breathe(p,t);p.tilt=Math.sin(a);p.la={style:"holdProduct",angle:0};p.ra={style:"holdScanner",angle:2*Math.sin(a)};p.effect=ph}
+  if(action==="celebrate"){const air=0.62;
+    if(ph<air){const up=Math.sin(Math.PI*ph/air);p.lift=JUMP*up;p.squash=-0.06*up;p.ll.lift=4*up;p.rl.lift=4*up}
+    else p.squash=0.1*Math.sin(Math.PI*(ph-air)/(1-air));
+    const sw=10+12*Math.sin(a);p.la={style:"up",angle:-sw};p.ra={style:"up",angle:sw};p.effect=ph}
+  p.eyes = frac(t/BLINK)*BLINK >= BLINK-BLINK_LEN ? 0.1 : 1;
+  return p;
+}
+function still(action){const p=blank();
+  if(action==="walk"){p.ll.stride=-3;p.rl.stride=3}
+  if(action==="wave")p.ra={style:"up",angle:16};
+  if(action==="scan"){p.la={style:"holdProduct",angle:0};p.ra={style:"holdScanner",angle:0};p.effect=0.5}
+  if(action==="celebrate"){p.la={style:"up",angle:-18};p.ra={style:"up",angle:18};p.effect=0.25}
+  return p}
+
+// ---- Figure (same layers and transforms as MascotFigure.swift) ----
+const legPath=l=>{const toe=l.l-l.toe;return `M${l.l} ${l.t} L${l.r} ${l.t} L${l.r} ${l.b-5} Q${l.r} ${l.b} ${l.r-5} ${l.b} L${toe+3} ${l.b} Q${toe} ${l.b} ${toe} ${l.b-3} Q${toe} ${l.b-7} ${l.l} ${l.b-9} Z`};
+const armGeo=(style,left)=>style==="down"?(left?G.arms.downL:G.arms.downR):style==="up"?(left?G.arms.upL:G.arms.upR):G.arms[style];
+function arm(ap,left){const g=armGeo(ap.style,left),d=`M${g.s} Q${g.c} ${g.h}`;
+  return `<g transform="rotate(${ap.angle} ${g.p})"><path d="${d}" fill="none" stroke="${C.outline}" stroke-width="13" stroke-linecap="round" stroke-linejoin="round"/>
+  <circle cx="${g.h[0]}" cy="${g.h[1]}" r="7.5" fill="${C.skin}" stroke="${C.outline}" stroke-width="2.2"/>
+  <path d="${d}" fill="none" stroke="${C.skin}" stroke-width="8.6" stroke-linecap="round" stroke-linejoin="round"/></g>`}
+const holds=a=>a.style==="holdProduct"||a.style==="holdScanner";
+function eye(e,open){return `<ellipse cx="${e[0]}" cy="${e[1]}" rx="${e[2]}" ry="${e[3]*open}" fill="${C.eye}"/>`}
+function face(action,mood,p){
+  if(action==="celebrate") return `<path d="M76 138 Q82.4 131 89 138 M123 144 Q129.7 137 136 144" fill="none" stroke="${C.eye}" stroke-width="2.8" stroke-linecap="round"/>
+    <path d="M94 146 Q104 166 114 146 Z" fill="${C.mouth}" stroke="${C.eye}" stroke-width="2.4"/>`;
+  const mouth = mood==="worried" ? "M94 155 Q104 146 114 155" : "M93 146 Q104 162 115 146";
+  const brows = mood==="worried" ? `<path d="M73 127 L90 123 M138 131 L121 127" stroke="${C.eye}" stroke-width="2.6" stroke-linecap="round"/>` : "";
+  const shift = action==="scan" ? "translate(-2 2)" : "";
+  return `<g transform="${shift}">${eye(G.leftEye,p.eyes)}${eye(G.rightEye,p.eyes)}<path d="${mouth}" fill="none" stroke="${C.eye}" stroke-width="2.6" stroke-linecap="round"/>${brows}</g>`}
+function product(action,p){const [x,y,w,h]=G.glass, sweep=1-Math.abs(1-2*p.effect), ly=y+8+(h-16)*sweep;
+  return `<g transform="rotate(${G.tilt} ${G.pivot})">
+  <ellipse cx="${G.bulb[0]}" cy="${G.bulb[1]}" rx="${G.bulb[2]}" ry="${G.bulb[3]}" fill="${C.bulb}" stroke="${C.outline}" stroke-width="2.2"/>
+  <rect x="${G.collar[0]}" y="${G.collar[1]}" width="${G.collar[2]}" height="${G.collar[3]}" rx="3" fill="${C.cap}" stroke="${C.outline}" stroke-width="2.2"/>
+  <rect x="${x}" y="${y}" width="${w}" height="${h}" rx="9" fill="${C.glass}" fill-opacity=".92" stroke="${C.outline}" stroke-width="2.2"/>
+  <line x1="56" y1="130" x2="56" y2="158" stroke="${C.tube}" stroke-width="2"/>
+  <path d="M56 158 C59 163 61 166 61 169 A5 5 0 1 1 51 169 C51 166 53 163 56 158 Z" fill="${C.gold}"/>
+  ${action==="scan"?`<rect x="${x+4}" y="${ly-1}" width="${w-8}" height="2" rx="1" fill="${C.laser}" style="filter:drop-shadow(0 0 3px ${C.laser})"/>`:""}</g>`}
+function scanner(p){const f=0.55+0.45*Math.abs(Math.sin(p.effect*Math.PI*8)),[x,y,w,h]=G.scannerBody,[wx,wy,ww,wh]=G.scannerWindow;
+  return `<g transform="rotate(${p.ra.angle} ${G.arms.holdScanner.p})"><rect x="${x}" y="${y}" width="${w}" height="${h}" rx="5" fill="${C.scanner}" stroke="${C.outline}" stroke-width="2.2"/>
+  <rect x="${wx}" y="${wy}" width="${ww}" height="${wh}" rx="1.5" fill="${C.laser}" opacity="${f}"/></g>`}
+function sparkles(p){return G.sparkles.map(([x,y,s],i)=>{const tw=0.5+0.5*Math.sin(2*Math.PI*(p.effect+i*0.25)),r=s/2,w=s*0.12,k=0.6+0.5*tw;
+  return `<path transform="translate(${x} ${y}) scale(${k}) translate(${-x} ${-y})" opacity="${0.25+0.75*tw}" fill="${C.sparkle}" d="M${x} ${y-r} L${x+w} ${y-w} L${x+r} ${y} L${x+w} ${y+w} L${x} ${y+r} L${x-w} ${y+w} L${x-r} ${y} L${x-w} ${y-w} Z"/>`}).join("")}
+function figure(action,mood,p){const [fx,fy]=G.feet, air=Math.min(1,p.lift/JUMP);
+  const legs=`<path transform="translate(${p.ll.stride} ${-p.ll.lift})" d="${legPath(G.legL)}" fill="${C.skin}" stroke="${C.outline}" stroke-width="2.2" stroke-linejoin="round"/>
+    <path transform="translate(${p.rl.stride} ${-p.rl.lift})" d="${legPath(G.legR)}" fill="${C.skin}" stroke="${C.outline}" stroke-width="2.2" stroke-linejoin="round"/>`;
+  const body=`<path d="${G.body}" fill="url(#g)" stroke="${C.outline}" stroke-width="2.2"/>
+    <path d="M121 64 Q109.1 91.2 86 110 Q97.9 82.8 121 64 Z" fill="${C.shine}" opacity=".9"/>
+    <ellipse cx="${G.blush[0]}" cy="${G.blush[1]}" rx="${G.blush[2]}" ry="${G.blush[3]}" fill="${C.blush}" opacity=".6"/>`;
+  const inner = legs + (holds(p.la)?"":arm(p.la,true)) + (holds(p.ra)?"":arm(p.ra,false)) + body + face(action,mood,p)
+    + (p.la.style==="holdProduct"?product(action,p):"") + (p.ra.style==="holdScanner"?scanner(p):"")
+    + (holds(p.la)?arm(p.la,true):"") + (holds(p.ra)?arm(p.ra,false):"");
+  return `<ellipse transform="translate(${fx} ${fy}) scale(${1-0.4*air} 1) translate(${-fx} ${-fy})" cx="${G.shadow[0]}" cy="${G.shadow[1]}" rx="${G.shadow[2]}" ry="${G.shadow[3]}" fill="rgba(60,30,30,.14)"/>
+  <g transform="translate(0 ${-p.lift}) rotate(${p.tilt} ${fx} ${fy}) translate(${fx} ${fy}) scale(${1+p.squash} ${1-p.squash}) translate(${-fx} ${-fy})">${inner}</g>
+  ${action==="celebrate"?sparkles(p):""}`}
+
+const cells=[["idle","happy","Idle / breathe"],["walk","happy","Walk"],["wave","happy","Wave"],["scan","happy","Scan a product"],["celebrate","happy","Celebrate"],["idle","worried","Worried (errors)"]];
+const grid=document.getElementById("grid");
+const defs=`<defs><radialGradient id="g" gradientUnits="userSpaceOnUse" cx="102.7" cy="115.5" r="144"><stop offset="0" stop-color="${C.light}"/><stop offset=".62" stop-color="${C.skin}"/><stop offset="1" stop-color="${C.shade}"/></radialGradient></defs>`;
+const svgs=cells.map(([a,m,label])=>{const d=document.createElement("div");d.className="cell";
+  d.innerHTML=`<svg viewBox="0 0 240 250">${defs}<g class="fig"></g></svg><b>${label}</b><span>.${a}${m==="worried"?", mood: .worried":""}</span>`;grid.appendChild(d);return [d.querySelector(".fig"),a,m]});
+const stillBox=document.getElementById("still");
+window.renderAt=t=>{for(const [el,a,m] of svgs) el.innerHTML=figure(a,m,stillBox.checked?still(a):pose(a,t))};
+const t0=performance.now();
+function tick(now){if(!document.hidden) renderAt((now-t0)/1000); requestAnimationFrame(tick)}
+if(!new URLSearchParams(location.search).has("frozen")) requestAnimationFrame(tick); else renderAt(0);
+</script></body></html>
