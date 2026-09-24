@@ -226,13 +226,38 @@ public enum SkinConcern: String, Codable, Sendable, CaseIterable, Identifiable {
     }
 }
 
+/// An age bracket, never a birthdate. Optional everywhere: "Prefer not to say" is `nil`.
+public enum AgeRange: String, Codable, Sendable, CaseIterable, Identifiable {
+    case under18 = "under_18"
+    case from18to24 = "18_24"
+    case from25to34 = "25_34"
+    case from35to44 = "35_44"
+    case from45to54 = "45_54"
+    case over55 = "55_plus"
+
+    public var id: String { rawValue }
+    public var label: String {
+        switch self {
+        case .under18: "Under 18"
+        case .from18to24: "18–24"
+        case .from25to34: "25–34"
+        case .from35to44: "35–44"
+        case .from45to54: "45–54"
+        case .over55: "55+"
+        }
+    }
+}
+
 public struct SkinProfile: Codable, Sendable, Hashable {
     public var skinType: SkinType?
     public var concerns: [SkinConcern]
+    /// Optional; older saved profiles decode without it.
+    public var ageRange: AgeRange?
 
-    public init(skinType: SkinType? = nil, concerns: [SkinConcern] = []) {
+    public init(skinType: SkinType? = nil, concerns: [SkinConcern] = [], ageRange: AgeRange? = nil) {
         self.skinType = skinType
         self.concerns = concerns
+        self.ageRange = ageRange
     }
 
     /// "Combination · breakout-prone · fragrance-sensitive"-style summary used in the found sheet.

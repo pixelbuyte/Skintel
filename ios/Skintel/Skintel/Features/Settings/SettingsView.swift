@@ -47,6 +47,13 @@ struct SettingsView: View {
 
                 membershipCard
 
+                HStack(spacing: SKSpace.md) {
+                    SKDrop("DropPrivacy", size: 56)
+                    Text("Your shelf, journal and check-ins belong to your account. Delete them any time in Account & data.")
+                        .font(SKFont.caption).foregroundStyle(SKColor.muted)
+                }
+                .padding(.horizontal, 4)
+
                 SettingsGroup(title: "Account") {
                     SettingsRow(title: "Account & data", subtitle: env.session.user?.email) { showAccount = true }
                     SettingsLinkRow(title: "Privacy policy", url: env.config.privacyURL)
@@ -237,6 +244,13 @@ private struct PersonalizationView: View {
                     assistantPlacement = AssistantPlacement.corner
                 }
             }
+
+            HStack(spacing: SKSpace.md) {
+                SKDrop("DropSunscreen", size: 56)
+                Text("A morning reminder is a good nudge to finish with sunscreen.")
+                    .font(SKFont.caption).foregroundStyle(SKColor.muted)
+            }
+            .padding(.horizontal, 4)
 
             SettingsGroup(title: "Reminders", footer: "Reminders are scheduled on this iPhone and repeat daily.") {
                 reminderRow("Morning routine", on: $amOn, minutes: $amMinutes)

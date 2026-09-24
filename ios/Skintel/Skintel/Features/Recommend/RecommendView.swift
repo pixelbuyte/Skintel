@@ -733,7 +733,8 @@ private struct AssistantHistoryView: View {
                 if env.assistant.conversations.isEmpty {
                     SKEmptyState(icon: "bubble.left.and.bubble.right",
                                  title: "No chats yet",
-                                 message: "Your conversations with Ask Skintel are saved here, on this device.")
+                                 message: "Your conversations with Ask Skintel are saved here, on this device.",
+                                 drop: "DropAsk")
                         .padding(SKSpace.xl)
                         .frame(maxHeight: .infinity)
                 } else {

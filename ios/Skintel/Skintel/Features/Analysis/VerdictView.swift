@@ -15,7 +15,7 @@ struct VerdictView: View {
         if let scan = env.scans.scans[scanID] {
             content(scan)
         } else {
-            SKEmptyState(icon: "questionmark.circle", title: "Scan not found", message: "Scan the product again.")
+            SKEmptyState(icon: "questionmark.circle", title: "Scan not found", message: "Scan the product again.", drop: "DropScanner")
                 .skPageBackground()
         }
     }

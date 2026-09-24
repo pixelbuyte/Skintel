@@ -47,14 +47,18 @@ struct SKEmptyState: View {
     let icon: String
     let title: String
     let message: String
-    /// Shows the mascot doing this in place of the icon tile. A `.wave` settles into `.idle`.
+    /// A still drop illustration (asset name, e.g. "DropAsk") in place of the icon tile.
+    var drop: String? = nil
+    /// Shows the animated mascot doing this in place of the icon tile. A `.wave` settles into `.idle`.
     var mascot: SkinstelMascotAction? = nil
     var actionTitle: String? = nil
     var action: (() -> Void)? = nil
 
     var body: some View {
         VStack(spacing: SKSpace.md) {
-            if let mascot {
+            if let drop {
+                SKDrop(drop, size: 132)
+            } else if let mascot {
                 SKMascot(action: mascot, height: 132, settleAfter: mascot == .wave ? Duration.seconds(3) : nil)
             } else {
                 Image(systemName: icon)
@@ -147,5 +151,25 @@ struct SKMascot: View {
                 try? await Task.sleep(for: settleAfter)
                 if !Task.isCancelled { settled = true }
             }
+    }
+}
+
+/// One of the still drop illustrations in the asset catalog ("DropAsk", "DropScanner", …).
+/// Decorative: the text next to it carries the meaning. At most one per screen.
+struct SKDrop: View {
+    let name: String
+    var size: CGFloat = 96
+
+    init(_ name: String, size: CGFloat = 96) {
+        self.name = name
+        self.size = size
+    }
+
+    var body: some View {
+        Image(name)
+            .resizable()
+            .scaledToFit()
+            .frame(width: size, height: size)
+            .accessibilityHidden(true)
     }
 }

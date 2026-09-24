@@ -1,8 +1,8 @@
 import SwiftUI
 import SkintelCore
 
-/// Signed-in but not yet profiled: skin profile (§04) then camera permission (§05).
-/// Step 1 of the design's three is the welcome screen shown before sign-in.
+/// Signed-in but not yet profiled: age range, skin profile (§04), then camera permission (§05).
+/// Step 1 of the four is the welcome screen shown before sign-in.
 struct OnboardingFlow: View {
     @Environment(AppEnvironment.self) private var env
     @State private var model: OnboardingViewModel?
@@ -13,10 +13,15 @@ struct OnboardingFlow: View {
             if let model {
                 switch step {
                 case 2:
-                    ProfileStepView(model: model, next: { withAnimation(SKAnimation.ios()) { step = 3 } })
+                    AgeStepView(model: model, next: { withAnimation(SKAnimation.ios()) { step = 3 } })
                         .transition(.asymmetric(insertion: .move(edge: .leading), removal: .move(edge: .leading)))
+                case 3:
+                    ProfileStepView(model: model,
+                                    back: { withAnimation(SKAnimation.ios()) { step = 2 } },
+                                    next: { withAnimation(SKAnimation.ios()) { step = 4 } })
+                        .transition(.move(edge: .trailing))
                 default:
-                    CameraStepView(model: model, back: { withAnimation(SKAnimation.ios()) { step = 2 } })
+                    CameraStepView(model: model, back: { withAnimation(SKAnimation.ios()) { step = 3 } })
                         .transition(.move(edge: .trailing))
                 }
             } else {
@@ -31,6 +36,7 @@ struct OnboardingFlow: View {
 }
 
 private struct StepHeader: View {
+    static let total = 4
     let step: Int
     var back: (() -> Void)?
 
@@ -48,24 +54,24 @@ private struct StepHeader: View {
             }
             Spacer()
             HStack(spacing: 6) {
-                ForEach(1...3, id: \.self) { i in
+                ForEach(1...StepHeader.total, id: \.self) { i in
                     Capsule().fill(i <= step ? SKColor.primary : SKColor.line).frame(width: 36, height: 4)
                 }
             }
             .accessibilityHidden(true)
             Spacer()
-            Text("\(step)/3").font(SKFont.secondary).foregroundStyle(SKColor.muted).frame(width: 44)
+            Text("\(step)/\(StepHeader.total)").font(SKFont.secondary).foregroundStyle(SKColor.muted).frame(width: 44)
         }
         .accessibilityElement(children: .combine)
-        .accessibilityLabel("Step \(step) of 3")
+        .accessibilityLabel("Step \(step) of \(StepHeader.total)")
     }
 }
 
-struct ProfileStepView: View {
+/// One tap: an age bracket or "Prefer not to say", then it moves on by itself.
+struct AgeStepView: View {
     @Bindable var model: OnboardingViewModel
     let next: () -> Void
-
-    private let columns = [GridItem(.flexible(), spacing: SKSpace.md), GridItem(.flexible(), spacing: SKSpace.md)]
+    @State private var picked = false
 
     var body: some View {
         VStack(spacing: 0) {
@@ -73,8 +79,55 @@ struct ProfileStepView: View {
             ScrollView {
                 VStack(alignment: .leading, spacing: SKSpace.xl) {
                     VStack(alignment: .leading, spacing: SKSpace.sm) {
+                        Text("How old are you?").font(SKFont.hero).foregroundStyle(SKColor.ink)
+                        Text("Skin changes with age. Ask Skintel uses this when it answers you. Optional.")
+                            .font(SKFont.sans(17, relativeTo: .body)).foregroundStyle(SKColor.muted)
+                    }
+                    .padding(.top, SKSpace.xl)
+
+                    VStack(alignment: .leading, spacing: SKSpace.md) {
+                        SKFieldLabel("Age")
+                        FlowLayout(spacing: SKSpace.sm) {
+                            ForEach(AgeRange.allCases) { a in
+                                SKSelectChip(title: a.label, selected: picked && model.ageRange == a) { choose(a) }
+                            }
+                            SKSelectChip(title: "Prefer not to say", selected: picked && model.ageRange == nil) { choose(nil) }
+                        }
+                    }
+                }
+                .skPagePadding()
+                .padding(.bottom, SKSpace.xxl)
+            }
+        }
+        .onAppear { picked = model.ageRange != nil }
+    }
+
+    private func choose(_ age: AgeRange?) {
+        model.ageRange = age
+        picked = true
+        Haptics.selection()
+        Task {
+            try? await Task.sleep(for: .milliseconds(250))
+            next()
+        }
+    }
+}
+
+struct ProfileStepView: View {
+    @Bindable var model: OnboardingViewModel
+    let back: () -> Void
+    let next: () -> Void
+
+    private let columns = [GridItem(.flexible(), spacing: SKSpace.md), GridItem(.flexible(), spacing: SKSpace.md)]
+
+    var body: some View {
+        VStack(spacing: 0) {
+            StepHeader(step: 3, back: back).skPagePadding().padding(.top, SKSpace.sm)
+            ScrollView {
+                VStack(alignment: .leading, spacing: SKSpace.xl) {
+                    VStack(alignment: .leading, spacing: SKSpace.sm) {
                         Text("Tell us about your skin.").font(SKFont.hero).foregroundStyle(SKColor.ink)
-                        Text("Every verdict is matched against this profile.")
+                        Text("Ask Skintel uses this to tailor its answers to you.")
                             .font(SKFont.sans(17, relativeTo: .body)).foregroundStyle(SKColor.muted)
                     }
                     .padding(.top, SKSpace.xl)
@@ -121,7 +174,7 @@ struct CameraStepView: View {
 
     var body: some View {
         VStack(spacing: 0) {
-            StepHeader(step: 3, back: back).skPagePadding().padding(.top, SKSpace.sm)
+            StepHeader(step: 4, back: back).skPagePadding().padding(.top, SKSpace.sm)
             ScrollView {
                 VStack(alignment: .leading, spacing: SKSpace.xl) {
                     Text("Scan your first product.").font(SKFont.hero).foregroundStyle(SKColor.ink).padding(.top, SKSpace.xl)
