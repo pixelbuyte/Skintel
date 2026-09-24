@@ -224,7 +224,9 @@ struct JournalView: View {
                         Text(a.suspects.isEmpty ? "No clear suspect yet" : "\(a.suspects.count) suspect\(a.suspects.count == 1 ? "" : "s") in your journal")
                             .font(SKFont.cardTitle).foregroundStyle(SKColor.ink)
                         if let s = a.summary, !s.isEmpty { Text(s).font(SKFont.secondary).foregroundStyle(SKColor.ink) }
-                        SKLinkButton(title: "See culprits") { path.append(.culprits) }
+                        SKLinkButton(title: "See culprits") {
+                            if env.subscription.entitlement.isPro { path.append(.culprits) } else { openPaywall(.culprits) }
+                        }
                     }
                 }
             }
@@ -655,6 +657,8 @@ enum CheckInPrompt {
 /// skin check-ins and their shelf. Nothing here is estimated; when there isn't enough data
 /// it says so.
 struct InsightsView: View {
+    /// Where "back" goes from the Free-plan wall.
+    var leave: (() -> Void)? = nil
     @Environment(AppEnvironment.self) private var env
     @Environment(\.openPaywall) private var openPaywall
     @State private var path: [AppDestination] = []
@@ -662,6 +666,14 @@ struct InsightsView: View {
     @State private var showCheckIn = false
 
     var body: some View {
+        if env.subscription.entitlement.isPro {
+            insights
+        } else {
+            ProLockedView(feature: .insights, leave: leave)
+        }
+    }
+
+    private var insights: some View {
         NavigationStack(path: $path) {
             ScrollView {
                 VStack(alignment: .leading, spacing: SKSpace.lg) {
@@ -781,7 +793,9 @@ struct InsightsView: View {
     private var suspectsCard: some View {
         let culprits = env.products.culprits
         let bad = env.products.badProductCount
-        Button { path.append(.culprits) } label: {
+        Button {
+            if env.subscription.entitlement.isPro { path.append(.culprits) } else { openPaywall(.culprits) }
+        } label: {
             SKCard(tint: culprits.all.isEmpty ? nil : SKTone.bad) {
                 HStack(spacing: SKSpace.lg) {
                     Image(systemName: culprits.all.isEmpty ? "magnifyingglass" : "exclamationmark.triangle")
