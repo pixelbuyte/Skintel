@@ -1,5 +1,6 @@
 import SwiftUI
 import SkintelCore
+import SkinstelMascot
 
 /// Signed-out experience: the welcome promise (design §03) then sign-in / sign-up (§06).
 struct AuthFlow: View {
@@ -87,6 +88,13 @@ struct WelcomeView: View {
             Spacer(minLength: SKSpace.xl)
             FloatingShelfCards(appeared: appeared)
                 .frame(height: 300)
+                .frame(maxWidth: .infinity)
+                // A hello in the free corner below the verdict cards; paused once swiped away.
+                .overlay(alignment: .bottomTrailing) {
+                    SKMascot(action: .wave, height: 104, isPlaying: page == 0, settleAfter: .seconds(3))
+                        .padding(.trailing, SKSpace.md)
+                        .opacity(appeared ? 1 : 0)
+                }
                 .accessibilityHidden(true)
             Spacer(minLength: SKSpace.xl)
 

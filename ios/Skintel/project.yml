@@ -41,6 +41,8 @@ settings:
 packages:
   SkintelCore:
     path: SkintelCore
+  SkinstelMascot:
+    path: ../Packages/SkinstelMascot
 
 targets:
   Skintel:
@@ -54,6 +56,8 @@ targets:
     dependencies:
       - package: SkintelCore
         product: SkintelCore
+      - package: SkinstelMascot
+        product: SkinstelMascot
     # XcodeGen writes this file from `properties` on every generate — edit here, not the plist.
     entitlements:
       path: Skintel/Resources/Skintel.entitlements
@@ -109,6 +113,8 @@ targets:
         ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME: AccentColor
         INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents: "YES"
         SUPPORTS_MACCATALYST: "NO"
+        # iPhone only. XcodeGen's iOS app preset would otherwise emit "1,2" (iPad too).
+        TARGETED_DEVICE_FAMILY: "1"
         ENABLE_PREVIEWS: "YES"
     scheme:
       testTargets:

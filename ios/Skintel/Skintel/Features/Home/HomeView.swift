@@ -1,5 +1,6 @@
 import SwiftUI
 import SkintelCore
+import SkinstelMascot
 
 /// Today: what to do right now. The current AM or PM routine as a tickable checklist, a
 /// one-tap skin check-in, and only the alerts that need attention. Everything shown comes
@@ -12,6 +13,8 @@ struct HomeView: View {
     @State private var showAssistant = false
     @AppStorage(AssistantPlacement.key) private var assistantPlacement = AssistantPlacement.tab
     @State private var moodError: String?
+    /// Set only when the person's own tick finishes a routine; cleared after a short moment.
+    @State private var celebratingSlot: RoutineStore.Slot?
     @AppStorage(CheckInPrompt.enabledKey) private var autoPrompt = true
     @AppStorage(CheckInPrompt.lastKey) private var lastPrompt = ""
     @Environment(\.scenePhase) private var scenePhase
@@ -143,6 +146,7 @@ struct HomeView: View {
         SKEmptyState(icon: "sparkles",
                      title: "Let's build your routine",
                      message: "Add what's on your bathroom shelf. Skintel puts it in order and flags anything that shouldn't be mixed.",
+                     mascot: .wave,
                      actionTitle: "Add your first product") {
             path.append(.productForm(.add(prefill: nil)))
         }
@@ -176,12 +180,14 @@ struct HomeView: View {
                             stepRow(index: index, product: p)
                         }
                     }
+                    if allDone { routineDoneRow(stepCount: steps.count) }
                     SKButton(title: allDone ? "\(slot.rawValue) routine done" : "Mark all done",
                              kind: allDone ? .done : .primary,
                              systemImage: allDone ? "checkmark" : nil) {
                         if !allDone {
                             env.routine.markAllDone(slot)
                             Haptics.success()
+                            celebratingSlot = slot
                         }
                     }
                 }
@@ -189,12 +195,41 @@ struct HomeView: View {
         }
     }
 
+    /// The mascot celebrates only right after the person's own tick completes the routine,
+    /// then settles; opening Today on an already-finished routine just shows it resting.
+    private func routineDoneRow(stepCount: Int) -> some View {
+        HStack(spacing: SKSpace.md) {
+            SKMascot(action: celebratingSlot == slot ? .celebrate : .idle, height: 76)
+            Text("All \(stepCount) step\(stepCount == 1 ? "" : "s") done \(slot == .am ? "this morning" : "tonight").")
+                .font(SKFont.secondary)
+                .foregroundStyle(SKColor.muted)
+                .frame(maxWidth: .infinity, alignment: .leading)
+        }
+        .task(id: celebratingSlot) {
+            guard celebratingSlot != nil else { return }
+            try? await Task.sleep(for: .seconds(2.4))
+            if !Task.isCancelled { celebratingSlot = nil }
+        }
+        .onDisappear { celebratingSlot = nil }
+    }
+
+    private func celebrateIfRoutineComplete() {
+        let steps = env.routine.ids(slot).compactMap { env.products.product(id: $0) }
+        guard !steps.isEmpty, steps.allSatisfy({ env.routine.isDone($0.id) }) else { return }
+        celebratingSlot = slot
+    }
+
     private func stepRow(index: Int, product p: ProductWithIngredients) -> some View {
         let done = env.routine.isDone(p.id)
         return HStack(spacing: SKSpace.sm) {
             Button {
                 env.routine.toggleDone(p.id, in: slot)
-                if done { Haptics.selection() } else { Haptics.success() }
+                if done {
+                    Haptics.selection()
+                } else {
+                    Haptics.success()
+                    celebrateIfRoutineComplete()
+                }
             } label: {
                 ZStack {
                     Circle().fill(done ? SKColor.primary : SKColor.cream)

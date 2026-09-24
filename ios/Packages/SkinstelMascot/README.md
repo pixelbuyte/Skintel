@@ -1,58 +1,107 @@
-# Skinstel animated companion
+# SkinstelMascot
 
-A native SwiftUI vector rig inspired by the supplied terracotta droplet character. This is executable animation code, not a sprite sheet or an animated image. It keeps the serum bottle, outline, blush, smile and droplet silhouette, with a simplified vector finish rather than the original painted texture.
+Skinstel's terracotta droplet as a native SwiftUI component. It is drawn with `Canvas`
+from an editable vector rig and animated in code: no GIF, video, Lottie file, sprite sheet
+or network call. Feet, arms, eyes, mouth, body and the serum bottle are separate parts,
+each moving around its own pivot.
 
-## Add to the iOS app
+## Use
 
-1. In Xcode choose **File → Add Package Dependencies → Add Local**, then select this `SkinstelMascot` folder.
-2. Add the `SkinstelMascot` library product to the native app target.
-3. Import the module and place the view where wanted. The package bundles its vector rig automatically. No asset catalog setup, external service, API key or paid animation runtime is required.
+The package is linked to the `Skintel` app target through `ios/Skintel/project.yml`.
 
 ```swift
 import SkinstelMascot
 
-// Walking feet, staying in one place — e.g. beside loading text.
-SkinstelMascot(action: .walk)
-    .frame(width: 120, height: 150)
+// Drive the action from real app state; keep real status text beside it.
+HStack {
+    SkinstelMascot(action: isAnalyzing ? .scan : .idle)
+        .frame(width: 66, height: 80)
+    Text("Reading 24 ingredients…")
+}
 
-// Walk across the available space and turn at the edges.
+// Walk back and forth across the spare width.
 SkinstelMascot(action: .walk, travels: true)
     .frame(maxWidth: .infinity)
-    .frame(height: 180)
+    .frame(height: 160)
 
-// Bind to real app state. The mascot does not invent scan progress.
-SkinstelMascot(action: isScanning ? .scan : .idle,
-               isPlaying: isScreenVisible)
-    .frame(width: 100, height: 125)
-
-// Try every action in a self-contained preview.
-MascotPlayground()
+// Kept alive but off screen (a page in a paged TabView, a retained tab): pause it.
+SkinstelMascot(action: .wave, isPlaying: page == 0)
 ```
 
-## Actions and behavior
+| Parameter | Default | Effect |
+| --- | --- | --- |
+| `action` | `.idle` | What the mascot is doing. Loops until you change it. |
+| `isPlaying` | `true` | `false` pauses on the current pose. |
+| `travels` | `false` | With `.walk`, walks across the frame's spare width and turns at the edges. A frame no wider than the character walks in place. |
+| `facingLeft` | `false` | Mirrors the character. |
+| `playbackID` | `0` | Change it to restart the current action from the beginning. |
 
-| Action | Movement |
-| --- | --- |
-| `.idle` | Gentle breathing and blinking |
-| `.walk` | Alternating leg rotation, body bob and slight sway |
-| `.wave` | Right arm lifts and waves; left hand holds the bottle |
-| `.scan` | Gentle body tilt and a scan line across the bottle |
-| `.celebrate` | Small hop, lifted arm and sparkles |
+The character keeps its 420 × 510 proportions (width ≈ 0.82 × height) and is centered in
+whatever frame you give it.
 
-`travels` only affects walking. `facingLeft` mirrors the character. `isPlaying` pauses at the current pose. The component pauses when its scene is inactive or it disappears. For a view retained invisibly by a tab or carousel, pass `isPlaying: false` yourself. Reduce Motion shows a static character with no walking displacement, blinking or bobbing. There are no sounds or haptics.
+## Actions
 
-The artwork uses a 320 × 400 coordinate space and scales to fit. Travel needs a frame wider than the character; a narrow frame naturally gives walking in place. The timeline renders at up to 30 fps. The character is decorative and hidden from VoiceOver: put descriptive text such as “Reading ingredients…” beside it. Stop `.celebrate` or change it to `.idle` when the host's success moment ends.
+| Action | Motion | Reduce Motion pose | Use for |
+| --- | --- | --- | --- |
+| `.idle` | Breathing, blinking | Standing, eyes open, smiling | Resting companion |
+| `.wave` | Right arm raised and waving | Right arm raised | Welcome, first run |
+| `.walk` | Alternating steps, arm swing, bounce | Standing, feet together | Moving between moments |
+| `.serum` | Hugs the serum bottle, breathing | Holding the bottle | Shelf, product moments |
+| `.scan` | Holds the bottle; a green line sweeps it inside a scan frame | Line resting mid-bottle, frame shown | Analysis in progress |
+| `.thinking` | Hand to cheek, eyes up, three thought dots fading in turn | Hand to cheek, dots at even opacity | Waiting for an answer |
+| `.celebrate` | Both arms up, hop, happy eyes, sparkles | Arms up, happy eyes, sparkles | A real success only |
+| `.sleep` | Eyes closed, small mouth, a "z" drifting up | Eyes closed, "z" beside the head | Evening, rest |
+
+`.thinking` and `.sleep` are additions to the original five. Like the rest they are
+vector parts of the same rig and have a stable Reduce Motion pose.
+
+Actions change instantly. When a moment should be brief (a celebration, a greeting), the
+host decides when to switch back to `.idle`.
+
+## Behavior
+
+- **Honest state.** The mascot never shows progress. `.scan` loops for as long as the host
+  says work is happening, so pair it with the real status text. Use `.celebrate` only after
+  something really succeeded.
+- **Accessibility.** The whole view is `accessibilityHidden(true)`. It adds no VoiceOver
+  element, so the text beside it carries the meaning.
+- **Reduce Motion.** The clock stops and each action shows its still pose (table above).
+  Travel, blinking, bobbing and drifting effects stop.
+- **Pausing.** The `TimelineView` runs at up to 30 fps and pauses when the view disappears,
+  when the scene isn't active, when `isPlaying` is `false`, and under Reduce Motion. Pausing
+  keeps the elapsed time, so resuming continues from the same pose.
+- No sound or haptics.
+
+## Editing the art
+
+`Sources/SkinstelMascot/Resources/MascotRig.json` holds everything visual:
+
+- `paths` — SVG path data for each part (absolute `M`, `L`, `C`, `Q`, `Z` only).
+- `ellipses` — eyes, blush, shadow, sleep mouth and thought dots as `[cx, cy, rx, ry]`.
+- `pivots` — the `[x, y]` each foot, arm, the body and the bottle rotate around.
+- `armRaise` — how far a shoulder shifts out of the body when that arm is raised.
+- `colors`, `opacity`, `strokeWidths`, `outlineWidth` — the terracotta and cream palette,
+  outline ink and line weights.
+- `bottleTilt`, `bodyGradient`, `scanLine`, `scanTravel`, `sparkleOrbit`, `sleepZStart`.
+
+The rig is read once at first use. Keep every part name; `MascotArt.missingParts` lists
+any the renderer needs that the JSON lacks, and debug builds assert on them.
+
+After editing, rebuild the browser preview (below) to check the result without Xcode.
 
 ## Files
 
-- `Sources/SkinstelMascot/SkinstelMascot.swift`: public component, motion formulas, vector renderer and playground.
-- `Sources/SkinstelMascot/Resources/MascotRig.json`: editable curves, colors and limb pivot points.
-- `preview.html` in the downloadable kit: standalone interactive browser demo using the same paths and motion formulas. Open locally; it has no network dependencies.
+- `Sources/SkinstelMascot/SkinstelMascot.swift` — the public view and the Canvas renderer.
+- `Sources/SkinstelMascot/MascotPose.swift` — `SkinstelMascotAction` and the motion formulas.
+- `Sources/SkinstelMascot/MascotRig.swift` — rig model and SVG path parser (Foundation only).
+- `Sources/SkinstelMascot/MascotPlayground.swift` — every action with controls, for previews.
+- `Sources/SkinstelMascot/Resources/MascotRig.json` — the editable rig.
+- `designs/mascot-animation/preview.html` (repo root) — interactive browser preview built
+  from the same JSON with the same formulas. Rebuild with
+  `python3 designs/mascot-animation/build_preview.py`; check with
+  `node designs/mascot-animation/validate_preview.cjs`.
 
-## Scope and verification
+## Scope
 
-This package is isolated on the local `draft/mascot-animation` branch. It does not change the current app screens, Xcode project, backend, Codemagic configuration, or release. Nothing was pushed or deployed.
-
-Validation: the preview controller passed a Node DOM-shim check for five actions, alternating legs, pause, and Reduce Motion. The five vector poses were rendered and visually inspected. A full browser run was blocked because the Chromium download was unavailable. The browser demo is not a rendering from the iOS app. An Xcode build and physical-device check are still needed: this workspace has no Swift compiler or Apple SDK. Check the package in the intended target, all five actions, pause/resume, app backgrounding and Reduce Motion before enabling it in a release.
-
-The mascot is a 2D rig. It does not include a 3D model, physics or arbitrary camera rotation. Arms and legs are separately animated; extend the rig and action switch for additional poses.
+The character is a front-facing 2D rig, not a 3D model. The art is adapted from the
+supplied Skinstel character with smooth vector fills in place of its paper texture.
