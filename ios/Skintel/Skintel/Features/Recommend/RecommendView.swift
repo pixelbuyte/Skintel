@@ -300,6 +300,8 @@ struct AssistantView: View {
     var tabBarClearance: CGFloat = 0
     /// Put in the composer (not sent) when opened from a check-in's "Go deeper".
     var initialQuestion: String? = nil
+    /// Where "back" goes from the Free-plan wall when hosted as a tab.
+    var leave: (() -> Void)? = nil
 
     @Environment(AppEnvironment.self) private var env
     @Environment(\.dismiss) private var dismiss
@@ -320,6 +322,14 @@ struct AssistantView: View {
     private var isPro: Bool { env.subscription.entitlement.isPro }
 
     var body: some View {
+        if isPro {
+            chat
+        } else {
+            ProLockedView(feature: .ask, bottomClearance: tabBarClearance, leave: leave)
+        }
+    }
+
+    private var chat: some View {
         NavigationStack {
             ScrollViewReader { proxy in
                 ScrollView {

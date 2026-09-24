@@ -657,6 +657,8 @@ enum CheckInPrompt {
 /// skin check-ins and their shelf. Nothing here is estimated; when there isn't enough data
 /// it says so.
 struct InsightsView: View {
+    /// Where "back" goes from the Free-plan wall.
+    var leave: (() -> Void)? = nil
     @Environment(AppEnvironment.self) private var env
     @Environment(\.openPaywall) private var openPaywall
     @State private var path: [AppDestination] = []
@@ -664,6 +666,14 @@ struct InsightsView: View {
     @State private var showCheckIn = false
 
     var body: some View {
+        if env.subscription.entitlement.isPro {
+            insights
+        } else {
+            ProLockedView(feature: .insights, leave: leave)
+        }
+    }
+
+    private var insights: some View {
         NavigationStack(path: $path) {
             ScrollView {
                 VStack(alignment: .leading, spacing: SKSpace.lg) {

@@ -52,8 +52,8 @@ struct MainTabView: View {
                 case .shelf: ShelfTab()
                 // Ask reserves the bar's space itself: an inset from out here doesn't reach a
                 // composer pinned inside its own NavigationStack.
-                case .ask: AssistantView(showsClose: false, tabBarClearance: keyboardUp ? 0 : SKTabBar.height + SKSpace.md)
-                case .insights: InsightsView()
+                case .ask: AssistantView(showsClose: false, tabBarClearance: keyboardUp ? 0 : SKTabBar.height + SKSpace.md, leave: { tab = .today })
+                case .insights: InsightsView(leave: { tab = .today })
                 case .you: YouTab()
                 }
             }

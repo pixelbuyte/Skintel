@@ -48,14 +48,20 @@ struct SKEmptyState: View {
     let message: String
     var actionTitle: String? = nil
     var action: (() -> Void)? = nil
+    /// Shows the drop mascot in this pose instead of the icon tile.
+    var mascot: DropMascot.Pose? = nil
 
     var body: some View {
         VStack(spacing: SKSpace.md) {
-            Image(systemName: icon)
-                .font(.system(size: 30, weight: .light))
-                .foregroundStyle(SKColor.primary)
-                .frame(width: 64, height: 64)
-                .background(SKColor.blush, in: RoundedRectangle(cornerRadius: 18, style: .continuous))
+            if let mascot {
+                DropMascot(pose: mascot, size: 130)
+            } else {
+                Image(systemName: icon)
+                    .font(.system(size: 30, weight: .light))
+                    .foregroundStyle(SKColor.primary)
+                    .frame(width: 64, height: 64)
+                    .background(SKColor.blush, in: RoundedRectangle(cornerRadius: 18, style: .continuous))
+            }
             Text(title).font(SKFont.section).foregroundStyle(SKColor.ink).multilineTextAlignment(.center)
             Text(message).font(SKFont.secondary).foregroundStyle(SKColor.muted).multilineTextAlignment(.center)
             if let actionTitle, let action {

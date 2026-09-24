@@ -1107,3 +1107,71 @@ struct MascotUpgradeHero: View {
         }
     }
 }
+
+// MARK: - Hard wall
+
+/// What a Free member sees in place of a whole Pro area (Ask, Insights): the feature's
+/// looping demo, what it does, Upgrade, and a way back. Nothing behind it is reachable.
+struct ProLockedView: View {
+    enum Feature { case ask, insights }
+
+    let feature: Feature
+    /// Room kept for the floating tab bar when the view fills a tab that reserves none.
+    var bottomClearance: CGFloat = 0
+    /// Where "back" goes when this fills a tab; nil closes the sheet instead.
+    var leave: (() -> Void)? = nil
+
+    @Environment(\.dismiss) private var dismiss
+    @State private var showPlans = false
+
+    private var reason: PaywallReason { feature == .ask ? .assistant : .journalAnalysis }
+
+    private var title: String {
+        switch feature {
+        case .ask: "Upgrade for Ask Skintel"
+        case .insights: "Upgrade for Insights"
+        }
+    }
+
+    private var message: String {
+        switch feature {
+        case .ask: "Your skin assistant that knows your shelf, check-ins and triggers. Tag products, ask anything, and add what you mention."
+        case .insights: "See what your check-ins add up to: routine streaks, good and bad days, suspects and the patterns behind breakouts. Your check-ins are saved either way."
+        }
+    }
+
+    var body: some View {
+        VStack(spacing: 0) {
+            ScrollView {
+                VStack(spacing: SKSpace.xl) {
+                    FeatureDemo(reason: reason)
+                    VStack(spacing: SKSpace.sm) {
+                        Text(title)
+                            .font(SKFont.serif(34, relativeTo: .largeTitle))
+                            .foregroundStyle(SKColor.ink)
+                            .multilineTextAlignment(.center)
+                        Text(message)
+                            .font(SKFont.sans(17, relativeTo: .body))
+                            .foregroundStyle(SKColor.muted)
+                            .multilineTextAlignment(.center)
+                    }
+                    .padding(.horizontal, SKSpace.sm)
+                }
+                .skPagePadding()
+                .padding(.top, SKSpace.xl)
+                .padding(.bottom, SKSpace.lg)
+            }
+            .scrollBounceBehavior(.basedOnSize)
+            VStack(spacing: SKSpace.sm) {
+                SKButton(title: "Upgrade") { showPlans = true }
+                SKButton(title: leave == nil ? "Not now" : "Back to Today", kind: .secondary) {
+                    if let leave { leave() } else { dismiss() }
+                }
+            }
+            .skPagePadding()
+            .padding(.bottom, SKSpace.md + bottomClearance)
+        }
+        .skPageBackground()
+        .sheet(isPresented: $showPlans) { PaywallView(reason: reason) }
+    }
+}
