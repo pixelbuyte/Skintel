@@ -195,8 +195,9 @@ struct SKDot: View {
     }
 }
 
-/// The Skintel drop mascot (designs: DropMoves): a plump terracotta drop with stubby
-/// arms and mitten hands. Each pose loops; Reduce Motion holds a still frame.
+/// The Skintel drop mascot, traced from the reference drawing: a round-bottomed terracotta
+/// drop leaning right, boot feet, stubby arms with mitten hands, face in three-quarter view.
+/// Each pose loops; Reduce Motion holds a still frame.
 struct DropMascot: View {
     enum Pose { case idle, wave, cheer, think, sleep, oops }
 
@@ -207,10 +208,10 @@ struct DropMascot: View {
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     nonisolated private static let skin = Color(hex: 0xD3725F)
-    nonisolated private static let leg = Color(hex: 0xC96A58)
     nonisolated private static let outline = Color(hex: 0x44272C)
     nonisolated private static let eye = Color(hex: 0x442632)
     nonisolated private static let mouthFill = Color(hex: 0x7A2E28)
+    nonisolated private static let line: CGFloat = 2.2
 
     var body: some View {
         TimelineView(.animation(minimumInterval: 1.0 / 30, paused: reduceMotion)) { context in
@@ -222,7 +223,7 @@ struct DropMascot: View {
         .accessibilityHidden(true)
     }
 
-    // Drawn in a 240×250 box (x from -20), matching the design file's coordinates.
+    // Drawn in a 240×250 box (x from -20), the same coordinates as the design file.
     nonisolated private static func draw(_ g: inout GraphicsContext, _ canvasSize: CGSize, _ t: Double, _ pose: Pose) {
         let s = min(canvasSize.width / 240, canvasSize.height / 250)
         g.translateBy(x: (canvasSize.width - 240 * s) / 2 + 20 * s, y: canvasSize.height - 250 * s)
@@ -254,104 +255,94 @@ struct DropMascot: View {
         }
 
         let lift = min(1, -dy / 38)
-        let shadowW = 100 * (1 - 0.4 * lift)
-        g.fill(Path(ellipseIn: CGRect(x: 100 - shadowW / 2, y: 225, width: shadowW, height: 14)),
+        let shadowW = 92 * (1 - 0.4 * lift)
+        g.fill(Path(ellipseIn: CGRect(x: 100 - shadowW / 2, y: 234, width: shadowW, height: 12)),
                with: .color(Color(hex: 0x3C1E1E).opacity(0.14)))
 
         var fig = g
-        fig.translateBy(x: 100, y: 230 + dy)
+        fig.translateBy(x: 100, y: 240 + dy)
         fig.rotate(by: .degrees(tilt))
         fig.scaleBy(x: sx, y: sy)
-        fig.translateBy(x: -100, y: -230)
+        fig.translateBy(x: -100, y: -240)
 
-        for x: CGFloat in [72, 107] {
-            let legPath = Path(roundedRect: CGRect(x: x, y: 196, width: 21, height: 32), cornerRadius: 10)
-            fig.fill(legPath, with: .color(Self.leg))
-            fig.stroke(legPath, with: .color(Self.outline), lineWidth: 2.6)
-        }
+        fig.fill(legsPath, with: .color(skin))
+        fig.stroke(legsPath, with: .color(outline), style: StrokeStyle(lineWidth: line, lineJoin: .round))
 
         switch pose {
         case .wave:
-            limb(&fig, (52, 158), (38, 170), (33, 186))
-            limb(&fig, (146, 150), (166, 132), (172, 108), pivot: (146, 152), degrees: 5 + 17 * sin(tau * t / 0.9))
+            limb(&fig, (52, 170), (42, 180), (38, 192))
+            limb(&fig, (152, 150), (172, 132), (176, 110), pivot: (152, 152), degrees: 5 + 17 * sin(tau * t / 0.9))
         case .cheer:
             let swing = 10 + 10 * sin(tau * t / 1.2)
-            limb(&fig, (54, 150), (34, 132), (28, 108), pivot: (54, 152), degrees: -swing)
-            limb(&fig, (146, 150), (166, 132), (172, 108), pivot: (146, 152), degrees: swing)
+            limb(&fig, (50, 150), (30, 132), (26, 110), pivot: (50, 152), degrees: -swing)
+            limb(&fig, (152, 150), (172, 132), (176, 110), pivot: (152, 152), degrees: swing)
         case .think:
-            limb(&fig, (52, 158), (38, 170), (33, 186))
+            limb(&fig, (52, 170), (42, 180), (38, 192))
         default:
-            limb(&fig, (52, 158), (38, 170), (33, 186))
-            limb(&fig, (148, 158), (162, 170), (167, 186))
+            limb(&fig, (52, 170), (42, 180), (38, 192))
+            limb(&fig, (152, 176), (162, 186), (164, 198))
         }
 
-        let drop = Self.dropPath
-        fig.fill(drop, with: .radialGradient(
-            Gradient(stops: [.init(color: Color(hex: 0xDA7C68), location: 0),
-                             .init(color: Self.skin, location: 0.6),
+        fig.fill(dropPath, with: .radialGradient(
+            Gradient(stops: [.init(color: Color(hex: 0xD97A66), location: 0),
+                             .init(color: skin, location: 0.62),
                              .init(color: Color(hex: 0xA04C41), location: 1)]),
-            center: CGPoint(x: 83, y: 113), startRadius: 0, endRadius: 140))
-        fig.stroke(drop, with: .color(Self.outline), lineWidth: 2.6)
-        var shine = Path()
-        shine.move(to: CGPoint(x: 104, y: 70))
-        shine.addQuadCurve(to: CGPoint(x: 88, y: 104), control: CGPoint(x: 92, y: 84))
-        fig.stroke(shine, with: .color(Color(hex: 0xE5A194).opacity(0.9)), style: StrokeStyle(lineWidth: 7, lineCap: .round))
-        for x: CGFloat in [56, 128] {
-            fig.fill(Path(ellipseIn: CGRect(x: x, y: 162, width: 20, height: 12)), with: .color(Color(hex: 0xC45D4C).opacity(0.55)))
-        }
+            center: CGPoint(x: 82.7, y: 115.6), startRadius: 0, endRadius: 144))
+        fig.stroke(dropPath, with: .color(outline), lineWidth: line)
+        fig.fill(shinePath, with: .color(Color(hex: 0xE8A596).opacity(0.9)))
+        fig.fill(Path(ellipseIn: CGRect(x: 109.8, y: 151.9, width: 22, height: 10.8)), with: .color(Color(hex: 0xC45D4C).opacity(0.6)))
 
         drawFace(&fig, t, pose)
-        if pose == .think { limb(&fig, (150, 170), (146, 186), (128, 184)) }
+        if pose == .think { limb(&fig, (154, 174), (158, 156), (134, 152)) }
         drawExtras(&g, t, pose)
     }
 
     nonisolated private static func drawFace(_ g: inout GraphicsContext, _ t: Double, _ pose: Pose) {
-        let lid = StrokeStyle(lineWidth: 3.2, lineCap: .round)
+        let lid = StrokeStyle(lineWidth: 2.8, lineCap: .round)
+        let pen = StrokeStyle(lineWidth: 2.6, lineCap: .round)
         let cycle = t.truncatingRemainder(dividingBy: 4)
         let blink: CGFloat = cycle > 3.72 && cycle < 3.88 ? 0.12 : 1
-        func eyes(_ y: CGFloat, dx: CGFloat = 0, ry: CGFloat = 7.5) {
-            for x: CGFloat in [83, 121] {
-                let h = ry * 2 * blink
-                g.fill(Path(ellipseIn: CGRect(x: x + dx - 6.5, y: y - h / 2, width: 13, height: h)), with: .color(Self.eye))
+        func eyes(dx: CGFloat = 0, dy: CGFloat = 0, shrink: CGFloat = 0) {
+            let spots: [(CGFloat, CGFloat, CGFloat)] = [(62.4, 136.9, 6.3), (109.7, 143.2, 6.7)]
+            for (x, y, rx) in spots {
+                let w = (rx - shrink) * 2, h = (6.8 - shrink) * 2 * blink
+                g.fill(Path(ellipseIn: CGRect(x: x + dx - w / 2, y: y + dy - h / 2, width: w, height: h)), with: .color(eye))
             }
         }
-        func line(_ points: [(CGFloat, CGFloat)], control: (CGFloat, CGFloat)? = nil) -> Path {
+        func curve(_ a: (CGFloat, CGFloat), _ b: (CGFloat, CGFloat), _ c: (CGFloat, CGFloat)? = nil) -> Path {
             var p = Path()
-            p.move(to: CGPoint(x: points[0].0, y: points[0].1))
-            if let control {
-                p.addQuadCurve(to: CGPoint(x: points[1].0, y: points[1].1), control: CGPoint(x: control.0, y: control.1))
+            p.move(to: CGPoint(x: a.0, y: a.1))
+            if let c {
+                p.addQuadCurve(to: CGPoint(x: b.0, y: b.1), control: CGPoint(x: c.0, y: c.1))
             } else {
-                p.addLine(to: CGPoint(x: points[1].0, y: points[1].1))
+                p.addLine(to: CGPoint(x: b.0, y: b.1))
             }
             return p
         }
-        let smile = line([(92, 166), (112, 166)], control: (102, 176))
 
         switch pose {
         case .idle, .wave:
-            eyes(150)
-            g.stroke(smile, with: .color(Self.eye), style: StrokeStyle(lineWidth: 3, lineCap: .round))
+            eyes()
+            g.stroke(curve((73, 146), (95, 146), (84, 162)), with: .color(eye), style: pen)
         case .cheer:
-            for x: CGFloat in [77, 115] {
-                g.stroke(line([(x, 151), (x + 12, 151)], control: (x + 6, 144)), with: .color(Self.eye), style: lid)
-            }
-            var mouth = line([(93, 164), (111, 164)], control: (102, 182))
+            g.stroke(curve((56, 138), (69, 138), (62.4, 131)), with: .color(eye), style: lid)
+            g.stroke(curve((103, 144), (116, 144), (109.7, 137)), with: .color(eye), style: lid)
+            var mouth = curve((74, 146), (94, 146), (84, 166))
             mouth.closeSubpath()
-            g.fill(mouth, with: .color(Self.mouthFill))
-            g.stroke(mouth, with: .color(Self.eye), lineWidth: 2.6)
+            g.fill(mouth, with: .color(mouthFill))
+            g.stroke(mouth, with: .color(eye), lineWidth: 2.4)
         case .think:
-            eyes(146, dx: 3)
-            g.stroke(line([(94, 170), (109, 168)]), with: .color(Self.eye), style: StrokeStyle(lineWidth: 3, lineCap: .round))
+            eyes(dx: 2, dy: -4)
+            g.stroke(curve((76, 151), (92, 149)), with: .color(eye), style: pen)
         case .sleep:
-            for x: CGFloat in [77, 115] {
-                g.stroke(line([(x, 150), (x + 12, 150)], control: (x + 6, 155)), with: .color(Self.eye), style: lid)
-            }
-            g.fill(Path(ellipseIn: CGRect(x: 98, y: 167, width: 8, height: 6)), with: .color(Self.mouthFill))
+            g.stroke(curve((56, 137), (69, 137), (62.4, 142)), with: .color(eye), style: lid)
+            g.stroke(curve((103, 143), (116, 143), (109.7, 148)), with: .color(eye), style: lid)
+            g.fill(Path(ellipseIn: CGRect(x: 80.5, y: 148.4, width: 7, height: 5.2)), with: .color(mouthFill))
         case .oops:
-            eyes(152, ry: 6.5)
-            g.stroke(line([(73, 139), (91, 143)]), with: .color(Self.eye), style: StrokeStyle(lineWidth: 3, lineCap: .round))
-            g.stroke(line([(131, 139), (113, 143)]), with: .color(Self.eye), style: StrokeStyle(lineWidth: 3, lineCap: .round))
-            g.stroke(line([(93, 173), (111, 173)], control: (102, 165)), with: .color(Self.eye), style: StrokeStyle(lineWidth: 3, lineCap: .round))
+            eyes(dy: 1, shrink: 0.6)
+            g.stroke(curve((53, 127), (70, 123)), with: .color(eye), style: pen)
+            g.stroke(curve((118, 131), (101, 127)), with: .color(eye), style: pen)
+            g.stroke(curve((74, 155), (94, 155), (84, 146)), with: .color(eye), style: pen)
         }
     }
 
@@ -372,23 +363,22 @@ struct DropMascot: View {
                 var c = g
                 c.opacity = sin(.pi * p)
                 c.draw(Text("z").font(.system(size: 22 - CGFloat(i) * 4, weight: .bold)).foregroundColor(SKColor.muted),
-                       at: CGPoint(x: 152 + 22 * p, y: 72 - 50 * p))
+                       at: CGPoint(x: 150 + 22 * p, y: 70 - 50 * p))
             }
         case .cheer:
-            for (i, spot) in [(18.0, 60.0, 20.0), (172.0, 40.0, 16.0), (184.0, 120.0, 12.0)].enumerated() {
+            let spots: [(CGFloat, CGFloat, CGFloat)] = [(14, 60, 20), (176, 40, 16), (190, 120, 12)]
+            for (i, spot) in spots.enumerated() {
                 var c = g
                 c.opacity = 0.2 + 0.8 * abs(sin(t * 2.2 + Double(i)))
                 c.draw(Text("✦").font(.system(size: spot.2)).foregroundColor(Color(hex: 0xE3A04A)), at: CGPoint(x: spot.0, y: spot.1))
             }
         case .oops:
             let p = (t / 2).truncatingRemainder(dividingBy: 1)
-            let fall = p < 0.3 ? 0.0 : (p - 0.3) / 0.7 * 40
             var c = g
             c.opacity = p < 0.3 ? 1.0 : 1 - (p - 0.3) / 0.7
-            c.translateBy(x: 0, y: fall)
-            let sweat = Self.sweatPath
-            c.fill(sweat, with: .color(Color(hex: 0x9CC4E4)))
-            c.stroke(sweat, with: .color(Color(hex: 0x4A7A9C)), lineWidth: 2)
+            c.translateBy(x: 0, y: p < 0.3 ? 0.0 : (p - 0.3) / 0.7 * 40)
+            c.fill(sweatPath, with: .color(Color(hex: 0x9CC4E4)))
+            c.stroke(sweatPath, with: .color(Color(hex: 0x4A7A9C)), lineWidth: 2)
         default:
             break
         }
@@ -396,7 +386,7 @@ struct DropMascot: View {
 
     /// A stubby arm: outlined stroke, round mitten hand, then the skin stroke over the join.
     nonisolated private static func limb(_ g: inout GraphicsContext, _ from: (CGFloat, CGFloat), _ control: (CGFloat, CGFloat), _ hand: (CGFloat, CGFloat),
-                      pivot: (CGFloat, CGFloat)? = nil, degrees: Double = 0) {
+                                         pivot: (CGFloat, CGFloat)? = nil, degrees: Double = 0) {
         var c = g
         if let pivot {
             c.translateBy(x: pivot.0, y: pivot.1)
@@ -406,30 +396,91 @@ struct DropMascot: View {
         var arm = Path()
         arm.move(to: CGPoint(x: from.0, y: from.1))
         arm.addQuadCurve(to: CGPoint(x: hand.0, y: hand.1), control: CGPoint(x: control.0, y: control.1))
-        c.stroke(arm, with: .color(Self.outline), style: StrokeStyle(lineWidth: 15, lineCap: .round, lineJoin: .round))
-        let mitten = Path(ellipseIn: CGRect(x: hand.0 - 9, y: hand.1 - 9, width: 18, height: 18))
-        c.fill(mitten, with: .color(Self.skin))
-        c.stroke(mitten, with: .color(Self.outline), lineWidth: 2.6)
-        c.stroke(arm, with: .color(Self.skin), style: StrokeStyle(lineWidth: 10, lineCap: .round, lineJoin: .round))
+        c.stroke(arm, with: .color(outline), style: StrokeStyle(lineWidth: 13, lineCap: .round, lineJoin: .round))
+        let mitten = Path(ellipseIn: CGRect(x: hand.0 - 7.5, y: hand.1 - 7.5, width: 15, height: 15))
+        c.fill(mitten, with: .color(skin))
+        c.stroke(mitten, with: .color(outline), lineWidth: line)
+        c.stroke(arm, with: .color(skin), style: StrokeStyle(lineWidth: 8.6, lineCap: .round, lineJoin: .round))
     }
 
+    /// Traced from the reference: round belly, tip leaning right.
     nonisolated private static let dropPath: Path = {
         var p = Path()
-        p.move(to: CGPoint(x: 112, y: 54))
-        p.addQuadCurve(to: CGPoint(x: 124, y: 56), control: CGPoint(x: 118, y: 42))
-        p.addCurve(to: CGPoint(x: 162, y: 158), control1: CGPoint(x: 138, y: 82), control2: CGPoint(x: 162, y: 116))
-        p.addArc(center: CGPoint(x: 100, y: 158), radius: 62, startAngle: .degrees(0), endAngle: .degrees(180), clockwise: false)
-        p.addCurve(to: CGPoint(x: 112, y: 54), control1: CGPoint(x: 38, y: 112), control2: CGPoint(x: 74, y: 72))
+        p.move(to: CGPoint(x: 119.1, y: 40.0))
+        p.addCurve(to: CGPoint(x: 123.0, y: 47.3), control1: CGPoint(x: 121.5, y: 40.0), control2: CGPoint(x: 121.8, y: 43.6))
+        p.addCurve(to: CGPoint(x: 126.0, y: 62.0), control1: CGPoint(x: 124.2, y: 51.0), control2: CGPoint(x: 124.8, y: 57.1))
+        p.addCurve(to: CGPoint(x: 130.4, y: 76.7), control1: CGPoint(x: 127.2, y: 66.9), control2: CGPoint(x: 128.7, y: 71.8))
+        p.addCurve(to: CGPoint(x: 136.5, y: 91.4), control1: CGPoint(x: 132.2, y: 81.6), control2: CGPoint(x: 134.3, y: 86.5))
+        p.addCurve(to: CGPoint(x: 143.8, y: 106.1), control1: CGPoint(x: 138.7, y: 96.3), control2: CGPoint(x: 141.3, y: 101.2))
+        p.addCurve(to: CGPoint(x: 151.4, y: 120.8), control1: CGPoint(x: 146.3, y: 111.0), control2: CGPoint(x: 149.1, y: 115.9))
+        p.addCurve(to: CGPoint(x: 157.6, y: 135.5), control1: CGPoint(x: 153.7, y: 125.7), control2: CGPoint(x: 156.0, y: 130.6))
+        p.addCurve(to: CGPoint(x: 161.0, y: 150.2), control1: CGPoint(x: 159.2, y: 140.4), control2: CGPoint(x: 160.3, y: 146.5))
+        p.addCurve(to: CGPoint(x: 161.7, y: 157.6), control1: CGPoint(x: 161.7, y: 153.9), control2: CGPoint(x: 161.6, y: 155.1))
+        p.addCurve(to: CGPoint(x: 161.5, y: 164.9), control1: CGPoint(x: 161.8, y: 160.1), control2: CGPoint(x: 161.9, y: 161.2))
+        p.addCurve(to: CGPoint(x: 159.0, y: 179.6), control1: CGPoint(x: 161.1, y: 168.6), control2: CGPoint(x: 159.9, y: 175.9))
+        p.addCurve(to: CGPoint(x: 156.1, y: 186.9), control1: CGPoint(x: 158.1, y: 183.3), control2: CGPoint(x: 157.2, y: 184.4))
+        p.addCurve(to: CGPoint(x: 152.2, y: 194.3), control1: CGPoint(x: 155.0, y: 189.4), control2: CGPoint(x: 153.9, y: 191.9))
+        p.addCurve(to: CGPoint(x: 146.0, y: 201.6), control1: CGPoint(x: 150.5, y: 196.8), control2: CGPoint(x: 148.4, y: 199.2))
+        p.addCurve(to: CGPoint(x: 137.5, y: 209.0), control1: CGPoint(x: 143.6, y: 204.0), control2: CGPoint(x: 141.4, y: 206.6))
+        p.addCurve(to: CGPoint(x: 122.5, y: 216.3), control1: CGPoint(x: 133.6, y: 211.4), control2: CGPoint(x: 128.8, y: 214.5))
+        p.addCurve(to: CGPoint(x: 100.0, y: 220.0), control1: CGPoint(x: 116.2, y: 218.1), control2: CGPoint(x: 107.4, y: 219.9))
+        p.addCurve(to: CGPoint(x: 78.0, y: 217.1), control1: CGPoint(x: 92.6, y: 220.1), control2: CGPoint(x: 84.1, y: 218.6))
+        p.addCurve(to: CGPoint(x: 63.3, y: 210.9), control1: CGPoint(x: 71.9, y: 215.6), control2: CGPoint(x: 67.0, y: 212.8))
+        p.addCurve(to: CGPoint(x: 55.9, y: 206.0), control1: CGPoint(x: 59.6, y: 209.1), control2: CGPoint(x: 58.3, y: 208.4))
+        p.addCurve(to: CGPoint(x: 48.6, y: 196.2), control1: CGPoint(x: 53.5, y: 203.6), control2: CGPoint(x: 50.6, y: 199.9))
+        p.addCurve(to: CGPoint(x: 43.7, y: 184.0), control1: CGPoint(x: 46.6, y: 192.5), control2: CGPoint(x: 44.9, y: 188.5))
+        p.addCurve(to: CGPoint(x: 41.2, y: 169.3), control1: CGPoint(x: 42.5, y: 179.5), control2: CGPoint(x: 41.8, y: 174.2))
+        p.addCurve(to: CGPoint(x: 40.2, y: 154.6), control1: CGPoint(x: 40.6, y: 164.4), control2: CGPoint(x: 40.3, y: 159.3))
+        p.addCurve(to: CGPoint(x: 40.7, y: 141.1), control1: CGPoint(x: 40.1, y: 149.9), control2: CGPoint(x: 40.4, y: 145.5))
+        p.addCurve(to: CGPoint(x: 42.2, y: 128.2), control1: CGPoint(x: 41.0, y: 136.7), control2: CGPoint(x: 41.5, y: 131.6))
+        p.addCurve(to: CGPoint(x: 45.1, y: 120.8), control1: CGPoint(x: 42.9, y: 124.8), control2: CGPoint(x: 43.1, y: 124.5))
+        p.addCurve(to: CGPoint(x: 54.0, y: 106.1), control1: CGPoint(x: 47.1, y: 117.1), control2: CGPoint(x: 50.5, y: 111.0))
+        p.addCurve(to: CGPoint(x: 66.0, y: 91.4), control1: CGPoint(x: 57.5, y: 101.2), control2: CGPoint(x: 61.7, y: 96.3))
+        p.addCurve(to: CGPoint(x: 79.9, y: 76.7), control1: CGPoint(x: 70.3, y: 86.5), control2: CGPoint(x: 75.2, y: 81.6))
+        p.addCurve(to: CGPoint(x: 94.1, y: 62.0), control1: CGPoint(x: 84.6, y: 71.8), control2: CGPoint(x: 89.3, y: 66.9))
+        p.addCurve(to: CGPoint(x: 108.8, y: 47.3), control1: CGPoint(x: 98.9, y: 57.1), control2: CGPoint(x: 104.6, y: 51.0))
+        p.addCurve(to: CGPoint(x: 119.1, y: 40.0), control1: CGPoint(x: 113.0, y: 43.6), control2: CGPoint(x: 116.7, y: 40.0))
+        p.closeSubpath()
+        return p
+    }()
+
+    /// Two boot feet, toes pointing left like the reference.
+    nonisolated private static let legsPath: Path = {
+        var p = Path()
+        p.move(to: CGPoint(x: 71, y: 206))
+        p.addLine(to: CGPoint(x: 86.5, y: 206))
+        p.addLine(to: CGPoint(x: 86.5, y: 231))
+        p.addQuadCurve(to: CGPoint(x: 81.5, y: 236), control: CGPoint(x: 86.5, y: 236))
+        p.addLine(to: CGPoint(x: 70.5, y: 236))
+        p.addQuadCurve(to: CGPoint(x: 67.5, y: 233), control: CGPoint(x: 67.5, y: 236))
+        p.addQuadCurve(to: CGPoint(x: 71, y: 227), control: CGPoint(x: 67.5, y: 229))
+        p.closeSubpath()
+        p.move(to: CGPoint(x: 105.5, y: 206))
+        p.addLine(to: CGPoint(x: 122, y: 206))
+        p.addLine(to: CGPoint(x: 122, y: 237))
+        p.addQuadCurve(to: CGPoint(x: 117, y: 242), control: CGPoint(x: 122, y: 242))
+        p.addLine(to: CGPoint(x: 105.5, y: 242))
+        p.addQuadCurve(to: CGPoint(x: 102.5, y: 239), control: CGPoint(x: 102.5, y: 242))
+        p.addQuadCurve(to: CGPoint(x: 105.5, y: 233), control: CGPoint(x: 102.5, y: 235))
+        p.closeSubpath()
+        return p
+    }()
+
+    nonisolated private static let shinePath: Path = {
+        var p = Path()
+        p.move(to: CGPoint(x: 101, y: 64))
+        p.addQuadCurve(to: CGPoint(x: 66, y: 110), control: CGPoint(x: 89.1, y: 91.2))
+        p.addQuadCurve(to: CGPoint(x: 101, y: 64), control: CGPoint(x: 77.9, y: 82.8))
         p.closeSubpath()
         return p
     }()
 
     nonisolated private static let sweatPath: Path = {
         var p = Path()
-        p.move(to: CGPoint(x: 152, y: 96))
-        p.addCurve(to: CGPoint(x: 160, y: 112), control1: CGPoint(x: 156, y: 104), control2: CGPoint(x: 160, y: 108))
-        p.addArc(center: CGPoint(x: 152, y: 112), radius: 8, startAngle: .degrees(0), endAngle: .degrees(180), clockwise: false)
-        p.addCurve(to: CGPoint(x: 152, y: 96), control1: CGPoint(x: 144, y: 108), control2: CGPoint(x: 148, y: 104))
+        p.move(to: CGPoint(x: 150, y: 88))
+        p.addCurve(to: CGPoint(x: 158, y: 104), control1: CGPoint(x: 154, y: 96), control2: CGPoint(x: 158, y: 100))
+        p.addArc(center: CGPoint(x: 150, y: 104), radius: 8, startAngle: .degrees(0), endAngle: .degrees(180), clockwise: false)
+        p.addCurve(to: CGPoint(x: 150, y: 88), control1: CGPoint(x: 142, y: 100), control2: CGPoint(x: 146, y: 96))
         p.closeSubpath()
         return p
     }()
