@@ -213,6 +213,7 @@ private struct PersonalizationView: View {
     @AppStorage(RoutineReminders.pmTimeKey) private var pmMinutes = 21 * 60 + 45
     @AppStorage(RoutineReminders.checkInOnKey) private var checkInOn = false
     @AppStorage(RoutineReminders.checkInTimeKey) private var checkInMinutes = 20 * 60
+    @AppStorage(CheckInPrompt.enabledKey) private var askOnOpen = true
 
     var body: some View {
         SettingsPage(title: "Personalization") {
@@ -240,7 +241,15 @@ private struct PersonalizationView: View {
             SettingsGroup(title: "Reminders", footer: "Reminders are scheduled on this iPhone and repeat daily.") {
                 reminderRow("Morning routine", on: $amOn, minutes: $amMinutes)
                 reminderRow("Night routine", on: $pmOn, minutes: $pmMinutes)
-                reminderRow("Skin check-in", on: $checkInOn, minutes: $checkInMinutes, last: true)
+                reminderRow("Skin check-in", on: $checkInOn, minutes: $checkInMinutes)
+                Toggle(isOn: $askOnOpen) {
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text("Ask when I open Skintel").font(SKFont.sans(17, relativeTo: .body)).foregroundStyle(SKColor.ink)
+                        Text("Once in the morning and once in the evening").font(SKFont.secondary).foregroundStyle(SKColor.muted)
+                    }
+                }
+                .tint(SKColor.primary)
+                .padding(.horizontal, SKSpace.lg).padding(.vertical, 10)
             }
 
             SettingsGroup(title: "Feel") {

@@ -13,6 +13,9 @@ struct HomeView: View {
     @AppStorage(AssistantPlacement.key) private var assistantPlacement = AssistantPlacement.tab
     @State private var savingMood = false
     @State private var moodError: String?
+    @AppStorage(CheckInPrompt.enabledKey) private var autoPrompt = true
+    @AppStorage(CheckInPrompt.lastKey) private var lastPrompt = ""
+    @Environment(\.scenePhase) private var scenePhase
 
     var body: some View {
         NavigationStack(path: $path) {
@@ -37,7 +40,35 @@ struct HomeView: View {
         .tint(SKColor.primary)
         .sheet(isPresented: $showCheckIn) { CheckInSheet() }
         .sheet(isPresented: $showAssistant) { AssistantView() }
-        .task { await env.journal.load() }
+        .task {
+            await env.journal.load()
+            promptCheckInIfDue()
+        }
+        .onChange(of: scenePhase) { _, phase in
+            guard phase == .active else { return }
+            Task {
+                await env.journal.load()
+                promptCheckInIfDue()
+            }
+        }
+    }
+
+    /// Morning: ask when nothing is logged yet today. Evening: ask when tonight's part isn't
+    /// answered. At most once per part of the day, and never over another sheet.
+    private func promptCheckInIfDue() {
+        guard autoPrompt, !showCheckIn, !showAssistant, env.journal.state.value != nil,
+              !env.products.products.isEmpty, let part = CheckInPrompt.window() else { return }
+        let key = "\(ISO8601.dayString(Date()))-\(part == .morning ? "am" : "pm")"
+        guard lastPrompt != key else { return }
+        let today = env.journal.today
+        switch part {
+        case .morning:
+            guard today == nil else { return }
+        case .night:
+            guard !CheckInSheet.hasLine(today?.notes, prefix: CheckInSheet.todayPrefix) else { return }
+        }
+        lastPrompt = key
+        showCheckIn = true
     }
 
     // MARK: Header
