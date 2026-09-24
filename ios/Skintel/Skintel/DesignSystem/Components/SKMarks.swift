@@ -145,27 +145,44 @@ struct SKGeneratedAvatar: View {
     }
 }
 
-/// The app mark used on splash and sign-in: terracotta squircle with a serif S and the
-/// hairline "shelf" across it (matches designs/app-icon.svg).
+/// The app mark used on splash and sign-in: the real app icon's terracotta circle with a
+/// cream four-point sparkle and two small ones (matches designs/app-icon-ios.svg).
 struct SKAppMark: View {
     var size: CGFloat = 64
 
     var body: some View {
         ZStack {
-            RoundedRectangle(cornerRadius: size * 0.22, style: .continuous)
-                .fill(LinearGradient(colors: [Color(hex: 0xB2634F), SKColor.primary, SKColor.primaryPressed],
-                                     startPoint: .topLeading, endPoint: .bottomTrailing))
-            Rectangle()
-                .fill(SKColor.cream.opacity(0.45))
-                .frame(height: max(1, size * 0.02))
-            Text("S")
-                .font(SKFont.serif(size * 0.62, relativeTo: .largeTitle))
-                .foregroundStyle(SKColor.cream)
-                .offset(y: -size * 0.02)
+            Circle().fill(SKColor.primary)
+            SparkleShape().fill(SKColor.cream)
+                .frame(width: size * 0.45, height: size * 0.45)
+            SparkleShape().fill(SKColor.cream)
+                .frame(width: size * 0.125, height: size * 0.125)
+                .offset(x: size * 0.175, y: size * 0.175)
+            SparkleShape().fill(SKColor.cream)
+                .frame(width: size * 0.09, height: size * 0.09)
+                .offset(x: size * 0.169, y: -size * 0.231)
         }
         .frame(width: size, height: size)
         .skPrimaryGlow(strength: 0.3)
         .accessibilityLabel("Skintel")
+    }
+}
+
+/// The four-point sparkle from the app icon (designs/app-icon-ios.svg): a diamond with
+/// concave sides, not a plain star. Fills its given frame.
+private struct SparkleShape: Shape {
+    func path(in rect: CGRect) -> Path {
+        let pts: [(CGFloat, CGFloat)] = [
+            (0.5, 0), (0.6111, 0.3889), (1, 0.5), (0.6111, 0.6111),
+            (0.5, 1), (0.3889, 0.6111), (0, 0.5), (0.3889, 0.3889),
+        ]
+        var p = Path()
+        for (i, pt) in pts.enumerated() {
+            let point = CGPoint(x: rect.minX + pt.0 * rect.width, y: rect.minY + pt.1 * rect.height)
+            if i == 0 { p.move(to: point) } else { p.addLine(to: point) }
+        }
+        p.closeSubpath()
+        return p
     }
 }
 
