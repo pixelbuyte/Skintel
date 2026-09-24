@@ -121,7 +121,7 @@ struct MainTabView: View {
                 paywall = .productLimit
             }
         case .compare:
-            showCompare = true
+            if env.subscription.entitlement.isPro { showCompare = true } else { paywall = .compare }
         case .ask:
             showAssistant = true
         case .shelf:

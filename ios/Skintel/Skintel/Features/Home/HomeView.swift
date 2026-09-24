@@ -6,6 +6,7 @@ import SkintelCore
 /// from what the person has actually done: ticks, check-ins and their shelf.
 struct HomeView: View {
     @Environment(AppEnvironment.self) private var env
+    @Environment(\.openPaywall) private var openPaywall
     @State private var path: [AppDestination] = []
     @State private var slot: RoutineStore.Slot = RoutineStore.currentSlot()
     @State private var showCheckIn = false
@@ -318,7 +319,7 @@ struct HomeView: View {
     private var suspectCard: some View {
         let culprits = env.products.culprits
         if let top = culprits.all.first {
-            Button { path.append(.culprits) } label: {
+            Button { open(.culprits, else: .culprits) } label: {
                 SKCard(tint: .bad) {
                     HStack(spacing: SKSpace.lg) {
                         Image(systemName: "exclamationmark.triangle")
@@ -342,8 +343,13 @@ struct HomeView: View {
         }
     }
 
+    /// Free members go straight to the feature's demo instead of an empty Pro screen.
+    private func open(_ destination: AppDestination, else reason: PaywallReason) {
+        if env.subscription.entitlement.isPro { path.append(destination) } else { openPaywall(reason) }
+    }
+
     private var recommendRow: some View {
-        Button { path.append(.recommend) } label: {
+        Button { open(.recommend, else: .recommend) } label: {
             SKCard {
                 HStack(spacing: SKSpace.lg) {
                     Image(systemName: "wand.and.stars")

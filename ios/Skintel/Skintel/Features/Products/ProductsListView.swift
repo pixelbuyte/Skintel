@@ -45,7 +45,9 @@ struct ProductsListView: View {
         .skNavigationTitle("Shelf")
         .toolbar {
             ToolbarItem(placement: .topBarTrailing) {
-                Button { showCompare = true } label: { Image(systemName: "arrow.left.arrow.right").font(.system(size: 16, weight: .semibold)) }
+                Button {
+                    if env.subscription.entitlement.isPro { showCompare = true } else { openPaywall(.compare) }
+                } label: { Image(systemName: "arrow.left.arrow.right").font(.system(size: 16, weight: .semibold)) }
                     .accessibilityLabel("Compare products")
             }
             ToolbarItem(placement: .topBarTrailing) {
@@ -96,7 +98,7 @@ struct ProductsListView: View {
         let ent = env.subscription.entitlement
         if let limit = ent.productLimit, env.products.isLoaded {
             let n = env.products.products.count
-            Button { openPaywall(.productLimit) } label: {
+            Button { openPaywall(n >= limit ? .productLimit : .general) } label: {
                 HStack(spacing: SKSpace.md) {
                     SKProgressBar(fraction: Double(n) / Double(limit), tone: n >= limit ? .bad : .neutral, height: 6)
                         .frame(width: 80)

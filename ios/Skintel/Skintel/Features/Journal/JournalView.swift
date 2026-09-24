@@ -224,7 +224,9 @@ struct JournalView: View {
                         Text(a.suspects.isEmpty ? "No clear suspect yet" : "\(a.suspects.count) suspect\(a.suspects.count == 1 ? "" : "s") in your journal")
                             .font(SKFont.cardTitle).foregroundStyle(SKColor.ink)
                         if let s = a.summary, !s.isEmpty { Text(s).font(SKFont.secondary).foregroundStyle(SKColor.ink) }
-                        SKLinkButton(title: "See culprits") { path.append(.culprits) }
+                        SKLinkButton(title: "See culprits") {
+                            if env.subscription.entitlement.isPro { path.append(.culprits) } else { openPaywall(.culprits) }
+                        }
                     }
                 }
             }
@@ -781,7 +783,9 @@ struct InsightsView: View {
     private var suspectsCard: some View {
         let culprits = env.products.culprits
         let bad = env.products.badProductCount
-        Button { path.append(.culprits) } label: {
+        Button {
+            if env.subscription.entitlement.isPro { path.append(.culprits) } else { openPaywall(.culprits) }
+        } label: {
             SKCard(tint: culprits.all.isEmpty ? nil : SKTone.bad) {
                 HStack(spacing: SKSpace.lg) {
                     Image(systemName: culprits.all.isEmpty ? "magnifyingglass" : "exclamationmark.triangle")

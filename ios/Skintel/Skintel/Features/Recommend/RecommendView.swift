@@ -312,7 +312,6 @@ struct AssistantView: View {
     @State private var paywall: PaywallReason?
     @State private var addingProduct: SuggestedProduct?
     @State private var tagged: [Product] = []
-    @State private var showTagPicker = false
     @AppStorage(AskModel.key) private var askModel: AskModel = .luna
     @FocusState private var inputFocused: Bool
 
@@ -376,10 +375,6 @@ struct AssistantView: View {
                 .presentationDetents([.medium, .large])
         }
         .sheet(item: $paywall) { PaywallView(reason: $0) }
-        .sheet(isPresented: $showTagPicker) {
-            ShelfTagPicker(products: env.products.products.map(\.product), selected: $tagged)
-                .presentationDetents([.medium, .large])
-        }
         .sheet(item: $addingProduct) { p in
             NavigationStack {
                 ProductFormView(mode: .add(prefill: ScanCandidate(brand: p.brand, productName: p.productName, inci: "", upc: nil, source: "assistant")))
@@ -438,6 +433,40 @@ struct AssistantView: View {
         AssistantPrompt.allCases.filter { p in !messages.contains { $0.role == .user && $0.text == p.question } }
     }
 
+    private var shelfProducts: [Product] { env.products.products.map(\.product) }
+
+    /// What follows a trailing "@" in the draft (empty right after typing it), or nil when
+    /// the draft isn't mid-mention.
+    private var mentionQuery: String? {
+        guard !shelfProducts.isEmpty, let at = draft.lastIndex(of: "@") else { return nil }
+        let before = draft[..<at]
+        guard before.isEmpty || before.last?.isWhitespace == true else { return nil }
+        let rest = draft[draft.index(after: at)...]
+        guard rest.count <= 40, !rest.contains(where: \.isNewline) else { return nil }
+        return String(rest)
+    }
+
+    private func startMention() {
+        if mentionQuery == nil {
+            draft += (draft.isEmpty || draft.last?.isWhitespace == true) ? "@" : " @"
+        }
+        inputFocused = true
+    }
+
+    /// Tags (or untags) the product and removes the "@query" from the draft.
+    private func pickMention(_ p: Product) {
+        Haptics.selection()
+        if let at = draft.lastIndex(of: "@") { draft = String(draft[..<at]) }
+        withAnimation(SKAnimation.ios(0.25)) {
+            if let i = tagged.firstIndex(where: { $0.id == p.id }) {
+                tagged.remove(at: i)
+            } else if tagged.count < MentionPanel.limit {
+                tagged.append(p)
+            }
+        }
+        inputFocused = true
+    }
+
     private var canSend: Bool {
         !draft.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty && !isAnswering
     }
@@ -465,6 +494,11 @@ struct AssistantView: View {
                     .padding(.horizontal, SKSpace.lg)
                 }
             }
+            if let q = mentionQuery, !MentionPanel.matches(shelfProducts, q).isEmpty || !q.contains(" ") {
+                MentionPanel(products: shelfProducts, query: q, tagged: tagged) { pickMention($0) }
+                    .padding(.horizontal, SKSpace.lg)
+                    .transition(.move(edge: .bottom).combined(with: .opacity))
+            }
             VStack(alignment: .leading, spacing: 6) {
                 if !tagged.isEmpty {
                     ScrollView(.horizontal, showsIndicators: false) {
@@ -488,7 +522,7 @@ struct AssistantView: View {
                     .padding(.horizontal, 18)
                     .padding(.top, 14)
                 HStack(spacing: SKSpace.sm) {
-                    Button { inputFocused = false; showTagPicker = true } label: {
+                    Button(action: startMention) {
                         Image(systemName: "at")
                             .font(.system(size: 15, weight: .semibold))
                             .foregroundStyle(tagged.isEmpty ? SKColor.ink : SKColor.primary)
@@ -540,6 +574,7 @@ struct AssistantView: View {
         }
         .padding(.top, SKSpace.sm)
         .padding(.bottom, SKSpace.sm + tabBarClearance)
+        .animation(SKAnimation.ios(0.25), value: mentionQuery)
         .background {
             LinearGradient(colors: [SKColor.bg.opacity(0), SKColor.bg], startPoint: .top, endPoint: .center)
                 .ignoresSafeArea(edges: .bottom)
@@ -956,76 +991,85 @@ private struct ProductTagChip: View {
     }
 }
 
-/// Pick up to three shelf products to ask about; the server reads their ingredient lists.
-private struct ShelfTagPicker: View {
+/// ChatGPT-style mention list above the composer: shelf products matching what follows
+/// "@". Up to three can be tagged; the server reads their ingredient lists.
+private struct MentionPanel: View {
     let products: [Product]
-    @Binding var selected: [Product]
-    @Environment(\.dismiss) private var dismiss
-    @State private var query = ""
-    private static let limit = 3
+    let query: String
+    let tagged: [Product]
+    let pick: (Product) -> Void
 
-    private var filtered: [Product] {
+    static let limit = 3
+
+    static func matches(_ products: [Product], _ query: String) -> [Product] {
         let q = query.trimmingCharacters(in: .whitespaces).lowercased()
         guard !q.isEmpty else { return products }
         return products.filter { "\($0.brand ?? "") \($0.productName)".lowercased().contains(q) }
     }
 
     var body: some View {
-        NavigationStack {
-            List {
-                ForEach(filtered) { p in
-                    let on = selected.contains { $0.id == p.id }
-                    Button { toggle(p) } label: {
-                        HStack(spacing: SKSpace.md) {
-                            SKProductMark(name: p.productName, size: 40, category: p.category)
-                            VStack(alignment: .leading, spacing: 2) {
-                                Text(p.productName).font(SKFont.bodyMedium).foregroundStyle(SKColor.ink).lineLimit(1)
-                                if let b = p.brand, !b.isEmpty {
-                                    Text(b).font(SKFont.caption).foregroundStyle(SKColor.muted)
-                                }
-                            }
-                            Spacer(minLength: 0)
-                            Image(systemName: on ? "checkmark.circle.fill" : "circle")
-                                .font(.system(size: 22))
-                                .foregroundStyle(on ? SKColor.primary : SKColor.line)
-                        }
-                        .contentShape(Rectangle())
-                    }
-                    .buttonStyle(.plain)
-                    .disabled(!on && selected.count >= Self.limit)
-                    .listRowBackground(SKColor.cream)
-                    .accessibilityAddTraits(on ? [.isButton, .isSelected] : .isButton)
-                }
-            }
-            .scrollContentBackground(.hidden)
-            .background(SKColor.bg)
-            .searchable(text: $query, prompt: "Search your shelf")
-            .navigationTitle("Tag products")
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .confirmationAction) {
-                    Button("Done") { dismiss() }.font(SKFont.bodyMedium)
-                }
-            }
-            .safeAreaInset(edge: .bottom) {
-                Text("Tag up to \(Self.limit). Ask Skintel reads their full ingredient lists.")
-                    .font(SKFont.caption)
+        let found = Self.matches(products, query)
+        VStack(alignment: .leading, spacing: 0) {
+            Text(query.isEmpty ? "Type to search your shelf" : "Shelf products matching \u{201C}\(query)\u{201D}")
+                .font(SKFont.secondary)
+                .foregroundStyle(SKColor.muted)
+                .lineLimit(1)
+                .padding(.horizontal, 18)
+                .padding(.top, 14)
+                .padding(.bottom, 6)
+            if found.isEmpty {
+                Text("Nothing on your shelf matches.")
+                    .font(SKFont.secondary)
                     .foregroundStyle(SKColor.muted)
-                    .frame(maxWidth: .infinity)
-                    .padding(.vertical, SKSpace.sm)
-                    .background(SKColor.bg)
+                    .padding(.horizontal, 18)
+                    .padding(.bottom, 14)
+            } else {
+                ScrollView {
+                    VStack(spacing: 2) {
+                        ForEach(found.indices, id: \.self) { i in
+                            row(found[i], highlighted: i == 0)
+                        }
+                    }
+                    .padding(.horizontal, 6)
+                    .padding(.bottom, 6)
+                }
+                .scrollBounceBehavior(.basedOnSize)
+                .frame(maxHeight: 250)
+                .fixedSize(horizontal: false, vertical: found.count <= 4)
             }
         }
-        .tint(SKColor.primary)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .skGlass(in: RoundedRectangle(cornerRadius: 24, style: .continuous), interactive: false, fallback: SKColor.cream)
+        .overlay(RoundedRectangle(cornerRadius: 24, style: .continuous).stroke(SKColor.line))
+        .shadow(color: .black.opacity(0.08), radius: 16, y: 6)
     }
 
-    private func toggle(_ p: Product) {
-        Haptics.selection()
-        if let i = selected.firstIndex(where: { $0.id == p.id }) {
-            selected.remove(at: i)
-        } else if selected.count < Self.limit {
-            selected.append(p)
+    private func row(_ p: Product, highlighted: Bool) -> some View {
+        let on = tagged.contains { $0.id == p.id }
+        let full = !on && tagged.count >= Self.limit
+        return Button { pick(p) } label: {
+            HStack(spacing: SKSpace.md) {
+                SKProductMark(name: p.productName, size: 34, category: p.category)
+                Text(p.productName)
+                    .font(SKFont.sans(16, weight: .medium, relativeTo: .body))
+                    .foregroundStyle(SKColor.ink)
+                    .lineLimit(1)
+                Spacer(minLength: SKSpace.sm)
+                Text(on ? "Tagged" : (p.category ?? p.brand ?? "Shelf").capitalized)
+                    .font(SKFont.secondary)
+                    .foregroundStyle(on ? SKColor.primary : SKColor.muted)
+                    .lineLimit(1)
+            }
+            .padding(.horizontal, 12)
+            .frame(height: 52)
+            .background(highlighted ? SKColor.neutralChip.opacity(0.7) : .clear, in: RoundedRectangle(cornerRadius: 18, style: .continuous))
+            .contentShape(Rectangle())
         }
+        .buttonStyle(SKPressStyle())
+        .disabled(full)
+        .opacity(full ? 0.45 : 1)
+        .accessibilityLabel(on ? "\(p.productName), tagged" : p.productName)
+        .accessibilityHint(on ? "Removes the tag" : "Tags this product in your question")
     }
 }
 
