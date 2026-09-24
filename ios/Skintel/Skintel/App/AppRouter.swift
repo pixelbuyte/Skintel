@@ -47,9 +47,22 @@ struct RootView: View {
         }
         .animation(SKAnimation.ios(0.35), value: route)
         .task { await env.session.restore() }
+        // Widget links (skintel://scan|ask|shelf|checkin). Kept while the session is still
+        // restoring so a cold launch lands where the widget pointed; signed-out users just
+        // see the normal welcome flow, and onboarding isn't interrupted.
+        .onOpenURL { url in
+            guard let link = SkintelDeepLink(url: url) else { return }
+            switch route {
+            case .launching, .main: env.pendingDeepLink = link
+            case .signedOut, .onboarding: env.pendingDeepLink = nil
+            }
+        }
         .onChange(of: route, initial: true) { _, new in
             switch new {
-            case .main, .onboarding:
+            case .main:
+                if !warmed { warmed = true; Task { await env.warmUp() } }
+            case .onboarding:
+                env.pendingDeepLink = nil
                 if !warmed { warmed = true; Task { await env.warmUp() } }
             case .signedOut:
                 warmed = false
