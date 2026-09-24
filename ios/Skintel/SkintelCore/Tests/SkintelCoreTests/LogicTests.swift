@@ -142,6 +142,9 @@ private func sub(_ tier: Tier, _ status: String?) -> Subscription {
     #expect(user.onboardingComplete)
     #expect(user.displayName == "Riya Patel")
     #expect(user.firstName == "Riya")
+    #expect(user.assistantAbout == "")
+    let noted = AuthUser(id: "u", email: nil, userMetadata: [AuthUser.assistantAboutKey: .string("No retinoids")])
+    #expect(noted.assistantAbout == "No retinoids")
 
     let s = Session(accessToken: "a", refreshToken: "r", expiresAt: Date().addingTimeInterval(30), user: user)
     #expect(s.isExpiring())

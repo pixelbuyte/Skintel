@@ -31,6 +31,46 @@ struct SKAvatar: View {
     }
 }
 
+/// Where the chosen avatar look is kept (this device only).
+enum SKAvatarLook {
+    static let key = "profile.avatarLook"
+}
+
+/// A generated profile look: a skincare glyph on a soft tint, shuffled from You.
+struct SKGeneratedAvatar: View {
+    let look: Int
+    var size: CGFloat = 64
+
+    static var count: Int { looks.count }
+
+    private static let looks: [(symbol: String, bg: Color, fg: Color)] = [
+        ("sparkle", SKColor.primary, SKColor.cream),
+        ("drop.fill", Color(hex: 0xDDE6D5), Color(hex: 0x5C7A4F)),
+        ("moon.fill", Color(hex: 0xE6DDEA), Color(hex: 0x6E5A7E)),
+        ("leaf.fill", Color(hex: 0xF1E4C8), Color(hex: 0x8A6A1F)),
+        ("camera.macro", Color(hex: 0xF3DCD3), SKColor.primary),
+        ("bubbles.and.sparkles.fill", Color(hex: 0xDCE4EA), Color(hex: 0x4F6878)),
+    ]
+
+    /// A different look from `current`, so every shuffle visibly changes.
+    static func shuffled(from current: Int) -> Int {
+        let now = ((current % count) + count) % count
+        let next = Int.random(in: 0..<(count - 1))
+        return next >= now ? next + 1 : next
+    }
+
+    var body: some View {
+        let l = Self.looks[((look % Self.count) + Self.count) % Self.count]
+        Image(systemName: l.symbol)
+            .font(.system(size: size * 0.42, weight: .semibold))
+            .foregroundStyle(l.fg)
+            .contentTransition(.symbolEffect(.replace))
+            .frame(width: size, height: size)
+            .background(l.bg, in: Circle())
+            .accessibilityHidden(true)
+    }
+}
+
 /// The app mark used on splash and sign-in: terracotta squircle with a serif S and the
 /// hairline "shelf" across it (matches designs/app-icon.svg).
 struct SKAppMark: View {
