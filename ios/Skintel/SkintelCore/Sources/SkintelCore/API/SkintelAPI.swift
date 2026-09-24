@@ -93,10 +93,10 @@ public struct SkintelAPI: Sendable {
     /// Luna. Throws `.proRequired` for free accounts and `.server(503, …)` while the model
     /// isn't configured.
     public func askAssistant(messages: [AssistantTurn], amRoutine: [String], pmRoutine: [String],
-                             model: String = "luna") async throws -> AssistantReply {
+                             model: String = "luna", tagged: [String] = []) async throws -> AssistantReply {
         struct Routine: Encodable { let am: [String]; let pm: [String] }
-        struct Body: Encodable { let messages: [AssistantTurn]; let routine: Routine; let model: String }
-        let body = Body(messages: messages, routine: Routine(am: amRoutine, pm: pmRoutine), model: model)
+        struct Body: Encodable { let messages: [AssistantTurn]; let routine: Routine; let model: String; let tagged: [String] }
+        let body = Body(messages: messages, routine: Routine(am: amRoutine, pm: pmRoutine), model: model, tagged: tagged)
         return try await post(AssistantReply.self, "assistant", body: body)
     }
 

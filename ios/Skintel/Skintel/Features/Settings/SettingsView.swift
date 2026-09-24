@@ -399,6 +399,11 @@ private struct AccountDataView: View {
                 if let restoreMessage { SettingsInfo(text: restoreMessage, last: true) }
             }
 
+            SettingsGroup(title: env.subscription.entitlement.isPro ? "Your Pro benefits" : "What Pro adds",
+                          footer: "Tap one to watch it work.") {
+                ProBenefitsList().padding(.horizontal, SKSpace.lg).padding(.vertical, 4)
+            }
+
             SettingsGroup(title: "Your data") {
                 SettingsRow(title: "Export my data", subtitle: "Shelf, journal and scans as a file", trailing: {
                     if exporting { ProgressView().tint(SKColor.primary) }

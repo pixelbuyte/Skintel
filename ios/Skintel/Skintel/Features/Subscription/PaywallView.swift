@@ -19,6 +19,7 @@ struct PaywallView: View {
                     header
                     if env.subscription.entitlement.isPro {
                         alreadyPro
+                        benefits
                     } else if let service {
                         plans(service)
                         benefits
@@ -160,21 +161,12 @@ struct PaywallView: View {
     }
 
     private var benefits: some View {
-        VStack(alignment: .leading, spacing: SKSpace.md) {
-            benefit("Unlimited scans & AI verdicts")
-            benefit("Culprit detection on your full history")
-            benefit("Compare, routines & conflict alerts")
-            benefit("Unlimited products on your shelf")
+        VStack(alignment: .leading, spacing: SKSpace.sm) {
+            Text("Everything in Pro · tap to watch").skLabelStyle()
+            ProBenefitsList()
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding(.top, SKSpace.sm)
-    }
-
-    private func benefit(_ text: String) -> some View {
-        HStack(spacing: SKSpace.md) {
-            Text("✓").font(SKFont.sans(15, weight: .semibold)).foregroundStyle(SKColor.goodFg)
-            Text(text).font(SKFont.sans(17, relativeTo: .body)).foregroundStyle(SKColor.ink)
-        }
     }
 
     private func cta(_ s: SubscriptionService) -> some View {
@@ -252,6 +244,11 @@ struct FeatureDemo: View {
     let reason: PaywallReason
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State private var phase = 0
+    /// Demos with several stories (Ask) move to the next one after each full loop.
+    @State private var scene = 0
+    @State private var sweep = false
+
+    private var sceneCount: Int { reason == .assistant ? 3 : 1 }
 
     private let picks = [("Barrier Cream", "Ceramides, no fragrance", "$18"),
                          ("Daily Gel SPF 40", "Oil-free, zinc", "$24"),
@@ -269,7 +266,7 @@ struct FeatureDemo: View {
                 .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
         }
         .padding(SKSpace.lg)
-        .frame(height: 290)
+        .frame(height: reason == .assistant ? 320 : 290)
         .background(SKColor.cream, in: RoundedRectangle(cornerRadius: 24, style: .continuous))
         .overlay(RoundedRectangle(cornerRadius: 24, style: .continuous).stroke(SKColor.line))
         .skSoftShadow()
@@ -277,9 +274,13 @@ struct FeatureDemo: View {
         .accessibilityLabel("Demo with sample data. \(summary)")
         .task {
             if reduceMotion { phase = 3; return }
+            withAnimation(.easeInOut(duration: 1.1).repeatForever(autoreverses: true)) { sweep = true }
             while !Task.isCancelled {
-                try? await Task.sleep(for: .seconds(1.5))
-                withAnimation(SKAnimation.emil(0.6)) { phase = (phase + 1) % 4 }
+                try? await Task.sleep(for: .seconds(phase == 3 ? 2.2 : 1.5))
+                withAnimation(SKAnimation.emil(0.6)) {
+                    if phase == 3 { scene = (scene + 1) % sceneCount }
+                    phase = (phase + 1) % 4
+                }
             }
         }
     }
@@ -305,7 +306,10 @@ struct FeatureDemo: View {
         case .compare: steps = ["Two cleansers", "Scoring both…", "Against your triggers", "Clear winner"]
         case .recommend: steps = ["Reading your shelf…", "Pick 1", "Pick 2", "Three that fit"]
         case .routine: steps = ["Your night routine", "Checking each step…", "Conflict found", "How to fix it"]
-        case .assistant: steps = ["You ask", "Thinking…", "From your shelf", "Adds to your shelf"]
+        case .assistant:
+            steps = [["Tag from your shelf", "Reading its ingredients…", "About that product", "Answered from your shelf"],
+                     ["Mention a product", "Thinking…", "Not on your shelf yet", "Added to your shelf"],
+                     ["Ask about a product", "Checking your shelf…", "Already on your shelf", "No duplicate added"]][scene % 3]
         case .productLimit, .general: steps = ["Your shelf", "Adding products", "Free holds five", "Unlimited with Pro"]
         }
         return steps[phase]
@@ -318,7 +322,7 @@ struct FeatureDemo: View {
         case .compare: "Two cleansers are scored against your triggers and the gentler one wins."
         case .recommend: "Three product picks that avoid what broke you out."
         case .routine: "A night routine check flags retinol and glycolic acid on the same night."
-        case .assistant: "Ask Skintel answers from your shelf and offers to add the product you mentioned."
+        case .assistant: "Tag a shelf product and Ask Skintel reads its ingredients; mention a new product and it offers to add it; mention one you already have and it knows it's on your shelf."
         case .productLimit, .general: "A free shelf holds five products; Pro is unlimited."
         }
     }
@@ -348,43 +352,63 @@ struct FeatureDemo: View {
         }
     }
 
+    /// The pink tube from the website, turned to its barcode, with a live scan line.
     private var scanDemo: some View {
-        VStack(alignment: .leading, spacing: SKSpace.md) {
+        HStack(alignment: .center, spacing: SKSpace.lg) {
             ZStack {
-                RoundedRectangle(cornerRadius: 16, style: .continuous).fill(SKColor.ink)
-                HStack(spacing: 3) {
-                    ForEach(0..<20, id: \.self) { i in
-                        Rectangle().fill(SKColor.cream).frame(width: i % 3 == 0 ? 3 : 1.5)
+                RoundedRectangle(cornerRadius: 18, style: .continuous).fill(SKColor.bg)
+                Image(ProductArt.tubeBack)
+                    .resizable()
+                    .scaledToFit()
+                    .padding(.vertical, 14)
+                    .scaleEffect(phase >= 2 ? 0.94 : 1)
+                ScanBrackets()
+                    .stroke(phase >= 2 ? SKColor.goodFg : SKColor.primary, style: StrokeStyle(lineWidth: 3, lineCap: .round))
+                    .padding(8)
+                GeometryReader { geo in
+                    Capsule()
+                        .fill(SKColor.primary)
+                        .frame(height: 3)
+                        .shadow(color: SKColor.primary.opacity(0.9), radius: 8)
+                        .padding(.horizontal, 14)
+                        .offset(y: geo.size.height * (sweep ? 0.8 : 0.2))
+                }
+                .opacity(phase <= 1 ? 1 : 0)
+                if phase >= 2 {
+                    Image(systemName: "checkmark")
+                        .font(.system(size: 16, weight: .bold))
+                        .foregroundStyle(SKColor.cream)
+                        .frame(width: 34, height: 34)
+                        .background(SKColor.goodFg, in: Circle())
+                        .transition(.scale.combined(with: .opacity))
+                }
+            }
+            .frame(width: 118)
+            VStack(alignment: .leading, spacing: SKSpace.sm) {
+                Text(phase == 0 ? "Point at the barcode" : phase == 1 ? "Reading 0 12345 67890 5" : "Found it")
+                    .font(SKFont.dataSmall).foregroundStyle(SKColor.muted)
+                Text("Rose Gel Cream").font(SKFont.sans(18, weight: .semibold, relativeTo: .headline)).foregroundStyle(SKColor.ink)
+                    .opacity(phase >= 2 ? 1 : 0.25)
+                HStack(spacing: SKSpace.sm) {
+                    ZStack {
+                        Circle().stroke(SKColor.neutralChip, lineWidth: 5)
+                        Circle().trim(from: 0, to: phase >= 3 ? 0.86 : 0)
+                            .stroke(SKColor.goodFg, style: StrokeStyle(lineWidth: 5, lineCap: .round))
+                            .rotationEffect(.degrees(-90))
+                        Text(phase >= 3 ? "86" : "–").font(SKFont.sans(15, weight: .semibold, relativeTo: .headline)).foregroundStyle(SKColor.ink)
                     }
+                    .frame(width: 44, height: 44)
+                    Text(phase >= 3 ? "Clean · nothing from your triggers" : "Checking your triggers…")
+                        .font(SKFont.caption).foregroundStyle(SKColor.muted)
                 }
-                .frame(height: 40)
-                Rectangle().fill(SKColor.primary).frame(height: 2)
-                    .shadow(color: SKColor.primary, radius: 6)
-                    .offset(y: phase == 1 ? 22 : -22)
-                    .opacity(phase <= 1 ? 1 : 0)
-            }
-            .frame(height: 92)
-            HStack(spacing: SKSpace.md) {
-                ZStack {
-                    Circle().stroke(SKColor.neutralChip, lineWidth: 6)
-                    Circle().trim(from: 0, to: phase >= 3 ? 0.86 : 0)
-                        .stroke(SKColor.goodFg, style: StrokeStyle(lineWidth: 6, lineCap: .round))
-                        .rotationEffect(.degrees(-90))
-                    Text(phase >= 3 ? "86" : "–").font(SKFont.sans(17, weight: .semibold, relativeTo: .headline)).foregroundStyle(SKColor.ink)
+                .opacity(phase >= 2 ? 1 : 0)
+                VStack(alignment: .leading, spacing: 6) {
+                    SKChip("Ceramides", tone: .good)
+                    SKChip("No fragrance", tone: .good)
                 }
-                .frame(width: 54, height: 54)
-                VStack(alignment: .leading, spacing: 3) {
-                    Text("Foaming Facial Cleanser").font(SKFont.sans(15, weight: .semibold, relativeTo: .subheadline)).foregroundStyle(SKColor.ink)
-                    Text(phase >= 3 ? "Clean · nothing from your triggers" : "Looking it up…").font(SKFont.caption).foregroundStyle(SKColor.muted)
-                }
+                .opacity(phase >= 3 ? 1 : 0)
             }
-            .opacity(phase >= 2 ? 1 : 0.25)
-            HStack(spacing: 6) {
-                SKChip("Ceramides", tone: .good)
-                SKChip("Niacinamide", tone: .good)
-                SKChip("No fragrance", tone: .good)
-            }
-            .opacity(phase >= 3 ? 1 : 0)
+            Spacer(minLength: 0)
         }
     }
 
@@ -459,16 +483,32 @@ struct FeatureDemo: View {
         }
     }
 
+    /// Three stories on a loop: a tagged shelf product, a new product added from the chat,
+    /// and one Skintel recognises as already on the shelf.
     private var askDemo: some View {
-        VStack(alignment: .leading, spacing: SKSpace.sm) {
-            HStack {
-                Spacer(minLength: 40)
-                Text("My chin keeps breaking out. I use CeraVe PM lotion.")
+        let story = AskStory.all[scene % AskStory.all.count]
+        let cardAt = scene == 1 ? 2 : 3
+        return VStack(alignment: .leading, spacing: SKSpace.sm) {
+            VStack(alignment: .trailing, spacing: 6) {
+                if let tag = story.tag {
+                    HStack(spacing: 6) {
+                        SKProductMark(name: tag, size: 20)
+                        Text(tag).font(SKFont.sans(12.5, weight: .semibold, relativeTo: .caption)).foregroundStyle(SKColor.ink)
+                    }
+                    .padding(.leading, 4)
+                    .padding(.trailing, 10)
+                    .frame(height: 28)
+                    .background(SKColor.bg, in: Capsule())
+                    .overlay(Capsule().stroke(SKColor.line))
+                }
+                Text(story.question)
                     .font(SKFont.sans(14.5, relativeTo: .subheadline))
                     .foregroundStyle(SKColor.cream)
                     .padding(10)
                     .background(SKColor.primary, in: RoundedRectangle(cornerRadius: 16, style: .continuous))
             }
+            .frame(maxWidth: .infinity, alignment: .trailing)
+            .padding(.leading, 40)
             HStack(alignment: .top, spacing: SKSpace.sm) {
                 Image(systemName: "sparkles")
                     .font(.system(size: 11, weight: .semibold))
@@ -478,29 +518,42 @@ struct FeatureDemo: View {
                 if phase == 1 {
                     Text("• • •").font(SKFont.sans(14, weight: .bold)).foregroundStyle(SKColor.muted)
                 } else if phase >= 2 {
-                    Text("Two products that broke you out share fragrance. This lotion has none, so it's a less likely culprit.")
+                    Text(story.answer)
                         .font(SKFont.sans(14.5, relativeTo: .subheadline))
                         .foregroundStyle(SKColor.ink)
+                        .fixedSize(horizontal: false, vertical: true)
                 }
             }
             .opacity(phase >= 1 ? 1 : 0)
             Spacer(minLength: 0)
             HStack(spacing: SKSpace.sm) {
-                Image(systemName: "square.stack").foregroundStyle(SKColor.primary)
-                Text("Add CeraVe PM lotion to your shelf?").font(SKFont.sans(13.5, weight: .semibold, relativeTo: .caption)).foregroundStyle(SKColor.ink)
+                SKProductMark(name: story.product, size: 36)
+                VStack(alignment: .leading, spacing: 1) {
+                    Text(story.product).font(SKFont.sans(13.5, weight: .semibold, relativeTo: .caption)).foregroundStyle(SKColor.ink)
+                    Text(scene == 1 && phase < 3 ? "Add to your shelf?" : story.done)
+                        .font(SKFont.caption).foregroundStyle(SKColor.muted)
+                }
                 Spacer(minLength: 0)
-                Text("Add")
-                    .font(SKFont.sans(13, weight: .semibold, relativeTo: .caption))
-                    .foregroundStyle(SKColor.cream)
-                    .padding(.horizontal, 12)
-                    .frame(height: 28)
-                    .background(SKColor.primary, in: Capsule())
+                if scene == 1 && phase < 3 {
+                    Text("Add")
+                        .font(SKFont.sans(13, weight: .semibold, relativeTo: .caption))
+                        .foregroundStyle(SKColor.cream)
+                        .padding(.horizontal, 12)
+                        .frame(height: 28)
+                        .background(SKColor.primary, in: Capsule())
+                } else {
+                    Label(story.badge, systemImage: "checkmark")
+                        .font(SKFont.sans(13, weight: .semibold, relativeTo: .caption))
+                        .foregroundStyle(SKColor.goodFg)
+                }
             }
             .padding(SKSpace.sm)
             .background(SKColor.bg, in: RoundedRectangle(cornerRadius: 14, style: .continuous))
-            .opacity(phase >= 3 ? 1 : 0)
-            .offset(y: phase >= 3 ? 0 : 10)
+            .opacity(phase >= cardAt ? 1 : 0)
+            .offset(y: phase >= cardAt ? 0 : 10)
         }
+        .id(scene)
+        .transition(.opacity)
     }
 
     private var shelfDemo: some View {
@@ -577,5 +630,202 @@ struct FeatureDemoSheet: View {
         .padding(.bottom, SKSpace.lg)
         .skPageBackground()
         .presentationDragIndicator(.visible)
+    }
+}
+
+/// One Ask Skintel demo story.
+private struct AskStory {
+    let tag: String?
+    let question: String
+    let answer: String
+    let product: String
+    let done: String
+    let badge: String
+
+    static let all = [
+        AskStory(tag: "Niacinamide Serum", question: "Can I use this with my retinol?",
+                 answer: "Yes. Niacinamide is gentle with retinol. Use the serum in the morning and keep retinol for night.",
+                 product: "Niacinamide Serum", done: "Answered from its ingredients", badge: "Tagged"),
+        AskStory(tag: nil, question: "I started using Glow Toner last week.",
+                 answer: "Noted. Glow Toner has glycolic acid, so keep it off your retinol nights.",
+                 product: "Glow Toner", done: "Added to your shelf", badge: "Added"),
+        AskStory(tag: nil, question: "Is my Barrier Cream okay for my chin?",
+                 answer: "It's fragrance-free and hasn't matched a trigger, so it's an unlikely culprit.",
+                 product: "Barrier Cream", done: "Already on your shelf", badge: "On shelf"),
+    ]
+}
+
+/// Viewfinder corners around the scanned bottle.
+private struct ScanBrackets: Shape {
+    func path(in rect: CGRect) -> Path {
+        let l = min(rect.width, rect.height) * 0.18
+        var p = Path()
+        p.move(to: CGPoint(x: rect.minX, y: rect.minY + l)); p.addLine(to: CGPoint(x: rect.minX, y: rect.minY)); p.addLine(to: CGPoint(x: rect.minX + l, y: rect.minY))
+        p.move(to: CGPoint(x: rect.maxX - l, y: rect.minY)); p.addLine(to: CGPoint(x: rect.maxX, y: rect.minY)); p.addLine(to: CGPoint(x: rect.maxX, y: rect.minY + l))
+        p.move(to: CGPoint(x: rect.maxX, y: rect.maxY - l)); p.addLine(to: CGPoint(x: rect.maxX, y: rect.maxY)); p.addLine(to: CGPoint(x: rect.maxX - l, y: rect.maxY))
+        p.move(to: CGPoint(x: rect.minX + l, y: rect.maxY)); p.addLine(to: CGPoint(x: rect.minX, y: rect.maxY)); p.addLine(to: CGPoint(x: rect.minX, y: rect.maxY - l))
+        return p
+    }
+}
+
+// MARK: - Pro benefits
+
+/// Everything Pro adds, each with the website's side animation and a demo to play.
+enum ProBenefit: String, CaseIterable, Identifiable {
+    case unlimited, scan, routine, ask, triggers, compare
+
+    var id: String { rawValue }
+
+    var title: String {
+        switch self {
+        case .unlimited: "Unlimited products + scans"
+        case .scan: "Barcode, label + link scanner"
+        case .routine: "Routine builder + conflict checks"
+        case .ask: "Ask Skintel, from your shelf"
+        case .triggers: "Personal trigger map, kept private"
+        case .compare: "Compare + picks for your skin"
+        }
+    }
+
+    var detail: String {
+        switch self {
+        case .unlimited: "No five-product cap on your shelf"
+        case .scan: "Point at any product for a verdict"
+        case .routine: "Flags actives that clash, step by step"
+        case .ask: "Tag products, add the ones you mention"
+        case .triggers: "Your journal and shelf name the culprits"
+        case .compare: "Side-by-side verdicts and safe picks"
+        }
+    }
+
+    /// The feature demo this benefit plays.
+    var reason: PaywallReason {
+        switch self {
+        case .unlimited: .productLimit
+        case .scan: .scanner
+        case .routine: .routine
+        case .ask: .assistant
+        case .triggers: .culprits
+        case .compare: .compare
+        }
+    }
+
+    var demoMessage: String {
+        switch self {
+        case .unlimited: "Keep every product you own on your shelf, and scan as many new ones as you like."
+        case .scan: "Scan the barcode on the back of a bottle. Skintel finds the product, reads its ingredients and checks them against what broke you out."
+        case .routine: "Skintel reads each step of your morning and night routines and warns you when two actives shouldn't share a night."
+        case .ask: "Tag products from your shelf to ask about them, mention a new one to add it, and Skintel knows what you already own."
+        case .triggers: "Skintel lines up your check-ins with when each product joined your shelf and names what keeps showing up before a bad day."
+        case .compare: "Put two products side by side and see which one suits your skin, or get picks that avoid your triggers."
+        }
+    }
+}
+
+/// The small animated tile beside each benefit, after the pricing card on the website:
+/// ∞ pulse, barcode sweep, check-in dot grid, sparkle, shield and check.
+struct ProBenefitIcon: View {
+    let benefit: ProBenefit
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @State private var on = false
+
+    var body: some View {
+        ZStack {
+            switch benefit {
+            case .unlimited:
+                RoundedRectangle(cornerRadius: 12, style: .continuous).fill(SKColor.blush)
+                Text("∞")
+                    .font(SKFont.sans(24, weight: .semibold, relativeTo: .title3))
+                    .foregroundStyle(SKColor.primary)
+                    .scaleEffect(on ? 1.15 : 0.95)
+            case .scan:
+                RoundedRectangle(cornerRadius: 12, style: .continuous).fill(SKColor.ink)
+                HStack(spacing: 2) {
+                    ForEach(0..<7, id: \.self) { i in
+                        Rectangle().fill(SKColor.cream.opacity(0.85)).frame(width: i % 3 == 0 ? 2.5 : 1.2, height: 18)
+                    }
+                }
+                Capsule()
+                    .fill(SKColor.primary)
+                    .frame(width: 30, height: 2)
+                    .shadow(color: SKColor.primary, radius: 4)
+                    .offset(y: on ? 11 : -11)
+            case .routine:
+                RoundedRectangle(cornerRadius: 12, style: .continuous).fill(SKColor.neutralChip)
+                TimelineView(.periodic(from: .now, by: 0.35)) { context in
+                    let lit = reduceMotion ? 9 : Int(context.date.timeIntervalSinceReferenceDate / 0.35) % 14
+                    VStack(spacing: 3) {
+                        ForEach(0..<2, id: \.self) { row in
+                            HStack(spacing: 3) {
+                                ForEach(0..<7, id: \.self) { col in
+                                    Circle()
+                                        .fill(row * 7 + col == lit ? SKColor.primary : SKColor.muted.opacity(0.35))
+                                        .frame(width: 3.5, height: 3.5)
+                                }
+                            }
+                        }
+                    }
+                }
+            case .ask:
+                RoundedRectangle(cornerRadius: 12, style: .continuous).fill(SKColor.primary.opacity(0.1))
+                Image(systemName: "sparkles")
+                    .font(.system(size: 18, weight: .semibold))
+                    .foregroundStyle(SKColor.primary)
+                    .scaleEffect(on ? 1.1 : 0.9)
+                    .rotationEffect(.degrees(on ? 8 : -8))
+            case .triggers:
+                RoundedRectangle(cornerRadius: 12, style: .continuous).fill(SKColor.goodBg)
+                Image(systemName: "checkmark.shield.fill")
+                    .font(.system(size: 18, weight: .semibold))
+                    .foregroundStyle(SKColor.goodFg)
+                    .scaleEffect(on ? 1.08 : 0.94)
+            case .compare:
+                Circle().fill(SKColor.goodBg).scaleEffect(on ? 1 : 0.86)
+                Image(systemName: "checkmark")
+                    .font(.system(size: 16, weight: .bold))
+                    .foregroundStyle(SKColor.goodFg)
+            }
+        }
+        .frame(width: 44, height: 44)
+        .accessibilityHidden(true)
+        .onAppear {
+            guard !reduceMotion else { return }
+            withAnimation(.easeInOut(duration: benefit == .scan ? 1.0 : 1.3).repeatForever(autoreverses: true)) { on = true }
+        }
+    }
+}
+
+/// Every Pro benefit as a row; tapping one plays its demo.
+struct ProBenefitsList: View {
+    @State private var demo: ProBenefit?
+
+    var body: some View {
+        VStack(spacing: 0) {
+            ForEach(ProBenefit.allCases) { b in
+                Button { Haptics.tap(); demo = b } label: {
+                    HStack(spacing: SKSpace.md) {
+                        ProBenefitIcon(benefit: b)
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text(b.title).font(SKFont.sans(16, weight: .semibold, relativeTo: .body)).foregroundStyle(SKColor.ink)
+                            Text(b.detail).font(SKFont.caption).foregroundStyle(SKColor.muted)
+                        }
+                        Spacer(minLength: 0)
+                        Image(systemName: "play.circle.fill")
+                            .font(.system(size: 20))
+                            .foregroundStyle(SKColor.primary.opacity(0.85))
+                    }
+                    .padding(.vertical, 10)
+                    .contentShape(Rectangle())
+                }
+                .buttonStyle(SKPressStyle())
+                .accessibilityHint("Plays a short demo")
+                if b != ProBenefit.allCases.last {
+                    Rectangle().fill(SKColor.line).frame(height: 1).padding(.leading, 56)
+                }
+            }
+        }
+        .sheet(item: $demo) { b in
+            FeatureDemoSheet(reason: b.reason, title: b.title, message: b.demoMessage)
+        }
     }
 }

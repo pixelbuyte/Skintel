@@ -112,6 +112,8 @@ struct SKSegmented<T: Hashable>: View {
                         .background {
                             if selection == value { thumb }
                         }
+                        // The whole segment is the target, not just the glyphs of the label.
+                        .contentShape(Rectangle())
                 }
                 .buttonStyle(.plain)
                 .accessibilityAddTraits(selection == value ? [.isButton, .isSelected] : .isButton)

@@ -7,6 +7,7 @@ import SkintelCore
 struct JournalView: View {
     @Environment(AppEnvironment.self) private var env
     @Environment(\.openPaywall) private var openPaywall
+    @Environment(\.dismiss) private var dismiss
 
     @State private var condition: JournalCondition?
     @State private var notes = ""
@@ -30,6 +31,13 @@ struct JournalView: View {
                         if env.journal.streak > 0 {
                             SKChip("🔥 \(env.journal.streak)-day streak", tone: .caution)
                         }
+                        Button { dismiss() } label: {
+                            Image(systemName: "xmark").font(.system(size: 15, weight: .semibold))
+                                .foregroundStyle(SKColor.ink).frame(width: 36, height: 36)
+                                .background(SKColor.neutralChip, in: Circle())
+                        }
+                        .buttonStyle(.plain)
+                        .accessibilityLabel("Close")
                     }
                     .padding(.top, SKSpace.md)
 

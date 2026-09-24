@@ -27,10 +27,31 @@ final class JournalStore {
         catch { if state.value == nil { state = .failed(.network(error.localizedDescription)) } }
     }
 
+    /// Optimistic: the entry shows immediately and the network catches up. A failure puts
+    /// the previous list back; only the newest of several quick taps may write the result.
     func save(day: String, condition: JournalCondition, notes: String?) async throws {
-        let saved = try await api.saveJournalEntry(entryDate: day, condition: condition, notes: notes, photoURL: nil)
+        let previous = state
+        let old = entry(on: day)
+        let draft = JournalEntry(id: old?.id ?? "pending-\(day)", userID: old?.userID ?? "", entryDate: day,
+                                 condition: condition, notes: notes, photoURL: old?.photoURL,
+                                 createdAt: old?.createdAt ?? ISO8601DateFormatter().string(from: Date()))
+        replace(day: day, with: draft)
+        saveGeneration += 1
+        let generation = saveGeneration
+        do {
+            let saved = try await api.saveJournalEntry(entryDate: day, condition: condition, notes: notes, photoURL: nil)
+            if generation == saveGeneration { replace(day: day, with: saved) }
+        } catch {
+            if generation == saveGeneration { state = previous }
+            throw error
+        }
+    }
+
+    private var saveGeneration = 0
+
+    private func replace(day: String, with entry: JournalEntry) {
         var list = entries.filter { $0.entryDate != day }
-        list.append(saved)
+        list.append(entry)
         state = .loaded(list.sorted { $0.entryDate > $1.entryDate })
     }
 

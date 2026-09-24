@@ -32,7 +32,7 @@ struct ProductDetailView: View {
         return ScrollView {
             VStack(alignment: .leading, spacing: SKSpace.lg) {
                 HStack(alignment: .top, spacing: SKSpace.lg) {
-                    SKProductMark(name: p.product.productName, size: 64)
+                    SKProductMark(name: p.product.productName, size: 64, category: p.product.category)
                     VStack(alignment: .leading, spacing: 6) {
                         if let b = p.product.brand, !b.isEmpty { Text(b).skLabelStyle() }
                         Text(p.product.productName).font(SKFont.serif(26, relativeTo: .title2)).foregroundStyle(SKColor.ink)

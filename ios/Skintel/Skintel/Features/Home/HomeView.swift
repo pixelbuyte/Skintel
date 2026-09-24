@@ -11,7 +11,6 @@ struct HomeView: View {
     @State private var showCheckIn = false
     @State private var showAssistant = false
     @AppStorage(AssistantPlacement.key) private var assistantPlacement = AssistantPlacement.tab
-    @State private var savingMood = false
     @State private var moodError: String?
     @AppStorage(CheckInPrompt.enabledKey) private var autoPrompt = true
     @AppStorage(CheckInPrompt.lastKey) private var lastPrompt = ""
@@ -265,15 +264,13 @@ struct HomeView: View {
 
     /// One tap saves. Existing notes are kept, so changing the mood never erases detail.
     private func quickSave(_ c: JournalCondition) {
-        guard env.journal.state.value != nil, !savingMood else { return }
-        savingMood = true
+        guard env.journal.state.value != nil else { return }
         moodError = nil
+        Haptics.selection()
         Task {
-            defer { savingMood = false }
             do {
                 try await env.journal.save(day: ISO8601.dayString(Date()), condition: c, notes: env.journal.today?.notes)
                 env.analytics.track(.journalSaved)
-                Haptics.success()
             } catch {
                 moodError = (error as? APIError)?.userMessage ?? error.localizedDescription
                 Haptics.error()
@@ -392,7 +389,7 @@ struct ProductRow: View {
     var body: some View {
         SKCard(padding: SKSpace.md) {
             HStack(spacing: SKSpace.md) {
-                SKProductMark(name: product.product.productName)
+                SKProductMark(name: product.product.productName, category: product.product.category)
                 VStack(alignment: .leading, spacing: 3) {
                     Text(product.product.productName)
                         .font(SKFont.cardTitle).foregroundStyle(SKColor.ink).lineLimit(1)

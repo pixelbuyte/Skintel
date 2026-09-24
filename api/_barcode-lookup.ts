@@ -9,7 +9,16 @@ type LookupResult = {
   productName: string | null;
   ingredients: string;
   source: CacheSource | 'cache' | null;
+  imageUrl?: string | null;
 };
+
+type DbProduct = { brand: string | null; productName: string | null; ingredients: string; imageUrl: string | null };
+
+/** Only https images from the Open Facts CDNs are passed to the app. */
+function safeImage(url: unknown): string | null {
+  if (typeof url !== 'string') return null;
+  return /^https:\/\/images\.open(beauty|food)facts\.org\//.test(url) ? url : null;
+}
 
 type CacheRow = {
   upc: string;
@@ -57,12 +66,13 @@ Return strict JSON only — no commentary, no markdown:
 async function fetchProduct(
   baseUrl: string,
   upc: string,
-  timeoutMs = 5000
-): Promise<{ brand: string | null; productName: string | null; ingredients: string } | null> {
+  timeoutMs = 5000,
+  fields = 'product_name,brands,ingredients_text,image_front_small_url,image_front_url,image_url'
+): Promise<DbProduct | null> {
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), timeoutMs);
   try {
-    const r = await fetch(`${baseUrl}/api/v2/product/${encodeURIComponent(upc)}.json`, {
+    const r = await fetch(`${baseUrl}/api/v2/product/${encodeURIComponent(upc)}.json?fields=${fields}`, {
       signal: controller.signal,
       headers: { 'User-Agent': 'Skintel/1.0 (https://skintel.app)' },
     });
@@ -73,14 +83,19 @@ async function fetchProduct(
         product_name?: string;
         brands?: string;
         ingredients_text?: string;
+        image_front_small_url?: string;
+        image_front_url?: string;
+        image_url?: string;
       };
     };
     if (data.status !== 1 || !data.product) return null;
     const ingredients = (data.product.ingredients_text ?? '').trim();
     const brand = (data.product.brands ?? '').trim() || null;
     const productName = (data.product.product_name ?? '').trim() || null;
-    if (!ingredients && !brand && !productName) return null;
-    return { brand, productName, ingredients };
+    const p = data.product;
+    const imageUrl = safeImage(p.image_front_small_url) ?? safeImage(p.image_front_url) ?? safeImage(p.image_url);
+    if (!ingredients && !brand && !productName && !imageUrl) return null;
+    return { brand, productName, ingredients, imageUrl };
   } catch {
     return null;
   } finally {
@@ -132,7 +147,13 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       productName: cached.product_name,
       ingredients: cached.ingredients,
       source: 'cache',
+      imageUrl: null,
     };
+    // The cache has no image column; a fast image-only fetch keeps the photo.
+    if (cached.source === 'openbeautyfacts' || cached.source === 'openfoodfacts') {
+      const img = await fetchProduct(`https://world.${cached.source}.org`, upc, 1500, 'image_front_small_url,image_front_url,image_url');
+      result.imageUrl = img?.imageUrl ?? null;
+    }
     return json(res, result);
   }
 
@@ -188,6 +209,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       productName: found.productName,
       ingredients: found.ingredients,
       source: finalSource,
+      imageUrl: dbHit?.imageUrl ?? null,
     };
     return json(res, result);
   }

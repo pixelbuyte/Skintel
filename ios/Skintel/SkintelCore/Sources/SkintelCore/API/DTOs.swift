@@ -9,9 +9,12 @@ public struct BarcodeLookup: Codable, Sendable, Hashable {
     public var productName: String?
     public var ingredients: String
     public var source: String?
+    /// Front-of-pack photo from Open Beauty/Food Facts, when the database has one.
+    public var imageUrl: String?
 
-    public init(brand: String?, productName: String?, ingredients: String, source: String?) {
+    public init(brand: String?, productName: String?, ingredients: String, source: String?, imageUrl: String? = nil) {
         self.brand = brand; self.productName = productName; self.ingredients = ingredients; self.source = source
+        self.imageUrl = imageUrl
     }
 }
 

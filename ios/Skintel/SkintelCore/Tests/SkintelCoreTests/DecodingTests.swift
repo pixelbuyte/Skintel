@@ -65,6 +65,13 @@ private func decode<T: Decodable>(_ t: T.Type, _ json: String) throws -> T {
     #expect(withProducts.products.first?.id == "The Ordinary|Niacinamide 10% + Zinc 1%")
 }
 
+@Test func decodesBarcodeLookupWithAndWithoutImage() throws {
+    let cached = try decode(BarcodeLookup.self, #"{"brand":"CeraVe","productName":"PM Lotion","ingredients":"Aqua","source":"cache"}"#)
+    #expect(cached.imageUrl == nil)
+    let fresh = try decode(BarcodeLookup.self, #"{"brand":null,"productName":"Gel","ingredients":"","source":"openbeautyfacts","imageUrl":"https://images.openbeautyfacts.org/images/products/1/front.200.jpg"}"#)
+    #expect(fresh.imageUrl?.hasPrefix("https://images.openbeautyfacts.org/") == true)
+}
+
 // The exact row `/api/journal` returned before it selected `user_id`: this used to fail the
 // whole list with "Unexpected reply from the server." on Today's check-in card.
 @Test func decodesJournalRowWithoutUserID() throws {
