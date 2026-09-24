@@ -291,6 +291,8 @@ final class AssistantStore {
 struct AssistantView: View {
     /// False when hosted as a tab: there is nothing to close.
     var showsClose = true
+    /// Room kept under the composer for the floating tab bar when hosted as a tab.
+    var tabBarClearance: CGFloat = 0
 
     @Environment(AppEnvironment.self) private var env
     @Environment(\.dismiss) private var dismiss
@@ -492,7 +494,7 @@ struct AssistantView: View {
             .padding(.horizontal, SKSpace.xl)
         }
         .padding(.top, SKSpace.sm)
-        .padding(.bottom, SKSpace.sm)
+        .padding(.bottom, SKSpace.sm + tabBarClearance)
         .background {
             LinearGradient(colors: [SKColor.bg.opacity(0), SKColor.bg], startPoint: .top, endPoint: .center)
                 .ignoresSafeArea(edges: .bottom)

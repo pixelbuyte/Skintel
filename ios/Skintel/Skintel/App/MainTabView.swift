@@ -1,4 +1,6 @@
+import Combine
 import SwiftUI
+import UIKit
 
 enum MainTab: Hashable, CaseIterable {
     case today, shelf, ask, insights, you
@@ -38,7 +40,9 @@ struct MainTabView: View {
     @State private var showCompare = false
     @State private var showAssistant = false
     @State private var showShelf = false
+    @State private var keyboardUp = false
     @AppStorage(AssistantPlacement.key) private var assistantPlacement = AssistantPlacement.tab
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     var body: some View {
         ZStack(alignment: .bottom) {
@@ -46,21 +50,32 @@ struct MainTabView: View {
                 switch tab {
                 case .today: HomeView()
                 case .shelf: ShelfTab()
-                case .ask: AssistantView(showsClose: false)
+                // Ask reserves the bar's space itself: an inset from out here doesn't reach a
+                // composer pinned inside its own NavigationStack.
+                case .ask: AssistantView(showsClose: false, tabBarClearance: keyboardUp ? 0 : SKTabBar.height + SKSpace.md)
                 case .insights: InsightsView()
                 case .you: YouTab()
                 }
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
             .safeAreaInset(edge: .bottom, spacing: 0) {
-                Color.clear.frame(height: SKTabBar.height)
+                Color.clear.frame(height: tab == .ask || keyboardUp ? 0 : SKTabBar.height)
             }
 
-            SKTabBar(selection: $tab) {
-                Haptics.medium()
-                showQuick = true
+            // Typing gets the whole screen; the bar comes back when the keyboard goes.
+            if !keyboardUp {
+                SKTabBar(selection: $tab) {
+                    Haptics.medium()
+                    showQuick = true
+                }
+                .transition(.move(edge: .bottom).combined(with: .opacity))
             }
-            .ignoresSafeArea(.keyboard, edges: .bottom)
+        }
+        .onReceive(NotificationCenter.default.publisher(for: UIResponder.keyboardWillShowNotification)) { _ in
+            withAnimation(reduceMotion ? nil : SKAnimation.ios(0.25)) { keyboardUp = true }
+        }
+        .onReceive(NotificationCenter.default.publisher(for: UIResponder.keyboardWillHideNotification)) { _ in
+            withAnimation(reduceMotion ? nil : SKAnimation.ios(0.25)) { keyboardUp = false }
         }
         .onChange(of: assistantPlacement) { _, placement in
             if placement == AssistantPlacement.tab && tab == .shelf { tab = .today }
