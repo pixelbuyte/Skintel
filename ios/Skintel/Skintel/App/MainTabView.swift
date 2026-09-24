@@ -362,7 +362,7 @@ private struct SKGlassTabBar: View {
 // MARK: - Paywall routing available to every screen
 
 enum PaywallReason: String, Identifiable, Sendable {
-    case scanner, productLimit, compare, recommend, routine, journalAnalysis, culprits, general
+    case scanner, productLimit, compare, recommend, routine, journalAnalysis, culprits, assistant, general
     var id: String { rawValue }
 }
 

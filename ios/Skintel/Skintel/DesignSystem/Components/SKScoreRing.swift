@@ -66,7 +66,7 @@ struct SKProgressBar: View {
                 Capsule().fill(SKColor.line)
                 Capsule()
                     .fill(tone == .neutral ? AnyShapeStyle(SKColor.primary) : AnyShapeStyle(tone.fg))
-                    .frame(width: max(height, geo.size.width * max(0, min(1, fraction))))
+                    .frame(width: fraction <= 0 ? 0 : max(height, geo.size.width * min(1, fraction)))
             }
         }
         .frame(height: height)
