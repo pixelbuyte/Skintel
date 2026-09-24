@@ -73,6 +73,10 @@ struct SignInView: View {
 
                 modeSwitcher.padding(.top, SKSpace.lg)
 
+                if model.mode == .signUp {
+                    freeIncludes.padding(.top, SKSpace.xl)
+                }
+
                 Spacer(minLength: SKSpace.xxl)
 
                 legal
@@ -101,6 +105,29 @@ struct SignInView: View {
         case .signUp: "Free to start. Your shelf syncs across devices."
         case .reset: "We'll email you a link to set a new one."
         }
+    }
+
+    private var freeIncludes: some View {
+        VStack(alignment: .leading, spacing: SKSpace.md) {
+            Text("YOUR FREE ACCOUNT INCLUDES").font(SKFont.label).tracking(1.2).foregroundStyle(SKColor.muted)
+            ForEach(FreeBenefit.allCases) { b in
+                HStack(spacing: SKSpace.sm) {
+                    Image(systemName: "checkmark")
+                        .font(.system(size: 11, weight: .bold))
+                        .foregroundStyle(SKColor.goodFg)
+                        .frame(width: 22, height: 22)
+                        .background(SKColor.goodBg, in: Circle())
+                        .accessibilityHidden(true)
+                    Text(b.title).font(SKFont.sans(15, relativeTo: .subheadline)).foregroundStyle(SKColor.ink)
+                }
+            }
+            Text("Scanning, Ask Skintel and trigger tracking come with Pro.")
+                .font(SKFont.caption).foregroundStyle(SKColor.muted)
+        }
+        .padding(SKSpace.lg)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(SKColor.cream, in: RoundedRectangle(cornerRadius: SKRadius.card, style: .continuous))
+        .overlay(RoundedRectangle(cornerRadius: SKRadius.card, style: .continuous).stroke(SKColor.line))
     }
 
     private var orDivider: some View {
