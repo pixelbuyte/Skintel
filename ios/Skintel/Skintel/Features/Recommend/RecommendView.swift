@@ -229,6 +229,9 @@ struct AssistantMessage: Codable, Identifiable, Sendable, Equatable {
     var id = UUID()
     var role: Role
     var text: String
+    /// Products the person mentioned that aren't on their shelf yet. Optional so chats saved
+    /// before this field existed still load.
+    var suggestions: [SuggestedProduct]? = nil
 }
 
 /// A saved Ask Skintel conversation.
@@ -293,6 +296,8 @@ struct AssistantView: View {
     var showsClose = true
     /// Room kept under the composer for the floating tab bar when hosted as a tab.
     var tabBarClearance: CGFloat = 0
+    /// Put in the composer (not sent) when opened from a check-in's "Go deeper".
+    var initialQuestion: String? = nil
 
     @Environment(AppEnvironment.self) private var env
     @Environment(\.dismiss) private var dismiss
@@ -303,6 +308,7 @@ struct AssistantView: View {
     @State private var isAnswering = false
     @State private var showHistory = false
     @State private var paywall: PaywallReason?
+    @State private var addingProduct: SuggestedProduct?
     @AppStorage(AskModel.key) private var askModel: AskModel = .luna
     @FocusState private var inputFocused: Bool
 
@@ -319,13 +325,13 @@ struct AssistantView: View {
                             welcome
                         } else {
                             ForEach(messages) { m in
-                                AssistantBubble(message: m).id(m.id)
+                                AssistantBubble(message: m, shelfNames: shelfNames) { addingProduct = $0 }.id(m.id)
                             }
                             if isAnswering && messages.last?.role == .user {
                                 TypingDots()
                             }
                             if !isAnswering && messages.last?.role == .upsell {
-                                SKButton(title: "See Skintel Pro", kind: .secondary, fullWidth: false) { paywall = .general }
+                                SKButton(title: "See how it works", kind: .secondary, fullWidth: false) { paywall = .assistant }
                                     .padding(.leading, 40)
                             }
                         }
@@ -366,6 +372,14 @@ struct AssistantView: View {
                 .presentationDetents([.medium, .large])
         }
         .sheet(item: $paywall) { PaywallView(reason: $0) }
+        .sheet(item: $addingProduct) { p in
+            NavigationStack {
+                ProductFormView(mode: .add(prefill: ScanCandidate(brand: p.brand, productName: p.productName, inci: "", upc: nil, source: "assistant")))
+            }
+        }
+        .onAppear {
+            if messages.isEmpty, draft.isEmpty, let initialQuestion { draft = initialQuestion }
+        }
     }
 
     // MARK: Empty state
@@ -534,7 +548,7 @@ struct AssistantView: View {
         Task {
             do {
                 let reply = try await api.askAssistant(messages: turns, amRoutine: am, pmRoutine: pm, model: model)
-                deliver(reply, role: .assistant, alreadyWaited: true)
+                deliver(reply.reply, role: .assistant, alreadyWaited: true, suggestions: reply.products)
             } catch let e as APIError {
                 if e.requiresPaywall {
                     deliver(Self.upsellText, role: .upsell, alreadyWaited: true)
@@ -552,10 +566,12 @@ struct AssistantView: View {
     /// A short typing pause (skipped when the network already made them wait), then answers
     /// are revealed word by word the way a live assistant streams. Reduce Motion shows the
     /// text at once. Every finished exchange is saved to history.
-    private func deliver(_ text: String, role: AssistantMessage.Role, alreadyWaited: Bool = false) {
+    private func deliver(_ text: String, role: AssistantMessage.Role, alreadyWaited: Bool = false,
+                         suggestions: [SuggestedProduct] = []) {
         isAnswering = true
         let reduce = reduceMotion
         let chatID = conversationID
+        let offered: [SuggestedProduct]? = suggestions.isEmpty ? nil : suggestions
         Task {
             if !alreadyWaited {
                 try? await Task.sleep(for: .milliseconds(reduce ? 150 : 700))
@@ -565,7 +581,7 @@ struct AssistantView: View {
                 return
             }
             if reduce || role != .assistant {
-                messages.append(AssistantMessage(role: role, text: text))
+                messages.append(AssistantMessage(role: role, text: text, suggestions: offered))
             } else {
                 let message = AssistantMessage(role: role, text: "")
                 messages.append(message)
@@ -575,10 +591,17 @@ struct AssistantView: View {
                     if let index = messages.firstIndex(where: { $0.id == message.id }) { messages[index].text = shown }
                     try? await Task.sleep(for: .milliseconds(22))
                 }
+                // The shelf card appears once the answer has finished writing out.
+                if let index = messages.firstIndex(where: { $0.id == message.id }) { messages[index].suggestions = offered }
             }
             isAnswering = false
             saveConversation()
         }
+    }
+
+    /// Lower-cased names already on the shelf, so an added suggestion shows as done.
+    private var shelfNames: Set<String> {
+        Set(env.products.products.map { $0.product.productName.lowercased() })
     }
 
     private func saveConversation() {
@@ -738,6 +761,8 @@ private enum AssistantPrompt: String, CaseIterable, Identifiable {
 
 private struct AssistantBubble: View {
     let message: AssistantMessage
+    var shelfNames: Set<String> = []
+    var onAdd: (SuggestedProduct) -> Void = { _ in }
 
     var body: some View {
         switch message.role {
@@ -754,14 +779,60 @@ private struct AssistantBubble: View {
         case .assistant, .notice, .upsell:
             HStack(alignment: .top, spacing: SKSpace.md) {
                 AssistantAvatar(size: 28)
-                Text(Self.rich(message.text))
-                    .font(SKFont.sans(16, relativeTo: .body))
-                    .foregroundStyle(message.role == .assistant ? SKColor.ink : SKColor.muted)
-                    .lineSpacing(3)
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                    .textSelection(.enabled)
+                VStack(alignment: .leading, spacing: SKSpace.md) {
+                    Text(Self.rich(message.text))
+                        .font(SKFont.sans(16, relativeTo: .body))
+                        .foregroundStyle(message.role == .assistant ? SKColor.ink : SKColor.muted)
+                        .lineSpacing(3)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .textSelection(.enabled)
+                    if let suggestions = message.suggestions, !suggestions.isEmpty {
+                        shelfCard(suggestions)
+                    }
+                }
             }
         }
+    }
+
+    private func shelfCard(_ items: [SuggestedProduct]) -> some View {
+        VStack(alignment: .leading, spacing: SKSpace.sm) {
+            Label("Add \(items.count == 1 ? "this" : "these") to your shelf?", systemImage: "square.stack")
+                .font(SKFont.sans(14.5, weight: .semibold, relativeTo: .subheadline))
+                .foregroundStyle(SKColor.ink)
+            ForEach(items) { p in
+                let added = shelfNames.contains(p.productName.lowercased())
+                HStack(spacing: SKSpace.md) {
+                    SKProductMark(name: p.productName, size: 36)
+                    VStack(alignment: .leading, spacing: 1) {
+                        Text(p.productName).font(SKFont.sans(15, weight: .semibold, relativeTo: .subheadline)).foregroundStyle(SKColor.ink).lineLimit(2)
+                        let meta = [p.brand, p.category].compactMap { $0 }.joined(separator: " · ")
+                        if !meta.isEmpty { Text(meta).font(SKFont.caption).foregroundStyle(SKColor.muted) }
+                    }
+                    Spacer(minLength: 0)
+                    if added {
+                        Label("Added", systemImage: "checkmark")
+                            .font(SKFont.sans(13.5, weight: .semibold, relativeTo: .caption))
+                            .foregroundStyle(SKColor.goodFg)
+                    } else {
+                        Button { onAdd(p) } label: {
+                            Text("Add")
+                                .font(SKFont.sans(14, weight: .semibold, relativeTo: .subheadline))
+                                .foregroundStyle(SKColor.cream)
+                                .padding(.horizontal, 14)
+                                .frame(height: 34)
+                                .background(SKColor.primary, in: Capsule())
+                        }
+                        .buttonStyle(SKPressStyle())
+                        .accessibilityLabel("Add \(p.productName) to your shelf")
+                    }
+                }
+            }
+            Text("Opens the product form filled in. You check it before it's saved.")
+                .font(SKFont.caption).foregroundStyle(SKColor.muted)
+        }
+        .padding(SKSpace.md)
+        .background(SKColor.cream, in: RoundedRectangle(cornerRadius: 18, style: .continuous))
+        .overlay(RoundedRectangle(cornerRadius: 18, style: .continuous).stroke(SKColor.line))
     }
 
     /// Inline markdown only (bold), keeping the answer's line breaks and numbering as written.

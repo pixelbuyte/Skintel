@@ -52,6 +52,19 @@ private func decode<T: Decodable>(_ t: T.Type, _ json: String) throws -> T {
     #expect(j.entries.first?.entryDate == "2026-08-17")
 }
 
+@Test func decodesAssistantReplyWithAndWithoutProducts() throws {
+    let bare = try decode(AssistantReply.self, #"{"reply":"Hi","model":"x"}"#)
+    #expect(bare.reply == "Hi")
+    #expect(bare.products.isEmpty)
+
+    let withProducts = try decode(AssistantReply.self, """
+    {"reply":"Ok","products":[{"brand":"The Ordinary","productName":"Niacinamide 10% + Zinc 1%","category":null}]}
+    """)
+    #expect(withProducts.products.count == 1)
+    #expect(withProducts.products.first?.brand == "The Ordinary")
+    #expect(withProducts.products.first?.id == "The Ordinary|Niacinamide 10% + Zinc 1%")
+}
+
 // The exact row `/api/journal` returned before it selected `user_id`: this used to fail the
 // whole list with "Unexpected reply from the server." on Today's check-in card.
 @Test func decodesJournalRowWithoutUserID() throws {

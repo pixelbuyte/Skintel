@@ -93,12 +93,11 @@ public struct SkintelAPI: Sendable {
     /// Luna. Throws `.proRequired` for free accounts and `.server(503, …)` while the model
     /// isn't configured.
     public func askAssistant(messages: [AssistantTurn], amRoutine: [String], pmRoutine: [String],
-                             model: String = "luna") async throws -> String {
+                             model: String = "luna") async throws -> AssistantReply {
         struct Routine: Encodable { let am: [String]; let pm: [String] }
         struct Body: Encodable { let messages: [AssistantTurn]; let routine: Routine; let model: String }
-        struct Reply: Decodable { let reply: String }
         let body = Body(messages: messages, routine: Routine(am: amRoutine, pm: pmRoutine), model: model)
-        return try await post(Reply.self, "assistant", body: body).reply
+        return try await post(AssistantReply.self, "assistant", body: body)
     }
 
     // MARK: Account
@@ -143,5 +142,38 @@ public struct SkintelAPI: Sendable {
 
     private func send(_ method: String, _ path: String, _ query: [String: String], body: (some Encodable)?) async throws {
         _ = try await raw(method, path, query, body: body)
+    }
+}
+
+/// What `/api/assistant` answers: the reply, plus named products the person said they use
+/// that aren't on their shelf yet.
+public struct AssistantReply: Decodable, Sendable, Equatable {
+    public let reply: String
+    public let products: [SuggestedProduct]
+
+    enum CodingKeys: String, CodingKey { case reply, products }
+
+    public init(reply: String, products: [SuggestedProduct] = []) {
+        self.reply = reply
+        self.products = products
+    }
+
+    public init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        reply = try c.decode(String.self, forKey: .reply)
+        products = (try? c.decodeIfPresent([SuggestedProduct].self, forKey: .products)) ?? []
+    }
+}
+
+/// A product Ask Skintel heard the person mention, offered for the shelf.
+public struct SuggestedProduct: Codable, Sendable, Hashable, Identifiable {
+    public var brand: String?
+    public var productName: String
+    public var category: String?
+
+    public var id: String { "\(brand ?? "")|\(productName)" }
+
+    public init(brand: String?, productName: String, category: String?) {
+        self.brand = brand; self.productName = productName; self.category = category
     }
 }
