@@ -29,7 +29,7 @@ struct JournalView: View {
                         Text("Journal").font(SKFont.pageTitle).foregroundStyle(SKColor.ink)
                         Spacer()
                         if env.journal.streak > 0 {
-                            SKChip("🔥 \(env.journal.streak)-day streak", tone: .caution)
+                            SKChip("\(env.journal.streak)-day streak", tone: .good)
                         }
                         Button { dismiss() } label: {
                             Image(systemName: "xmark").font(.system(size: 15, weight: .semibold))

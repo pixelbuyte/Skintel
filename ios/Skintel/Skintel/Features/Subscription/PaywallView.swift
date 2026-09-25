@@ -1412,7 +1412,7 @@ extension ProLockedView.Feature {
         case .ask: "Ask Skintel"
         case .insights: "Insights"
         case .compare: "Compare"
-        case .triggers: "Culprits"
+        case .triggers: "Triggers"
         case .scanner: "Scanning"
         case .shelfCap: "Unlimited shelf"
         case .routine: "Routine checks"

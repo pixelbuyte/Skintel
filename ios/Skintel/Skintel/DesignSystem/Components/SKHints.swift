@@ -30,6 +30,15 @@ enum HintID: String, CaseIterable, Sendable {
         }
     }
 
+    /// Ask and Today can already have the animated mascot on screen; one character per
+    /// screen, so their cards skip the still drop.
+    var showsDrop: Bool {
+        switch self {
+        case .today, .ask: false
+        default: true
+        }
+    }
+
     var title: String {
         switch self {
         case .today: "This is Today"
@@ -190,7 +199,9 @@ private struct SKHintCard: View {
             // about two lines on a phone.
             VStack(alignment: .leading, spacing: SKSpace.md) {
                 HStack(alignment: .center, spacing: SKSpace.md) {
-                    SKDrop(id.drop, size: 64)
+                    if id.showsDrop {
+                        SKDrop(id.drop, size: 64)
+                    }
                     Text(id.title)
                         .font(SKFont.section)
                         .foregroundStyle(SKColor.ink)

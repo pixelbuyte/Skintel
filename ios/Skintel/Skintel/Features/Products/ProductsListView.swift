@@ -116,7 +116,7 @@ struct ProductsListView: View {
         let ent = env.subscription.entitlement
         if let limit = ent.productLimit, env.products.isLoaded {
             let n = env.products.products.count
-            Button { openPaywall(n >= limit ? .productLimit : .general) } label: {
+            Button { openPaywall(.general) } label: {
                 HStack(spacing: SKSpace.md) {
                     SKProgressBar(fraction: Double(n) / Double(limit), tone: n >= limit ? .bad : .neutral, height: 6)
                         .frame(width: 80)
