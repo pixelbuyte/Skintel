@@ -93,6 +93,12 @@ final class RoutineStore {
         return count
     }
 
+    /// Whether every step of `slot` was ticked on `day` (today by default), per the
+    /// completion log — the same record `daysCompleted` counts.
+    func isComplete(_ slot: Slot, on day: String = ISO8601.dayString(Date())) -> Bool {
+        (routine.completed?[day] ?? []).contains(slot.rawValue)
+    }
+
     /// Progress for the Home card ("2/5") for the slot that is current right now.
     func progress(for slot: Slot) -> (done: Int, total: Int) {
         let list = ids(slot)
