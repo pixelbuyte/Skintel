@@ -41,6 +41,8 @@ settings:
 packages:
   SkintelCore:
     path: SkintelCore
+  SkinstelMascot:
+    path: ../Packages/SkinstelMascot
 
 targets:
   Skintel:
@@ -56,6 +58,8 @@ targets:
     dependencies:
       - package: SkintelCore
         product: SkintelCore
+      - package: SkinstelMascot
+        product: SkinstelMascot
       # Embedded in Skintel.app/PlugIns.
       - target: SkintelWidgets
     # XcodeGen writes this file from `properties` on every generate — edit here, not the plist.

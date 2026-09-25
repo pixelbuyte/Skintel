@@ -149,9 +149,12 @@ struct CulpritsView: View {
             case .loaded(let a):
                 if a.suspects.isEmpty {
                     SKCard(tint: .good) {
-                        VStack(alignment: .leading, spacing: 6) {
-                            Text("No clear suspect yet").font(SKFont.cardTitle).foregroundStyle(SKColor.ink)
-                            Text(a.summary ?? "Keep logging — every entry sharpens detection.").font(SKFont.secondary).foregroundStyle(SKColor.muted)
+                        HStack(spacing: SKSpace.md) {
+                            SKDrop("DropInsights", size: 64)
+                            VStack(alignment: .leading, spacing: 6) {
+                                Text("No clear suspect yet").font(SKFont.cardTitle).foregroundStyle(SKColor.ink)
+                                Text(a.summary ?? "Keep logging — every entry sharpens detection.").font(SKFont.secondary).foregroundStyle(SKColor.muted)
+                            }
                         }
                     }
                 }

@@ -1,5 +1,6 @@
 import SwiftUI
 import SkintelCore
+import SkinstelMascot
 
 /// Recommend.tsx: goal + budget → `/api/recommend`, which builds avoid/prefer lists from
 /// the shelf server-side. Options are the web's six goals and three budget presets.
@@ -400,8 +401,14 @@ struct AssistantView: View {
     private var welcome: some View {
         VStack(alignment: .leading, spacing: SKSpace.lg) {
             VStack(alignment: .leading, spacing: SKSpace.sm) {
-                AssistantAvatar(size: 44)
-                Text("What can I help with?").font(SKFont.hero).foregroundStyle(SKColor.ink)
+                HStack(alignment: .bottom, spacing: SKSpace.md) {
+                    VStack(alignment: .leading, spacing: SKSpace.sm) {
+                        AssistantAvatar(size: 44)
+                        Text("What can I help with?").font(SKFont.hero).foregroundStyle(SKColor.ink)
+                    }
+                    Spacer(minLength: 0)
+                    SKMascot(action: .idle, height: 96)
+                }
                 Text("Ask about your routine, ingredients or a reaction. Answers use your shelf and routine.")
                     .font(SKFont.sans(16, relativeTo: .body)).foregroundStyle(SKColor.muted)
             }
@@ -771,7 +778,8 @@ private struct AssistantHistoryView: View {
                 if env.assistant.conversations.isEmpty {
                     SKEmptyState(icon: "bubble.left.and.bubble.right",
                                  title: "No chats yet",
-                                 message: "Your conversations with Ask Skintel are saved here, on this device.")
+                                 message: "Your conversations with Ask Skintel are saved here, on this device.",
+                                 drop: "DropAsk")
                         .padding(SKSpace.xl)
                         .frame(maxHeight: .infinity)
                 } else {
@@ -962,6 +970,9 @@ private struct TypingDots: View {
             .padding(.horizontal, 14)
             .padding(.vertical, 12)
             .background(SKColor.cream, in: Capsule())
+            Spacer(minLength: 0)
+            // Shown only while a request is in flight (see `isAnswering`).
+            SKMascot(action: .thinking, height: 64)
         }
         .onAppear { on = true }
         .accessibilityElement(children: .ignore)

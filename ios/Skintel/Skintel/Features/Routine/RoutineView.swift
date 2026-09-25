@@ -82,7 +82,8 @@ struct RoutineView: View {
             SKEmptyState(icon: "list.number", title: "Build your \(slot.rawValue) routine",
                          message: env.products.products.isEmpty
                          ? "Add products to your shelf first, then order them here."
-                         : "Pick steps from your shelf, or start from a template and adjust.")
+                         : "Pick steps from your shelf, or start from a template and adjust.",
+                         drop: slot == .pm ? "DropNight" : "DropRoutineBuilder")
             if !env.products.products.isEmpty {
                 VStack(spacing: SKSpace.sm) {
                     SKButton(title: "Add step from shelf") { showPicker = true }
@@ -144,10 +145,20 @@ struct RoutineView: View {
             VStack(spacing: SKSpace.md) {
                 if a.conflicts.isEmpty {
                     SKCard(tint: .good) {
-                        VStack(alignment: .leading, spacing: 6) {
-                            Text("No conflicts found").font(SKFont.cardTitle).foregroundStyle(SKColor.ink)
-                            if let v = (slot == .am ? a.amVerdict : a.pmVerdict), !v.isEmpty { Text(v).font(SKFont.secondary).foregroundStyle(SKColor.muted) }
+                        HStack(spacing: SKSpace.md) {
+                            SKDrop("DropRoutineDone", size: 64)
+                            VStack(alignment: .leading, spacing: 6) {
+                                Text("No conflicts found").font(SKFont.cardTitle).foregroundStyle(SKColor.ink)
+                                if let v = (slot == .am ? a.amVerdict : a.pmVerdict), !v.isEmpty { Text(v).font(SKFont.secondary).foregroundStyle(SKColor.muted) }
+                            }
                         }
+                    }
+                } else {
+                    HStack(spacing: SKSpace.md) {
+                        SKDrop("DropWarning", size: 64)
+                        Text("\(a.conflicts.count) conflict\(a.conflicts.count == 1 ? "" : "s") to sort out")
+                            .font(SKFont.cardTitle).foregroundStyle(SKColor.ink)
+                        Spacer(minLength: 0)
                     }
                 }
                 ForEach(a.conflicts) { c in

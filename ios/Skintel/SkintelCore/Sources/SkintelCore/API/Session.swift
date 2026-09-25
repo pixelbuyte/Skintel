@@ -54,6 +54,7 @@ public struct AuthUser: Codable, Sendable, Hashable, Identifiable {
     public static let displayNameKey = "display_name"
     public static let skinTypeKey = "skin_type"
     public static let concernsKey = "concerns"
+    public static let ageRangeKey = "age_range"
     public static let onboardingCompleteKey = "onboarding_complete"
     public static let fullNameKey = "full_name"   // set by Sign in with Apple on first sign-in
     /// Free text the person wrote for Ask Skintel ("pregnant, no retinoids"); the server
@@ -84,7 +85,8 @@ public struct AuthUser: Codable, Sendable, Hashable, Identifiable {
         let t = userMetadata[Self.skinTypeKey]?.stringValue.flatMap(SkinType.init(rawValue:))
         let cs = userMetadata[Self.concernsKey]?.arrayValue?
             .compactMap { $0.stringValue.flatMap(SkinConcern.init(rawValue:)) } ?? []
-        return SkinProfile(skinType: t, concerns: cs)
+        let age = userMetadata[Self.ageRangeKey]?.stringValue.flatMap(AgeRange.init(rawValue:))
+        return SkinProfile(skinType: t, concerns: cs, ageRange: age)
     }
 
     /// The `data` object for `PUT /auth/v1/user` that records an onboarding result.
@@ -92,6 +94,7 @@ public struct AuthUser: Codable, Sendable, Hashable, Identifiable {
         var m: [String: JSONValue] = [
             Self.skinTypeKey: profile.skinType.map { .string($0.rawValue) } ?? .null,
             Self.concernsKey: .array(profile.concerns.map { .string($0.rawValue) }),
+            Self.ageRangeKey: profile.ageRange.map { .string($0.rawValue) } ?? .null,
             Self.onboardingCompleteKey: .bool(onboardingComplete),
         ]
         if let displayName, !displayName.isEmpty { m[Self.displayNameKey] = .string(displayName) }

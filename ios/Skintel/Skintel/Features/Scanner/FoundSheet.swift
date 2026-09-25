@@ -1,5 +1,6 @@
 import SwiftUI
 import SkintelCore
+import SkinstelMascot
 
 /// Design §09: the barcode hit slides up and analysis starts immediately — no confirm
 /// step. Also hosts the not-found / failed / needs-INCI states of the same flow.
@@ -83,13 +84,16 @@ struct FoundSheet: View {
     private func progressCard(title: String, subtitle: String) -> some View {
         VStack(alignment: .leading, spacing: SKSpace.md) {
             HStack(spacing: SKSpace.md) {
-                ProgressView().tint(SKColor.primary)
+                // Loops only while this phase lasts; the text says what is actually happening.
+                SKMascot(action: .scan, height: 72)
                 VStack(alignment: .leading, spacing: 3) {
                     Text(title).font(SKFont.cardTitle).foregroundStyle(SKColor.ink)
                     Text(subtitle).font(SKFont.secondary).foregroundStyle(SKColor.muted)
                 }
+                .accessibilityElement(children: .combine)
             }
-            .padding(SKSpace.lg)
+            .padding(.vertical, SKSpace.sm)
+            .padding(.horizontal, SKSpace.lg)
             .frame(maxWidth: .infinity, alignment: .leading)
             .background(SKColor.cautionBg.opacity(0.6), in: RoundedRectangle(cornerRadius: SKRadius.card, style: .continuous))
             .overlay(RoundedRectangle(cornerRadius: SKRadius.card, style: .continuous).stroke(SKColor.cautionFg.opacity(0.2)))
