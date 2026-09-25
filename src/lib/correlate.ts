@@ -1,8 +1,8 @@
-import type { Culprit, ProductWithIngredients } from './types';
+import type { Trigger, ProductWithIngredients } from './types';
 
 export function correlate(products: ProductWithIngredients[]): {
-  high: Culprit[];
-  medium: Culprit[];
+  high: Trigger[];
+  medium: Trigger[];
 } {
   const badMap = new Map<
     string,
@@ -39,14 +39,14 @@ export function correlate(products: ProductWithIngredients[]): {
     }
   }
 
-  const high: Culprit[] = [];
-  const medium: Culprit[] = [];
+  const high: Trigger[] = [];
+  const medium: Trigger[] = [];
 
   for (const [normalized, bad] of badMap.entries()) {
     if (bad.productIds.size < 2) continue;
     const good = goodMap.get(normalized);
     const goodCount = good?.productIds.size ?? 0;
-    const culprit: Culprit = {
+    const trigger: Trigger = {
       name: bad.rawName,
       normalized,
       badCount: bad.productIds.size,
@@ -55,11 +55,11 @@ export function correlate(products: ProductWithIngredients[]): {
       goodProducts: good ? [...good.productNames] : [],
       risk: goodCount > 0 ? 'medium' : 'high',
     };
-    if (culprit.risk === 'high') high.push(culprit);
-    else medium.push(culprit);
+    if (trigger.risk === 'high') high.push(trigger);
+    else medium.push(trigger);
   }
 
-  const sort = (a: Culprit, b: Culprit) =>
+  const sort = (a: Trigger, b: Trigger) =>
     b.badCount - a.badCount || a.normalized.localeCompare(b.normalized);
   high.sort(sort);
   medium.sort(sort);

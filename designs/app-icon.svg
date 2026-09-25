@@ -1,5 +1,9 @@
 <svg width="1024" height="1024" viewBox="0 0 1024 1024" fill="none" xmlns="http://www.w3.org/2000/svg">
-  <!-- Skintel iOS app icon — master 1024px. iOS applies its own squircle mask; art is full-bleed. -->
+  <!--
+    Skintel iOS app icon — master 1024px, full-bleed (iOS applies the squircle mask).
+    Mark geometry matches the shipping logo at public/icons/skintel.svg:
+    one large four-point star with two companion sparkles.
+  -->
   <defs>
     <linearGradient id="bg" x1="0" y1="0" x2="1024" y2="1024" gradientUnits="userSpaceOnUse">
       <stop offset="0" stop-color="#B2634F"/>
@@ -11,20 +15,14 @@
       <stop offset="0.4" stop-color="#FFFEFA" stop-opacity="0"/>
     </linearGradient>
   </defs>
+
   <rect width="1024" height="1024" fill="url(#bg)"/>
   <rect width="1024" height="1024" fill="url(#sheen)"/>
-  <!-- scan line band -->
-  <rect x="0" y="484" width="1024" height="56" fill="#FFFEFA" fill-opacity="0.16"/>
-  <rect x="0" y="508" width="1024" height="8" rx="4" fill="#FFFEFA" fill-opacity="0.55"/>
-  <!-- serif S wordmark -->
-  <text x="512" y="512" text-anchor="middle" dominant-baseline="central"
-        font-family="'Instrument Serif', Georgia, 'Times New Roman', serif"
-        font-size="640" fill="#FFFEFA">S</text>
-  <!-- corner scan brackets -->
-  <g stroke="#FFFEFA" stroke-opacity="0.9" stroke-width="34" stroke-linecap="round" fill="none">
-    <path d="M 196 318 v -66 a 56 56 0 0 1 56 -56 h 66"/>
-    <path d="M 828 318 v -66 a 56 56 0 0 0 -56 -56 h -66"/>
-    <path d="M 196 706 v 66 a 56 56 0 0 0 56 56 h 66"/>
-    <path d="M 828 706 v 66 a 56 56 0 0 1 -56 56 h -66"/>
+
+  <!-- star, authored in a 100x100 box and scaled to the 1024 master -->
+  <g transform="scale(10.24)" fill="#FFFEFA">
+    <path d="M50 23 L56 44 L77 50 L56 56 L50 77 L44 56 L23 50 L44 44 Z"/>
+    <path d="M71 63.6 L72.6 69.4 L78.4 71 L72.6 72.6 L71 78.4 L69.4 72.6 L63.6 71 L69.4 69.4 Z" opacity="0.9"/>
+    <path d="M70.4 17 L71.6 21.2 L75.8 22.4 L71.6 23.6 L70.4 27.8 L69.2 23.6 L65 22.4 L69.2 21.2 Z" opacity="0.75"/>
   </g>
 </svg>

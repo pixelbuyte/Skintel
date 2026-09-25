@@ -1,34 +1,54 @@
 # Skintel — iOS App Design Spec
 
 Complete visual design for the Skintel iOS app (Capacitor build). Open
-**`skintel-ios-designs.html`** in a browser to view the full spec: 17 surfaces
+**`skintel-ios-designs.html`** in a browser to view the full spec: 18 surfaces
 in iPhone 15 Pro frames with design notes under each one.
 
-Rendered previews live in [`previews/`](previews/); the master app icon is
-[`app-icon.svg`](app-icon.svg) (1024×1024, full-bleed — iOS applies the squircle mask).
+Rendered previews live in [`previews/`](previews/). The brand mark is the
+**Skintel star** — [`public/icons/skintel.svg`](../public/icons/skintel.svg) is the
+source of truth; [`app-icon.svg`](app-icon.svg) is the full-bleed 1024×1024 iOS
+master built from the same geometry (iOS applies the squircle mask).
 
 ## Surfaces
 
 | # | Surface | Preview |
 |---|---------|---------|
-| 01 | App icon system (master, home, spotlight, settings, dark, tinted) | `previews/icon.png` |
-| 02 | Splash | `previews/splash.png` |
-| 03 | Onboarding 1 — value promise | `previews/ob1.png` |
-| 04 | Onboarding 2 — skin profile | `previews/ob2.png` |
-| 05 | Onboarding 3 — camera permission | `previews/ob3.png` |
-| 06 | Sign in (Apple / Google / magic link) | `previews/login.png` |
-| 07 | Home / Dashboard | `previews/home.png` |
-| 08 | Scanner — viewfinder | `previews/scan.png` |
-| 09 | Scanner — match & auto-analyze sheet | `previews/found.png` |
-| 10 | Analysis — verdict | `previews/verdict.png` |
-| 11 | Product detail — INCI list | `previews/product.png` |
-| 12 | Compare | `previews/compare.png` |
-| 13 | Routine (PM) with conflict alert | `previews/routine.png` |
-| 14 | Journal | `previews/journal.png` |
-| 15 | Culprits — suspect detection | `previews/culprits.png` |
-| 16 | Paywall — founding member | `previews/paywall.png` |
-| 17 | Settings | `previews/settings.png` |
-| 18 | WidgetKit — small & medium | `previews/widgets.png` |
+| 01 | Splash | `previews/splash.png` |
+| 02 | Onboarding 1 — value promise | `previews/ob1.png` |
+| 03 | Onboarding 2 — skin profile | `previews/ob2.png` |
+| 04 | Onboarding 3 — camera permission | `previews/ob3.png` |
+| 05 | Sign in (Apple / Google / magic link) | `previews/login.png` |
+| 06 | Home / Dashboard — bento grid | `previews/home.png` |
+| 07 | Scanner — viewfinder | `previews/scan.png` |
+| 08 | Scanner — match & auto-analyze sheet | `previews/found.png` |
+| 09 | Analysis — verdict | `previews/verdict.png` |
+| 10 | Product detail — INCI list | `previews/product.png` |
+| 11 | Compare | `previews/compare.png` |
+| 12 | Routine (PM) with conflict alert | `previews/routine.png` |
+| 13 | Journal — month heatmap | `previews/journal.png` |
+| 14 | Triggers — what actually breaks you out | `previews/triggers.png` |
+| 15 | Paywall — launch pricing ($8.99/mo · $79/yr) | `previews/paywall.png` |
+| 16 | Settings — A: current (profile, membership, preferences, data) | `previews/settings.png` |
+| 16b | Settings — B: full app settings (adds notifications, appearance, support, delete account) | `previews/settings-b.png` + `previews/settings-b-bottom.png` |
+| 17 | WidgetKit — small & medium | `previews/widgets.png` | `previews/widgets.png` |
+
+## Chosen directions
+
+The dashboard and journal were explored as ~19 competing variants; the two that
+won are now the only ones in the spec:
+
+- **Home** — the sharpened bento grid (hero with depth + sparkline, paired metric
+  tiles, accent-barred trigger alert, 7-day strip).
+- **Journal** — the month heatmap, which reads patterns at a glance and names the
+  bad stretch alongside the product that caused it.
+
+The rejected variants are in this branch's history if any need revisiting.
+
+## Naming
+
+The correlation feature is called **Triggers**, never "culprits" or "suspects" —
+it matches the language already used on the marketing site ("find my triggers",
+"your personal triggers"). Keep that consistent in copy and code.
 
 ## Design system
 
@@ -43,6 +63,22 @@ existing codebase:
   barcodes, INCI names, confidence %, section labels)
 - **Shape & motion** — 16px card radius, `cubic-bezier(0.32, 0.72, 0, 1)` iOS easing,
   breathe/rise-in animations as defined in Tailwind config
+
+### Motion
+
+The spec animates live in the browser. Four named loops, all on iOS easing and all
+disabled under `prefers-reduced-motion`:
+
+| Class | Used on | Behaviour |
+|-------|---------|-----------|
+| `.anim-scan` | scanner, onboarding 3 | scan line sweeps the capture window, 2.4s |
+| `.anim-mark` | splash | star rises + settles, 0.6s, once |
+| `.anim-sparkle` | splash star, scanner status dot | slow pulse, 2.8s |
+| `.anim-ring` | verdict score | ring draws to the score, 1.1s, once |
+
+Screenshots add `body.freeze`, which parks each loop on a representative frame
+(negative `animation-delay` + `paused`) so stills are deterministic rather than
+catching frame 0.
 
 ## Regenerating previews
 
