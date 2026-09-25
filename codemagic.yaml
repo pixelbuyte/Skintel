@@ -161,15 +161,11 @@ workflows:
       # capability, and the app's profile must be current with it, so fetch or create both.
       - name: Fetch App Store provisioning profiles (app + widget extension)
         script: |
-          set -euo pipefail
-          ssh-keygen -t rsa -b 2048 -m PEM -f "$HOME/skintel_cert_key" -q -N ""
-          for id in com.skintel.app com.skintel.app.widgets; do
-            app-store-connect fetch-signing-files "$id" \
-              --type IOS_APP_STORE \
-              --certificate-key "@file:$HOME/skintel_cert_key" \
-              --create
+          set -x
+          for c in "profiles create" "profiles list" "certificates list" "profiles delete"; do
+            app-store-connect $c --help || true
           done
-          keychain add-certificates
+          exit 1
 
       - name: Set up code signing settings on Xcode project
         script: |
