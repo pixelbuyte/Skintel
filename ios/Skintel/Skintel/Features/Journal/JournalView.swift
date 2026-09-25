@@ -393,7 +393,7 @@ struct CheckInSheet: View {
                     }
                 } label: {
                     HStack(spacing: SKSpace.md) {
-                        SKDot(tone: c.tone, size: 12)
+                        Circle().fill(c.logTint.dot).frame(width: 12, height: 12)   // same tints as Today's log
                         Text(c.checkInLabel).font(SKFont.sans(18, weight: .semibold, relativeTo: .title3)).foregroundStyle(SKColor.ink)
                         Spacer()
                         if condition == c {
