@@ -12,6 +12,7 @@ struct HomeView: View {
     @State private var slot: RoutineStore.Slot = RoutineStore.currentSlot()
     @State private var showCheckIn = false
     @State private var showAssistant = false
+    @State private var showAddProduct = false
     @AppStorage(AssistantPlacement.key) private var assistantPlacement = AssistantPlacement.tab
     @State private var moodError: String?
     /// Set only when the person's own tick finishes a routine; cleared after a short moment.
@@ -43,6 +44,7 @@ struct HomeView: View {
         .tint(SKColor.primary)
         .sheet(isPresented: $showCheckIn) { CheckInSheet() }
         .sheet(isPresented: $showAssistant) { AssistantView() }
+        .sheet(isPresented: $showAddProduct) { AddProductHub() }
         .task {
             await env.journal.load()
             promptCheckInIfDue()
@@ -149,7 +151,7 @@ struct HomeView: View {
                      message: "Add what's on your bathroom shelf. Skintel puts it in order and flags anything that shouldn't be mixed.",
                      mascot: .wave,
                      actionTitle: "Add your first product") {
-            path.append(.productForm(.add(prefill: nil)))
+            showAddProduct = true
         }
     }
 

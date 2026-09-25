@@ -301,6 +301,8 @@ struct AssistantView: View {
     var tabBarClearance: CGFloat = 0
     /// Put in the composer (not sent) when opened from a check-in's "Go deeper".
     var initialQuestion: String? = nil
+    /// Shelf products already tagged in the composer when opened ("Ask Skintel about this").
+    var initialTagged: [Product] = []
     /// Where "back" goes from the Free-plan wall when hosted as a tab.
     var leave: (() -> Void)? = nil
 
@@ -393,6 +395,9 @@ struct AssistantView: View {
         }
         .onAppear {
             if messages.isEmpty, draft.isEmpty, let initialQuestion { draft = initialQuestion }
+            if messages.isEmpty, tagged.isEmpty, !initialTagged.isEmpty {
+                tagged = Array(initialTagged.prefix(MentionPanel.limit))
+            }
         }
     }
 

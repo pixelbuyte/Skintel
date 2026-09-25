@@ -18,6 +18,7 @@
 		21A738E63A8D5B94542FC8DF /* SkintelCore in Frameworks */ = {isa = PBXBuildFile; productRef = AFB88C4177C8695BA6013C4A /* SkintelCore */; };
 		21BA985B72A8F5F8BB705823 /* AppRouter.swift in Sources */ = {isa = PBXBuildFile; fileRef = B89A39D514937525E18C27B4 /* AppRouter.swift */; };
 		26D6887E6274AC97AF751C7A /* SKFont.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5EB6ECEEDFE684AAC7A74EB6 /* SKFont.swift */; };
+		2A2BFCC5E71953C2652EDD40 /* ImportPages.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6AC88A040FD72AC5E620744A /* ImportPages.swift */; };
 		3232FA965DEEF944CFACE886 /* DMSans-Regular.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 4D7EB960E431B7BA8662737B /* DMSans-Regular.ttf */; };
 		337DCA0BC0A5E86D17DFCC50 /* CompareView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 283327961C5ADE9B80F64D89 /* CompareView.swift */; };
 		3B1AFF68E0709D9CABFB465C /* AuthFlow.swift in Sources */ = {isa = PBXBuildFile; fileRef = A33BF995628F31E4DF54BA52 /* AuthFlow.swift */; };
@@ -28,6 +29,7 @@
 		40202DC315B238828A527D6C /* SKMetrics.swift in Sources */ = {isa = PBXBuildFile; fileRef = FFBA9AD67DEDDC0A49CCE28E /* SKMetrics.swift */; };
 		45C092F6535764EA635C33D9 /* ProductFormView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 23CC42A67CE7000000BA8FFB /* ProductFormView.swift */; };
 		46553EA3126F7F91475A5247 /* ImageResizer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5C0163337648842526018C20 /* ImageResizer.swift */; };
+		468021EB6223BB833DD23A06 /* AddProductHub.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3698746FF5AA8F48EFBB4749 /* AddProductHub.swift */; };
 		48BCA1A4C38F07FCC2DEA74F /* SkintelWidgets.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = 0B166E5C8DCE0607642AA144 /* SkintelWidgets.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
 		4945BF5D81C2FBA52D0E185F /* RoutineTemplates.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3C7475ADBC18EC1CED79FEC8 /* RoutineTemplates.swift */; };
 		4D182EEA998E20FF94C4B8D9 /* SKStates.swift in Sources */ = {isa = PBXBuildFile; fileRef = CE03602DA17EADDE79882A49 /* SKStates.swift */; };
@@ -145,6 +147,7 @@
 		2E24655AD2FF379E52CC373E /* RoutineStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RoutineStore.swift; sourceTree = "<group>"; };
 		33CC6A9100B24534E4BA62BF /* Debug.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = Debug.xcconfig; sourceTree = "<group>"; };
 		33DB2266238DBF85A3586528 /* Navigation.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Navigation.swift; sourceTree = "<group>"; };
+		3698746FF5AA8F48EFBB4749 /* AddProductHub.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AddProductHub.swift; sourceTree = "<group>"; };
 		37357A70529D951ADE798CDE /* DMSans-Medium.ttf */ = {isa = PBXFileReference; lastKnownFileType = file; path = "DMSans-Medium.ttf"; sourceTree = "<group>"; };
 		3A39F5A76A0C34C4E5D9F5DE /* LaunchFlowUITests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LaunchFlowUITests.swift; sourceTree = "<group>"; };
 		3C7475ADBC18EC1CED79FEC8 /* RoutineTemplates.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RoutineTemplates.swift; sourceTree = "<group>"; };
@@ -169,6 +172,7 @@
 		67A174DD5FB2BD8AE5380F0B /* SKNavigation.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SKNavigation.swift; sourceTree = "<group>"; };
 		68873569B769A5EECF5C114A /* ProductsListView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProductsListView.swift; sourceTree = "<group>"; };
 		69E02082F57B466549EDAB2B /* BarcodeScannerView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BarcodeScannerView.swift; sourceTree = "<group>"; };
+		6AC88A040FD72AC5E620744A /* ImportPages.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ImportPages.swift; sourceTree = "<group>"; };
 		6B5E48E10B211CACC5CF54DF /* HomeView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HomeView.swift; sourceTree = "<group>"; };
 		6DBE9CC8AE206FE62F276768 /* SubscriptionStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SubscriptionStore.swift; sourceTree = "<group>"; };
 		752CCAB65D77A62C17367EBA /* Analytics.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Analytics.swift; sourceTree = "<group>"; };
@@ -416,6 +420,8 @@
 		8B04913E0A1E5483DEA5AC8A /* Products */ = {
 			isa = PBXGroup;
 			children = (
+				3698746FF5AA8F48EFBB4749 /* AddProductHub.swift */,
+				6AC88A040FD72AC5E620744A /* ImportPages.swift */,
 				4AAB915E94E620CD4B4234FF /* ProductDetailView.swift */,
 				23CC42A67CE7000000BA8FFB /* ProductFormView.swift */,
 				68873569B769A5EECF5C114A /* ProductsListView.swift */,
@@ -795,6 +801,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				468021EB6223BB833DD23A06 /* AddProductHub.swift in Sources */,
 				BE87F9C25BC87E4F7BB12CD1 /* Analytics.swift in Sources */,
 				55DD65660FD5C9B715A12FB1 /* AppConfiguration.swift in Sources */,
 				C2F5427C2E97CD771EEDD08F /* AppEnvironment.swift in Sources */,
@@ -812,6 +819,7 @@
 				DE25D292E7E1DB878F5B369B /* Haptics.swift in Sources */,
 				68C7A24A9CFAA1AB84F1C5AB /* HomeView.swift in Sources */,
 				46553EA3126F7F91475A5247 /* ImageResizer.swift in Sources */,
+				2A2BFCC5E71953C2652EDD40 /* ImportPages.swift in Sources */,
 				7B57EE0CC09B458218F632D0 /* JournalStore.swift in Sources */,
 				76FFD528BA7F32523480B985 /* JournalView.swift in Sources */,
 				D743E6D300185022CA78E954 /* KeychainSessionStore.swift in Sources */,

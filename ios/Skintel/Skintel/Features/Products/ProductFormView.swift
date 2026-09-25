@@ -1,9 +1,11 @@
 import SwiftUI
+import UIKit
 import SkintelCore
 
-/// Add / edit a product — the same fields as AddProduct.tsx / EditProduct.tsx. Category is
-/// free text (as on the web) with quick picks. The INCI box shows the live parsed count so
-/// a bad paste is obvious before saving.
+/// Add / edit a product ("Type it in"). Name first with the keyboard up for a new product,
+/// category as chips, the reaction as three tinted symbols, and the INCI box with a Paste
+/// button and a live count — the list is what verdicts and Triggers run on, so the form says
+/// so, and a bad paste is obvious before saving.
 struct ProductFormView: View {
     let mode: ProductFormMode
     /// Unsaved scan to attach once the product exists (so its score shows on the shelf).
@@ -16,6 +18,9 @@ struct ProductFormView: View {
     @State private var brand = ""
     @State private var name = ""
     @State private var category = ""
+    /// A category saved on the web that isn't one of the chips, kept as a chip so editing
+    /// doesn't silently drop it.
+    @State private var customCategory: String?
     @State private var outcome: Outcome = .unsure
     @State private var inci = ""
     @State private var notes = ""
@@ -25,7 +30,7 @@ struct ProductFormView: View {
     @State private var savedID: String?
     @FocusState private var focus: Field?
 
-    private enum Field { case brand, name, category, inci, notes }
+    private enum Field { case name, brand, inci, notes }
 
     var isEdit: Bool { if case .edit = mode { return true }; return false }
     private var parsed: [INCI.ParsedIngredient] { INCI.parse(inci) }
@@ -34,64 +39,13 @@ struct ProductFormView: View {
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: SKSpace.xl) {
-                field("Product name", placeholder: "e.g. Foaming Facial Cleanser", text: $name, focus: .name, contentType: nil)
-                field("Brand", placeholder: "e.g. CeraVe", text: $brand, focus: .brand, contentType: .organizationName)
-
-                VStack(alignment: .leading, spacing: SKSpace.sm) {
-                    SKFieldLabel("Category")
-                    SKTextField(placeholder: "Cleanser, Serum, Sunscreen…", text: $category, autocapitalization: .words)
-                        .focused($focus, equals: .category)
-                    ScrollView(.horizontal, showsIndicators: false) {
-                        HStack(spacing: SKSpace.sm) {
-                            ForEach(ProductCategory.allCases) { c in
-                                SKSelectChip(title: c.rawValue, selected: category == c.rawValue) {
-                                    category = category == c.rawValue ? "" : c.rawValue
-                                }
-                            }
-                        }
-                    }
-                }
-
-                VStack(alignment: .leading, spacing: SKSpace.sm) {
-                    SKFieldLabel("How did your skin react?")
-                    HStack(spacing: SKSpace.sm) {
-                        ForEach([Outcome.good, .unsure, .bad], id: \.self) { o in
-                            Button {
-                                outcome = o; Haptics.selection()
-                            } label: {
-                                VStack(spacing: 6) {
-                                    Text(o == .good ? "✨" : o == .unsure ? "🤔" : "🌋").font(.system(size: 22))
-                                    Text(o.label).font(SKFont.sans(14, weight: .semibold, relativeTo: .subheadline))
-                                }
-                                .foregroundStyle(outcome == o ? o.tone.fg : SKColor.muted)
-                                .frame(maxWidth: .infinity)
-                                .frame(height: 78)
-                                .background(outcome == o ? o.tone.bg : SKColor.cream, in: RoundedRectangle(cornerRadius: SKRadius.card, style: .continuous))
-                                .overlay(RoundedRectangle(cornerRadius: SKRadius.card, style: .continuous)
-                                    .stroke(outcome == o ? o.tone.fg : SKColor.line, lineWidth: outcome == o ? 1.5 : 1))
-                            }
-                            .buttonStyle(SKPressStyle())
-                            .accessibilityAddTraits(outcome == o ? [.isButton, .isSelected] : .isButton)
-                        }
-                    }
-                }
-
-                VStack(alignment: .leading, spacing: SKSpace.sm) {
-                    HStack {
-                        SKFieldLabel("Ingredients (INCI)")
-                        Spacer()
-                        Text(parsed.isEmpty ? "paste from the packaging" : "\(parsed.count) parsed")
-                            .font(SKFont.dataSmall).foregroundStyle(parsed.isEmpty ? SKColor.muted : SKColor.goodFg)
-                    }
-                    SKTextEditor(placeholder: "Aqua, Glycerin, Niacinamide, …", text: $inci, minHeight: 140, mono: true)
-                        .focused($focus, equals: .inci)
-                    if !parsed.isEmpty {
-                        FlowLayout(spacing: 6) {
-                            ForEach(parsed.prefix(12), id: \.normalized) { i in SKChip(i.raw) }
-                            if parsed.count > 12 { SKChip("+\(parsed.count - 12)") }
-                        }
-                    }
-                }
+                textField("Product name", placeholder: "e.g. Foaming Facial Cleanser", text: $name, field: .name,
+                          contentType: nil, submit: .next) { focus = .brand }
+                textField("Brand", placeholder: "e.g. CeraVe", text: $brand, field: .brand,
+                          contentType: .organizationName, submit: .done) { focus = nil }
+                categoryPicker
+                reactionPicker
+                ingredientsField
 
                 VStack(alignment: .leading, spacing: SKSpace.sm) {
                     SKFieldLabel("Notes")
@@ -117,18 +71,124 @@ struct ProductFormView: View {
             }
         }
         .onAppear(perform: prefill)
+        .task { await focusNameIfNew() }
         .navigationDestination(item: $savedID) { id in ProductDetailView(productID: id) }
     }
 
-    private func field(_ label: String, placeholder: String, text: Binding<String>, focus f: Field, contentType: UITextContentType?) -> some View {
+    // MARK: Fields
+
+    private func textField(_ label: String, placeholder: String, text: Binding<String>, field: Field,
+                           contentType: UITextContentType?, submit: SubmitLabel,
+                           next: @escaping () -> Void) -> some View {
         VStack(alignment: .leading, spacing: SKSpace.sm) {
             SKFieldLabel(label)
-            SKTextField(placeholder: placeholder, text: text, contentType: contentType, autocapitalization: .words, submitLabel: .next) {
-                focus = f == .name ? .brand : .category
-            }
-            .focused($focus, equals: f)
+            SKTextField(placeholder: placeholder, text: text, contentType: contentType, autocapitalization: .words,
+                        submitLabel: submit, onSubmit: next)
+                .focused($focus, equals: field)
         }
     }
+
+    private var categoryOptions: [String] {
+        (customCategory.map { [$0] } ?? []) + ProductCategory.allCases.map(\.rawValue)
+    }
+
+    /// Chips only. The label names the pick, since it can be scrolled out of view.
+    private var categoryPicker: some View {
+        VStack(alignment: .leading, spacing: SKSpace.sm) {
+            SKFieldLabel(category.isEmpty ? "Category" : "Category · \(category)")
+            ScrollView(.horizontal, showsIndicators: false) {
+                HStack(spacing: SKSpace.sm) {
+                    ForEach(categoryOptions, id: \.self) { c in
+                        SKSelectChip(title: c, selected: category == c) {
+                            category = category == c ? "" : c
+                            Haptics.selection()
+                        }
+                    }
+                }
+                .padding(.horizontal, SKSpace.xl)
+            }
+            .padding(.horizontal, -SKSpace.xl)
+        }
+    }
+
+    private var reactionPicker: some View {
+        VStack(alignment: .leading, spacing: SKSpace.sm) {
+            SKFieldLabel("How did your skin react?")
+            HStack(spacing: SKSpace.sm) {
+                ForEach([Outcome.good, .unsure, .bad], id: \.self) { o in
+                    reactionButton(o)
+                }
+            }
+        }
+    }
+
+    private func reactionButton(_ o: Outcome) -> some View {
+        let on = outcome == o
+        let look = ReactionLook(o)
+        return Button {
+            outcome = o
+            Haptics.selection()
+        } label: {
+            VStack(spacing: 6) {
+                Image(systemName: look.symbol)
+                    .font(.system(size: 17, weight: .semibold))
+                    .foregroundStyle(look.tint)
+                    .accessibilityHidden(true)
+                Text(o.label)
+                    .font(SKFont.sans(14, weight: .semibold, relativeTo: .subheadline))
+                    .foregroundStyle(on ? SKColor.ink : SKColor.muted)
+            }
+            .frame(maxWidth: .infinity)
+            .frame(minHeight: 64)
+            .padding(.vertical, SKSpace.xs)
+            .background(on ? look.fill : SKColor.cream, in: RoundedRectangle(cornerRadius: SKRadius.card, style: .continuous))
+            .overlay(RoundedRectangle(cornerRadius: SKRadius.card, style: .continuous)
+                .stroke(on ? look.tint : SKColor.line, lineWidth: on ? 1.5 : 1))
+            .contentShape(RoundedRectangle(cornerRadius: SKRadius.card, style: .continuous))
+        }
+        .buttonStyle(SKPressStyle())
+        .accessibilityLabel(o.label)
+        .accessibilityAddTraits(on ? [.isButton, .isSelected] : .isButton)
+    }
+
+    private var ingredientsField: some View {
+        let n = parsed.count
+        return VStack(alignment: .leading, spacing: SKSpace.sm) {
+            HStack {
+                SKFieldLabel("Ingredients (INCI)")
+                Spacer()
+                ClipboardPasteButton { text in inci = text }
+            }
+            SKTextEditor(placeholder: "Aqua, Glycerin, Niacinamide, …", text: $inci, minHeight: 140, mono: true)
+                .focused($focus, equals: .inci)
+            HStack(spacing: 6) {
+                if n > 0 {
+                    Image(systemName: "checkmark.circle.fill").font(.system(size: 12, weight: .semibold))
+                }
+                Text(n == 0 ? "Paste the list exactly as printed, commas between ingredients."
+                            : "\(n) ingredient\(n == 1 ? "" : "s") recognised")
+            }
+            .font(SKFont.dataSmall)
+            .foregroundStyle(n == 0 ? SKColor.muted : SKColor.goodFg)
+            .accessibilityElement(children: .combine)
+            if n > 0 {
+                FlowLayout(spacing: 6) {
+                    ForEach(parsed.prefix(12), id: \.normalized) { i in SKChip(i.raw) }
+                    if n > 12 { SKChip("+\(n - 12)") }
+                }
+            }
+            Label {
+                Text("The ingredient list is what makes verdicts and Triggers work. Without it, Skintel can't check this product or line it up against the ones that broke you out.")
+            } icon: {
+                Image(systemName: "info.circle")
+            }
+            .font(SKFont.caption)
+            .foregroundStyle(SKColor.muted)
+            .padding(.top, SKSpace.xs)
+        }
+    }
+
+    // MARK: Load / save
 
     private func prefill() {
         guard !loaded else { return }
@@ -144,11 +204,23 @@ struct ProductFormView: View {
             guard let p = env.products.product(id: id) else { return }
             brand = p.product.brand ?? ""
             name = p.product.productName
-            category = p.product.category ?? ""
+            let saved = p.product.category ?? ""
+            if !saved.isEmpty && !ProductCategory.allCases.contains(where: { $0.rawValue == saved }) {
+                customCategory = saved
+            }
+            category = saved
             outcome = p.product.outcome
             notes = p.product.notes ?? ""
             inci = p.ingredients.map(\.inciRaw).joined(separator: ", ")
         }
+    }
+
+    /// A new product starts at the name with the keyboard up, once the push or sheet settles.
+    private func focusNameIfNew() async {
+        guard !isEdit, name.isEmpty else { return }
+        try? await Task.sleep(for: .milliseconds(450))
+        guard !Task.isCancelled, focus == nil, name.isEmpty else { return }
+        focus = .name
     }
 
     private func save() async {
@@ -185,6 +257,25 @@ struct ProductFormView: View {
         } catch {
             self.error = (error as? APIError)?.userMessage ?? error.localizedDescription
             Haptics.error()
+        }
+    }
+}
+
+/// The reaction picker's symbols: sage sparkles, a neutral question mark, a red flame.
+/// Deliberately no emoji and no amber for "Unsure".
+private struct ReactionLook {
+    let symbol: String
+    let tint: Color
+    let fill: Color
+
+    init(_ outcome: Outcome) {
+        switch outcome {
+        case .good:
+            symbol = "sparkles"; tint = SKColor.goodFg; fill = SKColor.goodBg
+        case .unsure:
+            symbol = "questionmark"; tint = SKColor.muted; fill = SKColor.neutralChip
+        case .bad:
+            symbol = "flame"; tint = SKColor.badFg; fill = SKColor.badBg
         }
     }
 }

@@ -23,7 +23,8 @@ struct ProductsListView: View {
                     if products.isEmpty {
                         SKEmptyState(icon: "tray", title: "Nothing on the shelf",
                                      message: "Add what you use and how your skin reacted. Skintel needs two “broke out” products to start finding patterns.",
-                                     mascot: .serum)
+                                     mascot: .serum,
+                                     actionTitle: "Add your first product") { addTapped() }
                     } else {
                         ForEach(products) { p in
                             NavigationLink(value: AppDestination.productDetail(id: p.id)) {
@@ -114,14 +115,10 @@ struct ProductsListView: View {
                 .overlay(RoundedRectangle(cornerRadius: SKRadius.tile, style: .continuous).stroke(SKColor.line))
             }
             .buttonStyle(.plain)
-            .sheet(isPresented: $presentAdd) {
-                NavigationStack { ProductFormView(mode: .add(prefill: nil)) }
-            }
+            .sheet(isPresented: $presentAdd) { AddProductHub() }
         } else {
             Color.clear.frame(height: 0)
-                .sheet(isPresented: $presentAdd) {
-                    NavigationStack { ProductFormView(mode: .add(prefill: nil)) }
-                }
+                .sheet(isPresented: $presentAdd) { AddProductHub() }
         }
     }
 }

@@ -79,13 +79,25 @@ final class ScanFlowModel {
     }
 
     func importURL(_ url: String) async {
-        phase = .lookingUp(upc: "")
+        let started = Phase.lookingUp(upc: "")
+        phase = started
         env.analytics.track(.scanStarted(mode: "url"))
         do {
             let r = try await env.api.importURL(url)
-            await analyze(ScanCandidate(brand: r.brand, productName: r.productName, inci: r.ingredients, upc: nil, source: "url"))
-        } catch let e as APIError { phase = .failed(e, retry: nil) }
-        catch { phase = .failed(.network(error.localizedDescription), retry: nil) }
+            guard isCurrent(started) else { return }
+            let c = ScanCandidate(brand: r.brand, productName: r.productName, inci: r.ingredients, upc: nil, source: "url")
+            if c.parsed.isEmpty {
+                phase = .failed(.unprocessable("No ingredient list was found on that page."), retry: nil)
+            } else {
+                await analyze(c)
+            }
+        } catch let e as APIError {
+            guard isCurrent(started) else { return }
+            phase = .failed(e, retry: nil)
+        } catch {
+            guard isCurrent(started) else { return }
+            phase = .failed(.network(error.localizedDescription), retry: nil)
+        }
     }
 
     func useSearchResult(_ r: ProductSearchResult) async {
@@ -97,34 +109,51 @@ final class ScanFlowModel {
 
     func scanPhoto(_ image: UIImage) async {
         guard let data = ImageResizer.jpegData(image) else { phase = .failed(.unprocessable("That photo couldn't be read."), retry: nil); return }
-        phase = .lookingUp(upc: "")
+        let started = Phase.lookingUp(upc: "")
+        phase = started
         env.analytics.track(.scanStarted(mode: "photo"))
         do {
             let r = try await env.api.scanPhoto(imageBase64: data.base64EncodedString(), mimeType: "image/jpeg")
+            guard isCurrent(started) else { return }
             let c = ScanCandidate(brand: r.brand, productName: r.productName, inci: r.ingredients, upc: nil, source: "photo")
             if c.parsed.isEmpty { phase = .failed(.unprocessable("No ingredient list was found in that photo. Try a sharper shot of the INCI block."), retry: nil) }
             else { await analyze(c) }
-        } catch let e as APIError { phase = .failed(e, retry: nil) }
-        catch { phase = .failed(.network(error.localizedDescription), retry: nil) }
+        } catch let e as APIError {
+            guard isCurrent(started) else { return }
+            phase = .failed(e, retry: nil)
+        } catch {
+            guard isCurrent(started) else { return }
+            phase = .failed(.network(error.localizedDescription), retry: nil)
+        }
     }
 
     // MARK: Analysis
 
     func analyze(_ c: ScanCandidate) async {
-        phase = .analyzing(c)
+        let started = Phase.analyzing(c)
+        phase = started
         let matches = env.products.culprits.all.map(ScanAIRequest.Match.init)
         do {
             let result = try await env.api.scan(ScanAIRequest(inci: c.inci, matches: matches))
+            guard isCurrent(started) else { return }
             let stored = env.scans.record(productID: nil, brand: c.brand, productName: c.productName, inci: c.inci, source: c.source, result: result)
             env.analytics.track(.scanCompleted(verdict: result.verdict.rawValue))
             Haptics.success()
             phase = .result(scanID: stored.id)
         } catch let e as APIError {
+            guard isCurrent(started) else { return }
             phase = .failed(e, retry: c)
             Haptics.error()
         } catch {
+            guard isCurrent(started) else { return }
             phase = .failed(.network(error.localizedDescription), retry: c)
         }
+    }
+
+    /// False once the request was cancelled or the flow moved on while it was in flight
+    /// ("Cancel", "Wrong product?", leaving the screen) — a late answer must not reopen it.
+    private func isCurrent(_ started: Phase) -> Bool {
+        !Task.isCancelled && phase == started
     }
 
     private func blank(_ s: String?) -> String? {
