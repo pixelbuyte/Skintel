@@ -115,7 +115,8 @@ struct ProductDetailView: View {
         return VStack(alignment: .leading, spacing: SKSpace.md) {
             if rows.isEmpty {
                 SKEmptyState(icon: "list.bullet", title: "No ingredients yet",
-                             message: "Edit this product and paste the INCI list from the packaging.")
+                             message: "Edit this product and paste the INCI list from the packaging.",
+                             drop: "DropIngredients")
             } else {
                 VStack(spacing: 0) {
                     ForEach(Array(visible.enumerated()), id: \.element.id) { i, ing in

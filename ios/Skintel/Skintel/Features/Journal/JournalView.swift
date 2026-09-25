@@ -221,8 +221,11 @@ struct JournalView: View {
             case .loaded(let a):
                 SKCard(tint: a.suspects.isEmpty ? .good : .caution) {
                     VStack(alignment: .leading, spacing: SKSpace.md) {
-                        Text(a.suspects.isEmpty ? "No clear suspect yet" : "\(a.suspects.count) suspect\(a.suspects.count == 1 ? "" : "s") in your journal")
-                            .font(SKFont.cardTitle).foregroundStyle(SKColor.ink)
+                        HStack(spacing: SKSpace.md) {
+                            if a.suspects.isEmpty { SKDrop("DropCheckIn", size: 56) }
+                            Text(a.suspects.isEmpty ? "No clear suspect yet" : "\(a.suspects.count) suspect\(a.suspects.count == 1 ? "" : "s") in your journal")
+                                .font(SKFont.cardTitle).foregroundStyle(SKColor.ink)
+                        }
                         if let s = a.summary, !s.isEmpty { Text(s).font(SKFont.secondary).foregroundStyle(SKColor.ink) }
                         SKLinkButton(title: "See culprits") {
                             if env.subscription.entitlement.isPro { path.append(.culprits) } else { openPaywall(.culprits) }

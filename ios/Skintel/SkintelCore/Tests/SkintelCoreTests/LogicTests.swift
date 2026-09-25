@@ -155,6 +155,16 @@ private func sub(_ tier: Tier, _ status: String?) -> Subscription {
     #expect(patch["concerns"] == .array([.string("redness")]))
     #expect(patch["onboarding_complete"] == .bool(true))
     #expect(patch["display_name"] == .string("R"))
+    #expect(patch["age_range"] == .null)
+
+    let aged = AuthUser.metadataPatch(profile: SkinProfile(skinType: nil, concerns: [], ageRange: .from25to34), displayName: nil, onboardingComplete: false)
+    #expect(aged["age_range"] == .string("25_34"))
+}
+
+@Test func skinProfileDecodesWithoutAgeRange() throws {
+    let old = try JSONDecoder().decode(SkinProfile.self, from: Data(#"{"skinType":"dry","concerns":["redness"]}"#.utf8))
+    #expect(old.skinType == .dry && old.ageRange == nil)
+    #expect(AgeRange(rawValue: "55_plus") == .over55)
 }
 
 @Test func tokenResponseComputesExpiryFromExpiresIn() throws {

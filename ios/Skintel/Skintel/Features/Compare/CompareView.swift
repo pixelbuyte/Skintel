@@ -31,6 +31,14 @@ struct CompareView: View {
                     }
                     .padding(.top, SKSpace.md)
 
+                    if ready.count < 2 {
+                        HStack(spacing: SKSpace.md) {
+                            SKDrop("DropCompare", size: 72)
+                            Text("Pick two or three products. Skintel lines up their ingredients and says which suits you better.")
+                                .font(SKFont.secondary).foregroundStyle(SKColor.muted)
+                        }
+                    }
+
                     if case .loaded(let r) = result, let w = r.winner, r.items.indices.contains(w.index) {
                         SKCard(tint: .good) {
                             HStack(alignment: .top, spacing: SKSpace.md) {

@@ -1,0 +1,214 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Skinstel mascot</title>
+<style>
+:root{--bg:#F4EDE0;--cream:#FFFEFA;--primary:#A35848;--ink:#492C34;--muted:#8D746B;--line:#E4D7CB;--jade:#477D68}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:16px system-ui,-apple-system,sans-serif}
+main{max-width:960px;margin:auto;padding:36px 16px 48px}
+header{display:flex;justify-content:space-between;align-items:baseline;gap:12px;flex-wrap:wrap}
+header strong{font-size:15px;letter-spacing:.3em}
+header span{font-size:12px;color:var(--muted);letter-spacing:.12em}
+h1{font:400 clamp(32px,6vw,52px)/1.1 Georgia,serif;text-align:center;margin:36px 0 8px}
+p{color:var(--muted);line-height:1.6;text-align:center;margin:0}
+.stage{position:relative;height:420px;margin-top:28px;border-radius:32px;overflow:hidden;border:1px solid var(--line);background:radial-gradient(ellipse at 50% 40%,#FFFAF0,#F0E4D6)}
+.stage svg{position:absolute;inset:0;width:100%;height:100%}
+.controls{display:flex;gap:8px;justify-content:center;flex-wrap:wrap;margin:22px auto 0}
+button{border:1px solid #DDCABE;border-radius:999px;padding:11px 17px;background:var(--cream);color:var(--ink);font:inherit;font-size:14px;cursor:pointer}
+button[aria-pressed=true]{background:var(--primary);border-color:var(--primary);color:#FFFEFA}
+.toggles{display:flex;gap:18px;justify-content:center;flex-wrap:wrap;margin-top:18px;font-size:14px;color:var(--muted)}
+input{accent-color:var(--primary)}
+#caption{margin-top:14px;min-height:1.6em}
+section{margin-top:40px;background:var(--cream);border:1px solid var(--line);border-radius:24px;padding:20px}
+section h2{font:400 24px Georgia,serif;margin:0 0 12px}
+table{width:100%;border-collapse:collapse;font-size:14px}
+td,th{text-align:left;padding:9px 6px;border-top:1px solid var(--line);vertical-align:top}
+th{font-size:12px;letter-spacing:.08em;color:var(--muted);border-top:0}
+code{font:13px ui-monospace,Menlo,monospace;color:var(--primary)}
+footer{font-size:13px;color:var(--muted);margin-top:24px;text-align:center;line-height:1.6}
+@media (max-width:520px){.stage{height:360px}h1{margin-top:24px}}
+</style>
+</head>
+<body>
+<main>
+  <header><strong>SKINSTEL</strong><span>MASCOT · MOTION PREVIEW</span></header>
+  <h1>A little care.<br>A little company.</h1>
+  <p>The same vector rig and motion formulas as the SwiftUI <code>SkinstelMascot</code> component.</p>
+  <div class="stage" id="stage" aria-hidden="true"></div>
+  <div class="controls" id="actions" aria-label="Choose an action"></div>
+  <p id="caption" aria-live="polite"></p>
+  <div class="toggles">
+    <label><input type="checkbox" id="travels"> Walk across (<code>travels</code>)</label>
+    <label><input type="checkbox" id="facingLeft"> <code>facingLeft</code></label>
+    <label><input type="checkbox" id="paused"> Pause (<code>isPlaying: false</code>)</label>
+    <label><input type="checkbox" id="reduced"> Reduce Motion</label>
+  </div>
+
+  <section>
+    <h2>Where it appears in the app</h2>
+    <table>
+      <tr><th>SCREEN</th><th>ACTION</th><th>DRIVEN BY</th></tr>
+      <tr><td>Welcome, first page</td><td><code>.wave</code> → <code>.idle</code></td><td>Page is showing; settles after one greeting</td></tr>
+      <tr><td>Today, no products yet</td><td><code>.wave</code> → <code>.idle</code></td><td>Shelf loaded and empty, beside "Add your first product"</td></tr>
+      <tr><td>Shelf, empty</td><td><code>.serum</code></td><td>Shelf loaded and empty</td></tr>
+      <tr><td>Scan sheet, analysing</td><td><code>.scan</code></td><td>Lookup or ingredient analysis in flight, beside its status text</td></tr>
+      <tr><td>Today, routine finished</td><td><code>.celebrate</code> → <code>.idle</code></td><td>The person ticks the last step; about 2.4 s, then settles</td></tr>
+      <tr><td>Ask Skintel, empty chat</td><td><code>.idle</code></td><td>No messages yet</td></tr>
+      <tr><td>Ask Skintel, answering</td><td><code>.thinking</code></td><td>Request in flight, next to the typing dots</td></tr>
+    </table>
+  </section>
+  <footer>Browser preview only — not an iOS rendering. Built from <code>MascotRig.json</code> by <code>build_preview.py</code>.</footer>
+</main>
+<script>
+const RIG = {"version":2,"about":"Skinstel mascot vector rig. 420 x 510 design space, y down. Paths use absolute SVG commands M, L, C, Q and Z only. Ellipses are [cx, cy, rx, ry]. Pivots are the [x, y] each part rotates around. Edit freely; the SwiftUI component and designs/mascot-animation/preview.html both read this file. armRaise shifts a shoulder by [dx, dy] when that arm is fully raised (wave, celebrate), so the hand clears the body.","canvas":[420,510],"outlineWidth":3.7,"colors":{"ink":"#492C34","skin":"#D77860","skinLight":"#E99078","skinDeep":"#C76953","shade":"#B85747","shine":"#F6BAA2","blush":"#C85C49","glass":"#F5D9D1","serum":"#EAB5AB","glassShine":"#FFF7ED","cap":"#C76A54","label":"#E6BD65","sparkle":"#CCA450","scan":"#477D68","sleep":"#967C76"},"opacity":{"shadow":0.1,"shade":0.52,"shine":0.62,"blush":0.62,"glassShine":0.7,"scanLine":0.8},"strokeWidths":{"face":6,"label":2.5,"pipette":3,"glassShine":5,"scanFrame":2,"sparkle":3,"sleepZ":3},"paths":{"body":"M 250 48 C 256 36 267 37 270 57 C 278 142 301 180 325 235 C 350 293 353 350 320 390 C 290 428 232 446 172 424 C 104 400 72 362 78 308 C 81 235 132 177 183 121 C 211 91 236 61 250 48 Z","shade":"M 264 52 C 270 145 295 195 311 245 C 334 312 316 373 271 401 C 236 422 202 429 171 422 C 236 450 298 426 325 386 C 357 341 346 281 324 232 C 297 174 278 125 270 58 C 269 48 267 45 264 52 Z","shine":"M 239 80 C 215 114 154 170 139 206 C 132 224 142 231 154 214 C 178 181 220 122 239 80 Z","leftFoot":"M 146 412 L 150 447 C 145 456 139 461 141 468 C 145 477 174 472 182 464 C 187 455 186 435 186 422 Z","rightFoot":"M 222 427 L 225 455 C 217 465 213 472 219 478 C 226 485 251 479 260 470 C 266 459 265 438 265 423 Z","leftArm":"M 91 332 C 79 342 66 360 74 374 C 81 390 108 394 121 385 C 131 378 129 366 116 361 C 108 358 101 357 99 354","rightArm":"M 298 344 C 299 362 288 378 266 383 C 249 387 230 383 231 371 C 231 361 243 356 256 355 C 270 354 280 349 285 343","smile":"M 159 283 C 170 305 191 307 207 289","thinkingMouth":"M 172 293 C 181 298 191 297 199 290","happyLeft":"M 121 267 C 128 255 140 255 147 268","happyRight":"M 224 279 C 231 267 242 267 249 280","bottle":"M 66 324 Q 66 310 80 307 L 123 307 Q 137 310 137 324 L 137 408 Q 137 420 125 420 L 79 420 Q 66 420 66 408 Z","serum":"M 76 339 L 76 402 Q 76 410 85 410 L 121 410 Q 128 410 128 402 L 128 339 Z","glassShine":"M 79 330 L 79 394","cap":"M 73 280 L 130 280 L 130 311 L 73 311 Z","bulb":"M 91 280 L 91 259 C 91 242 112 242 112 259 L 112 280 Z","pipette":"M 103 312 L 103 337","labelDrop":"M 103 350 C 104 363 116 369 114 380 C 112 395 91 395 90 381 C 89 371 98 359 103 350 Z","hug":"M 84 348 C 62 338 54 355 60 371 C 66 384 81 385 86 375 C 92 364 85 359 77 361","cradle":"M 274 365 C 252 387 208 395 166 383 C 144 374 132 380 134 390 C 137 405 208 420 263 399 C 279 393 289 384 294 374","scanFrame":"M 52 275 L 52 263 L 65 263 M 149 263 L 162 263 L 162 275 M 52 411 L 52 424 L 65 424 M 149 424 L 162 424 L 162 411","sleepZ":"M 0 -15 L 13 -15 L 0 0 L 13 0"},"ellipses":{"shadow":[211,481,97,12],"leftEye":[136,259,13,14],"rightEye":[237,273,13,14],"leftBlush":[116,286,20,12],"rightBlush":[253,302,23,12],"sleepMouth":[183,295,7,9],"thought1":[322,142,5,5],"thought2":[345,112,7,7],"thought3":[370,76,9.5,9.5]},"pivots":{"body":[210,430],"leftFoot":[167,420],"rightFoot":[243,426],"leftArm":[97,342],"rightArm":[289,347],"bottle":[103,350]},"armRaise":{"leftArm":[-30,-40],"rightArm":[32,-41]},"bodyGradient":[72,36,353,446],"bottleTilt":-12,"scanLine":[52,303,110,3],"scanTravel":58,"sparkleOrbit":[205,242,160,151],"sleepZStart":[306,172]};
+const ACTIONS = [
+  ['idle', 'Breathe', 'Gentle breathing and blinking.'],
+  ['wave', 'Wave', 'A hello for welcome and first-run moments.'],
+  ['walk', 'Walk', 'Alternating steps. Tick "Walk across" to travel.'],
+  ['serum', 'Hold serum', 'Holds the bottle close.'],
+  ['scan', 'Scan', 'A scan line over the bottle while analysis runs.'],
+  ['thinking', 'Think', 'Hand to cheek while an answer is on its way.'],
+  ['celebrate', 'Celebrate', 'Only after something really succeeded.'],
+  ['sleep', 'Rest', 'Eyes closed, a drifting z.'],
+];
+
+// ---- Same formulas as MascotPose.swift -------------------------------------------------
+function pose(action, time, reduced) {
+  const t = reduced ? 0 : Math.max(0, time);
+  const step = t * 2 * Math.PI / 0.8, breath = Math.sin(t * 2.1);
+  const walking = action === 'walk', cheering = action === 'celebrate';
+  const p = {
+    bob: reduced ? 0 : walking ? -Math.abs(Math.sin(step)) * 7 : cheering ? -Math.max(0, Math.sin(t * 7)) * 22 : breath * 2.5,
+    lean: reduced ? 0 : walking ? Math.sin(step) * 3 : cheering ? Math.sin(t * 7) * 5 : breath * 0.8,
+    leftLeg: walking ? Math.sin(step) * 18 : 0,
+    rightLeg: walking ? -Math.sin(step) * 18 : 0,
+    leftArm: walking ? -Math.sin(step) * 12 : cheering ? 130 + Math.sin(t * 12) * 9 : 0,
+    rightArm: ({wave: 140 + Math.sin(t * 12) * 16, walk: Math.sin(step) * 12,
+                celebrate: 145 + Math.sin(t * 12) * 10, thinking: 42 + Math.sin(t * 1.8) * 3})[action] ?? 0,
+    breathe: reduced ? 1 : 1 + breath * 0.006,
+    leftArmRaise: cheering ? 1 : 0, rightArmRaise: cheering || action === 'wave' ? 1 : 0,
+    lookX: action === 'thinking' ? 4 : 0, lookY: action === 'thinking' ? -5 : 0,
+  };
+  const cycle = t % 4.3;
+  p.blink = action === 'sleep' ? 0.08 : reduced ? 1 : (cycle > 3.9 && cycle < 4.08) ? 0.1 : 1;
+  return p;
+}
+const motion = {
+  holdsBottle: a => a === 'serum' || a === 'scan',
+  showsSparkles: a => a === 'celebrate' || a === 'scan',
+  scanPhase: t => Math.sin(t * 2.8),
+  sparkle: (i, t) => { const a = i * 1.6 + t * 0.8; return {cos: Math.cos(a), sin: Math.sin(a), size: 3 + 2 * Math.sin(t * 4 + i)}; },
+  thoughtOpacity: (i, t, reduced) => reduced ? 0.55 : 0.25 + 0.6 * Math.max(0, Math.sin(t * 3 - i * 0.9)),
+  sleepDrift: t => { const rise = (t * 12) % 40; return {rise, opacity: 1 - rise / 60}; },
+  placement(t, span, scale, moving, facingLeft) {
+    if (!moving || span <= 0 || scale <= 0) return {x: span / 2, mirrored: facingLeft};
+    const phase = (t * 70 * scale + span / 2) % (span * 2), returning = phase > span;
+    return {x: returning ? span * 2 - phase : phase, mirrored: returning !== facingLeft};
+  },
+};
+
+// ---- Same drawing order as MascotRenderer in SkinstelMascot.swift ----------------------
+const W = RIG.canvas[0], H = RIG.canvas[1];
+const col = (name, o = 1) => { const h = RIG.colors[name] || RIG.colors.ink; const v = parseInt(h.slice(1), 16);
+  return `rgba(${v >> 16 & 255},${v >> 8 & 255},${v & 255},${o})`; };
+const op = (n, f = 1) => RIG.opacity[n] ?? f;
+const sw = n => RIG.strokeWidths[n] ?? RIG.outlineWidth;
+const d = n => RIG.paths[n];
+const el = n => RIG.ellipses[n];
+const pv = n => RIG.pivots[n];
+const round = 'stroke-linecap="round" stroke-linejoin="round"';
+const outlined = (n, fill, w = RIG.outlineWidth) => `<path d="${d(n)}" fill="${fill}" stroke="${col('ink')}" stroke-width="${w}" ${round}/>`;
+const ellipse = (cx, cy, rx, ry, fill) => `<ellipse cx="${cx}" cy="${cy}" rx="${Math.max(0, rx)}" ry="${Math.max(0, ry)}" fill="${fill}"/>`;
+const rot = (deg, [x, y], inner) => `<g transform="translate(${x} ${y}) rotate(${deg}) translate(${-x} ${-y})">${inner}</g>`;
+
+function mascotSVG(width, height, time, action, {still = false, travels = false, facingLeft = false} = {}) {
+  const scale = Math.min(width / W, height / H);
+  const t = still ? 0 : time, p = pose(action, t, still);
+  const span = Math.max(0, width - W * scale);
+  const place = motion.placement(t, span, scale, !still && travels && action === 'walk', facingLeft);
+  let out = '';
+  const [scx, scy, srx, sry] = el('shadow');
+  out += ellipse(scx, scy, srx + p.bob * 0.65, sry, col('ink', op('shadow', 0.1)));
+  if (motion.showsSparkles(action)) {
+    const [ox, oy, rx, ry] = RIG.sparkleOrbit;
+    for (let i = 0; i < 5; i++) {
+      const s = motion.sparkle(i, t), x = ox + s.cos * rx, y = oy + s.sin * ry;
+      out += `<path d="M ${x - s.size} ${y} L ${x + s.size} ${y} M ${x} ${y - s.size} L ${x} ${y + s.size}" stroke="${col(action === 'scan' ? 'scan' : 'sparkle')}" stroke-width="${sw('sparkle')}" stroke-linecap="round"/>`;
+    }
+  }
+  let b = '';
+  b += rot(p.leftLeg, pv('leftFoot'), outlined('leftFoot', col('skin')));
+  b += rot(p.rightLeg, pv('rightFoot'), outlined('rightFoot', col('skin')));
+  b += outlined('body', 'url(#mascotSkin)');
+  b += `<path d="${d('shade')}" fill="${col('shade', op('shade'))}"/><path d="${d('shine')}" fill="${col('shine', op('shine'))}"/>`;
+  for (const n of ['leftBlush', 'rightBlush']) { const [cx, cy, rx, ry] = el(n); b += ellipse(cx, cy, rx, ry, col('blush', op('blush'))); }
+  const face = `fill="none" stroke="${col('ink')}" stroke-width="${sw('face')}" ${round}`;
+  if (action === 'celebrate') b += `<path d="${d('happyLeft')}" ${face}/><path d="${d('happyRight')}" ${face}/>`;
+  else for (const n of ['leftEye', 'rightEye']) { const [cx, cy, rx, ry] = el(n); b += ellipse(cx + p.lookX, cy + p.lookY, rx, ry * p.blink, col('ink')); }
+  if (action === 'sleep') { const [cx, cy, rx, ry] = el('sleepMouth'); b += ellipse(cx, cy, rx, ry, col('ink')); }
+  else b += `<path d="${d(action === 'thinking' ? 'thinkingMouth' : 'smile')}" ${face}/>`;
+  if (motion.holdsBottle(action)) {
+    let bottle = outlined('bottle', col('glass'));
+    bottle += `<path d="${d('serum')}" fill="${col('serum')}"/>`;
+    bottle += `<path d="${d('glassShine')}" fill="none" stroke="${col('glassShine', op('glassShine'))}" stroke-width="${sw('glassShine')}" stroke-linecap="round"/>`;
+    bottle += outlined('bulb', col('skin')) + outlined('cap', col('cap'));
+    bottle += `<path d="${d('pipette')}" fill="none" stroke="${col('ink')}" stroke-width="${sw('pipette')}"/>`;
+    bottle += outlined('labelDrop', col('label'), sw('label'));
+    b += rot(RIG.bottleTilt, pv('bottle'), bottle) + outlined('hug', col('skin')) + outlined('cradle', col('skin'));
+  } else {
+    for (const [n, angle, lift] of [['leftArm', p.leftArm, p.leftArmRaise], ['rightArm', p.rightArm, p.rightArmRaise]]) {
+      const r = (RIG.armRaise || {})[n] || [0, 0];
+      b += `<g transform="translate(${r[0] * lift} ${r[1] * lift})">${rot(angle, pv(n), outlined(n, col('skin')))}</g>`;
+    }
+  }
+  const [bx, by] = pv('body');
+  out += `<g transform="translate(0 ${p.bob}) translate(${bx} ${by}) rotate(${p.lean}) scale(${1 / p.breathe} ${p.breathe}) translate(${-bx} ${-by})">${b}</g>`;
+  if (action === 'scan') {
+    const [x, y0, w, h] = RIG.scanLine, y = y0 + motion.scanPhase(t) * RIG.scanTravel;
+    out += `<rect x="${x}" y="${y}" width="${w}" height="${h}" rx="${h / 2}" fill="${col('scan', op('scanLine', 0.8))}"/>`;
+    out += `<path d="${d('scanFrame')}" fill="none" stroke="${col('scan')}" stroke-width="${sw('scanFrame')}"/>`;
+  } else if (action === 'thinking') {
+    ['thought1', 'thought2', 'thought3'].forEach((n, i) => { const [cx, cy, rx, ry] = el(n); out += ellipse(cx, cy, rx, ry, col('ink', motion.thoughtOpacity(i, t, still))); });
+  } else if (action === 'sleep') {
+    const z = motion.sleepDrift(t), [zx, zy] = RIG.sleepZStart;
+    out += `<g transform="translate(${zx} ${zy - z.rise})"><path d="${d('sleepZ')}" fill="none" stroke="${col('sleep', z.opacity)}" stroke-width="${sw('sleepZ')}" ${round}/></g>`;
+  }
+  const [gx1, gy1, gx2, gy2] = RIG.bodyGradient;
+  const defs = `<defs><linearGradient id="mascotSkin" gradientUnits="userSpaceOnUse" x1="${gx1}" y1="${gy1}" x2="${gx2}" y2="${gy2}"><stop stop-color="${col('skinLight')}"/><stop offset=".7" stop-color="${col('skin')}"/><stop offset="1" stop-color="${col('skinDeep')}"/></linearGradient></defs>`;
+  const frame = `translate(${place.x + W * scale / 2} ${(height - H * scale) / 2}) scale(${place.mirrored ? -scale : scale} ${scale}) translate(${-W / 2} 0)`;
+  return `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}" viewBox="0 0 ${width} ${height}">${defs}<g transform="${frame}">${out}</g></svg>`;
+}
+
+// ---- Page -------------------------------------------------------------------------------
+if (typeof document !== 'undefined') {
+  const $ = id => document.getElementById(id);
+  const reducedQuery = matchMedia('(prefers-reduced-motion: reduce)');
+  $('reduced').checked = reducedQuery.matches;
+  let action = 'wave', clock = 0, last = null;
+  for (const [name, label, caption] of ACTIONS) {
+    const b = document.createElement('button');
+    b.textContent = label; b.dataset.action = name;
+    b.onclick = () => { action = name; clock = 0; $('caption').textContent = caption; sync(); };
+    $('actions').append(b);
+  }
+  function sync() { document.querySelectorAll('[data-action]').forEach(b => b.setAttribute('aria-pressed', b.dataset.action === action)); draw(); }
+  function draw() {
+    const stage = $('stage');
+    stage.innerHTML = mascotSVG(stage.clientWidth, stage.clientHeight - 20, clock, action,
+      {still: $('reduced').checked, travels: $('travels').checked, facingLeft: $('facingLeft').checked});
+  }
+  function frame(now) {
+    const running = !$('paused').checked && !$('reduced').checked && !document.hidden;
+    if (last !== null && running) clock += Math.min(0.1, (now - last) / 1000);
+    last = now; draw(); requestAnimationFrame(frame);
+  }
+  ['travels', 'facingLeft', 'paused', 'reduced'].forEach(id => $(id).addEventListener('change', draw));
+  $('caption').textContent = ACTIONS[1][2];
+  sync(); requestAnimationFrame(frame);
+}
+</script>
+</body>
+</html>

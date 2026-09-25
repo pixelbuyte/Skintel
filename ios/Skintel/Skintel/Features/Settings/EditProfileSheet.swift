@@ -11,6 +11,7 @@ struct EditProfileSheet: View {
     @State private var name = ""
     @State private var skinType: SkinType?
     @State private var concerns: Set<SkinConcern> = []
+    @State private var ageRange: AgeRange?
     @State private var about = ""
     @State private var saving = false
     @State private var error: String?
@@ -40,6 +41,17 @@ struct EditProfileSheet: View {
                     VStack(alignment: .leading, spacing: SKSpace.sm) {
                         SKFieldLabel("Name")
                         SKTextField(placeholder: "How should Skintel greet you?", text: $name, contentType: .givenName, autocapitalization: .words)
+                    }
+                    VStack(alignment: .leading, spacing: SKSpace.md) {
+                        SKFieldLabel("Age · optional")
+                        FlowLayout(spacing: SKSpace.sm) {
+                            ForEach(AgeRange.allCases) { a in
+                                SKSelectChip(title: a.label, selected: ageRange == a) {
+                                    ageRange = ageRange == a ? nil : a
+                                    Haptics.selection()
+                                }
+                            }
+                        }
                     }
                     VStack(alignment: .leading, spacing: SKSpace.md) {
                         SKFieldLabel("Skin type")
@@ -82,6 +94,7 @@ struct EditProfileSheet: View {
             name = u?.displayName ?? ""
             skinType = u?.skinProfile.skinType
             concerns = Set(u?.skinProfile.concerns ?? [])
+            ageRange = u?.skinProfile.ageRange
             about = u?.assistantAbout ?? ""
         }
     }
@@ -96,7 +109,8 @@ struct EditProfileSheet: View {
     private func save() async {
         saving = true; error = nil
         defer { saving = false }
-        let profile = SkinProfile(skinType: skinType, concerns: SkinConcern.allCases.filter { concerns.contains($0) })
+        let profile = SkinProfile(skinType: skinType, concerns: SkinConcern.allCases.filter { concerns.contains($0) },
+                                  ageRange: ageRange)
         var patch = AuthUser.metadataPatch(profile: profile, displayName: name.trimmingCharacters(in: .whitespaces),
                                            onboardingComplete: env.session.user?.onboardingComplete ?? true)
         let note = about.trimmingCharacters(in: .whitespacesAndNewlines)

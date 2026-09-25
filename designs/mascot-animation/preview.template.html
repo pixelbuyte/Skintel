@@ -1,0 +1,214 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Skinstel mascot</title>
+<style>
+:root{--bg:#F4EDE0;--cream:#FFFEFA;--primary:#A35848;--ink:#492C34;--muted:#8D746B;--line:#E4D7CB;--jade:#477D68}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:16px system-ui,-apple-system,sans-serif}
+main{max-width:960px;margin:auto;padding:36px 16px 48px}
+header{display:flex;justify-content:space-between;align-items:baseline;gap:12px;flex-wrap:wrap}
+header strong{font-size:15px;letter-spacing:.3em}
+header span{font-size:12px;color:var(--muted);letter-spacing:.12em}
+h1{font:400 clamp(32px,6vw,52px)/1.1 Georgia,serif;text-align:center;margin:36px 0 8px}
+p{color:var(--muted);line-height:1.6;text-align:center;margin:0}
+.stage{position:relative;height:420px;margin-top:28px;border-radius:32px;overflow:hidden;border:1px solid var(--line);background:radial-gradient(ellipse at 50% 40%,#FFFAF0,#F0E4D6)}
+.stage svg{position:absolute;inset:0;width:100%;height:100%}
+.controls{display:flex;gap:8px;justify-content:center;flex-wrap:wrap;margin:22px auto 0}
+button{border:1px solid #DDCABE;border-radius:999px;padding:11px 17px;background:var(--cream);color:var(--ink);font:inherit;font-size:14px;cursor:pointer}
+button[aria-pressed=true]{background:var(--primary);border-color:var(--primary);color:#FFFEFA}
+.toggles{display:flex;gap:18px;justify-content:center;flex-wrap:wrap;margin-top:18px;font-size:14px;color:var(--muted)}
+input{accent-color:var(--primary)}
+#caption{margin-top:14px;min-height:1.6em}
+section{margin-top:40px;background:var(--cream);border:1px solid var(--line);border-radius:24px;padding:20px}
+section h2{font:400 24px Georgia,serif;margin:0 0 12px}
+table{width:100%;border-collapse:collapse;font-size:14px}
+td,th{text-align:left;padding:9px 6px;border-top:1px solid var(--line);vertical-align:top}
+th{font-size:12px;letter-spacing:.08em;color:var(--muted);border-top:0}
+code{font:13px ui-monospace,Menlo,monospace;color:var(--primary)}
+footer{font-size:13px;color:var(--muted);margin-top:24px;text-align:center;line-height:1.6}
+@media (max-width:520px){.stage{height:360px}h1{margin-top:24px}}
+</style>
+</head>
+<body>
+<main>
+  <header><strong>SKINSTEL</strong><span>MASCOT · MOTION PREVIEW</span></header>
+  <h1>A little care.<br>A little company.</h1>
+  <p>The same vector rig and motion formulas as the SwiftUI <code>SkinstelMascot</code> component.</p>
+  <div class="stage" id="stage" aria-hidden="true"></div>
+  <div class="controls" id="actions" aria-label="Choose an action"></div>
+  <p id="caption" aria-live="polite"></p>
+  <div class="toggles">
+    <label><input type="checkbox" id="travels"> Walk across (<code>travels</code>)</label>
+    <label><input type="checkbox" id="facingLeft"> <code>facingLeft</code></label>
+    <label><input type="checkbox" id="paused"> Pause (<code>isPlaying: false</code>)</label>
+    <label><input type="checkbox" id="reduced"> Reduce Motion</label>
+  </div>
+
+  <section>
+    <h2>Where it appears in the app</h2>
+    <table>
+      <tr><th>SCREEN</th><th>ACTION</th><th>DRIVEN BY</th></tr>
+      <tr><td>Welcome, first page</td><td><code>.wave</code> → <code>.idle</code></td><td>Page is showing; settles after one greeting</td></tr>
+      <tr><td>Today, no products yet</td><td><code>.wave</code> → <code>.idle</code></td><td>Shelf loaded and empty, beside "Add your first product"</td></tr>
+      <tr><td>Shelf, empty</td><td><code>.serum</code></td><td>Shelf loaded and empty</td></tr>
+      <tr><td>Scan sheet, analysing</td><td><code>.scan</code></td><td>Lookup or ingredient analysis in flight, beside its status text</td></tr>
+      <tr><td>Today, routine finished</td><td><code>.celebrate</code> → <code>.idle</code></td><td>The person ticks the last step; about 2.4 s, then settles</td></tr>
+      <tr><td>Ask Skintel, empty chat</td><td><code>.idle</code></td><td>No messages yet</td></tr>
+      <tr><td>Ask Skintel, answering</td><td><code>.thinking</code></td><td>Request in flight, next to the typing dots</td></tr>
+    </table>
+  </section>
+  <footer>Browser preview only — not an iOS rendering. Built from <code>MascotRig.json</code> by <code>build_preview.py</code>.</footer>
+</main>
+<script>
+const RIG = __RIG__;
+const ACTIONS = [
+  ['idle', 'Breathe', 'Gentle breathing and blinking.'],
+  ['wave', 'Wave', 'A hello for welcome and first-run moments.'],
+  ['walk', 'Walk', 'Alternating steps. Tick "Walk across" to travel.'],
+  ['serum', 'Hold serum', 'Holds the bottle close.'],
+  ['scan', 'Scan', 'A scan line over the bottle while analysis runs.'],
+  ['thinking', 'Think', 'Hand to cheek while an answer is on its way.'],
+  ['celebrate', 'Celebrate', 'Only after something really succeeded.'],
+  ['sleep', 'Rest', 'Eyes closed, a drifting z.'],
+];
+
+// ---- Same formulas as MascotPose.swift -------------------------------------------------
+function pose(action, time, reduced) {
+  const t = reduced ? 0 : Math.max(0, time);
+  const step = t * 2 * Math.PI / 0.8, breath = Math.sin(t * 2.1);
+  const walking = action === 'walk', cheering = action === 'celebrate';
+  const p = {
+    bob: reduced ? 0 : walking ? -Math.abs(Math.sin(step)) * 7 : cheering ? -Math.max(0, Math.sin(t * 7)) * 22 : breath * 2.5,
+    lean: reduced ? 0 : walking ? Math.sin(step) * 3 : cheering ? Math.sin(t * 7) * 5 : breath * 0.8,
+    leftLeg: walking ? Math.sin(step) * 18 : 0,
+    rightLeg: walking ? -Math.sin(step) * 18 : 0,
+    leftArm: walking ? -Math.sin(step) * 12 : cheering ? 130 + Math.sin(t * 12) * 9 : 0,
+    rightArm: ({wave: 140 + Math.sin(t * 12) * 16, walk: Math.sin(step) * 12,
+                celebrate: 145 + Math.sin(t * 12) * 10, thinking: 42 + Math.sin(t * 1.8) * 3})[action] ?? 0,
+    breathe: reduced ? 1 : 1 + breath * 0.006,
+    leftArmRaise: cheering ? 1 : 0, rightArmRaise: cheering || action === 'wave' ? 1 : 0,
+    lookX: action === 'thinking' ? 4 : 0, lookY: action === 'thinking' ? -5 : 0,
+  };
+  const cycle = t % 4.3;
+  p.blink = action === 'sleep' ? 0.08 : reduced ? 1 : (cycle > 3.9 && cycle < 4.08) ? 0.1 : 1;
+  return p;
+}
+const motion = {
+  holdsBottle: a => a === 'serum' || a === 'scan',
+  showsSparkles: a => a === 'celebrate' || a === 'scan',
+  scanPhase: t => Math.sin(t * 2.8),
+  sparkle: (i, t) => { const a = i * 1.6 + t * 0.8; return {cos: Math.cos(a), sin: Math.sin(a), size: 3 + 2 * Math.sin(t * 4 + i)}; },
+  thoughtOpacity: (i, t, reduced) => reduced ? 0.55 : 0.25 + 0.6 * Math.max(0, Math.sin(t * 3 - i * 0.9)),
+  sleepDrift: t => { const rise = (t * 12) % 40; return {rise, opacity: 1 - rise / 60}; },
+  placement(t, span, scale, moving, facingLeft) {
+    if (!moving || span <= 0 || scale <= 0) return {x: span / 2, mirrored: facingLeft};
+    const phase = (t * 70 * scale + span / 2) % (span * 2), returning = phase > span;
+    return {x: returning ? span * 2 - phase : phase, mirrored: returning !== facingLeft};
+  },
+};
+
+// ---- Same drawing order as MascotRenderer in SkinstelMascot.swift ----------------------
+const W = RIG.canvas[0], H = RIG.canvas[1];
+const col = (name, o = 1) => { const h = RIG.colors[name] || RIG.colors.ink; const v = parseInt(h.slice(1), 16);
+  return `rgba(${v >> 16 & 255},${v >> 8 & 255},${v & 255},${o})`; };
+const op = (n, f = 1) => RIG.opacity[n] ?? f;
+const sw = n => RIG.strokeWidths[n] ?? RIG.outlineWidth;
+const d = n => RIG.paths[n];
+const el = n => RIG.ellipses[n];
+const pv = n => RIG.pivots[n];
+const round = 'stroke-linecap="round" stroke-linejoin="round"';
+const outlined = (n, fill, w = RIG.outlineWidth) => `<path d="${d(n)}" fill="${fill}" stroke="${col('ink')}" stroke-width="${w}" ${round}/>`;
+const ellipse = (cx, cy, rx, ry, fill) => `<ellipse cx="${cx}" cy="${cy}" rx="${Math.max(0, rx)}" ry="${Math.max(0, ry)}" fill="${fill}"/>`;
+const rot = (deg, [x, y], inner) => `<g transform="translate(${x} ${y}) rotate(${deg}) translate(${-x} ${-y})">${inner}</g>`;
+
+function mascotSVG(width, height, time, action, {still = false, travels = false, facingLeft = false} = {}) {
+  const scale = Math.min(width / W, height / H);
+  const t = still ? 0 : time, p = pose(action, t, still);
+  const span = Math.max(0, width - W * scale);
+  const place = motion.placement(t, span, scale, !still && travels && action === 'walk', facingLeft);
+  let out = '';
+  const [scx, scy, srx, sry] = el('shadow');
+  out += ellipse(scx, scy, srx + p.bob * 0.65, sry, col('ink', op('shadow', 0.1)));
+  if (motion.showsSparkles(action)) {
+    const [ox, oy, rx, ry] = RIG.sparkleOrbit;
+    for (let i = 0; i < 5; i++) {
+      const s = motion.sparkle(i, t), x = ox + s.cos * rx, y = oy + s.sin * ry;
+      out += `<path d="M ${x - s.size} ${y} L ${x + s.size} ${y} M ${x} ${y - s.size} L ${x} ${y + s.size}" stroke="${col(action === 'scan' ? 'scan' : 'sparkle')}" stroke-width="${sw('sparkle')}" stroke-linecap="round"/>`;
+    }
+  }
+  let b = '';
+  b += rot(p.leftLeg, pv('leftFoot'), outlined('leftFoot', col('skin')));
+  b += rot(p.rightLeg, pv('rightFoot'), outlined('rightFoot', col('skin')));
+  b += outlined('body', 'url(#mascotSkin)');
+  b += `<path d="${d('shade')}" fill="${col('shade', op('shade'))}"/><path d="${d('shine')}" fill="${col('shine', op('shine'))}"/>`;
+  for (const n of ['leftBlush', 'rightBlush']) { const [cx, cy, rx, ry] = el(n); b += ellipse(cx, cy, rx, ry, col('blush', op('blush'))); }
+  const face = `fill="none" stroke="${col('ink')}" stroke-width="${sw('face')}" ${round}`;
+  if (action === 'celebrate') b += `<path d="${d('happyLeft')}" ${face}/><path d="${d('happyRight')}" ${face}/>`;
+  else for (const n of ['leftEye', 'rightEye']) { const [cx, cy, rx, ry] = el(n); b += ellipse(cx + p.lookX, cy + p.lookY, rx, ry * p.blink, col('ink')); }
+  if (action === 'sleep') { const [cx, cy, rx, ry] = el('sleepMouth'); b += ellipse(cx, cy, rx, ry, col('ink')); }
+  else b += `<path d="${d(action === 'thinking' ? 'thinkingMouth' : 'smile')}" ${face}/>`;
+  if (motion.holdsBottle(action)) {
+    let bottle = outlined('bottle', col('glass'));
+    bottle += `<path d="${d('serum')}" fill="${col('serum')}"/>`;
+    bottle += `<path d="${d('glassShine')}" fill="none" stroke="${col('glassShine', op('glassShine'))}" stroke-width="${sw('glassShine')}" stroke-linecap="round"/>`;
+    bottle += outlined('bulb', col('skin')) + outlined('cap', col('cap'));
+    bottle += `<path d="${d('pipette')}" fill="none" stroke="${col('ink')}" stroke-width="${sw('pipette')}"/>`;
+    bottle += outlined('labelDrop', col('label'), sw('label'));
+    b += rot(RIG.bottleTilt, pv('bottle'), bottle) + outlined('hug', col('skin')) + outlined('cradle', col('skin'));
+  } else {
+    for (const [n, angle, lift] of [['leftArm', p.leftArm, p.leftArmRaise], ['rightArm', p.rightArm, p.rightArmRaise]]) {
+      const r = (RIG.armRaise || {})[n] || [0, 0];
+      b += `<g transform="translate(${r[0] * lift} ${r[1] * lift})">${rot(angle, pv(n), outlined(n, col('skin')))}</g>`;
+    }
+  }
+  const [bx, by] = pv('body');
+  out += `<g transform="translate(0 ${p.bob}) translate(${bx} ${by}) rotate(${p.lean}) scale(${1 / p.breathe} ${p.breathe}) translate(${-bx} ${-by})">${b}</g>`;
+  if (action === 'scan') {
+    const [x, y0, w, h] = RIG.scanLine, y = y0 + motion.scanPhase(t) * RIG.scanTravel;
+    out += `<rect x="${x}" y="${y}" width="${w}" height="${h}" rx="${h / 2}" fill="${col('scan', op('scanLine', 0.8))}"/>`;
+    out += `<path d="${d('scanFrame')}" fill="none" stroke="${col('scan')}" stroke-width="${sw('scanFrame')}"/>`;
+  } else if (action === 'thinking') {
+    ['thought1', 'thought2', 'thought3'].forEach((n, i) => { const [cx, cy, rx, ry] = el(n); out += ellipse(cx, cy, rx, ry, col('ink', motion.thoughtOpacity(i, t, still))); });
+  } else if (action === 'sleep') {
+    const z = motion.sleepDrift(t), [zx, zy] = RIG.sleepZStart;
+    out += `<g transform="translate(${zx} ${zy - z.rise})"><path d="${d('sleepZ')}" fill="none" stroke="${col('sleep', z.opacity)}" stroke-width="${sw('sleepZ')}" ${round}/></g>`;
+  }
+  const [gx1, gy1, gx2, gy2] = RIG.bodyGradient;
+  const defs = `<defs><linearGradient id="mascotSkin" gradientUnits="userSpaceOnUse" x1="${gx1}" y1="${gy1}" x2="${gx2}" y2="${gy2}"><stop stop-color="${col('skinLight')}"/><stop offset=".7" stop-color="${col('skin')}"/><stop offset="1" stop-color="${col('skinDeep')}"/></linearGradient></defs>`;
+  const frame = `translate(${place.x + W * scale / 2} ${(height - H * scale) / 2}) scale(${place.mirrored ? -scale : scale} ${scale}) translate(${-W / 2} 0)`;
+  return `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}" viewBox="0 0 ${width} ${height}">${defs}<g transform="${frame}">${out}</g></svg>`;
+}
+
+// ---- Page -------------------------------------------------------------------------------
+if (typeof document !== 'undefined') {
+  const $ = id => document.getElementById(id);
+  const reducedQuery = matchMedia('(prefers-reduced-motion: reduce)');
+  $('reduced').checked = reducedQuery.matches;
+  let action = 'wave', clock = 0, last = null;
+  for (const [name, label, caption] of ACTIONS) {
+    const b = document.createElement('button');
+    b.textContent = label; b.dataset.action = name;
+    b.onclick = () => { action = name; clock = 0; $('caption').textContent = caption; sync(); };
+    $('actions').append(b);
+  }
+  function sync() { document.querySelectorAll('[data-action]').forEach(b => b.setAttribute('aria-pressed', b.dataset.action === action)); draw(); }
+  function draw() {
+    const stage = $('stage');
+    stage.innerHTML = mascotSVG(stage.clientWidth, stage.clientHeight - 20, clock, action,
+      {still: $('reduced').checked, travels: $('travels').checked, facingLeft: $('facingLeft').checked});
+  }
+  function frame(now) {
+    const running = !$('paused').checked && !$('reduced').checked && !document.hidden;
+    if (last !== null && running) clock += Math.min(0.1, (now - last) / 1000);
+    last = now; draw(); requestAnimationFrame(frame);
+  }
+  ['travels', 'facingLeft', 'paused', 'reduced'].forEach(id => $(id).addEventListener('change', draw));
+  $('caption').textContent = ACTIONS[1][2];
+  sync(); requestAnimationFrame(frame);
+}
+</script>
+</body>
+</html>
