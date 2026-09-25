@@ -156,6 +156,32 @@ workflows:
             -project "$CM_BUILD_DIR/$XCODE_PROJECT" \
             -scheme "$XCODE_SCHEME"
 
+      # ios_signing above only resolves a profile for BUNDLE_ID. The SkintelWidgets extension
+      # (com.skintel.app.widgets) needs its own App Store profile with the App Groups
+      # capability, and the app's profile must be current with it, so fetch or create both.
+      # ios_signing above only resolves a profile for BUNDLE_ID, and it already put the
+      # distribution certificate in the keychain. The SkintelWidgets extension
+      # (com.skintel.app.widgets) needs its own App Store profile with the App Groups
+      # capability, and the app's profile must be current with it. Create fresh profiles
+      # against the existing distribution certificates (no new certificate, so no key needed)
+      # and make them the only profiles on the machine so use-profiles cannot pick a stale one.
+      - name: Create App Store provisioning profiles (app + widget extension)
+        script: |
+          set -euo pipefail
+          CERT_IDS=$(app-store-connect certificates list --type DISTRIBUTION --json             | python3 -c 'import json, sys; print(" ".join(c["id"] for c in json.load(sys.stdin)))')
+          test -n "$CERT_IDS"
+          STAMP=$(date +%s)
+          NEW_PROFILES="$HOME/skintel_profiles"
+          mkdir -p "$NEW_PROFILES"
+          # App Store Connect bundle ID resource ids for com.skintel.app / com.skintel.app.widgets
+          app-store-connect profiles create 45ZTXZKMT3 --type IOS_APP_STORE             --certificate-ids $CERT_IDS --name "Skintel App Store $STAMP"             --profiles-dir "$NEW_PROFILES" --save
+          app-store-connect profiles create JL9XZKF5RU --type IOS_APP_STORE             --certificate-ids $CERT_IDS --name "Skintel Widgets App Store $STAMP"             --profiles-dir "$NEW_PROFILES" --save
+          PROFILES_DIR="$HOME/Library/MobileDevice/Provisioning Profiles"
+          mkdir -p "$PROFILES_DIR"
+          rm -f "$PROFILES_DIR"/*.mobileprovision
+          cp "$NEW_PROFILES"/*.mobileprovision "$PROFILES_DIR"/
+          ls -1 "$PROFILES_DIR"
+
       - name: Set up code signing settings on Xcode project
         script: |
           set -euo pipefail
