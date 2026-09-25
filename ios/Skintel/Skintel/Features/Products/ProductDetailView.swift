@@ -172,7 +172,7 @@ struct ProductDetailView: View {
             SKCard {
                 VStack(alignment: .leading, spacing: SKSpace.md) {
                     Text("No AI verdict yet").font(SKFont.cardTitle).foregroundStyle(SKColor.ink)
-                    Text("Skintel scores every ingredient against your shelf's culprits and returns a plain-English verdict.")
+                    Text("Skintel scores every ingredient against your triggers and returns a plain-English verdict.")
                         .font(SKFont.secondary).foregroundStyle(SKColor.muted)
                     if let analyzeError { SKInlineError(message: analyzeError) }
                     SKButton(title: "Analyze with AI", systemImage: "sparkles", isLoading: analyzing) { Task { await analyze(p) } }

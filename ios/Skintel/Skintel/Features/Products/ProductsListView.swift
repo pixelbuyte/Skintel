@@ -44,6 +44,7 @@ struct ProductsListView: View {
         }
         .refreshable { await env.products.load() }
         .skPageBackground()
+        .skHint(.shelf, when: !env.products.products.isEmpty)
         .skNavigationTitle("Shelf")
         .toolbar {
             ToolbarItem(placement: .topBarTrailing) {
@@ -76,7 +77,7 @@ struct ProductsListView: View {
                 }
             }
         } message: {
-            Text("Its ingredients leave your culprit analysis too. This can't be undone.")
+            Text("Its ingredients stop counting toward your Triggers too. This can't be undone.")
         }
         .alert("Couldn't delete", isPresented: Binding(get: { deleteError != nil }, set: { if !$0 { deleteError = nil } })) {
             Button("OK", role: .cancel) {}
