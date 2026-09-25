@@ -221,6 +221,7 @@ private struct PersonalizationView: View {
     @AppStorage(RoutineReminders.checkInOnKey) private var checkInOn = false
     @AppStorage(RoutineReminders.checkInTimeKey) private var checkInMinutes = 20 * 60
     @AppStorage(CheckInPrompt.enabledKey) private var askOnOpen = true
+    @State private var tipsReset = false
 
     var body: some View {
         SettingsPage(title: "Personalization") {
@@ -274,6 +275,20 @@ private struct PersonalizationView: View {
                 .padding(.horizontal, SKSpace.lg).padding(.vertical, 10)
                 SettingsDivider()
                 SettingsRow(title: "Camera & photo access", last: true) { CameraPermission.openSettings() }
+            }
+
+            SettingsGroup(title: "Tips", footer: "Each screen's one-time tip shows again the next time you open it.") {
+                SettingsRow(title: "Reset tips", subtitle: tipsReset ? "Tips will show again" : "Show the tip on each screen again",
+                            showsChevron: false, last: true, trailing: {
+                    if tipsReset {
+                        Image(systemName: "checkmark").font(.system(size: 15, weight: .bold)).foregroundStyle(SKColor.primary)
+                            .accessibilityHidden(true)
+                    }
+                }) {
+                    HintID.resetAll()
+                    tipsReset = true
+                    Haptics.success()
+                }
             }
         }
         .onChange(of: reminderSignature) { _, _ in scheduleReminders() }

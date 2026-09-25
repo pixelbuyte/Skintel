@@ -100,9 +100,10 @@ struct PaywallView: View {
         case .compare: "Side-by-side verdicts come with Skintel+."
         case .recommend: "Personal picks are built from your full history."
         case .routine: "Conflict checks read every step of your routine."
-        case .journalAnalysis, .culprits: "Journal analysis correlates 90 days of entries with your shelf."
+        case .journalAnalysis: "Journal analysis correlates 90 days of entries with your shelf."
+        case .culprits: "Triggers names the ingredients your “broke out” products share."
         case .assistant: "Ask Skintel answers from your shelf, routine and check-ins, and adds products you mention to your shelf."
-        case .general: "Unlimited scans, culprit detection on your full history, and more."
+        case .general: "Unlimited scans, Triggers from your full history, and more."
         }
     }
 
@@ -738,7 +739,7 @@ private struct AskStory {
                  answer: "Noted. Glow Toner has glycolic acid, so keep it off your retinol nights.",
                  product: "Glow Toner", done: "Added to your shelf", badge: "Added"),
         AskStory(tag: nil, question: "Is my Barrier Cream okay for my chin?",
-                 answer: "It's fragrance-free and hasn't matched a trigger, so it's an unlikely culprit.",
+                 answer: "It's fragrance-free and hasn't matched a trigger, so it's unlikely to be the cause.",
                  product: "Barrier Cream", done: "Already on your shelf", badge: "On shelf"),
     ]
 }
@@ -793,7 +794,7 @@ enum ProBenefit: String, CaseIterable, Identifiable {
         case .unlimited: "No five-product cap on your shelf"
         case .scan: "Point at any product for a verdict"
         case .ask: "Tag products, add the ones you mention"
-        case .triggers: "Your journal and shelf name the culprits"
+        case .triggers: "Your journal and shelf name your triggers"
         case .compare: "Side-by-side verdicts and picks that fit"
         case .routine: "Flags actives that clash, step by step"
         }

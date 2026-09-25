@@ -39,6 +39,7 @@ struct HomeView: View {
             .skPageBackground()
             .toolbar(.hidden, for: .navigationBar)
             .navigationDestination(for: AppDestination.self) { destination(for: $0) }
+            .skHint(.today, when: !env.products.products.isEmpty && !showCheckIn && !showAssistant)
         }
         .tint(SKColor.primary)
         .sheet(isPresented: $showCheckIn) { CheckInSheet() }
@@ -414,7 +415,7 @@ struct HomeView: View {
         case .productDetail(let id): ProductDetailView(productID: id)
         case .productForm(let mode): ProductFormView(mode: mode)
         case .verdict(let scanID): VerdictView(scanID: scanID)
-        case .culprits: CulpritsView()
+        case .culprits: TriggersView()
         case .routine: RoutineView()
         case .recommend: RecommendView()
         case .settings: SettingsView()

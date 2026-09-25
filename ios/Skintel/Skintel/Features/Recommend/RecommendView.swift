@@ -358,6 +358,7 @@ struct AssistantView: View {
                 .onChange(of: messages.count) { _, _ in scrollToEnd(proxy) }
                 .onChange(of: messages.last?.text) { _, _ in scrollToEnd(proxy) }
             }
+            .skHint(.ask, when: !shelfProducts.isEmpty && !inputFocused && !isAnswering)
             .safeAreaInset(edge: .bottom, spacing: 0) { composer }
             .skPageBackground()
             .navigationBarTitleDisplayMode(.inline)

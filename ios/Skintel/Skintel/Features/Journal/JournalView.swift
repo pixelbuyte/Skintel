@@ -57,7 +57,7 @@ struct JournalView: View {
                 ToolbarItem(placement: .keyboard) { HStack { Spacer(); Button("Done") { notesFocused = false }.font(SKFont.bodyMedium) } }
             }
             .navigationDestination(for: AppDestination.self) { d in
-                if case .culprits = d { CulpritsView() }
+                if case .culprits = d { TriggersView() }
             }
         }
         .tint(SKColor.primary)
@@ -227,7 +227,7 @@ struct JournalView: View {
                                 .font(SKFont.cardTitle).foregroundStyle(SKColor.ink)
                         }
                         if let s = a.summary, !s.isEmpty { Text(s).font(SKFont.secondary).foregroundStyle(SKColor.ink) }
-                        SKLinkButton(title: "See culprits") {
+                        SKLinkButton(title: "See triggers") {
                             if env.subscription.entitlement.isPro { path.append(.culprits) } else { openPaywall(.culprits) }
                         }
                     }
@@ -700,10 +700,11 @@ struct InsightsView: View {
                 await env.products.load()
             }
             .skPageBackground()
+            .skHint(.insights)
             .toolbar(.hidden, for: .navigationBar)
             .navigationDestination(for: AppDestination.self) { d in
                 switch d {
-                case .culprits: CulpritsView()
+                case .culprits: TriggersView()
                 case .routine: RoutineView()
                 default: EmptyView()
                 }
@@ -811,7 +812,7 @@ struct InsightsView: View {
                             Text("Suspect: \(top.name)").font(SKFont.cardTitle).foregroundStyle(SKColor.ink).lineLimit(2)
                             Text("In \(top.badCount) products that broke you out").font(SKFont.secondary).foregroundStyle(SKColor.muted)
                         } else {
-                            Text("Culprit detection").font(SKFont.cardTitle).foregroundStyle(SKColor.ink)
+                            Text("Triggers").font(SKFont.cardTitle).foregroundStyle(SKColor.ink)
                             Text(bad < 2 ? "Mark two products as “Broke out” and Skintel finds what they share."
                                  : "No shared ingredient yet. Add ingredient lists to widen the net.")
                                 .font(SKFont.secondary).foregroundStyle(SKColor.muted)

@@ -120,6 +120,7 @@ struct ScannerHostView: View {
         }
         .statusBarHidden(!embedded)
         .toolbar(.hidden, for: .navigationBar)
+        .skHint(.scan, when: permission == .authorized && model.phase == .scanning && !showManual && !showCamera)
         .sheet(isPresented: $showManual) { ManualEntrySheet(model: model) }
         .fullScreenCover(isPresented: $showCamera) {
             CameraCaptureView { image in

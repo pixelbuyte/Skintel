@@ -53,6 +53,7 @@ struct VerdictView: View {
         }
         .skPageBackground()
         .skNavigationTitle("Analysis")
+        .skHint(.verdict)
         .toolbar {
             ToolbarItem(placement: .topBarTrailing) {
                 ShareLink(item: shareText(scan)) { Image(systemName: "square.and.arrow.up") }
@@ -98,7 +99,7 @@ struct VerdictView: View {
                         .skPrimaryGlow()
                 }
                 .buttonStyle(SKPressStyle())
-                Text("Tell Skintel how your skin reacts and this product joins your culprit analysis.")
+                Text("Tell Skintel how your skin reacts and this product counts toward your Triggers.")
                     .font(SKFont.caption).foregroundStyle(SKColor.muted).multilineTextAlignment(.center)
             }
         }
