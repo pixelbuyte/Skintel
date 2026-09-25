@@ -156,6 +156,19 @@ workflows:
             -project "$CM_BUILD_DIR/$XCODE_PROJECT" \
             -scheme "$XCODE_SCHEME"
 
+      - name: Fetch signing files for the widget extension
+        script: |
+          set -euo pipefail
+          # The main app's profile is already fetched by the ios_signing block above (matched
+          # by bundle_identifier). SkintelWidgets has its own bundle id, com.skintel.app.widgets,
+          # with its own App ID + App Group in the Apple Developer portal (needed so the widget
+          # can read the shelf snapshot the app writes) - that App ID isn't covered by the
+          # ios_signing block's wildcard matching until a profile for it exists, so fetch/create
+          # one explicitly here. --create is a no-op once the profile exists from a prior build.
+          app-store-connect fetch-signing-files "$BUNDLE_ID.widgets" \
+            --type IOS_APP_STORE \
+            --create
+
       - name: Set up code signing settings on Xcode project
         script: |
           set -euo pipefail
