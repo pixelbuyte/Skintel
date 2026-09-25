@@ -46,7 +46,7 @@ struct FoundSheet: View {
                         .disabled(INCI.parse(pastedINCI).isEmpty)
                 }
             case .failed(let e, let retry):
-                header(name: e == .proRequired ? "Skintel Pro needed" : "That didn't work", sub: "")
+                header(name: e == .proRequired ? "Skintel+ needed" : "That didn't work", sub: "")
                 Text(e.userMessage).font(SKFont.secondary).foregroundStyle(SKColor.muted)
                 HStack(spacing: SKSpace.md) {
                     SKButton(title: "Back to camera", kind: .secondary) { model.reset() }

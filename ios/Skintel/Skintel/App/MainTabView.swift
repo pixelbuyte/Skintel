@@ -32,7 +32,11 @@ struct MainTabView: View {
     @Environment(AppEnvironment.self) private var env
     @State private var tab: MainTab = .today
     @State private var presentScanner = false
-    @State private var paywall: PaywallReason?
+    /// A Skintel+ gate's full-screen wall, and the plans sheet for `.general`.
+    @State private var wall: ProLockedView.Feature?
+    @State private var plans: PaywallReason?
+    /// The wall last shown, so an unlock can carry on to that feature.
+    @State private var lastWall: ProLockedView.Feature?
     @State private var showQuick = false
     @State private var pending: QuickAction?
     @State private var showCheckIn = false
@@ -59,12 +63,13 @@ struct MainTabView: View {
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
             .safeAreaInset(edge: .bottom, spacing: 0) {
-                Color.clear.frame(height: tab == .ask || keyboardUp ? 0 : SKTabBar.height)
+                Color.clear.frame(height: tab == .ask || keyboardUp || onLockedTab ? 0 : SKTabBar.height)
             }
 
-            // Typing gets the whole screen; the bar comes back when the keyboard goes.
-            if !keyboardUp {
-                SKTabBar(selection: $tab) {
+            // Typing gets the whole screen; the bar comes back when the keyboard goes. A
+            // Skintel+ tab's wall gets the whole screen too.
+            if !keyboardUp && !onLockedTab {
+                SKTabBar(selection: tabSelection) {
                     Haptics.medium()
                     showQuick = true
                 }
@@ -84,7 +89,10 @@ struct MainTabView: View {
         .fullScreenCover(isPresented: $presentScanner) {
             ScannerHostView(embedded: false)
         }
-        .sheet(item: $paywall) { reason in
+        .fullScreenCover(item: $wall, onDismiss: wallClosed) { feature in
+            ProLockedView(feature: feature)
+        }
+        .sheet(item: $plans) { reason in
             PaywallView(reason: reason)
         }
         .sheet(isPresented: $showQuick, onDismiss: runPending) {
@@ -97,12 +105,13 @@ struct MainTabView: View {
             .presentationDragIndicator(.visible)
             .presentationBackground(SKColor.cream)
         }
+        // Each sheet brings its own gates: a wall can't present from here over a sheet.
         .sheet(isPresented: $showCheckIn) { CheckInSheet() }
-        .sheet(isPresented: $showAddProduct) { NavigationStack { ProductFormView(mode: .add(prefill: nil)) } }
-        .sheet(isPresented: $showCompare) { CompareView() }
-        .sheet(isPresented: $showAssistant) { AssistantView() }
-        .sheet(isPresented: $showShelf) { ShelfTab() }
-        .environment(\.openPaywall, OpenPaywallAction { reason in paywall = reason })
+        .sheet(isPresented: $showAddProduct) { NavigationStack { ProductFormView(mode: .add(prefill: nil)) }.skProGates() }
+        .sheet(isPresented: $showCompare) { CompareView().skProGates() }
+        .skAskSheet(isPresented: $showAssistant)
+        .sheet(isPresented: $showShelf) { ShelfTab().skProGates() }
+        .environment(\.openPaywall, OpenPaywallAction { reason in gate(reason) })
         .onChange(of: env.pendingDeepLink, initial: true) { consumeDeepLink() }
         .onChange(of: env.subscription.loaded) { consumeDeepLink() }
     }
@@ -120,7 +129,7 @@ struct MainTabView: View {
     }
 
     private var isPresenting: Bool {
-        presentScanner || paywall != nil || showQuick || showCheckIn || showAddProduct
+        presentScanner || wall != nil || plans != nil || showQuick || showCheckIn || showAddProduct
             || showCompare || showAssistant || showShelf
     }
 
@@ -131,7 +140,9 @@ struct MainTabView: View {
             pending = nil
             showQuick = false
             presentScanner = false
-            paywall = nil
+            lastWall = nil
+            wall = nil
+            plans = nil
             showCheckIn = false
             showAddProduct = false
             showCompare = false
@@ -144,7 +155,7 @@ struct MainTabView: View {
         case .scan:
             openScanner()
         case .ask:
-            if assistantInTab { tab = .ask } else { showAssistant = true }
+            if assistantInTab { select(.ask) } else { showAssistant = true }
         case .shelf:
             // Shelf owns the tab slot only when Ask Skintel lives on Today.
             if assistantInTab { showShelf = true } else { tab = .shelf }
@@ -153,9 +164,69 @@ struct MainTabView: View {
         }
     }
 
-    /// The Pro gate for the scanner, shared by the + menu and the Scan widget.
+    /// The Skintel+ gate for the scanner, shared by the + menu and the Scan widget.
     private func openScanner() {
-        if env.subscription.entitlement.canUseScanner { presentScanner = true } else { paywall = .scanner }
+        if env.subscription.entitlement.canUseScanner { presentScanner = true } else { gate(.scanner) }
+    }
+
+    // MARK: Skintel+ gates
+
+    /// Every gate below the tab bar lands here: a gated feature covers the whole screen with
+    /// its wall (the plans open from the wall's button); `.general` opens the plans.
+    private func gate(_ reason: PaywallReason) {
+        if let feature = ProLockedView.Feature(reason) {
+            lastWall = feature
+            wall = feature
+        } else {
+            plans = reason
+        }
+    }
+
+    /// A tab that is itself a Skintel+ feature.
+    private static func lockedFeature(for tab: MainTab) -> ProLockedView.Feature? {
+        switch tab {
+        case .ask: return .ask
+        case .insights: return .insights
+        case .today, .shelf, .you: return nil
+        }
+    }
+
+    /// Free members on a Skintel+ tab (membership still loading, or it lapsed while they
+    /// were there) see its wall as the tab's root; the bar hides so the wall is the screen.
+    private var onLockedTab: Bool {
+        Self.lockedFeature(for: tab) != nil && !env.subscription.entitlement.isPro
+    }
+
+    /// Tab taps: a Free member tapping a Skintel+ tab gets its wall over everything and
+    /// stays where they were. Until the membership row loads, the tab opens and shows its
+    /// own wall, so a member never sees a wall flash up and has to close it.
+    private var tabSelection: Binding<MainTab> {
+        Binding(get: { tab }, set: { select($0) })
+    }
+
+    private func select(_ next: MainTab) {
+        if let feature = Self.lockedFeature(for: next), env.subscription.loaded, !env.subscription.entitlement.isPro {
+            lastWall = feature
+            wall = feature
+        } else {
+            tab = next
+        }
+    }
+
+    /// After a wall closes: if the server now confirms Skintel+, go on to the tab that was
+    /// asked for. Anything else stays put for the person to try again.
+    private func wallClosed() {
+        guard let feature = lastWall else { return }
+        lastWall = nil
+        guard env.subscription.entitlement.isPro else { return }
+        switch feature {
+        case .ask:
+            if assistantPlacement == AssistantPlacement.tab { tab = .ask } else { showAssistant = true }
+        case .insights:
+            tab = .insights
+        default:
+            break
+        }
     }
 
     /// The menu sheet has to finish dismissing before the next sheet or cover can present.
@@ -171,10 +242,10 @@ struct MainTabView: View {
             if env.subscription.entitlement.canAddProduct(currentCount: env.products.products.count) {
                 showAddProduct = true
             } else {
-                paywall = .productLimit
+                gate(.productLimit)
             }
         case .compare:
-            if env.subscription.entitlement.isPro { showCompare = true } else { paywall = .compare }
+            if env.subscription.entitlement.isPro { showCompare = true } else { gate(.compare) }
         case .ask:
             showAssistant = true
         case .shelf:

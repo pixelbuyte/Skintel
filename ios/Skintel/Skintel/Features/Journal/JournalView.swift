@@ -341,7 +341,7 @@ struct CheckInSheet: View {
             }
         }
         .tint(SKColor.primary)
-        .sheet(isPresented: $showAsk) { AssistantView(initialQuestion: askPrompt) }
+        .skAskSheet(isPresented: $showAsk, initialQuestion: askPrompt)
         .task {
             await env.journal.load()
             prime()
@@ -710,7 +710,7 @@ struct InsightsView: View {
             }
         }
         .tint(SKColor.primary)
-        .sheet(isPresented: $showJournal) { JournalView() }
+        .sheet(isPresented: $showJournal) { JournalView().skProGates() }
         .sheet(isPresented: $showCheckIn) { CheckInSheet() }
         .task { await env.journal.load() }
     }
@@ -839,7 +839,7 @@ struct InsightsView: View {
                     VStack(alignment: .leading, spacing: 3) {
                         HStack(spacing: SKSpace.sm) {
                             Text("Journal patterns").font(SKFont.cardTitle).foregroundStyle(SKColor.ink)
-                            if !env.subscription.entitlement.isPro { SKChip("Pro") }
+                            if !env.subscription.entitlement.isPro { SKChip("Skintel+") }
                         }
                         Text("Lines up your check-ins with when each product joined your shelf.")
                             .font(SKFont.secondary).foregroundStyle(SKColor.muted)

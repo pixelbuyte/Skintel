@@ -121,7 +121,7 @@ struct SignInView: View {
                     Text(b.title).font(SKFont.sans(15, relativeTo: .subheadline)).foregroundStyle(SKColor.ink)
                 }
             }
-            Text("Scanning, Ask Skintel and trigger tracking come with Pro.")
+            Text("Scanning, Ask Skintel and trigger tracking come with Skintel+.")
                 .font(SKFont.caption).foregroundStyle(SKColor.muted)
         }
         .padding(SKSpace.lg)

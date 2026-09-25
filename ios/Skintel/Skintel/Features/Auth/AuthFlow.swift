@@ -220,11 +220,11 @@ private struct ProBenefitsPage: View {
         ScrollView {
             VStack(alignment: .leading, spacing: SKSpace.lg) {
                 VStack(alignment: .leading, spacing: SKSpace.sm) {
-                    Text("SKINTEL PRO").font(SKFont.label).tracking(1.4).foregroundStyle(SKColor.primary)
+                    Text("SKINTEL+").font(SKFont.label).tracking(1.4).foregroundStyle(SKColor.primary)
                     (Text("Go further with ").font(SKFont.hero)
-                     + Text("Pro.").font(SKFont.serif(40, relativeTo: .largeTitle, italic: true)).foregroundColor(SKColor.primary))
+                     + Text("Skintel+").font(SKFont.serif(40, relativeTo: .largeTitle, italic: true)).foregroundColor(SKColor.primary))
                         .foregroundStyle(SKColor.ink)
-                    Text("Tap any feature to watch it work. Upgrade whenever you're ready.")
+                    Text("Tap any feature to watch it work. Get Skintel+ whenever you're ready.")
                         .font(SKFont.sans(17, relativeTo: .body))
                         .foregroundStyle(SKColor.muted)
                 }
@@ -284,7 +284,7 @@ private struct FloatingShelfCards: View {
     private let cards: [Card] = [
         Card(name: "CeraVe Moisturizer", score: 86, tone: .good, label: "Good", tile: Color(hex: 0xD6E0EA), art: ProductArt.pump),
         Card(name: "Fragrance-heavy lotion", score: 31, tone: .bad, label: "Skip it", tile: Color(hex: 0xEED2CC), art: ProductArt.tube),
-        Card(name: "Paula's Choice 2% BHA", score: 64, tone: .caution, label: "Caution", tile: Color(hex: 0xE9DEC3), art: ProductArt.dropper),
+        Card(name: "Paula's Choice 2% BHA", score: 64, tone: .caution, label: "Caution", tile: SKColor.clayTileBg, art: ProductArt.dropper),
     ]
 
     var body: some View {
