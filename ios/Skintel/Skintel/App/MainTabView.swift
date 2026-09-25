@@ -107,7 +107,7 @@ struct MainTabView: View {
         }
         // Each sheet brings its own gates: a wall can't present from here over a sheet.
         .sheet(isPresented: $showCheckIn) { CheckInSheet() }
-        .sheet(isPresented: $showAddProduct) { NavigationStack { ProductFormView(mode: .add(prefill: nil)) }.skProGates() }
+        .sheet(isPresented: $showAddProduct) { AddProductHub().skProGates() }
         .sheet(isPresented: $showCompare) { CompareView().skProGates() }
         .skAskSheet(isPresented: $showAssistant)
         .sheet(isPresented: $showShelf) { ShelfTab().skProGates() }
@@ -258,8 +258,11 @@ enum QuickAction: Hashable {
     case scan, checkIn, ask, shelf, addByHand, compare
 }
 
-/// What the + button opens: the four things people do outside their routine.
+/// What the + button opens: the things people do outside their routine. "Add a product" opens
+/// the Add-a-product hub (scan, label photo, link, or type it in); `.addByHand` keeps its
+/// existing shelf-limit gate in `runPending`.
 private struct QuickActionsSheet: View {
+    /// Scanning and Compare share the Skintel+ entitlement (`canUseScanner` is `isPro`).
     let canScan: Bool
     /// Ask Skintel has its own tab, so the menu offers Shelf (which lost its tab) instead.
     let assistantInTab: Bool
@@ -270,26 +273,26 @@ private struct QuickActionsSheet: View {
             Text("Add or log").font(SKFont.section).foregroundStyle(SKColor.ink)
                 .padding(.horizontal, SKSpace.xs).padding(.top, SKSpace.lg).padding(.bottom, SKSpace.xs)
             row(icon: "viewfinder", tint: SKColor.primary, title: "Scan a product",
-                subtitle: "Barcode or ingredient label", badge: canScan ? nil : "Pro", action: .scan)
+                subtitle: "Barcode or ingredient label", locked: !canScan, action: .scan)
+            row(icon: "tray.and.arrow.down", tint: SKColor.ink, title: "Add a product",
+                subtitle: "Scan, photo, link or type it in", locked: false, action: .addByHand)
             row(icon: "face.smiling", tint: SKColor.goodFg, title: "Check in skin",
-                subtitle: "How is your skin today?", badge: nil, action: .checkIn)
+                subtitle: "How is your skin today?", locked: false, action: .checkIn)
             if assistantInTab {
                 row(icon: "tray.full", tint: SKColor.ink, title: "Your shelf",
-                    subtitle: "Every product you've added", badge: nil, action: .shelf)
+                    subtitle: "Every product you've added", locked: false, action: .shelf)
             } else {
                 row(icon: "sparkles", tint: SKColor.primary, title: "Ask Skintel",
-                    subtitle: "Questions about your skin and products", badge: nil, action: .ask)
+                    subtitle: "Questions about your skin and products", locked: false, action: .ask)
             }
-            row(icon: "square.and.pencil", tint: SKColor.ink, title: "Add by hand",
-                subtitle: "Search or paste an ingredient list", badge: nil, action: .addByHand)
             row(icon: "arrow.left.arrow.right", tint: SKColor.ink, title: "Compare products",
-                subtitle: "Side by side, up to three", badge: nil, action: .compare)
+                subtitle: "Side by side, up to three", locked: !canScan, action: .compare)
             Spacer(minLength: 0)
         }
         .padding(.horizontal, SKSpace.xl)
     }
 
-    private func row(icon: String, tint: Color, title: String, subtitle: String, badge: String?, action: QuickAction) -> some View {
+    private func row(icon: String, tint: Color, title: String, subtitle: String, locked: Bool, action: QuickAction) -> some View {
         Button { choose(action) } label: {
             HStack(spacing: SKSpace.md) {
                 Image(systemName: icon)
@@ -302,7 +305,7 @@ private struct QuickActionsSheet: View {
                     Text(subtitle).font(SKFont.secondary).foregroundStyle(SKColor.muted)
                 }
                 Spacer(minLength: 0)
-                if let badge { SKChip(badge, tone: .neutral) }
+                if locked { SkintelPlusBadge() }
             }
             .frame(minHeight: 60)
             .contentShape(Rectangle())

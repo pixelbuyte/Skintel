@@ -49,10 +49,14 @@ struct ManualEntrySheet: View {
         VStack(alignment: .leading, spacing: SKSpace.md) {
             SKTextField(placeholder: "Product name (optional)", text: $name, autocapitalization: .words)
             SKTextField(placeholder: "Brand (optional)", text: $brand, autocapitalization: .words)
-            SKFieldLabel("Ingredients (INCI)")
+            HStack {
+                SKFieldLabel("Ingredients (INCI)")
+                Spacer()
+                ClipboardPasteButton { text in inci = text }
+            }
             SKTextEditor(placeholder: "Aqua, Glycerin, Niacinamide, …", text: $inci, minHeight: 160, mono: true)
             let n = INCI.parse(inci).count
-            Text(n == 0 ? "Paste the list exactly as printed — commas between ingredients." : "\(n) ingredients parsed")
+            Text(n == 0 ? "Paste the list exactly as printed, commas between ingredients." : "\(n) ingredient\(n == 1 ? "" : "s") recognised")
                 .font(SKFont.dataSmall).foregroundStyle(n == 0 ? SKColor.muted : SKColor.goodFg)
             SKButton(title: "Analyze") {
                 dismiss()
@@ -76,15 +80,23 @@ struct ManualEntrySheet: View {
 
     private var linkEntry: some View {
         VStack(alignment: .leading, spacing: SKSpace.md) {
-            SKFieldLabel("Product page")
+            HStack {
+                SKFieldLabel("Product page")
+                Spacer()
+                ClipboardPasteButton { text in
+                    if let url = ProductLink.url(from: text) { link = url.absoluteString } else { Haptics.warning() }
+                }
+            }
             SKTextField(placeholder: "https://…", text: $link, keyboard: .URL, contentType: .URL, autocapitalization: .never, submitLabel: .go)
-            Text("Works with most retailer and brand pages. Some sites block bots; if that happens, paste the list instead.")
+            Text("Works with most retailer and brand pages. Some sites block apps; if that happens, paste the list instead.")
                 .font(SKFont.caption).foregroundStyle(SKColor.muted)
             SKButton(title: "Import ingredients") {
+                guard let url = ProductLink.url(from: link) else { return }
+                let address = url.absoluteString
                 dismiss()
-                Task { await model.importURL(link.trimmingCharacters(in: .whitespaces)) }
+                Task { await model.importURL(address) }
             }
-            .disabled(URL(string: link.trimmingCharacters(in: .whitespaces))?.host == nil)
+            .disabled(ProductLink.url(from: link) == nil)
         }
     }
 

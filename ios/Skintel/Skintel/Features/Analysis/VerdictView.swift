@@ -46,6 +46,8 @@ struct VerdictView: View {
 
                 actions(scan)
                     .padding(.top, SKSpace.sm)
+
+                AskAboutProductButton(scan: scan)
             }
             .skPagePadding()
             .padding(.vertical, SKSpace.md)

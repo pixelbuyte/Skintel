@@ -64,10 +64,10 @@ struct FoundSheet: View {
         .interactiveDismissDisabled(model.isBusy)
     }
 
+    /// Verdicts read the ingredient list and your triggers, never your skin type, so the
+    /// line only names what the check really uses.
     private var profileLine: String {
-        let p = env.session.user?.skinProfile.summary ?? ""
         let culprits = env.products.culprits.all.count
-        if !p.isEmpty { return "Matching against \(p)" }
         return culprits > 0 ? "Matching against \(culprits) known trigger\(culprits == 1 ? "" : "s")" : "Matching against your shelf"
     }
 

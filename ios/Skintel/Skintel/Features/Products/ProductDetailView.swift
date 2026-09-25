@@ -47,6 +47,8 @@ struct ProductDetailView: View {
                     }
                 }
 
+                AskAboutProductButton(productID: p.id)
+
                 SKSegmented(options: [(Tab.ingredients, "Ingredients · \(p.ingredients.count)"), (Tab.insight, "AI insight")], selection: $tab)
 
                 switch tab {
@@ -203,4 +205,94 @@ struct ProductDetailView: View {
             analyzeError = (error as? APIError)?.userMessage ?? error.localizedDescription
         }
     }
+}
+
+/// "Ask Skintel about this". A product on the shelf opens Ask Skintel with it tagged, so the
+/// server reads its ingredient list. An unsaved scan can't be tagged (the server only reads
+/// shelf products), so it opens with a drafted question carrying the name, Skintel's score and
+/// the ingredients. Nothing is sent until the person sends it; free accounts meet Ask
+/// Skintel's own Skintel+ wall.
+struct AskAboutProductButton: View {
+    private let productID: String?
+    private let scan: ScanStore.StoredScan?
+
+    @Environment(AppEnvironment.self) private var env
+    @State private var request: AskRequest?
+    @State private var showWall = false
+
+    init(productID: String) {
+        self.productID = productID
+        self.scan = nil
+    }
+
+    init(scan: ScanStore.StoredScan) {
+        self.productID = scan.productID
+        self.scan = scan
+    }
+
+    var body: some View {
+        Button { open() } label: {
+            HStack(spacing: SKSpace.sm) {
+                Image(systemName: "sparkles")
+                    .font(.system(size: 15, weight: .semibold))
+                    .foregroundStyle(SKColor.primary)
+                    .accessibilityHidden(true)
+                Text("Ask Skintel about this")
+                    .font(SKFont.button)
+                    .foregroundStyle(SKColor.ink)
+                if !env.subscription.entitlement.isPro { SkintelPlusBadge() }
+            }
+            .padding(.horizontal, SKSpace.lg)
+            .frame(maxWidth: .infinity, minHeight: 52)
+            .background(SKColor.cream, in: RoundedRectangle(cornerRadius: SKRadius.button, style: .continuous))
+            .overlay(RoundedRectangle(cornerRadius: SKRadius.button, style: .continuous).stroke(SKColor.line))
+            .contentShape(RoundedRectangle(cornerRadius: SKRadius.button, style: .continuous))
+        }
+        .buttonStyle(SKPressStyle())
+        .accessibilityElement(children: .combine)
+        .accessibilityAddTraits(.isButton)
+        .sheet(item: $request) { r in
+            AssistantView(initialQuestion: r.question, initialTagged: r.tagged)
+        }
+        .fullScreenCover(isPresented: $showWall) { ProLockedView(feature: .ask) }
+    }
+
+    private func open() {
+        Haptics.tap()
+        // Free accounts get the full-screen Skintel+ wall, never the chat.
+        guard env.subscription.entitlement.isPro else { showWall = true; return }
+        if let productID, let p = env.products.product(id: productID) {
+            request = AskRequest(question: nil, tagged: [p.product])
+        } else if let scan {
+            request = AskRequest(question: Self.draft(for: scan), tagged: [])
+        } else {
+            request = AskRequest(question: nil, tagged: [])
+        }
+    }
+
+    /// The server keeps the first 1,500 characters of a question, so the list is cut to fit.
+    static func draft(for scan: ScanStore.StoredScan) -> String {
+        let name = scan.productName ?? scan.brand ?? "this product"
+        var text = "What should I know about \(name)? Skintel's check gave it \(scan.result.score)/100 (\(scan.result.verdict.label))."
+        let names = INCI.parse(scan.inci).map(\.raw)
+        guard !names.isEmpty else { return text }
+        text += " Ingredients: "
+        let budget = 1_400 - text.count
+        var kept: [String] = []
+        var used = 0
+        for n in names {
+            if used + n.count + 2 > budget { break }
+            kept.append(n)
+            used += n.count + 2
+        }
+        text += kept.joined(separator: ", ")
+        if kept.count < names.count { text += ", …" }
+        return text
+    }
+}
+
+private struct AskRequest: Identifiable {
+    let id = UUID()
+    let question: String?
+    let tagged: [Product]
 }
