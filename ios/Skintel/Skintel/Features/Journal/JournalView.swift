@@ -29,7 +29,7 @@ struct JournalView: View {
                         Text("Journal").font(SKFont.pageTitle).foregroundStyle(SKColor.ink)
                         Spacer()
                         if env.journal.streak > 0 {
-                            SKChip("🔥 \(env.journal.streak)-day streak", tone: .caution)
+                            SKChip("\(env.journal.streak)-day streak", tone: .good)
                         }
                         Button { dismiss() } label: {
                             Image(systemName: "xmark").font(.system(size: 15, weight: .semibold))
@@ -57,7 +57,7 @@ struct JournalView: View {
                 ToolbarItem(placement: .keyboard) { HStack { Spacer(); Button("Done") { notesFocused = false }.font(SKFont.bodyMedium) } }
             }
             .navigationDestination(for: AppDestination.self) { d in
-                if case .culprits = d { CulpritsView() }
+                if case .culprits = d { TriggersView() }
             }
         }
         .tint(SKColor.primary)
@@ -227,7 +227,7 @@ struct JournalView: View {
                                 .font(SKFont.cardTitle).foregroundStyle(SKColor.ink)
                         }
                         if let s = a.summary, !s.isEmpty { Text(s).font(SKFont.secondary).foregroundStyle(SKColor.ink) }
-                        SKLinkButton(title: "See culprits") {
+                        SKLinkButton(title: "See triggers") {
                             if env.subscription.entitlement.isPro { path.append(.culprits) } else { openPaywall(.culprits) }
                         }
                     }
@@ -341,7 +341,7 @@ struct CheckInSheet: View {
             }
         }
         .tint(SKColor.primary)
-        .sheet(isPresented: $showAsk) { AssistantView(initialQuestion: askPrompt) }
+        .skAskSheet(isPresented: $showAsk, initialQuestion: askPrompt)
         .task {
             await env.journal.load()
             prime()
@@ -393,7 +393,7 @@ struct CheckInSheet: View {
                     }
                 } label: {
                     HStack(spacing: SKSpace.md) {
-                        SKDot(tone: c.tone, size: 12)
+                        Circle().fill(c.logTint.dot).frame(width: 12, height: 12)   // same tints as Today's log
                         Text(c.checkInLabel).font(SKFont.sans(18, weight: .semibold, relativeTo: .title3)).foregroundStyle(SKColor.ink)
                         Spacer()
                         if condition == c {
@@ -700,17 +700,18 @@ struct InsightsView: View {
                 await env.products.load()
             }
             .skPageBackground()
+            .skHint(.insights)
             .toolbar(.hidden, for: .navigationBar)
             .navigationDestination(for: AppDestination.self) { d in
                 switch d {
-                case .culprits: CulpritsView()
+                case .culprits: TriggersView()
                 case .routine: RoutineView()
                 default: EmptyView()
                 }
             }
         }
         .tint(SKColor.primary)
-        .sheet(isPresented: $showJournal) { JournalView() }
+        .sheet(isPresented: $showJournal) { JournalView().skProGates() }
         .sheet(isPresented: $showCheckIn) { CheckInSheet() }
         .task { await env.journal.load() }
     }
@@ -811,7 +812,7 @@ struct InsightsView: View {
                             Text("Suspect: \(top.name)").font(SKFont.cardTitle).foregroundStyle(SKColor.ink).lineLimit(2)
                             Text("In \(top.badCount) products that broke you out").font(SKFont.secondary).foregroundStyle(SKColor.muted)
                         } else {
-                            Text("Culprit detection").font(SKFont.cardTitle).foregroundStyle(SKColor.ink)
+                            Text("Triggers").font(SKFont.cardTitle).foregroundStyle(SKColor.ink)
                             Text(bad < 2 ? "Mark two products as “Broke out” and Skintel finds what they share."
                                  : "No shared ingredient yet. Add ingredient lists to widen the net.")
                                 .font(SKFont.secondary).foregroundStyle(SKColor.muted)
@@ -839,7 +840,7 @@ struct InsightsView: View {
                     VStack(alignment: .leading, spacing: 3) {
                         HStack(spacing: SKSpace.sm) {
                             Text("Journal patterns").font(SKFont.cardTitle).foregroundStyle(SKColor.ink)
-                            if !env.subscription.entitlement.isPro { SKChip("Pro") }
+                            if !env.subscription.entitlement.isPro { SKChip("Skintel+") }
                         }
                         Text("Lines up your check-ins with when each product joined your shelf.")
                             .font(SKFont.secondary).foregroundStyle(SKColor.muted)

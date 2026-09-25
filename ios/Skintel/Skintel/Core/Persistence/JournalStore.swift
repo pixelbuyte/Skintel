@@ -67,22 +67,20 @@ final class JournalStore {
         catch { analysis = .failed(.network(error.localizedDescription)) }
     }
 
-    /// Consecutive logged days ending today or yesterday.
-    var streak: Int {
-        let days = Set(entries.map(\.entryDate))
-        var count = 0
-        var cursor = Date()
-        let cal = Calendar.current
-        if !days.contains(ISO8601.dayString(cursor)) {
-            cursor = cal.date(byAdding: .day, value: -1, to: cursor)!
-            if !days.contains(ISO8601.dayString(cursor)) { return 0 }
-        }
-        while days.contains(ISO8601.dayString(cursor)) {
-            count += 1
-            cursor = cal.date(byAdding: .day, value: -1, to: cursor)!
-        }
-        return count
+    /// Current and best check-in streak from the loaded entries (see `Streaks`). The API
+    /// returns the latest `entryLimit` entries, so older history can't count toward `best`.
+    func streaks(now: Date = Date()) -> Streaks {
+        Streaks(days: entries.map(\.entryDate), now: now)
     }
+
+    /// `/api/journal` returns at most this many entries (newest first).
+    static let entryLimit = 90
+
+    /// True when the list may be cut off by `entryLimit`, so totals should read "90+".
+    var mayHaveOlderEntries: Bool { entries.count >= Self.entryLimit }
+
+    /// Consecutive logged days ending today or yesterday.
+    var streak: Int { streaks().current }
 
     /// The last seven days, oldest first, with whatever was logged.
     var week: [(date: Date, entry: JournalEntry?)] {

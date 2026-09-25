@@ -48,6 +48,7 @@ struct RoutineView: View {
         .skPageBackground()
         .toolbar(.hidden, for: .navigationBar)
         .overlay(alignment: .topLeading) { BackButton().padding(.top, 2) }
+        .skHint(.routine, when: ids.count > 1)
         .sheet(isPresented: $showPicker) { ShelfPickerSheet(exclude: Set(ids)) { env.routine.add($0, to: slot); Haptics.success() } }
         .sheet(isPresented: $showTemplates) { templatesSheet }
         .onChange(of: slot) { _, _ in analysis = .idle }

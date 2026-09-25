@@ -18,6 +18,8 @@
 		21A738E63A8D5B94542FC8DF /* SkintelCore in Frameworks */ = {isa = PBXBuildFile; productRef = AFB88C4177C8695BA6013C4A /* SkintelCore */; };
 		21BA985B72A8F5F8BB705823 /* AppRouter.swift in Sources */ = {isa = PBXBuildFile; fileRef = B89A39D514937525E18C27B4 /* AppRouter.swift */; };
 		26D6887E6274AC97AF751C7A /* SKFont.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5EB6ECEEDFE684AAC7A74EB6 /* SKFont.swift */; };
+		2A2BFCC5E71953C2652EDD40 /* ImportPages.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6AC88A040FD72AC5E620744A /* ImportPages.swift */; };
+		2FCB3AA2CB8549317C4C7821 /* TriggersView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B3BA494F19C2198B6BC9B7F1 /* TriggersView.swift */; };
 		3232FA965DEEF944CFACE886 /* DMSans-Regular.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 4D7EB960E431B7BA8662737B /* DMSans-Regular.ttf */; };
 		337DCA0BC0A5E86D17DFCC50 /* CompareView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 283327961C5ADE9B80F64D89 /* CompareView.swift */; };
 		3B1AFF68E0709D9CABFB465C /* AuthFlow.swift in Sources */ = {isa = PBXBuildFile; fileRef = A33BF995628F31E4DF54BA52 /* AuthFlow.swift */; };
@@ -28,6 +30,7 @@
 		40202DC315B238828A527D6C /* SKMetrics.swift in Sources */ = {isa = PBXBuildFile; fileRef = FFBA9AD67DEDDC0A49CCE28E /* SKMetrics.swift */; };
 		45C092F6535764EA635C33D9 /* ProductFormView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 23CC42A67CE7000000BA8FFB /* ProductFormView.swift */; };
 		46553EA3126F7F91475A5247 /* ImageResizer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5C0163337648842526018C20 /* ImageResizer.swift */; };
+		468021EB6223BB833DD23A06 /* AddProductHub.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3698746FF5AA8F48EFBB4749 /* AddProductHub.swift */; };
 		48BCA1A4C38F07FCC2DEA74F /* SkintelWidgets.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = 0B166E5C8DCE0607642AA144 /* SkintelWidgets.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
 		4945BF5D81C2FBA52D0E185F /* RoutineTemplates.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3C7475ADBC18EC1CED79FEC8 /* RoutineTemplates.swift */; };
 		4D182EEA998E20FF94C4B8D9 /* SKStates.swift in Sources */ = {isa = PBXBuildFile; fileRef = CE03602DA17EADDE79882A49 /* SKStates.swift */; };
@@ -42,6 +45,7 @@
 		6EDF9A6A77F45D28D73BBE34 /* SKNavigation.swift in Sources */ = {isa = PBXBuildFile; fileRef = 67A174DD5FB2BD8AE5380F0B /* SKNavigation.swift */; };
 		722C102A7E1F383D71C65F12 /* ShelfWidgetSync.swift in Sources */ = {isa = PBXBuildFile; fileRef = 61186821BEAF27AA3974394D /* ShelfWidgetSync.swift */; };
 		76FFD528BA7F32523480B985 /* JournalView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 796E88FFEB5279864F3F2F71 /* JournalView.swift */; };
+		781EB2D08AE2F34EF728CF8D /* SKHints.swift in Sources */ = {isa = PBXBuildFile; fileRef = 18F40734A7EE7215F92A3644 /* SKHints.swift */; };
 		7B57EE0CC09B458218F632D0 /* JournalStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8A073BDE8480C0DF087EFC68 /* JournalStore.swift */; };
 		7D978A002189261368263C16 /* OnboardingFlow.swift in Sources */ = {isa = PBXBuildFile; fileRef = 15D14CDE0716A3705DE509A4 /* OnboardingFlow.swift */; };
 		856A1D57BB622C348BD231BC /* InstrumentSerif-Italic.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 4908DC6854ECCBD6CD11E066 /* InstrumentSerif-Italic.ttf */; };
@@ -53,6 +57,7 @@
 		997207A5679E3C1C6566917B /* SKChip.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3D9E5AFED7855A473D575C4C /* SKChip.swift */; };
 		9F9A978D1A01AEF32EDEF1AA /* DMSans-SemiBold.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 4315E200A206D548600F78C9 /* DMSans-SemiBold.ttf */; };
 		A632886B6250E242C4974C15 /* DMSans-Bold.ttf in Resources */ = {isa = PBXBuildFile; fileRef = E6A7D9FB644FE572390F2679 /* DMSans-Bold.ttf */; };
+		A675473326BBB62F544D275C /* HintTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1071469438DEA25E398A6DA4 /* HintTests.swift */; };
 		A98B18AD01112D7D45985C95 /* JetBrainsMono-Bold.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 4A4A5697A75042AFF2F8117C /* JetBrainsMono-Bold.ttf */; };
 		AA23CAB528A3CF8A144405F1 /* AppleNonce.swift in Sources */ = {isa = PBXBuildFile; fileRef = 87F4CCA3C74D1CC8AF3A2057 /* AppleNonce.swift */; };
 		AE4D32B545F9E24FCC0842DB /* PaywallView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6479ED1720E6095C44CAEDAE /* PaywallView.swift */; };
@@ -61,7 +66,6 @@
 		BD82F4AB7C08442B6478A232 /* SkintelWidgetsBundle.swift in Sources */ = {isa = PBXBuildFile; fileRef = A5059527139D071D3B30FB5F /* SkintelWidgetsBundle.swift */; };
 		BE0D467B707F369A654D75B8 /* JetBrainsMono-Regular.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 783263C6D4B6E42DA89210E3 /* JetBrainsMono-Regular.ttf */; };
 		BE87F9C25BC87E4F7BB12CD1 /* Analytics.swift in Sources */ = {isa = PBXBuildFile; fileRef = 752CCAB65D77A62C17367EBA /* Analytics.swift */; };
-		BFDBE4C50DA6BE04EA88E239 /* CulpritsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 41D9B33C51B9B8C5CF9AEAEE /* CulpritsView.swift */; };
 		C17B7BA22F01C2FA52493101 /* VerdictView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4FDAAA323CB25E3414FFE9F7 /* VerdictView.swift */; };
 		C17FC1096F6EF903DB63F13C /* ScanFlowModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 421094553674E3332A031478 /* ScanFlowModel.swift */; };
 		C2CA6F75426E46573EAB2018 /* Skintel.storekit in Resources */ = {isa = PBXBuildFile; fileRef = AFFF4AB08094894BD1D7E0B9 /* Skintel.storekit */; };
@@ -135,8 +139,10 @@
 		0B166E5C8DCE0607642AA144 /* SkintelWidgets.appex */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = "wrapper.app-extension"; path = SkintelWidgets.appex; sourceTree = BUILT_PRODUCTS_DIR; };
 		0E853A1CF1203902E3C7399F /* SkintelTests.xctest */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.cfbundle; path = SkintelTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		0FCCC6CEA78D934299A7907B /* AppEnvironment.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppEnvironment.swift; sourceTree = "<group>"; };
+		1071469438DEA25E398A6DA4 /* HintTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HintTests.swift; sourceTree = "<group>"; };
 		12E9343CE561ED10C5BEBA04 /* Haptics.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Haptics.swift; sourceTree = "<group>"; };
 		15D14CDE0716A3705DE509A4 /* OnboardingFlow.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OnboardingFlow.swift; sourceTree = "<group>"; };
+		18F40734A7EE7215F92A3644 /* SKHints.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SKHints.swift; sourceTree = "<group>"; };
 		210196EA5627F4E9ABEB5E6C /* PrivacyInfo.xcprivacy */ = {isa = PBXFileReference; path = PrivacyInfo.xcprivacy; sourceTree = "<group>"; };
 		22CF73FEDEF580D2E42474D2 /* Skintel.app */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.application; path = Skintel.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		23CC42A67CE7000000BA8FFB /* ProductFormView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProductFormView.swift; sourceTree = "<group>"; };
@@ -145,11 +151,11 @@
 		2E24655AD2FF379E52CC373E /* RoutineStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RoutineStore.swift; sourceTree = "<group>"; };
 		33CC6A9100B24534E4BA62BF /* Debug.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = Debug.xcconfig; sourceTree = "<group>"; };
 		33DB2266238DBF85A3586528 /* Navigation.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Navigation.swift; sourceTree = "<group>"; };
+		3698746FF5AA8F48EFBB4749 /* AddProductHub.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AddProductHub.swift; sourceTree = "<group>"; };
 		37357A70529D951ADE798CDE /* DMSans-Medium.ttf */ = {isa = PBXFileReference; lastKnownFileType = file; path = "DMSans-Medium.ttf"; sourceTree = "<group>"; };
 		3A39F5A76A0C34C4E5D9F5DE /* LaunchFlowUITests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LaunchFlowUITests.swift; sourceTree = "<group>"; };
 		3C7475ADBC18EC1CED79FEC8 /* RoutineTemplates.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RoutineTemplates.swift; sourceTree = "<group>"; };
 		3D9E5AFED7855A473D575C4C /* SKChip.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SKChip.swift; sourceTree = "<group>"; };
-		41D9B33C51B9B8C5CF9AEAEE /* CulpritsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CulpritsView.swift; sourceTree = "<group>"; };
 		421094553674E3332A031478 /* ScanFlowModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScanFlowModel.swift; sourceTree = "<group>"; };
 		4315E200A206D548600F78C9 /* DMSans-SemiBold.ttf */ = {isa = PBXFileReference; lastKnownFileType = file; path = "DMSans-SemiBold.ttf"; sourceTree = "<group>"; };
 		4358CFBB0F35221BAAB3FB72 /* SkinstelMascot */ = {isa = PBXFileReference; lastKnownFileType = folder; name = SkinstelMascot; path = ../Packages/SkinstelMascot; sourceTree = SOURCE_ROOT; };
@@ -169,6 +175,7 @@
 		67A174DD5FB2BD8AE5380F0B /* SKNavigation.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SKNavigation.swift; sourceTree = "<group>"; };
 		68873569B769A5EECF5C114A /* ProductsListView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProductsListView.swift; sourceTree = "<group>"; };
 		69E02082F57B466549EDAB2B /* BarcodeScannerView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BarcodeScannerView.swift; sourceTree = "<group>"; };
+		6AC88A040FD72AC5E620744A /* ImportPages.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ImportPages.swift; sourceTree = "<group>"; };
 		6B5E48E10B211CACC5CF54DF /* HomeView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HomeView.swift; sourceTree = "<group>"; };
 		6DBE9CC8AE206FE62F276768 /* SubscriptionStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SubscriptionStore.swift; sourceTree = "<group>"; };
 		752CCAB65D77A62C17367EBA /* Analytics.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Analytics.swift; sourceTree = "<group>"; };
@@ -192,6 +199,7 @@
 		A5059527139D071D3B30FB5F /* SkintelWidgetsBundle.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SkintelWidgetsBundle.swift; sourceTree = "<group>"; };
 		AFFF4AB08094894BD1D7E0B9 /* Skintel.storekit */ = {isa = PBXFileReference; path = Skintel.storekit; sourceTree = "<group>"; };
 		B0E8E151FBCF9534C921D1F5 /* SKTextField.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SKTextField.swift; sourceTree = "<group>"; };
+		B3BA494F19C2198B6BC9B7F1 /* TriggersView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TriggersView.swift; sourceTree = "<group>"; };
 		B4BA6BF0DB07CB3A5B96A341 /* SkintelWidgets.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = SkintelWidgets.entitlements; sourceTree = "<group>"; };
 		B85D2B198F9E1C35F649272F /* PrivacyInfo.xcprivacy */ = {isa = PBXFileReference; path = PrivacyInfo.xcprivacy; sourceTree = "<group>"; };
 		B89A39D514937525E18C27B4 /* AppRouter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppRouter.swift; sourceTree = "<group>"; };
@@ -253,14 +261,6 @@
 				F95F7EC0F6E930E7BADEBF4B /* WidgetShared.swift */,
 			);
 			path = Shared;
-			sourceTree = "<group>";
-		};
-		2C5F819C070E576EA5CBB0FE /* Culprits */ = {
-			isa = PBXGroup;
-			children = (
-				41D9B33C51B9B8C5CF9AEAEE /* CulpritsView.swift */,
-			);
-			path = Culprits;
 			sourceTree = "<group>";
 		};
 		2F0C11C9DD30C53877C9DBA8 /* Recommend */ = {
@@ -404,6 +404,7 @@
 				EBFB8CDCDCC9E5BF0D50C55E /* SKButton.swift */,
 				8D54AD044221C0042055DD6F /* SKCard.swift */,
 				3D9E5AFED7855A473D575C4C /* SKChip.swift */,
+				18F40734A7EE7215F92A3644 /* SKHints.swift */,
 				BBAE192B533670E5B8D27F55 /* SKMarks.swift */,
 				67A174DD5FB2BD8AE5380F0B /* SKNavigation.swift */,
 				85C0ADEF50FA38E10E2AAB4A /* SKScoreRing.swift */,
@@ -416,6 +417,8 @@
 		8B04913E0A1E5483DEA5AC8A /* Products */ = {
 			isa = PBXGroup;
 			children = (
+				3698746FF5AA8F48EFBB4749 /* AddProductHub.swift */,
+				6AC88A040FD72AC5E620744A /* ImportPages.swift */,
 				4AAB915E94E620CD4B4234FF /* ProductDetailView.swift */,
 				23CC42A67CE7000000BA8FFB /* ProductFormView.swift */,
 				68873569B769A5EECF5C114A /* ProductsListView.swift */,
@@ -450,7 +453,6 @@
 				3EF8978BBA19C51642FAA796 /* Analysis */,
 				4B3A6DEC5440C304978FCF23 /* Auth */,
 				42EA7FADDE3CE31A770364BE /* Compare */,
-				2C5F819C070E576EA5CBB0FE /* Culprits */,
 				8CF66E88615E1A9962BE3639 /* Home */,
 				9DB7A03A61A4A5339073B236 /* Journal */,
 				4609138C2141B8D03B2C9F54 /* Onboarding */,
@@ -460,6 +462,7 @@
 				D5B818F828805555EF7D31F9 /* Scanner */,
 				75AC98139D251AAA5CA867AF /* Settings */,
 				CCF5F21CF14051A48E89E3CF /* Subscription */,
+				B4E429B227471A4BEDCF777E /* Triggers */,
 			);
 			path = Features;
 			sourceTree = "<group>";
@@ -476,9 +479,18 @@
 			isa = PBXGroup;
 			children = (
 				0617B8B860F0792AF0BDB240 /* AppLogicTests.swift */,
+				1071469438DEA25E398A6DA4 /* HintTests.swift */,
 				E3920E46434C4E91B5B784BA /* WidgetSharedTests.swift */,
 			);
 			path = SkintelTests;
+			sourceTree = "<group>";
+		};
+		B4E429B227471A4BEDCF777E /* Triggers */ = {
+			isa = PBXGroup;
+			children = (
+				B3BA494F19C2198B6BC9B7F1 /* TriggersView.swift */,
+			);
+			path = Triggers;
 			sourceTree = "<group>";
 		};
 		C094E5283FA11FD6512F7E66 /* Core */ = {
@@ -776,6 +788,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				C7F4F2B72A4F1DC7B0BE3B03 /* AppLogicTests.swift in Sources */,
+				A675473326BBB62F544D275C /* HintTests.swift in Sources */,
 				970CE988EC3CA9811F38E923 /* WidgetSharedTests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -795,6 +808,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				468021EB6223BB833DD23A06 /* AddProductHub.swift in Sources */,
 				BE87F9C25BC87E4F7BB12CD1 /* Analytics.swift in Sources */,
 				55DD65660FD5C9B715A12FB1 /* AppConfiguration.swift in Sources */,
 				C2F5427C2E97CD771EEDD08F /* AppEnvironment.swift in Sources */,
@@ -805,13 +819,13 @@
 				D096BDEDBFC9CB6458883BCD /* BarcodeScannerView.swift in Sources */,
 				0F98B62C4FE97957D68E64C9 /* CameraPermission.swift in Sources */,
 				337DCA0BC0A5E86D17DFCC50 /* CompareView.swift in Sources */,
-				BFDBE4C50DA6BE04EA88E239 /* CulpritsView.swift in Sources */,
 				97AFF934A05C0145E2F7CE55 /* DateFormatting.swift in Sources */,
 				550AB8204F1194FDFB433E55 /* EditProfileSheet.swift in Sources */,
 				56FB53FE48E07920BDF9E34E /* FoundSheet.swift in Sources */,
 				DE25D292E7E1DB878F5B369B /* Haptics.swift in Sources */,
 				68C7A24A9CFAA1AB84F1C5AB /* HomeView.swift in Sources */,
 				46553EA3126F7F91475A5247 /* ImageResizer.swift in Sources */,
+				2A2BFCC5E71953C2652EDD40 /* ImportPages.swift in Sources */,
 				7B57EE0CC09B458218F632D0 /* JournalStore.swift in Sources */,
 				76FFD528BA7F32523480B985 /* JournalView.swift in Sources */,
 				D743E6D300185022CA78E954 /* KeychainSessionStore.swift in Sources */,
@@ -834,6 +848,7 @@
 				997207A5679E3C1C6566917B /* SKChip.swift in Sources */,
 				C5EDA64C4577D471BD07910A /* SKColor.swift in Sources */,
 				26D6887E6274AC97AF751C7A /* SKFont.swift in Sources */,
+				781EB2D08AE2F34EF728CF8D /* SKHints.swift in Sources */,
 				3D3A3A356AC175FDA96CF15A /* SKMarks.swift in Sources */,
 				40202DC315B238828A527D6C /* SKMetrics.swift in Sources */,
 				6EDF9A6A77F45D28D73BBE34 /* SKNavigation.swift in Sources */,
@@ -850,6 +865,7 @@
 				CFA99DFB36E11A10A0F85E7C /* SkintelApp.swift in Sources */,
 				E6F53A20391807BC5F6C8CFA /* SubscriptionService.swift in Sources */,
 				BAFCFF6AFC6DAFA061F84506 /* SubscriptionStore.swift in Sources */,
+				2FCB3AA2CB8549317C4C7821 /* TriggersView.swift in Sources */,
 				C17B7BA22F01C2FA52493101 /* VerdictView.swift in Sources */,
 				90C013EB11BBB17B041291F6 /* WidgetShared.swift in Sources */,
 			);
