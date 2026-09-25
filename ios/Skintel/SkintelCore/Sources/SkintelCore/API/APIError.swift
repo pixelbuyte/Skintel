@@ -25,8 +25,8 @@ public enum APIError: Error, Sendable, Equatable {
     public var userMessage: String {
         switch self {
         case .unauthenticated: "Please sign in again."
-        case .proRequired: "This needs Skintel Pro."
-        case .freePlanLimit: "Free plans hold 5 products. Upgrade to add more."
+        case .proRequired: "This needs Skintel+."
+        case .freePlanLimit: "Free plans hold 5 products. Get Skintel+ to add more."
         case .notFound(let m): m ?? "Not found."
         case .unprocessable(let m): m ?? "That couldn't be read."
         case .conflict(let m): m ?? "That's no longer available."

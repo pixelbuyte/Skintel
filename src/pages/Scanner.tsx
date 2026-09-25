@@ -14,7 +14,7 @@ import {
   Beaker,
 } from 'lucide-react';
 import { useProducts } from '@/hooks/useProducts';
-import { useCulprits } from '@/hooks/useCulprits';
+import { useTriggers } from '@/hooks/useTriggers';
 import { useSubscription } from '@/hooks/useSubscription';
 import { PaywallBanner } from '@/components/PaywallBanner';
 import { ScanResult } from '@/components/ScanResult';
@@ -132,7 +132,7 @@ const MOCK_AI: AiResult = {
 
 export default function Scanner() {
   const { products } = useProducts();
-  const { high, medium } = useCulprits(products);
+  const { high, medium } = useTriggers(products);
   const { canUseScanner } = useSubscription();
   const preview = isPreview();
 
@@ -161,7 +161,7 @@ export default function Scanner() {
     } catch {}
   }, []);
 
-  const culpritMap = useMemo(() => {
+  const triggerMap = useMemo(() => {
     const m = new Map<string, { name: string; risk: 'high' | 'medium'; badCount: number }>();
     for (const c of high) m.set(c.normalized, { name: c.name, risk: 'high', badCount: c.badCount });
     for (const c of medium) m.set(c.normalized, { name: c.name, risk: 'medium', badCount: c.badCount });
@@ -263,7 +263,7 @@ export default function Scanner() {
     try {
       const localMatches: { name: string; risk: 'high' | 'medium'; badCount: number }[] = [];
       for (const i of parseInci(text)) {
-        const hit = culpritMap.get(i.normalized);
+        const hit = triggerMap.get(i.normalized);
         if (hit) localMatches.push(hit);
       }
       const {
@@ -463,7 +463,7 @@ export default function Scanner() {
         </div>
       )}
 
-      {/* CULPRIT MATCH */}
+      {/* TRIGGER MATCH */}
       {scanned && (
         <div className="mt-4">
           <ScanResult ingredients={scanned} high={high} medium={medium} />

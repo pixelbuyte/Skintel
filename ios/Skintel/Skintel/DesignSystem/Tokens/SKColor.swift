@@ -18,8 +18,15 @@ enum SKColor {
     static let goodFg = Color(hex: 0x5C7A4F)
     static let badBg = Color(hex: 0xFDEAEA)
     static let badFg = Color(hex: 0xB22B2B)
-    static let cautionBg = Color(hex: 0xFFF4E0)
-    static let cautionFg = Color(hex: 0x8B6914)
+    /// Warm clay, in the terracotta family (the old yellow/honey caution read as a warning
+    /// sign). The foreground is deliberately darker and much less saturated than `badFg`
+    /// (L* 32 vs 40, chroma 31 vs 63) so caution and bad differ by lightness, not hue
+    /// alone. Contrast: 7.1:1 on `cautionBg`, 8.6:1 on `cream`, 7.4:1 on `bg`.
+    static let cautionBg = Color(hex: 0xF5E6DC)
+    static let cautionFg = Color(hex: 0x743C2B)
+    /// Sand-clay product tile (replaced the gold one). Initials: 5.3:1.
+    static let clayTileBg = Color(hex: 0xEAD8C8)
+    static let clayTileFg = Color(hex: 0x7A4A32)
 
     /// Scanner / camera surfaces.
     static let scannerBg = Color(hex: 0x0B0A08)
@@ -28,7 +35,7 @@ enum SKColor {
     /// Pastel tiles behind product initials (design §07/§11). Deterministic per name.
     static let tilePalette: [(bg: Color, fg: Color)] = [
         (Color(hex: 0xD6E0EA), Color(hex: 0x3F5E7A)),   // blue
-        (Color(hex: 0xE9DEC3), Color(hex: 0x7A6230)),   // gold
+        (SKColor.clayTileBg, SKColor.clayTileFg),       // clay
         (Color(hex: 0xEED2CC), Color(hex: 0x8E4538)),   // blush
         (Color(hex: 0xDCE5D2), Color(hex: 0x4E6B44)),   // sage
         (Color(hex: 0xE3DAE8), Color(hex: 0x5F4A73)),   // lilac
@@ -121,7 +128,7 @@ extension JournalCondition {
     }
 }
 
-/// Score → tone thresholds, shared by rings and badges so a 64 is amber everywhere.
+/// Score → tone thresholds, shared by rings and badges so a 64 is clay everywhere.
 enum SKScore {
     static func tone(_ score: Int) -> SKTone {
         switch score {

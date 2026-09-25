@@ -2,6 +2,7 @@ import StoreKit
 import SwiftUI
 import UserNotifications
 import SkintelCore
+import SkinstelMascot
 
 /// You: a profile the person shapes up top, then settings in layers. Everyday choices live
 /// one tap down in Personalization; account, data and the destructive actions live in
@@ -121,24 +122,242 @@ struct SettingsView: View {
         .skCardShadow()
     }
 
+    /// The streak card, then two small counts. Every number is the journal's or the shelf's;
+    /// "–" until they have loaded, never a made-up zero.
     private var stats: some View {
-        HStack(spacing: SKSpace.sm) {
-            statTile("\(env.journal.streak)", "day streak")
-            statTile("\(env.journal.entries.count)", env.journal.entries.count == 1 ? "check-in" : "check-ins")
-            statTile("\(env.products.products.count)", "on your shelf")
+        let journalLoaded = env.journal.state.value != nil
+        let checkIns = env.journal.entries.count
+        return VStack(spacing: SKSpace.sm) {
+            StreakCard()
+            HStack(spacing: SKSpace.sm) {
+                statTile(journalLoaded ? (env.journal.mayHaveOlderEntries ? "\(checkIns)+" : "\(checkIns)") : "–",
+                         checkIns == 1 ? "check-in" : "check-ins", icon: "book.closed")
+                statTile(env.products.isLoaded ? "\(env.products.products.count)" : "–", "on your shelf", icon: "tray.full")
+            }
         }
     }
 
-    private func statTile(_ value: String, _ label: String) -> some View {
-        VStack(alignment: .leading, spacing: 2) {
-            Text(value).font(SKFont.stat).foregroundStyle(SKColor.ink)
-            Text(label).font(SKFont.caption).foregroundStyle(SKColor.muted).lineLimit(1)
+    private func statTile(_ value: String, _ label: String, icon: String) -> some View {
+        HStack(spacing: SKSpace.md) {
+            Image(systemName: icon)
+                .font(.system(size: 15, weight: .semibold))
+                .foregroundStyle(SKColor.primary)
+                .frame(width: 36, height: 36)
+                .background(SKColor.blush, in: RoundedRectangle(cornerRadius: 11, style: .continuous))
+                .accessibilityHidden(true)
+            VStack(alignment: .leading, spacing: 0) {
+                Text(value).font(SKFont.serif(26, relativeTo: .title2)).foregroundStyle(SKColor.ink)
+                Text(label).font(SKFont.caption).foregroundStyle(SKColor.muted).lineLimit(1)
+            }
+            Spacer(minLength: 0)
         }
-        .frame(maxWidth: .infinity, alignment: .leading)
         .padding(SKSpace.md)
         .background(SKColor.cream, in: RoundedRectangle(cornerRadius: SKRadius.card, style: .continuous))
         .overlay(RoundedRectangle(cornerRadius: SKRadius.card, style: .continuous).stroke(SKColor.line))
+        .skCardShadow()
         .accessibilityElement(children: .combine)
+    }
+
+    /// The check-in streak as a small daily game in Skintel's own look: a ring filling
+    /// toward the next milestone with the drop inside, the best run, and this week's days.
+    /// The drop celebrates once, the first time You is opened after the day's check-in.
+    private struct StreakCard: View {
+        @Environment(AppEnvironment.self) private var env
+        @Environment(\.accessibilityReduceMotion) private var reduceMotion
+        @AppStorage("streak.celebratedDay") private var celebratedDay = ""
+        @State private var celebrating = false
+        @State private var ring: Double = 0
+        @State private var showCheckIn = false
+
+        var body: some View {
+            let loaded = env.journal.state.value != nil
+            let today = ISO8601.dayString(Date())
+            let days = env.journal.entries.map(\.entryDate)
+            let s = Streaks(days: days, today: today)
+            // Only the newest entries come back; a run covering all of them may go further back.
+            let capped = env.journal.mayHaveOlderEntries
+            let week = Streaks.week(days: days, today: today, firstWeekday: Calendar.current.firstWeekday)
+            VStack(alignment: .leading, spacing: SKSpace.lg) {
+                HStack(spacing: SKSpace.lg) {
+                    ringMark
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text("Check-in streak").skLabelStyle()
+                        HStack(alignment: .firstTextBaseline, spacing: 6) {
+                            Text(loaded ? count(s.current, capped: capped && s.current == s.totalDays) : "–")
+                                .font(SKFont.serif(48, relativeTo: .largeTitle))
+                                .foregroundStyle(SKColor.ink)
+                                .contentTransition(.numericText())
+                            Text(s.current == 1 ? "day" : "days")
+                                .font(SKFont.sans(17, weight: .medium, relativeTo: .headline))
+                                .foregroundStyle(SKColor.ink)
+                        }
+                        if loaded {
+                            Text(detailLine(s, capped: capped))
+                                .font(SKFont.secondary).foregroundStyle(SKColor.muted)
+                                .fixedSize(horizontal: false, vertical: true)
+                        }
+                    }
+                    Spacer(minLength: 0)
+                }
+                .accessibilityElement(children: .ignore)
+                .accessibilityLabel(summary(s, loaded: loaded))
+
+                if loaded { weekRow(week) }
+                status(s, loaded: loaded)
+            }
+            .padding(SKSpace.lg)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .background(
+                LinearGradient(colors: [SKColor.primary.opacity(0.07), SKColor.cream], startPoint: .topLeading, endPoint: .bottomTrailing),
+                in: RoundedRectangle(cornerRadius: 22, style: .continuous)
+            )
+            .overlay(RoundedRectangle(cornerRadius: 22, style: .continuous).stroke(SKColor.line))
+            .skCardShadow()
+            .sheet(isPresented: $showCheckIn) { CheckInSheet() }
+            .task(id: loaded ? s.milestoneProgress : -1) {
+                let target = loaded ? s.milestoneProgress : 0
+                if reduceMotion { ring = target } else { withAnimation(SKAnimation.emil(0.9)) { ring = target } }
+            }
+            .task(id: "\(today)|\(s.loggedToday)") {
+                // Celebrate a streak that grew today, once; afterwards the drop rests.
+                guard s.loggedToday, celebratedDay != today else { return }
+                celebratedDay = today
+                celebrating = true
+                try? await Task.sleep(for: .seconds(2.6))
+                celebrating = false
+            }
+        }
+
+        private var ringMark: some View {
+            ZStack {
+                Circle().stroke(SKColor.line, lineWidth: 7)
+                Circle()
+                    .trim(from: 0, to: ring)
+                    .stroke(SKColor.primary, style: StrokeStyle(lineWidth: 7, lineCap: .round))
+                    .rotationEffect(.degrees(-90))
+                SKMascot(action: celebrating ? .celebrate : .idle, height: 58)
+            }
+            .frame(width: 92, height: 92)
+        }
+
+        private func weekRow(_ week: [Streaks.Day]) -> some View {
+            HStack(spacing: 0) {
+                ForEach(week) { day in
+                    VStack(spacing: 6) {
+                        Text(symbol(day.weekday, full: false))
+                            .font(SKFont.mono(11, bold: day.isToday))
+                            .foregroundStyle(day.isToday ? SKColor.ink : SKColor.muted)
+                        dayMark(day.state)
+                    }
+                    .frame(maxWidth: .infinity)
+                    .accessibilityElement(children: .ignore)
+                    .accessibilityLabel("\(symbol(day.weekday, full: true)): \(stateLabel(day.state))")
+                }
+            }
+        }
+
+        /// Sage = checked in, clay = missed, terracotta ring = today still open, outline = later
+        /// (or before the first check-in, which isn't a miss).
+        @ViewBuilder
+        private func dayMark(_ state: Streaks.DayState) -> some View {
+            switch state {
+            case .logged:
+                Circle().fill(SKColor.goodFg)
+                    .overlay {
+                        Image(systemName: "checkmark").font(.system(size: 11, weight: .bold)).foregroundStyle(SKColor.cream)
+                    }
+                    .frame(width: 28, height: 28)
+            case .missed:
+                Circle().fill(SKColor.primary.opacity(0.22)).frame(width: 28, height: 28)
+            case .open:
+                Circle().stroke(SKColor.primary, lineWidth: 2).frame(width: 26, height: 26).frame(width: 28, height: 28)
+            case .upcoming, .notStarted:
+                Circle().stroke(SKColor.line, lineWidth: 1.5).frame(width: 27, height: 27).frame(width: 28, height: 28)
+            }
+        }
+
+        @ViewBuilder
+        private func status(_ s: Streaks, loaded: Bool) -> some View {
+            if loaded {
+                HStack(spacing: SKSpace.sm) {
+                    if s.loggedToday {
+                        Image(systemName: "checkmark.circle.fill").foregroundStyle(SKColor.goodFg).accessibilityHidden(true)
+                        Text("Checked in today. Tomorrow makes it \(s.current + 1).")
+                            .font(SKFont.secondary).foregroundStyle(SKColor.ink)
+                    } else {
+                        Text(nudge(s))
+                            .font(SKFont.secondary).foregroundStyle(SKColor.ink)
+                        Spacer(minLength: SKSpace.sm)
+                        Button { showCheckIn = true } label: {
+                            Text("Check in")
+                                .font(SKFont.sans(14, weight: .semibold, relativeTo: .subheadline))
+                                .foregroundStyle(SKColor.cream)
+                                .padding(.horizontal, 14)
+                                .frame(height: 36)
+                                .background(SKColor.primary, in: Capsule())
+                                .frame(minHeight: 44)
+                                .contentShape(Rectangle())
+                        }
+                        .buttonStyle(SKPressStyle())
+                    }
+                }
+            } else if let e = env.journal.state.error {
+                HStack(spacing: SKSpace.sm) {
+                    Text(e.userMessage).font(SKFont.secondary).foregroundStyle(SKColor.muted)
+                    Spacer(minLength: SKSpace.sm)
+                    Button("Try again") { Task { await env.journal.load() } }
+                        .font(SKFont.sans(14, weight: .semibold, relativeTo: .subheadline))
+                        .foregroundStyle(SKColor.primary)
+                        .frame(minHeight: 44)
+                }
+            } else {
+                HStack(spacing: SKSpace.sm) {
+                    ProgressView().tint(SKColor.primary)
+                    Text("Loading your check-ins…").font(SKFont.secondary).foregroundStyle(SKColor.muted)
+                }
+            }
+        }
+
+        private func summary(_ s: Streaks, loaded: Bool) -> String {
+            guard loaded else { return "Check-in streak loading" }
+            return "Check-in streak: \(s.current) \(s.current == 1 ? "day" : "days"). \(detailLine(s, capped: false))."
+        }
+
+        private func nudge(_ s: Streaks) -> String {
+            if s.current > 0 { return "Check in today to make it \(s.current + 1)." }
+            return s.totalDays == 0 ? "Your first check-in starts the streak." : "Check in today to start a new run."
+        }
+
+        /// "Best 9 · 3 more days to 14", "3 days in a row fills the ring", …
+        private func detailLine(_ s: Streaks, capped: Bool) -> String {
+            let milestone: String
+            if let next = s.nextMilestone {
+                let left = next - s.current
+                milestone = s.current == 0 ? "\(next) days in a row fills the ring"
+                    : "\(left) more \(left == 1 ? "day" : "days") to \(next)"
+            } else {
+                milestone = "every milestone reached"
+            }
+            guard s.best > 0 else { return milestone.prefix(1).uppercased() + milestone.dropFirst() }
+            return "Best \(count(s.best, capped: capped && s.best == s.totalDays)) · \(milestone)"
+        }
+
+        private func count(_ n: Int, capped: Bool) -> String { capped && n > 0 ? "\(n)+" : "\(n)" }
+
+        private func symbol(_ weekday: Int, full: Bool) -> String {
+            let symbols = full ? Calendar.current.standaloneWeekdaySymbols : Calendar.current.veryShortStandaloneWeekdaySymbols
+            return symbols.indices.contains(weekday - 1) ? symbols[weekday - 1] : ""
+        }
+
+        private func stateLabel(_ state: Streaks.DayState) -> String {
+            switch state {
+            case .logged: "checked in"
+            case .missed: "missed"
+            case .open: "today, not logged yet"
+            case .upcoming: "coming up"
+            case .notStarted: "before your first check-in"
+            }
+        }
     }
 
     private var membershipCard: some View {
@@ -148,7 +367,7 @@ struct SettingsView: View {
             Text("Membership").skLabelStyle().padding(.leading, 4)
             HStack(spacing: SKSpace.md) {
                 VStack(alignment: .leading, spacing: 2) {
-                    Text(ent.isPro ? (founding ? "Founding member" : "Skintel Pro") : "Skintel Free")
+                    Text(ent.isPro ? (founding ? "Founding member" : "Skintel+") : "Skintel Free")
                         .font(SKFont.sans(17, weight: .semibold, relativeTo: .headline))
                     Text(membershipLine(ent: ent, founding: founding))
                         .font(SKFont.secondary).opacity(0.85)
@@ -157,7 +376,7 @@ struct SettingsView: View {
                 Button {
                     if ent.isPro { showAccount = true } else { openPaywall(.general) }
                 } label: {
-                    Text(ent.isPro ? "Manage" : "Upgrade")
+                    Text(ent.isPro ? "Manage" : "Get Skintel+")
                         .font(SKFont.sans(14, weight: .semibold, relativeTo: .subheadline))
                         .padding(.horizontal, 14)
                         .frame(height: 34)
@@ -221,6 +440,7 @@ private struct PersonalizationView: View {
     @AppStorage(RoutineReminders.checkInOnKey) private var checkInOn = false
     @AppStorage(RoutineReminders.checkInTimeKey) private var checkInMinutes = 20 * 60
     @AppStorage(CheckInPrompt.enabledKey) private var askOnOpen = true
+    @State private var tipsReset = false
 
     var body: some View {
         SettingsPage(title: "Personalization") {
@@ -274,6 +494,20 @@ private struct PersonalizationView: View {
                 .padding(.horizontal, SKSpace.lg).padding(.vertical, 10)
                 SettingsDivider()
                 SettingsRow(title: "Camera & photo access", last: true) { CameraPermission.openSettings() }
+            }
+
+            SettingsGroup(title: "Tips", footer: "Each screen's one-time tip shows again the next time you open it.") {
+                SettingsRow(title: "Reset tips", subtitle: tipsReset ? "Tips will show again" : "Show the tip on each screen again",
+                            showsChevron: false, last: true, trailing: {
+                    if tipsReset {
+                        Image(systemName: "checkmark").font(.system(size: 15, weight: .bold)).foregroundStyle(SKColor.primary)
+                            .accessibilityHidden(true)
+                    }
+                }) {
+                    HintID.resetAll()
+                    tipsReset = true
+                    Haptics.success()
+                }
             }
         }
         .onChange(of: reminderSignature) { _, _ in scheduleReminders() }
@@ -394,7 +628,7 @@ private struct AccountDataView: View {
             }
 
             SettingsGroup(title: "Membership") {
-                SettingsRow(title: "Skintel Pro", trailing: {
+                SettingsRow(title: "Your plan", trailing: {
                     SKChip(env.subscription.entitlement.tierLabel, tone: env.subscription.entitlement.isPro ? .good : .neutral)
                 }) { manageSubscription() }
                 if let end = env.subscription.entitlement.periodEnd, env.subscription.entitlement.isPro {
@@ -413,7 +647,7 @@ private struct AccountDataView: View {
                 if let restoreMessage { SettingsInfo(text: restoreMessage, last: true) }
             }
 
-            SettingsGroup(title: env.subscription.entitlement.isPro ? "Your Pro benefits" : "What Pro adds",
+            SettingsGroup(title: env.subscription.entitlement.isPro ? "Your Skintel+ benefits" : "What Skintel+ adds",
                           footer: "Tap one to watch it work.") {
                 ProBenefitsList().padding(.horizontal, SKSpace.lg).padding(.vertical, 4)
             }

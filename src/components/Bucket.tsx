@@ -66,7 +66,7 @@ function Row({ row, tone, index }: { row: BucketRow; tone: Tone; index: number }
   }, [index]);
 
   let meta: string | null = null;
-  if (row.culprit) meta = `triggered ${row.culprit.badCount}× in your history`;
+  if (row.trigger) meta = `triggered ${row.trigger.badCount}× in your history`;
   else if (row.info && tone === 'good') meta = row.info.benefit;
   else if (row.isFragrance) meta = 'common irritant — skip if sensitive';
   else if (row.info) meta = row.info.benefit;

@@ -3,12 +3,12 @@ import { parseInci } from '@/lib/inci';
 import {
   categorizeIngredients,
   generateVerdict,
-  type Culprit,
+  type Trigger,
 } from '@/lib/ingredient-knowledge';
 import { VerdictCard } from './VerdictCard';
 import { Bucket, CollapsibleBucket } from './Bucket';
 
-type CulpritInput = {
+type TriggerInput = {
   name: string;
   normalized: string;
   badCount: number;
@@ -20,12 +20,12 @@ export function ScanResult({
   medium,
 }: {
   ingredients: string;
-  high: CulpritInput[];
-  medium: CulpritInput[];
+  high: TriggerInput[];
+  medium: TriggerInput[];
 }) {
   const buckets = useMemo(() => {
     const parsed = parseInci(ingredients);
-    const map = new Map<string, Culprit>();
+    const map = new Map<string, Trigger>();
     for (const c of high) map.set(c.normalized, { name: c.name, risk: 'high', badCount: c.badCount });
     for (const c of medium) {
       if (!map.has(c.normalized))

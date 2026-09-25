@@ -9,7 +9,7 @@ export function PaywallBanner({ reason }: { reason: 'scanner' | 'product-cap' })
       }
     : {
         title: 'Free plan limit reached',
-        body: 'Upgrade to track unlimited products. The more you log, the smarter your culprits list gets.',
+        body: 'Upgrade to track unlimited products. The more you log, the smarter your triggers list gets.',
       };
   return (
     <div className="card p-8 text-center">

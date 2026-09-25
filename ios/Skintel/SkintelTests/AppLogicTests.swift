@@ -64,6 +64,30 @@ private func session(onboarded: Bool) -> Session {
 }
 
 @MainActor
+@Test func routineCompletionForTodayDrivesTheTodayChecklist() {
+    let store = RoutineStore(directory: tempDir())
+    store.add("a", to: .am); store.add("b", to: .pm)
+    #expect(!store.isComplete(.am) && !store.isComplete(.pm))
+    store.toggleDone("a", in: .am)
+    #expect(store.isComplete(.am))
+    #expect(!store.isComplete(.pm))
+    #expect(!store.isComplete(.am, on: "2000-01-01"))              // other days are their own
+    store.toggleDone("a", in: .am)                                  // un-tick clears it
+    #expect(!store.isComplete(.am))
+}
+
+@Test func skinLogPromptFollowsTheTimeOfDay() {
+    func at(_ hour: Int) -> Date {
+        Calendar.current.date(from: DateComponents(year: 2026, month: 9, day: 25, hour: hour, minute: 10))!
+    }
+    #expect(SkinLogPrompt.line(at(7)) == "How did your skin wake up?")
+    #expect(SkinLogPrompt.line(at(13)) == "How's your skin holding up?")
+    #expect(SkinLogPrompt.line(at(19)) == "How did your skin do today?")
+    #expect(SkinLogPrompt.line(at(23)) == "Before bed: how's your skin?")
+    #expect(SkinLogPrompt.line(at(2)) == "Before bed: how's your skin?")
+}
+
+@MainActor
 @Test func routineFileSavedBeforeCompletionHistoryStillLoads() throws {
     let dir = tempDir()
     let legacy = #"{"am":["a"],"pm":["b"],"doneToday":[],"doneDay":"2000-01-01"}"#

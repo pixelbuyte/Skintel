@@ -65,6 +65,7 @@ struct CompareView: View {
                 .padding(.bottom, SKSpace.xxl)
             }
             .skPageBackground()
+            .skHint(.compare, when: ready.isEmpty && env.subscription.entitlement.isPro)
             .toolbar(.hidden, for: .navigationBar)
         }
         .tint(SKColor.primary)
