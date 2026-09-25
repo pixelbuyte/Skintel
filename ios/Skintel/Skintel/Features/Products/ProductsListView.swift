@@ -57,7 +57,7 @@ struct ProductsListView: View {
                     .accessibilityLabel("Add product")
             }
         }
-        .sheet(isPresented: $showCompare) { CompareView() }
+        .sheet(isPresented: $showCompare) { CompareView().skProGates() }
         .navigationDestination(for: AppDestination.self) { d in
             switch d {
             case .productDetail(let id): ProductDetailView(productID: id)
@@ -107,7 +107,7 @@ struct ProductsListView: View {
                     Text(n >= limit ? "Free shelf is full · \(limit) of \(limit)" : "\(n) of \(limit) free slots used")
                         .font(SKFont.secondary).foregroundStyle(SKColor.muted)
                     Spacer()
-                    Text("Go Pro ›").font(SKFont.sans(14, weight: .semibold)).foregroundStyle(SKColor.primary)
+                    Text("Get Skintel+ ›").font(SKFont.sans(14, weight: .semibold)).foregroundStyle(SKColor.primary)
                 }
                 .padding(SKSpace.md)
                 .background(SKColor.cream, in: RoundedRectangle(cornerRadius: SKRadius.tile, style: .continuous))

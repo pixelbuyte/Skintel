@@ -318,7 +318,7 @@ struct AssistantView: View {
     @AppStorage(AskModel.key) private var askModel: AskModel = .luna
     @FocusState private var inputFocused: Bool
 
-    private static let upsellText = "Typing your own questions is part of Skintel Pro. The suggested questions stay free."
+    private static let upsellText = "Typing your own questions is part of Skintel+. The suggested questions stay free."
 
     private var isPro: Bool { env.subscription.entitlement.isPro }
 
@@ -326,7 +326,7 @@ struct AssistantView: View {
         if isPro {
             chat
         } else {
-            ProLockedView(feature: .ask, bottomClearance: tabBarClearance, leave: leave)
+            ProLockedView(feature: .ask, leave: leave)
         }
     }
 
@@ -581,7 +581,7 @@ struct AssistantView: View {
                         Text("Answers can be wrong. Skintel isn't a doctor.")
                     }
                 } else {
-                    Text("Suggested questions are free. Typing your own is part of Skintel Pro.")
+                    Text("Suggested questions are free. Typing your own is part of Skintel+.")
                 }
             }
             .font(SKFont.caption)
@@ -1104,21 +1104,21 @@ private struct AskProGate: View {
         VStack(alignment: .leading, spacing: SKSpace.md) {
             FeatureDemo(reason: .assistant)
             HStack(spacing: 8) {
-                Text("PRO")
+                Text("SKINTEL+")
                     .font(SKFont.mono(11, bold: true))
                     .tracking(1.5)
                     .foregroundStyle(SKColor.cream)
                     .padding(.horizontal, 8)
                     .padding(.vertical, 4)
                     .background(SKColor.primary, in: Capsule())
-                Text("Ask anything with Skintel Pro").font(SKFont.cardTitle).foregroundStyle(SKColor.ink)
+                Text("Ask anything with Skintel+").font(SKFont.cardTitle).foregroundStyle(SKColor.ink)
             }
             VStack(alignment: .leading, spacing: 10) {
                 row("at", "Tag products from your shelf and ask about them")
                 row("plus.square.on.square", "Mention a product and add it to your shelf")
                 row("checkmark.seal", "Knows your shelf, routine and check-ins")
             }
-            SKButton(title: "Upgrade to Pro", kind: .dark, action: onUpgrade)
+            SKButton(title: "Get Skintel+", kind: .dark, action: onUpgrade)
             Text("Suggested questions stay free.")
                 .font(SKFont.caption)
                 .foregroundStyle(SKColor.muted)

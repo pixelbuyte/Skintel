@@ -224,10 +224,10 @@ struct ScannerHostView: View {
                 }
                 Spacer()
                 ScannerIllustration().frame(height: 200).frame(maxWidth: .infinity)
-                Text("Scanning is a Pro feature").font(SKFont.section).foregroundStyle(SKColor.ink)
+                Text("Scanning comes with Skintel+").font(SKFont.section).foregroundStyle(SKColor.ink)
                 Text("Barcode, label photo and link import all run through Skintel's AI. Free accounts can add up to five products by pasting the ingredient list.")
                     .font(SKFont.secondary).foregroundStyle(SKColor.muted).multilineTextAlignment(.center)
-                SKButton(title: "See Skintel Pro") { openPaywall(.scanner) }
+                SKButton(title: "Get Skintel+") { openPaywall(.scanner) }
                 SKButton(title: "Add a product by hand", kind: .secondary) { path.append(.productForm(.add(prefill: nil))) }
                 Spacer()
             }

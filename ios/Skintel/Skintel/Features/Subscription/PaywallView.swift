@@ -3,8 +3,10 @@ import SwiftUI
 import SkintelCore
 
 /// Design §16 with the shipped offer: the founding deal ($20 once, three months, 500
-/// seats) featured while seats remain, Pro monthly/yearly underneath. Every price shown
-/// comes from StoreKit's localized `displayPrice`.
+/// seats) featured while seats remain, monthly/yearly underneath. Every price shown comes
+/// from StoreKit's localized `displayPrice`. Opened from a wall, it leads with every
+/// Skintel+ feature (the one the person came from first, its demo playing), then the
+/// plans; the purchase button stays pinned so it never scrolls away.
 struct PaywallView: View {
     let reason: PaywallReason
     @Environment(AppEnvironment.self) private var env
@@ -12,19 +14,21 @@ struct PaywallView: View {
     @State private var service: SubscriptionService?
     @State private var selected: SubscriptionService.ProductID = .founding
 
+    private var isPro: Bool { env.subscription.entitlement.isPro }
+
     var body: some View {
         NavigationStack {
             ScrollView {
                 VStack(spacing: SKSpace.lg) {
                     header
-                    if env.subscription.entitlement.isPro {
+                    if isPro {
                         alreadyPro
                         benefits
                     } else if let service {
-                        plans(service)
                         benefits
-                        cta(service)
+                        plans(service)
                     } else {
+                        benefits
                         SKLoadingView(message: "Loading plans…").frame(height: 200)
                     }
                     footer
@@ -33,6 +37,19 @@ struct PaywallView: View {
                 .padding(.bottom, SKSpace.xl)
             }
             .skPageBackground()
+            .safeAreaInset(edge: .bottom, spacing: 0) {
+                if !isPro, let service, !service.products.isEmpty {
+                    cta(service)
+                        .skPagePadding()
+                        .padding(.top, SKSpace.md)
+                        .padding(.bottom, SKSpace.sm)
+                        .background {
+                            SKColor.bg
+                                .overlay(alignment: .top) { Rectangle().fill(SKColor.line).frame(height: 1) }
+                                .ignoresSafeArea(edges: .bottom)
+                        }
+                }
+            }
             .toolbar {
                 ToolbarItem(placement: .topBarTrailing) {
                     Button { dismiss() } label: { Image(systemName: "xmark").font(.system(size: 15, weight: .semibold)) }
@@ -60,14 +77,11 @@ struct PaywallView: View {
 
     private var header: some View {
         VStack(spacing: SKSpace.md) {
-            if !env.subscription.entitlement.isPro {
-                if reason == .general {
-                    MascotUpgradeHero().padding(.bottom, SKSpace.sm)
-                } else {
-                    FeatureDemo(reason: reason).padding(.bottom, SKSpace.sm)
-                }
+            // A wall's own feature demo plays inside its highlighted row below instead.
+            if !isPro && reason == .general {
+                MascotUpgradeHero().padding(.bottom, SKSpace.sm)
             }
-            Text("Skintel Pro").font(SKFont.mono(11)).textCase(.uppercase).tracking(2).foregroundStyle(SKColor.primary)
+            Text("Skintel+").font(SKFont.mono(11)).textCase(.uppercase).tracking(2).foregroundStyle(SKColor.primary)
                 .padding(.horizontal, 14).padding(.vertical, 7).background(SKColor.blush, in: Capsule())
             Text(headline).font(SKFont.serif(38, relativeTo: .largeTitle)).foregroundStyle(SKColor.ink).multilineTextAlignment(.center)
             Text(reasonLine).font(SKFont.sans(16, relativeTo: .body)).foregroundStyle(SKColor.muted).multilineTextAlignment(.center)
@@ -82,8 +96,8 @@ struct PaywallView: View {
     private var reasonLine: String {
         switch reason {
         case .scanner: "Barcode, label and link scanning run through Skintel's AI."
-        case .productLimit: "Free shelves hold five products. Pro shelves are unlimited."
-        case .compare: "Side-by-side verdicts are a Pro feature."
+        case .productLimit: "Free shelves hold five products. Skintel+ shelves are unlimited."
+        case .compare: "Side-by-side verdicts come with Skintel+."
         case .recommend: "Personal picks are built from your full history."
         case .routine: "Conflict checks read every step of your routine."
         case .journalAnalysis, .culprits: "Journal analysis correlates 90 days of entries with your shelf."
@@ -125,7 +139,7 @@ struct PaywallView: View {
                     Text(p.displayPrice).font(SKFont.price).foregroundStyle(SKColor.ink)
                     Text("once").font(SKFont.sans(18, relativeTo: .title3)).foregroundStyle(SKColor.muted)
                 }
-                Text("Three months of Pro · nothing renews").font(SKFont.sans(16, weight: .semibold, relativeTo: .body)).foregroundStyle(SKColor.primary)
+                Text("Three months of Skintel+ · nothing renews").font(SKFont.sans(16, weight: .semibold, relativeTo: .body)).foregroundStyle(SKColor.primary)
                 SKProgressBar(fraction: Double(taken) / Double(Entitlement.foundingSeatsTotal), height: 8)
                 Text(seats.map { "\(taken) of \(Entitlement.foundingSeatsTotal) founding spots taken · \($0) left" } ?? "500 founding spots")
                     .font(SKFont.dataSmall).foregroundStyle(SKColor.muted)
@@ -148,7 +162,7 @@ struct PaywallView: View {
                 Circle().stroke(selected == id ? SKColor.primary : SKColor.line, lineWidth: 1.5).frame(width: 22, height: 22)
                     .overlay { if selected == id { Circle().fill(SKColor.primary).frame(width: 12, height: 12) } }
                 VStack(alignment: .leading, spacing: 2) {
-                    Text(id == .proMonthly ? "Pro Monthly" : "Pro Yearly").font(SKFont.cardTitle).foregroundStyle(SKColor.ink)
+                    Text(id == .proMonthly ? "Skintel+ Monthly" : "Skintel+ Yearly").font(SKFont.cardTitle).foregroundStyle(SKColor.ink)
                     Text(caption).font(SKFont.caption).foregroundStyle(SKColor.muted)
                 }
                 Spacer()
@@ -164,17 +178,18 @@ struct PaywallView: View {
         .accessibilityAddTraits(selected == id ? [.isButton, .isSelected] : .isButton)
     }
 
+    /// Every Skintel+ feature. From a wall, that feature leads, opened up with its demo.
     private var benefits: some View {
         VStack(alignment: .leading, spacing: SKSpace.sm) {
-            Text("Everything in Pro · tap to watch").skLabelStyle()
-            ProBenefitsList()
+            Text("Everything in Skintel+ · tap to watch").skLabelStyle()
+            ProBenefitsList(highlight: isPro ? nil : reason)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding(.top, SKSpace.sm)
     }
 
     private func cta(_ s: SubscriptionService) -> some View {
-        VStack(spacing: SKSpace.md) {
+        VStack(spacing: SKSpace.sm) {
             if let msg = s.lastMessage { Text(msg).font(SKFont.secondary).foregroundStyle(SKColor.cautionFg).multilineTextAlignment(.center) }
             if case .failed(let msg) = s.phase, !s.products.isEmpty { SKInlineError(message: msg) }
             SKButton(title: ctaTitle(s), kind: .dark, isLoading: isBusy(s.phase)) { Task { await s.purchase(selected) } }
@@ -183,11 +198,10 @@ struct PaywallView: View {
                 Text("Auto-renews until cancelled in App Store settings. Cancel at least 24 hours before the period ends to avoid renewal.")
                     .font(SKFont.caption).foregroundStyle(SKColor.muted).multilineTextAlignment(.center)
             } else {
-                Text("One payment. Pro ends after three months and never renews. 14-day refund via Apple.")
+                Text("One payment. Skintel+ ends after three months and never renews. 14-day refund via Apple.")
                     .font(SKFont.caption).foregroundStyle(SKColor.muted).multilineTextAlignment(.center)
             }
         }
-        .padding(.top, SKSpace.sm)
     }
 
     private func ctaTitle(_ s: SubscriptionService) -> String {
@@ -314,7 +328,7 @@ struct FeatureDemo: View {
             steps = [["Tag from your shelf", "Reading its ingredients…", "About that product", "Answered from your shelf"],
                      ["Mention a product", "Thinking…", "Not on your shelf yet", "Added to your shelf"],
                      ["Ask about a product", "Checking your shelf…", "Already on your shelf", "No duplicate added"]][scene % 3]
-        case .productLimit, .general: steps = ["Your shelf", "Adding products", "Free holds five", "Unlimited with Pro"]
+        case .productLimit, .general: steps = ["Your shelf", "Adding products", "Free holds five", "Unlimited with Skintel+"]
         }
         return steps[phase]
     }
@@ -327,7 +341,7 @@ struct FeatureDemo: View {
         case .recommend: "Three product picks that avoid what broke you out."
         case .routine: "A night routine check flags retinol and glycolic acid on the same night."
         case .assistant: "Tag a shelf product and Ask Skintel reads its ingredients; mention a new product and it offers to add it; mention one you already have and it knows it's on your shelf."
-        case .productLimit, .general: "A free shelf holds five products; Pro is unlimited."
+        case .productLimit, .general: "A free shelf holds five products; Skintel+ is unlimited."
         }
     }
 
@@ -371,12 +385,14 @@ struct FeatureDemo: View {
     private static let patternLabelWidth: CGFloat = 112
     private static let weekdays = ["M", "T", "W", "T", "F", "S", "S"]
 
+    /// Okay days are a light wash of the clay caution tone, so the three read apart by
+    /// lightness as well as hue (no yellow).
     private enum PatternDay {
         case good, okay, bad
         var color: Color {
             switch self {
-            case .good: Color(hex: 0x6F9B63)
-            case .okay: Color(hex: 0xD9A857)
+            case .good: SKColor.goodFg
+            case .okay: SKColor.cautionFg.opacity(0.4)
             case .bad: SKColor.primary
             }
         }
@@ -403,7 +419,7 @@ struct FeatureDemo: View {
                 ZStack(alignment: .leading) {
                     Capsule().fill(SKColor.neutralChip)
                     Capsule()
-                        .fill(hot ? SKColor.primary : Color(hex: 0xCDBFAE))
+                        .fill(hot ? SKColor.primary : SKColor.muted.opacity(0.3))
                         .frame(width: phase >= 2 ? geo.size.width - col * (CGFloat(day) + 0.3) : 0)
                         .offset(x: col * (CGFloat(day) + 0.15))
                         .shadow(color: hot ? SKColor.primary.opacity(0.45) : .clear, radius: 5)
@@ -651,12 +667,12 @@ struct FeatureDemo: View {
                     SKProductMark(name: shelfItems[i], size: 24)
                     Text(shelfItems[i]).font(SKFont.sans(14, weight: .medium, relativeTo: .subheadline)).foregroundStyle(SKColor.ink)
                     Spacer()
-                    if i == 5 && phase >= 3 { SKChip("Pro", tone: .good) }
+                    if i == 5 && phase >= 3 { SKChip("Skintel+", tone: .good) }
                 }
                 .opacity(visible > i ? 1 : 0)
             }
             Spacer(minLength: 0)
-            Text(phase >= 3 ? "Pro: unlimited shelf, every product checked" : "Free: up to five products")
+            Text(phase >= 3 ? "Skintel+: unlimited shelf, every product checked" : "Free: up to five products")
                 .font(SKFont.sans(13, weight: .semibold, relativeTo: .caption))
                 .foregroundStyle(phase >= 3 ? SKColor.primary : SKColor.muted)
         }
@@ -742,20 +758,33 @@ private struct ScanBrackets: Shape {
 
 // MARK: - Pro benefits
 
-/// Everything Pro adds, each with the website's side animation and a demo to play.
+/// Everything Skintel+ adds, each with the website's side animation and a demo to play.
 enum ProBenefit: String, CaseIterable, Identifiable {
-    case unlimited, scan, routine, ask, triggers, compare
+    case unlimited, scan, ask, triggers, compare, routine
 
     var id: String { rawValue }
 
+    /// The benefit a gate belongs to; nil for `.general`, which isn't one feature.
+    init?(_ reason: PaywallReason) {
+        switch reason {
+        case .productLimit: self = .unlimited
+        case .scanner: self = .scan
+        case .assistant: self = .ask
+        case .journalAnalysis, .culprits: self = .triggers
+        case .compare, .recommend: self = .compare
+        case .routine: self = .routine
+        case .general: return nil
+        }
+    }
+
     var title: String {
         switch self {
-        case .unlimited: "Unlimited products + scans"
-        case .scan: "Barcode, label + link scanner"
-        case .routine: "Routine builder + conflict checks"
+        case .unlimited: "Unlimited shelf + scans"
+        case .scan: "Scanning: barcode, label + link"
         case .ask: "Ask Skintel, from your shelf"
-        case .triggers: "Personal trigger map, kept private"
-        case .compare: "Compare + picks for your skin"
+        case .triggers: "Insights + your triggers"
+        case .compare: "Compare + picks"
+        case .routine: "Routine conflict checks"
         }
     }
 
@@ -763,10 +792,10 @@ enum ProBenefit: String, CaseIterable, Identifiable {
         switch self {
         case .unlimited: "No five-product cap on your shelf"
         case .scan: "Point at any product for a verdict"
-        case .routine: "Flags actives that clash, step by step"
         case .ask: "Tag products, add the ones you mention"
         case .triggers: "Your journal and shelf name the culprits"
-        case .compare: "Side-by-side verdicts and safe picks"
+        case .compare: "Side-by-side verdicts and picks that fit"
+        case .routine: "Flags actives that clash, step by step"
         }
     }
 
@@ -789,7 +818,7 @@ enum ProBenefit: String, CaseIterable, Identifiable {
         case .routine: "Skintel reads each step of your morning and night routines and warns you when two actives shouldn't share a night."
         case .ask: "Tag products from your shelf to ask about them, mention a new one to add it, and Skintel knows what you already own."
         case .triggers: "Skintel lines up your check-ins with when each product joined your shelf and names what keeps showing up before a bad day."
-        case .compare: "Put two products side by side and see which one suits your skin, or get picks that avoid your triggers."
+        case .compare: "Put two or three products side by side and see which one suits you better, or get picks that avoid what broke you out."
         }
     }
 }
@@ -867,13 +896,22 @@ struct ProBenefitIcon: View {
     }
 }
 
-/// Every Pro benefit as a row; tapping one plays its demo.
+/// Every Skintel+ benefit as a row; tapping one plays its demo. Given the gate someone
+/// came from, that benefit leads, opened up with its demo already playing.
 struct ProBenefitsList: View {
+    var highlight: PaywallReason? = nil
     @State private var demo: ProBenefit?
 
+    private var lead: ProBenefit? { highlight.flatMap { ProBenefit($0) } }
+
     var body: some View {
+        let rest = ProBenefit.allCases.filter { $0 != lead }
         VStack(spacing: 0) {
-            ForEach(ProBenefit.allCases) { b in
+            if let lead, let highlight {
+                leadCard(lead, reason: highlight)
+                    .padding(.bottom, SKSpace.sm)
+            }
+            ForEach(rest) { b in
                 Button { Haptics.tap(); demo = b } label: {
                     HStack(spacing: SKSpace.md) {
                         ProBenefitIcon(benefit: b)
@@ -891,7 +929,7 @@ struct ProBenefitsList: View {
                 }
                 .buttonStyle(SKPressStyle())
                 .accessibilityHint("Plays a short demo")
-                if b != ProBenefit.allCases.last {
+                if b != rest.last {
                     Rectangle().fill(SKColor.line).frame(height: 1).padding(.leading, 56)
                 }
             }
@@ -899,6 +937,25 @@ struct ProBenefitsList: View {
         .sheet(item: $demo) { b in
             FeatureDemoSheet(reason: b.reason, title: b.title, message: b.demoMessage)
         }
+    }
+
+    /// The feature someone came from: highlighted, with the demo for their exact gate.
+    private func leadCard(_ b: ProBenefit, reason: PaywallReason) -> some View {
+        VStack(alignment: .leading, spacing: SKSpace.md) {
+            HStack(spacing: SKSpace.md) {
+                ProBenefitIcon(benefit: b)
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(b.title).font(SKFont.sans(16, weight: .semibold, relativeTo: .body)).foregroundStyle(SKColor.ink)
+                    Text(b.detail).font(SKFont.caption).foregroundStyle(SKColor.muted)
+                }
+                Spacer(minLength: 0)
+            }
+            .accessibilityElement(children: .combine)
+            FeatureDemo(reason: reason)
+        }
+        .padding(SKSpace.md)
+        .background(SKColor.blush, in: RoundedRectangle(cornerRadius: 28, style: .continuous))
+        .overlay(RoundedRectangle(cornerRadius: 28, style: .continuous).stroke(SKColor.primary.opacity(0.35), lineWidth: 1.5))
     }
 }
 
@@ -924,8 +981,8 @@ struct DropShape: Shape {
 
 // MARK: - Mascot upgrade story
 
-/// The Skintel drop's short story for the general upgrade: it hops in, scans a bottle,
-/// gets a clean verdict, then the Pro perks float up while it does a happy hop.
+/// The Skintel drop's short story for the general plans page: it hops in, scans a bottle,
+/// gets a clean verdict, then the Skintel+ perks float up while it does a happy hop.
 /// Storybook backdrop (light rays, a drawn sun, a floor). Reduce Motion shows the last beat.
 struct MascotUpgradeHero: View {
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
@@ -996,15 +1053,16 @@ struct MascotUpgradeHero: View {
                     .rotationEffect(.degrees(-32))
                     .offset(x: CGFloat(i) * 92 - w * 0.25 + CGFloat(sin(t * 0.5 + Double(i))) * 6)
             }
+            // A terracotta sun: the old honey one read as a caution colour.
             ZStack {
                 ForEach(0..<10, id: \.self) { i in
                     Capsule()
-                        .fill(Color(hex: 0xE3A04A).opacity(0.85))
+                        .fill(SKColor.primary.opacity(0.45))
                         .frame(width: 2.5, height: 9)
                         .offset(y: -30)
                         .rotationEffect(.degrees(Double(i) * 36))
                 }
-                Circle().fill(Color(hex: 0xEDB25A)).frame(width: 38, height: 38)
+                Circle().fill(SKColor.primary.opacity(0.6)).frame(width: 38, height: 38)
             }
             .rotationEffect(.degrees(t * 12))
             .position(x: 44, y: 44)
@@ -1099,7 +1157,7 @@ struct MascotUpgradeHero: View {
                 let twinkle = abs(sin(t * 2.4 + Double(i) * 1.7))
                 Image(systemName: "sparkle")
                     .font(.system(size: spots[i].2, weight: .semibold))
-                    .foregroundStyle(i.isMultiple(of: 2) ? Color(hex: 0xE3A04A) : SKColor.primary)
+                    .foregroundStyle(i.isMultiple(of: 2) ? SKColor.goodFg : SKColor.primary)
                     .scaleEffect(0.6 + 0.5 * twinkle)
                     .opacity(beat >= 2 ? 0.35 + 0.65 * twinkle : 0)
                     .position(x: w * spots[i].0, y: h * spots[i].1)
@@ -1110,68 +1168,399 @@ struct MascotUpgradeHero: View {
 
 // MARK: - Hard wall
 
-/// What a Free member sees in place of a whole Pro area (Ask, Insights): the feature's
-/// looping demo, what it does, Upgrade, and a way back. Nothing behind it is reachable.
+/// What a Free member sees instead of a Skintel+ feature. It takes the whole screen and
+/// shows nothing of the feature itself: no live demo, no preview, nothing blurred behind
+/// it. A branded scene (the feature's drop in an arched window), the feature's name, three
+/// things it does, then Get Skintel+ (the plans, which show every feature) or a way back.
+/// `openPaywall` presents it full-screen; a Skintel+ tab shows it as its root while
+/// `MainTabView` hides the tab bar.
 struct ProLockedView: View {
-    enum Feature { case ask, insights }
+    enum Feature: String, Identifiable {
+        case ask, insights, compare, triggers, scanner, shelfCap, routine, picks
+        var id: String { rawValue }
+    }
 
     let feature: Feature
-    /// Room kept for the floating tab bar when the view fills a tab that reserves none.
-    var bottomClearance: CGFloat = 0
-    /// Where "back" goes when this fills a tab; nil closes the sheet instead.
+    /// Where "back" goes when the wall fills a tab; nil means it was presented and closes.
     var leave: (() -> Void)? = nil
 
+    @Environment(AppEnvironment.self) private var env
     @Environment(\.dismiss) private var dismiss
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State private var showPlans = false
-
-    private var reason: PaywallReason { feature == .ask ? .assistant : .journalAnalysis }
-
-    private var title: String {
-        switch feature {
-        case .ask: "Upgrade for Ask Skintel"
-        case .insights: "Upgrade for Insights"
-        }
-    }
-
-    private var message: String {
-        switch feature {
-        case .ask: "Your skin assistant that knows your shelf, check-ins and triggers. Tag products, ask anything, and add what you mention."
-        case .insights: "See what your check-ins add up to: routine streaks, good and bad days, suspects and the patterns behind breakouts. Your check-ins are saved either way."
-        }
-    }
+    @State private var shown = false
+    @State private var floating = false
 
     var body: some View {
-        VStack(spacing: 0) {
+        GeometryReader { geo in
+            let stageHeight = min(max(geo.size.height * 0.42, 220), 340)
             ScrollView {
-                VStack(spacing: SKSpace.xl) {
-                    FeatureDemo(reason: reason)
-                    VStack(spacing: SKSpace.sm) {
-                        Text(title)
-                            .font(SKFont.serif(34, relativeTo: .largeTitle))
-                            .foregroundStyle(SKColor.ink)
-                            .multilineTextAlignment(.center)
-                        Text(message)
-                            .font(SKFont.sans(17, relativeTo: .body))
-                            .foregroundStyle(SKColor.muted)
-                            .multilineTextAlignment(.center)
-                    }
-                    .padding(.horizontal, SKSpace.sm)
+                VStack(spacing: 0) {
+                    stage(height: stageHeight)
+                    copy.padding(.top, SKSpace.xxl + SKSpace.sm)
                 }
+                .frame(maxWidth: .infinity)
                 .skPagePadding()
-                .padding(.top, SKSpace.xl)
-                .padding(.bottom, SKSpace.lg)
+                .padding(.vertical, SKSpace.lg)
+                // Centred in the space above the buttons; scrolls only at large text sizes.
+                .frame(minHeight: geo.size.height)
             }
             .scrollBounceBehavior(.basedOnSize)
-            VStack(spacing: SKSpace.sm) {
-                SKButton(title: "Upgrade") { showPlans = true }
-                SKButton(title: leave == nil ? "Not now" : "Back to Today", kind: .secondary) {
-                    if let leave { leave() } else { dismiss() }
+        }
+        .safeAreaInset(edge: .bottom, spacing: 0) { actions }
+        .background { backdrop }
+        .sheet(isPresented: $showPlans, onDismiss: {
+            if env.subscription.entitlement.isPro { unlocked() }
+        }) {
+            PaywallView(reason: feature.reason)
+        }
+        .onChange(of: env.subscription.entitlement.isPro) { _, isPro in
+            // A membership that loads late, or is bought on another device, opens the way.
+            if isPro && !showPlans { unlocked() }
+        }
+        .task {
+            if reduceMotion { shown = true; return }
+            withAnimation(.spring(response: 0.7, dampingFraction: 0.82)) { shown = true }
+            try? await Task.sleep(for: .seconds(0.8))
+            withAnimation(.easeInOut(duration: 2.6).repeatForever(autoreverses: true)) { floating = true }
+        }
+    }
+
+    /// Membership confirmed by the server. A presented wall closes and its presenter moves
+    /// on to the feature; a tab's wall is swapped for the feature by the tab itself.
+    private func unlocked() {
+        if leave == nil { dismiss() }
+    }
+
+    // MARK: Scene
+
+    private var backdrop: some View {
+        ZStack {
+            SKColor.bg
+            RadialGradient(colors: [SKColor.primary.opacity(0.13), .clear],
+                           center: UnitPoint(x: 0.5, y: 0.2), startRadius: 0, endRadius: 440)
+            RadialGradient(colors: [SKColor.cream.opacity(0.8), .clear],
+                           center: .bottom, startRadius: 0, endRadius: 360)
+        }
+        .ignoresSafeArea()
+    }
+
+    /// An arched window washed in terracotta, rings spreading out from the drop, the drop
+    /// standing on its shadow, and the Skintel+ badge on the sill. Decorative only.
+    private func stage(height: CGFloat) -> some View {
+        let width = min(height * 0.86, 300)
+        let drop = width * 0.74
+        let sill = height * 0.1
+        let dropCentre = height - sill - drop / 2
+        return ZStack(alignment: .bottom) {
+            ArchShape()
+                .fill(LinearGradient(colors: [SKColor.primary.opacity(0.18), SKColor.primary.opacity(0.05)],
+                                     startPoint: .top, endPoint: .bottom))
+            ZStack {
+                ForEach(1..<5, id: \.self) { i in
+                    let d = drop * (0.95 + CGFloat(i) * 0.34)
+                    Circle()
+                        .stroke(SKColor.primary.opacity(0.12), lineWidth: 1)
+                        .frame(width: d, height: d)
                 }
             }
-            .skPagePadding()
-            .padding(.bottom, SKSpace.md + bottomClearance)
+            .frame(width: width, height: height)
+            .offset(y: dropCentre - height / 2)
+            .clipShape(ArchShape())
+            ArchShape()
+                .stroke(SKColor.primary.opacity(0.22), lineWidth: 1)
+                .padding(9)
+            Ellipse()
+                .fill(SKColor.primary.opacity(0.16))
+                .frame(width: drop * 0.6, height: 14)
+                .padding(.bottom, sill - 7)
+            SKDrop(feature.drop, size: drop)
+                .offset(y: floating ? -6 : 0)
+                .padding(.bottom, sill)
         }
-        .skPageBackground()
-        .sheet(isPresented: $showPlans) { PaywallView(reason: reason) }
+        .frame(width: width, height: height)
+        .overlay(alignment: .bottom) { badge.offset(y: 14) }
+        .scaleEffect(shown ? 1 : 0.94)
+        .opacity(shown ? 1 : 0)
+        .accessibilityHidden(true)
+    }
+
+    private var badge: some View {
+        Text("Skintel+")
+            .font(SKFont.mono(11, bold: true, relativeTo: .caption))
+            .textCase(.uppercase)
+            .tracking(2)
+            .foregroundStyle(SKColor.cream)
+            .padding(.horizontal, 14)
+            .padding(.vertical, 7)
+            .background(SKColor.primary, in: Capsule())
+            .overlay(Capsule().stroke(SKColor.bg, lineWidth: 3))
+    }
+
+    // MARK: Copy and actions
+
+    private var copy: some View {
+        VStack(spacing: SKSpace.lg) {
+            VStack(spacing: SKSpace.xs) {
+                Text(feature.name)
+                    .font(SKFont.hero)
+                    .foregroundStyle(SKColor.ink)
+                    .multilineTextAlignment(.center)
+                    .accessibilityAddTraits(.isHeader)
+                Text(feature.tagline)
+                    .font(SKFont.serif(21, relativeTo: .title3, italic: true))
+                    .foregroundStyle(SKColor.primary)
+                    .multilineTextAlignment(.center)
+            }
+            VStack(alignment: .leading, spacing: SKSpace.md) {
+                ForEach(Array(feature.gets.enumerated()), id: \.offset) { i, line in
+                    HStack(alignment: .top, spacing: SKSpace.md) {
+                        Image(systemName: "checkmark")
+                            .font(.system(size: 11, weight: .bold))
+                            .foregroundStyle(SKColor.goodFg)
+                            .frame(width: 24, height: 24)
+                            .background(SKColor.goodBg, in: Circle())
+                            .accessibilityHidden(true)
+                        Text(line)
+                            .font(SKFont.sans(16, relativeTo: .body))
+                            .foregroundStyle(SKColor.ink)
+                            .fixedSize(horizontal: false, vertical: true)
+                            .padding(.top, 2)
+                    }
+                    .opacity(shown ? 1 : 0)
+                    .offset(y: shown ? 0 : 8)
+                    .animation(reduceMotion ? nil : SKAnimation.emil(0.6).delay(0.15 + Double(i) * 0.08), value: shown)
+                }
+            }
+            if let note = feature.note {
+                Text(note)
+                    .font(SKFont.caption)
+                    .foregroundStyle(SKColor.muted)
+                    .multilineTextAlignment(.center)
+            }
+        }
+    }
+
+    private var actions: some View {
+        VStack(spacing: SKSpace.sm) {
+            SKButton(title: "Get Skintel+") {
+                Haptics.tap()
+                showPlans = true
+            }
+            SKButton(title: leave == nil ? "Maybe later" : "Back to Today", kind: .secondary) {
+                if let leave { leave() } else { dismiss() }
+            }
+        }
+        .skPagePadding()
+        .padding(.top, SKSpace.md)
+        .padding(.bottom, SKSpace.sm)
+        .background {
+            LinearGradient(colors: [SKColor.bg.opacity(0), SKColor.bg],
+                           startPoint: .top, endPoint: UnitPoint(x: 0.5, y: 0.35))
+                .ignoresSafeArea(edges: .bottom)
+        }
+    }
+}
+
+extension ProLockedView.Feature {
+    /// The wall for a gate; nil for `.general`, which opens the plans directly.
+    init?(_ reason: PaywallReason) {
+        switch reason {
+        case .assistant: self = .ask
+        case .journalAnalysis: self = .insights
+        case .compare: self = .compare
+        case .culprits: self = .triggers
+        case .scanner: self = .scanner
+        case .productLimit: self = .shelfCap
+        case .routine: self = .routine
+        case .recommend: self = .picks
+        case .general: return nil
+        }
+    }
+
+    /// The gate the plans page opens for: its analytics reason and the feature it leads with.
+    var reason: PaywallReason {
+        switch self {
+        case .ask: .assistant
+        case .insights: .journalAnalysis
+        case .compare: .compare
+        case .triggers: .culprits
+        case .scanner: .scanner
+        case .shelfCap: .productLimit
+        case .routine: .routine
+        case .picks: .recommend
+        }
+    }
+
+    /// One still drop per wall.
+    var drop: String {
+        switch self {
+        case .ask: "DropAsk"
+        case .insights: "DropInsights"
+        case .compare: "DropCompare"
+        case .triggers: "DropIngredients"
+        case .scanner: "DropScanner"
+        case .shelfCap: "DropRoutineBuilder"
+        case .routine: "DropNight"
+        case .picks: "DropSunscreen"
+        }
+    }
+
+    var name: String {
+        switch self {
+        case .ask: "Ask Skintel"
+        case .insights: "Insights"
+        case .compare: "Compare"
+        case .triggers: "Culprits"
+        case .scanner: "Scanning"
+        case .shelfCap: "Unlimited shelf"
+        case .routine: "Routine checks"
+        case .picks: "Picks for you"
+        }
+    }
+
+    var tagline: String {
+        switch self {
+        case .ask: "Answers that start from your shelf."
+        case .insights: "What your check-ins add up to."
+        case .compare: "Two products, one clear answer."
+        case .triggers: "What your breakouts have in common."
+        case .scanner: "Point at a product, get a verdict."
+        case .shelfCap: "Free shelves hold five products."
+        case .routine: "Catch actives that clash."
+        case .picks: "Built from your shelf's history."
+        }
+    }
+
+    /// Three things the feature does, each one something the server really returns.
+    var gets: [String] {
+        switch self {
+        case .ask:
+            ["Answers from your shelf and check-ins",
+             "Tag a product to ask about it",
+             "Add products you mention to your shelf"]
+        case .insights:
+            ["Your week: routine kept and skin days",
+             "Suspects behind your bad days",
+             "Check-ins matched to new products"]
+        case .compare:
+            ["Two or three products side by side",
+             "A score, wins and concerns for each",
+             "A clear winner, and the reason why"]
+        case .triggers:
+            ["What your “broke out” products share",
+             "Journal suspects, with confidence",
+             "What to try next"]
+        case .scanner:
+            ["Barcode, label photo or product link",
+             "Ingredients read for you",
+             "Checked against what broke you out"]
+        case .shelfCap:
+            ["Keep every product you use",
+             "Scan as many new ones as you like",
+             "Plus Ask Skintel, Insights, Compare"]
+        case .routine:
+            ["Morning and night routines checked",
+             "Actives that clash, flagged",
+             "A fix for each conflict"]
+        case .picks:
+            ["Five picks for your goal and budget",
+             "Why each one fits, and what to watch",
+             "Built on what worked for you"]
+        }
+    }
+
+    /// Reassurance where people worry about losing what they've logged.
+    var note: String? {
+        switch self {
+        case .insights: return "Your check-ins are saved either way."
+        case .triggers: return "Your shelf and check-ins are saved either way."
+        case .shelfCap: return "Your five products stay on your shelf either way."
+        default: return nil
+        }
+    }
+}
+
+/// A window arch: a half-circle top on straight sides. Built from curves so it never
+/// depends on arc direction in SwiftUI's flipped coordinates.
+private struct ArchShape: Shape {
+    func path(in r: CGRect) -> Path {
+        let radius = r.width / 2
+        let k = radius * 0.5523
+        let shoulder = r.minY + radius
+        var p = Path()
+        p.move(to: CGPoint(x: r.minX, y: r.maxY))
+        p.addLine(to: CGPoint(x: r.minX, y: shoulder))
+        p.addCurve(to: CGPoint(x: r.midX, y: r.minY),
+                   control1: CGPoint(x: r.minX, y: shoulder - k),
+                   control2: CGPoint(x: r.midX - k, y: r.minY))
+        p.addCurve(to: CGPoint(x: r.maxX, y: shoulder),
+                   control1: CGPoint(x: r.midX + k, y: r.minY),
+                   control2: CGPoint(x: r.maxX, y: shoulder - k))
+        p.addLine(to: CGPoint(x: r.maxX, y: r.maxY))
+        p.closeSubpath()
+        return p
+    }
+}
+
+// MARK: - Gate presentation
+
+/// Gives everything inside a modal its own Skintel+ gates. A sheet can't present over
+/// itself from the tab view underneath, so each modal root installs this: a gated feature
+/// covers the screen with its wall, `.general` opens the plans.
+private struct ProGatePresenter: ViewModifier {
+    @State private var wall: ProLockedView.Feature?
+    @State private var plans: PaywallReason?
+
+    func body(content: Content) -> some View {
+        content
+            .fullScreenCover(item: $wall) { ProLockedView(feature: $0) }
+            .sheet(item: $plans) { PaywallView(reason: $0) }
+            .environment(\.openPaywall, OpenPaywallAction { reason in
+                if let feature = ProLockedView.Feature(reason) { wall = feature } else { plans = reason }
+            })
+    }
+}
+
+/// Opens Ask Skintel from a button: the chat as a sheet for Skintel+ members, the
+/// full-screen wall for everyone else. When a purchase from that wall is confirmed by the
+/// server, the chat opens on its own.
+private struct AskSheetPresenter: ViewModifier {
+    @Binding var isPresented: Bool
+    let initialQuestion: String?
+    @Environment(AppEnvironment.self) private var env
+    @State private var chat = false
+    @State private var wall = false
+
+    func body(content: Content) -> some View {
+        content
+            .onChange(of: isPresented) { _, open in
+                if open {
+                    if env.subscription.entitlement.isPro { chat = true } else { wall = true }
+                } else {
+                    chat = false
+                    wall = false
+                }
+            }
+            .sheet(isPresented: $chat, onDismiss: { isPresented = false }) {
+                AssistantView(initialQuestion: initialQuestion)
+            }
+            .fullScreenCover(isPresented: $wall, onDismiss: {
+                if isPresented && env.subscription.entitlement.isPro { chat = true } else { isPresented = false }
+            }) {
+                ProLockedView(feature: .ask)
+            }
+    }
+}
+
+extension View {
+    /// Installs `openPaywall` for a modal's contents (see `ProGatePresenter`).
+    func skProGates() -> some View {
+        modifier(ProGatePresenter())
+    }
+
+    /// Presents Ask Skintel, gated: the chat for Skintel+ members, the wall otherwise.
+    func skAskSheet(isPresented: Binding<Bool>, initialQuestion: String? = nil) -> some View {
+        modifier(AskSheetPresenter(isPresented: isPresented, initialQuestion: initialQuestion))
     }
 }

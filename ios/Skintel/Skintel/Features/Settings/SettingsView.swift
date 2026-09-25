@@ -148,7 +148,7 @@ struct SettingsView: View {
             Text("Membership").skLabelStyle().padding(.leading, 4)
             HStack(spacing: SKSpace.md) {
                 VStack(alignment: .leading, spacing: 2) {
-                    Text(ent.isPro ? (founding ? "Founding member" : "Skintel Pro") : "Skintel Free")
+                    Text(ent.isPro ? (founding ? "Founding member" : "Skintel+") : "Skintel Free")
                         .font(SKFont.sans(17, weight: .semibold, relativeTo: .headline))
                     Text(membershipLine(ent: ent, founding: founding))
                         .font(SKFont.secondary).opacity(0.85)
@@ -157,7 +157,7 @@ struct SettingsView: View {
                 Button {
                     if ent.isPro { showAccount = true } else { openPaywall(.general) }
                 } label: {
-                    Text(ent.isPro ? "Manage" : "Upgrade")
+                    Text(ent.isPro ? "Manage" : "Get Skintel+")
                         .font(SKFont.sans(14, weight: .semibold, relativeTo: .subheadline))
                         .padding(.horizontal, 14)
                         .frame(height: 34)
@@ -394,7 +394,7 @@ private struct AccountDataView: View {
             }
 
             SettingsGroup(title: "Membership") {
-                SettingsRow(title: "Skintel Pro", trailing: {
+                SettingsRow(title: "Your plan", trailing: {
                     SKChip(env.subscription.entitlement.tierLabel, tone: env.subscription.entitlement.isPro ? .good : .neutral)
                 }) { manageSubscription() }
                 if let end = env.subscription.entitlement.periodEnd, env.subscription.entitlement.isPro {
@@ -413,7 +413,7 @@ private struct AccountDataView: View {
                 if let restoreMessage { SettingsInfo(text: restoreMessage, last: true) }
             }
 
-            SettingsGroup(title: env.subscription.entitlement.isPro ? "Your Pro benefits" : "What Pro adds",
+            SettingsGroup(title: env.subscription.entitlement.isPro ? "Your Skintel+ benefits" : "What Skintel+ adds",
                           footer: "Tap one to watch it work.") {
                 ProBenefitsList().padding(.horizontal, SKSpace.lg).padding(.vertical, 4)
             }

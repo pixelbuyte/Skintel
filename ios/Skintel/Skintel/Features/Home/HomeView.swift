@@ -42,7 +42,7 @@ struct HomeView: View {
         }
         .tint(SKColor.primary)
         .sheet(isPresented: $showCheckIn) { CheckInSheet() }
-        .sheet(isPresented: $showAssistant) { AssistantView() }
+        .skAskSheet(isPresented: $showAssistant)
         .task {
             await env.journal.load()
             promptCheckInIfDue()

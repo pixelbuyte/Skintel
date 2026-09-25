@@ -45,7 +45,7 @@ public struct Entitlement: Sendable, Hashable {
     public var tierLabel: String {
         switch tier {
         case .free: "Free"
-        case .pro: "Pro"
+        case .pro: "Skintel+"
         case .founding: "Founding member"
         }
     }
