@@ -11,6 +11,7 @@ struct HomeView: View {
     @State private var slot: RoutineStore.Slot = RoutineStore.currentSlot()
     @State private var showCheckIn = false
     @State private var showAssistant = false
+    @State private var showJournal = false
     @AppStorage(AssistantPlacement.key) private var assistantPlacement = AssistantPlacement.tab
     @State private var moodError: String?
     /// Set only when the person's own tick finishes a routine; cleared after a short moment.
@@ -18,6 +19,7 @@ struct HomeView: View {
     @AppStorage(CheckInPrompt.enabledKey) private var autoPrompt = true
     @AppStorage(CheckInPrompt.lastKey) private var lastPrompt = ""
     @Environment(\.scenePhase) private var scenePhase
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
 
     var body: some View {
         NavigationStack(path: $path) {
@@ -42,12 +44,22 @@ struct HomeView: View {
         .tint(SKColor.primary)
         .sheet(isPresented: $showCheckIn) { CheckInSheet() }
         .sheet(isPresented: $showAssistant) { AssistantView() }
+        .sheet(isPresented: $showJournal) { JournalView() }
+        .task(id: celebratingSlot) {
+            guard celebratingSlot != nil else { return }
+            try? await Task.sleep(for: .seconds(2.4))
+            guard !Task.isCancelled else { return }
+            celebratingSlot = nil
+        }
+        .onChange(of: slot) { _, _ in celebratingSlot = nil }
         .task {
+            env.routine.rollDayIfNeeded()
             await env.journal.load()
             promptCheckInIfDue()
         }
         .onChange(of: scenePhase) { _, phase in
             guard phase == .active else { return }
+            env.routine.rollDayIfNeeded()
             Task {
                 await env.journal.load()
                 promptCheckInIfDue()
@@ -58,7 +70,7 @@ struct HomeView: View {
     /// Morning: ask when nothing is logged yet today. Evening: ask when tonight's part isn't
     /// answered. At most once per part of the day, and never over another sheet.
     private func promptCheckInIfDue() {
-        guard autoPrompt, !showCheckIn, !showAssistant, env.journal.state.value != nil,
+        guard autoPrompt, !showCheckIn, !showAssistant, !showJournal, env.journal.state.value != nil,
               !env.products.products.isEmpty, let part = CheckInPrompt.window() else { return }
         let key = "\(ISO8601.dayString(Date()))-\(part == .morning ? "am" : "pm")"
         guard lastPrompt != key else { return }
@@ -76,29 +88,16 @@ struct HomeView: View {
     // MARK: Header
 
     private var header: some View {
-        let amSteps = env.routine.ids(.am)
-        let pmSteps = env.routine.ids(.pm)
         return HStack(alignment: .top, spacing: SKSpace.md) {
             VStack(alignment: .leading, spacing: SKSpace.sm) {
-                Text(DateFormatting.header()).skLabelStyle()
+                Text("TODAY · \(DateFormatting.header())").skLabelStyle()
                 Text("\(DateFormatting.greeting()), \(env.session.user?.firstName ?? "there")")
                     .font(SKFont.greeting)
                     .foregroundStyle(SKColor.ink)
                     .lineLimit(2)
                     .minimumScaleFactor(0.8)
-                if !amSteps.isEmpty || !pmSteps.isEmpty {
-                    HStack(spacing: SKSpace.sm) {
-                        if !amSteps.isEmpty {
-                            let n = env.routine.daysCompleted(.am)
-                            SKChip("AM \(n) of 7", tone: n >= 5 ? .good : .neutral)
-                        }
-                        if !pmSteps.isEmpty {
-                            let n = env.routine.daysCompleted(.pm)
-                            SKChip("PM \(n) of 7", tone: n >= 5 ? .good : .neutral)
-                        }
-                        Text("this week").font(SKFont.caption).foregroundStyle(SKColor.muted)
-                    }
-                }
+                Text("A little care, every day.")
+                    .font(SKFont.secondary).foregroundStyle(SKColor.muted)
             }
             if assistantPlacement == AssistantPlacement.corner {
                 Spacer(minLength: 0)
@@ -130,15 +129,77 @@ struct HomeView: View {
         case .failed(let e):
             SKErrorState(error: e) { Task { await env.products.load() } }
         case .loaded(let products):
+            weekCard
             if products.isEmpty {
                 newUserCard
             } else {
+                companionHero
+                companionActions
                 routineCard
                 checkInCard
                 askCard
                 suspectCard
                 recommendRow
             }
+        }
+    }
+
+    private var weekCard: some View {
+        VStack(alignment: .leading, spacing: SKSpace.sm) {
+            HStack {
+                Text("Your skin this week").font(SKFont.bodyMedium)
+                Spacer()
+                Button("Journal") { showJournal = true }
+                    .font(SKFont.secondary).foregroundStyle(SKColor.primary)
+                    .frame(minHeight: 44)
+            }
+            if env.journal.state.value != nil {
+                TodayCheckInWeek(days: env.journal.week)
+            } else if env.journal.state.error != nil {
+                Button("Couldn't load your week. Try again") {
+                    Task { await env.journal.load() }
+                }
+                .font(SKFont.secondary).foregroundStyle(SKColor.primary)
+                .frame(minHeight: 44)
+            } else {
+                ProgressView("Loading your week…").font(SKFont.secondary)
+            }
+        }
+        .foregroundStyle(SKColor.ink)
+    }
+
+    private var companionHero: some View {
+        let steps = env.routine.ids(slot).compactMap { env.products.product(id: $0) }
+        let done = steps.filter { env.routine.isDone($0.id) }.count
+        return VStack(spacing: SKSpace.md) {
+            SKSegmented(options: [(RoutineStore.Slot.am, "Morning"), (.pm, "Evening")], selection: $slot)
+            TodayCompanionHero(done: done, total: steps.count, evening: slot == .pm,
+                               celebrating: celebratingSlot == slot)
+            if steps.isEmpty {
+                SKButton(title: "Build your \(slot.rawValue) routine", kind: .secondary) { path.append(.routine) }
+            }
+        }
+        .padding(SKSpace.lg)
+        .frame(maxWidth: .infinity)
+        .background {
+            RoundedRectangle(cornerRadius: 28, style: .continuous)
+                .fill(LinearGradient(colors: [SKColor.cream, SKColor.goodBg.opacity(0.65)],
+                                     startPoint: .topLeading, endPoint: .bottomTrailing))
+        }
+        .overlay(RoundedRectangle(cornerRadius: 28, style: .continuous).stroke(SKColor.line))
+    }
+
+    private var companionActions: some View {
+        let layout = dynamicTypeSize.isAccessibilitySize
+            ? AnyLayout(VStackLayout(spacing: SKSpace.md))
+            : AnyLayout(HStackLayout(alignment: .top, spacing: SKSpace.md))
+        return layout {
+            TodayFeatureTile(art: "DropCheckIn", title: "Skin check-in",
+                             subtitle: env.journal.today == nil ? "How are you feeling?" : "Update today's entry",
+                             tint: SKColor.cream) { showCheckIn = true }
+            TodayFeatureTile(art: slot == .am ? "DropSunscreen" : "DropNight",
+                             title: slot == .am ? "Morning care" : "Evening care",
+                             subtitle: "Plan your routine", tint: SKColor.goodBg) { path.append(.routine) }
         }
     }
 
@@ -167,13 +228,13 @@ struct HomeView: View {
                         Text("\(done) of \(steps.count)").font(SKFont.dataSmall).foregroundStyle(SKColor.muted)
                     }
                 }
-                SKSegmented(options: [(RoutineStore.Slot.am, "AM"), (.pm, "PM")], selection: $slot)
+                Button("Edit routine") { path.append(.routine) }
+                    .font(SKFont.secondary).foregroundStyle(SKColor.primary).frame(minHeight: 44)
                 if steps.isEmpty {
                     Text("No \(slot.rawValue) steps yet. Add products from your shelf and Skintel keeps them in order.")
                         .font(SKFont.secondary).foregroundStyle(SKColor.muted)
                     SKButton(title: "Build your \(slot.rawValue) routine", kind: .secondary) { path.append(.routine) }
                 } else {
-                    SKProgressBar(fraction: Double(done) / Double(steps.count), height: 6)
                     VStack(spacing: 0) {
                         ForEach(Array(steps.enumerated()), id: \.element.id) { index, p in
                             if index > 0 { Rectangle().fill(SKColor.line).frame(height: 1) }
@@ -195,22 +256,10 @@ struct HomeView: View {
         }
     }
 
-    /// The mascot celebrates only right after the person's own tick completes the routine,
-    /// then settles; opening Today on an already-finished routine just shows it resting.
+    /// Completion text complements the hero; the hero owns the only animated character.
     private func routineDoneRow(stepCount: Int) -> some View {
-        HStack(spacing: SKSpace.md) {
-            SKMascot(action: celebratingSlot == slot ? .celebrate : .idle, height: 76)
-            Text("All \(stepCount) step\(stepCount == 1 ? "" : "s") done \(slot == .am ? "this morning" : "tonight").")
-                .font(SKFont.secondary)
-                .foregroundStyle(SKColor.muted)
-                .frame(maxWidth: .infinity, alignment: .leading)
-        }
-        .task(id: celebratingSlot) {
-            guard celebratingSlot != nil else { return }
-            try? await Task.sleep(for: .seconds(2.4))
-            if !Task.isCancelled { celebratingSlot = nil }
-        }
-        .onDisappear { celebratingSlot = nil }
+        Text("All \(stepCount) step\(stepCount == 1 ? "" : "s") done \(slot == .am ? "this morning" : "tonight").")
+            .font(SKFont.secondary).foregroundStyle(SKColor.goodFg)
     }
 
     private func celebrateIfRoutineComplete() {
@@ -225,6 +274,7 @@ struct HomeView: View {
             Button {
                 env.routine.toggleDone(p.id, in: slot)
                 if done {
+                    celebratingSlot = nil
                     Haptics.selection()
                 } else {
                     Haptics.success()
@@ -319,11 +369,7 @@ struct HomeView: View {
     private var askCard: some View {
         Button { showAssistant = true } label: {
             HStack(spacing: SKSpace.md) {
-                Image(systemName: "sparkles")
-                    .font(.system(size: 16, weight: .semibold))
-                    .foregroundStyle(SKColor.cream)
-                    .frame(width: 36, height: 36)
-                    .background(SKColor.primary, in: Circle())
+                SKDrop("DropAsk", size: 60)
                 VStack(alignment: .leading, spacing: 2) {
                     Text("Ask Skintel").font(SKFont.cardTitle).foregroundStyle(SKColor.ink)
                     Text("What order should I use my products in?")
@@ -354,22 +400,18 @@ struct HomeView: View {
         let culprits = env.products.culprits
         if let top = culprits.all.first {
             Button { path.append(.culprits) } label: {
-                SKCard(tint: .bad) {
+                SKCard {
                     HStack(spacing: SKSpace.lg) {
-                        Image(systemName: "exclamationmark.triangle")
-                            .font(.system(size: 20, weight: .semibold))
-                            .foregroundStyle(SKColor.badFg)
-                            .frame(width: 48, height: 48)
-                            .background(SKColor.badBg, in: RoundedRectangle(cornerRadius: 14, style: .continuous))
+                        SKDrop("DropIngredients", size: 58)
                         VStack(alignment: .leading, spacing: 3) {
-                            Text(culprits.all.count == 1 ? "1 suspect found" : "\(culprits.all.count) suspects found")
+                            Text("Worth a closer look")
                                 .font(SKFont.cardTitle).foregroundStyle(SKColor.ink)
                             Text("\(top.name) is in \(top.badCount) products that broke you out")
                                 .font(SKFont.secondary).foregroundStyle(SKColor.muted)
                                 .lineLimit(2)
                         }
                         Spacer(minLength: 0)
-                        Text("Review ›").font(SKFont.sans(15, weight: .semibold)).foregroundStyle(SKColor.badFg)
+                        Text("Review ›").font(SKFont.sans(15, weight: .semibold)).foregroundStyle(SKColor.primary)
                     }
                 }
             }
@@ -381,11 +423,7 @@ struct HomeView: View {
         Button { path.append(.recommend) } label: {
             SKCard {
                 HStack(spacing: SKSpace.lg) {
-                    Image(systemName: "wand.and.stars")
-                        .font(.system(size: 18, weight: .semibold))
-                        .foregroundStyle(SKColor.primary)
-                        .frame(width: 48, height: 48)
-                        .background(SKColor.blush, in: RoundedRectangle(cornerRadius: 14, style: .continuous))
+                    SKDrop("DropCompare", size: 58)
                     VStack(alignment: .leading, spacing: 3) {
                         Text("Find a product that fits").font(SKFont.cardTitle).foregroundStyle(SKColor.ink)
                         Text("Picks built around what your shelf says works and what doesn't.")
@@ -409,10 +447,190 @@ struct HomeView: View {
         case .productForm(let mode): ProductFormView(mode: mode)
         case .verdict(let scanID): VerdictView(scanID: scanID)
         case .culprits: CulpritsView()
-        case .routine: RoutineView()
+        case .routine: RoutineView(initialSlot: slot)
         case .recommend: RecommendView()
         case .settings: SettingsView()
         }
+    }
+}
+
+/// Progress is checklist completion, never a skin-health score. The interactive mascot
+/// owns its short wave locally so tapping it does not re-render the whole dashboard.
+private struct TodayCompanionHero: View {
+    let done: Int
+    let total: Int
+    let evening: Bool
+    let celebrating: Bool
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
+    @State private var waveID = 0
+    @State private var waving = false
+
+    private var fraction: Double { total > 0 ? min(1, max(0, Double(done) / Double(total))) : 0 }
+    private var action: SkinstelMascotAction {
+        if celebrating { return .celebrate }
+        if waving { return .wave }
+        return evening ? .sleep : .idle
+    }
+    private var message: String {
+        if total == 0 { return "Your routine starts here." }
+        if done >= total { return "A little care. All done." }
+        let remaining = total - done
+        return "\(remaining) little step\(remaining == 1 ? "" : "s") left."
+    }
+
+    var body: some View {
+        VStack(spacing: SKSpace.sm) {
+            Text(evening ? "YOUR EVENING RITUAL" : "YOUR MORNING RITUAL")
+                .skLabelStyle().padding(.top, SKSpace.sm)
+            ZStack {
+                Circle().stroke(SKColor.primary.opacity(0.1), lineWidth: 12)
+                Circle().trim(from: 0, to: fraction)
+                    .stroke(SKColor.primary, style: StrokeStyle(lineWidth: 12, lineCap: .round))
+                    .rotationEffect(.degrees(-90))
+                    .animation(reduceMotion ? nil : .easeInOut(duration: 0.45), value: fraction)
+                VStack(spacing: 0) {
+                    Button {
+                        Haptics.selection()
+                        waveID += 1
+                        waving = true
+                    } label: {
+                        SkinstelMascot(action: action, playbackID: waveID)
+                            .frame(width: 110, height: 124)
+                            .contentShape(Rectangle())
+                    }
+                    .buttonStyle(.plain)
+                    .accessibilityLabel("Skinstel companion")
+                    .accessibilityHint("Double tap to say hello")
+                    .task(id: waveID) {
+                        guard waveID > 0 else { return }
+                        try? await Task.sleep(for: .seconds(1.8))
+                        guard !Task.isCancelled else { return }
+                        waving = false
+                    }
+                    if !dynamicTypeSize.isAccessibilitySize { progressLabel }
+                }
+            }
+            .frame(width: 228, height: 228)
+            .padding(.vertical, SKSpace.md)
+            if dynamicTypeSize.isAccessibilitySize { progressLabel }
+            Text(message).font(SKFont.section).foregroundStyle(SKColor.ink)
+                .multilineTextAlignment(.center)
+            Text(total == 0 ? "Add the products you want to use." : "\(done) of \(total) steps complete · \(evening ? "PM" : "AM") routine")
+                .font(SKFont.secondary).foregroundStyle(SKColor.muted)
+                .multilineTextAlignment(.center)
+        }
+        .frame(maxWidth: .infinity)
+        .padding(.bottom, SKSpace.sm)
+        .onDisappear { waving = false }
+    }
+
+    private var progressLabel: some View {
+        VStack(spacing: 0) {
+            Text(total == 0 ? "Let's begin" : "\(Int((fraction * 100).rounded()))%")
+                .font(SKFont.serif(total == 0 ? 24 : 36, relativeTo: .title))
+                .foregroundStyle(SKColor.ink)
+            Text("routine complete").font(SKFont.caption).foregroundStyle(SKColor.muted)
+                .opacity(total == 0 ? 0 : 1)
+        }
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel(total == 0 ? "No routine steps yet" : "\(done) of \(total) routine steps complete")
+    }
+}
+
+/// A sticker marks a real logged day. Missing days remain empty and never imply a mood.
+private struct TodayCheckInWeek: View {
+    let days: [(date: Date, entry: JournalEntry?)]
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
+
+    var body: some View {
+        if dynamicTypeSize.isAccessibilitySize {
+            ScrollView(.horizontal) { strip }
+        } else {
+            strip
+        }
+    }
+
+    private var strip: some View {
+        HStack(alignment: .top, spacing: 4) {
+            ForEach(days.map { Day(date: $0.date, condition: $0.entry?.condition) }) { day in
+                TodayCheckInDay(date: day.date, condition: day.condition,
+                                today: Calendar.current.isDateInToday(day.date))
+                    .frame(minWidth: dynamicTypeSize.isAccessibilitySize ? 76 : 0, maxWidth: .infinity)
+            }
+        }
+        .padding(.vertical, SKSpace.sm)
+    }
+
+    private struct Day: Identifiable {
+        let date: Date
+        let condition: JournalCondition?
+        // JournalStore.week rebuilds Date values; the persisted day key is stable.
+        var id: String { ISO8601.dayString(date) }
+    }
+}
+
+private struct TodayCheckInDay: View {
+    let date: Date
+    let condition: JournalCondition?
+    let today: Bool
+
+    var body: some View {
+        VStack(spacing: 6) {
+            Text(date, format: .dateTime.weekday(.narrow))
+                .font(SKFont.caption).foregroundStyle(SKColor.muted)
+            ZStack {
+                Circle().fill(today ? SKColor.blush : SKColor.cream.opacity(0.7))
+                if condition != nil {
+                    SKDrop("DropCheckIn", size: 34)
+                } else {
+                    Circle().stroke(SKColor.muted.opacity(0.35), style: StrokeStyle(lineWidth: 1, dash: [2, 3]))
+                        .padding(9)
+                }
+            }
+            .frame(width: 38, height: 38)
+            .overlay(Circle().stroke(today ? SKColor.primary : .clear, lineWidth: 1.5))
+            Text(date, format: .dateTime.day())
+                .font(SKFont.dataSmall).foregroundStyle(today ? SKColor.primary : SKColor.muted)
+            Text(condition?.checkInLabel ?? "Not logged")
+                .font(SKFont.sans(9, relativeTo: .caption2))
+                .foregroundStyle(condition?.tone.fg ?? SKColor.muted)
+                .multilineTextAlignment(.center)
+                .fixedSize(horizontal: false, vertical: true)
+        }
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel("\(date.formatted(date: .complete, time: .omitted)): \(condition?.checkInLabel ?? "No check-in")\(today ? ", today" : "")")
+    }
+}
+
+private struct TodayFeatureTile: View {
+    let art: String
+    let title: String
+    let subtitle: String
+    let tint: Color
+    let action: () -> Void
+
+    var body: some View {
+        Button(action: action) {
+            VStack(alignment: .leading, spacing: SKSpace.sm) {
+                HStack(alignment: .top) {
+                    SKDrop(art, size: 74)
+                    Spacer(minLength: 0)
+                    Image(systemName: "arrow.up.right").font(.system(size: 12, weight: .semibold))
+                        .foregroundStyle(SKColor.primary).padding(.top, 6)
+                        .accessibilityHidden(true)
+                }
+                Text(title).font(SKFont.cardTitle).foregroundStyle(SKColor.ink)
+                Text(subtitle).font(SKFont.secondary).foregroundStyle(SKColor.muted)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+            .frame(maxWidth: .infinity, minHeight: 150, alignment: .topLeading)
+            .padding(SKSpace.md)
+            .background(tint, in: RoundedRectangle(cornerRadius: 22, style: .continuous))
+            .overlay(RoundedRectangle(cornerRadius: 22, style: .continuous).stroke(SKColor.line))
+        }
+        .buttonStyle(SKPressStyle())
+        .accessibilityElement(children: .combine)
     }
 }
 

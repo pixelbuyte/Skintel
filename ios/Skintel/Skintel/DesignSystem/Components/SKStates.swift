@@ -155,7 +155,8 @@ struct SKMascot: View {
 }
 
 /// One of the still drop illustrations in the asset catalog ("DropAsk", "DropScanner", …).
-/// Decorative: the text next to it carries the meaning. At most one per screen.
+/// Decorative: the text next to it carries the meaning. Today also uses these as compact
+/// feature illustrations; keep motion limited to the single interactive hero mascot.
 struct SKDrop: View {
     let name: String
     var size: CGFloat = 96

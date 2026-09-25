@@ -7,11 +7,16 @@ struct RoutineView: View {
     @Environment(AppEnvironment.self) private var env
     @Environment(\.openPaywall) private var openPaywall
 
-    @State private var slot: RoutineStore.Slot = RoutineStore.currentSlot()
+    @State private var slot: RoutineStore.Slot
     @State private var analysis: Loadable<RoutineAnalysis> = .idle
     @State private var showPicker = false
     @State private var showTemplates = false
     @State private var editMode: EditMode = .inactive
+
+    /// Seed only on presentation; the editor then owns its AM/PM selection.
+    init(initialSlot: RoutineStore.Slot = RoutineStore.currentSlot()) {
+        _slot = State(initialValue: initialSlot)
+    }
 
     private var ids: [String] { env.routine.ids(slot) }
 

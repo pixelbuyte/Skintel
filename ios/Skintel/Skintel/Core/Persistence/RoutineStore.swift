@@ -124,7 +124,8 @@ final class RoutineStore {
         persist()
     }
 
-    private func rollDayIfNeeded() {
+    /// Also called when Today reappears/foregrounds so yesterday's ticks cannot fill its ring.
+    func rollDayIfNeeded() {
         let today = ISO8601.dayString(Date())
         if routine.doneDay != today {
             routine.doneDay = today
