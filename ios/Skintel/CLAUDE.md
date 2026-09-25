@@ -43,6 +43,11 @@ against the actual type in this repo. `grep` is free; a CI round-trip is not.
   dir, so new files under existing source dirs are usually picked up at generate time only.)
 - Info.plist and Skintel.entitlements are ALSO generated from `project.yml` — edit the
   `info:`/`entitlements:` blocks there, never the plists directly.
+- Widget extension `SkintelWidgets` (`com.skintel.app.widgets`, embedded in the app) lives in
+  `SkintelWidgets/`; `Shared/` is compiled into BOTH targets (App Group id, widget kinds,
+  `skintel://` deep links, shelf snapshot) and must stay Foundation-only — the extension does
+  not link SkintelCore. Both targets carry App Group `group.com.skintel.app`, and their
+  `MARKETING_VERSION`s must match.
 - `Config/Config.xcconfig` is gitignored; CI copies `Config.example.xcconfig` into place.
   The Supabase anon key in it is public by design (RLS). Real secrets never go in xcconfig.
 - CI: `codemagic.yaml` at repo root. `ios-ci` = simulator build + SkintelTests +

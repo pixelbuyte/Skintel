@@ -21,6 +21,10 @@ final class AppEnvironment {
     let subscriptionService: SubscriptionService
     let analytics: any Analytics
 
+    /// A widget deep link waiting for the signed-in tab UI to route it (see
+    /// `MainTabView`). Dropped when the user is signed out or still onboarding.
+    var pendingDeepLink: SkintelDeepLink?
+
     init(config: AppConfiguration) {
         self.config = config
         let http = HTTPClient(timeout: 20, logger: DebugLog.network)
@@ -48,6 +52,7 @@ final class AppEnvironment {
     }
 
     func resetAfterSignOut() {
+        pendingDeepLink = nil
         products.reset()
         subscription.reset()
         scans.reset()

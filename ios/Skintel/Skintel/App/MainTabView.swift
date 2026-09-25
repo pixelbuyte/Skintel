@@ -103,6 +103,59 @@ struct MainTabView: View {
         .sheet(isPresented: $showAssistant) { AssistantView() }
         .sheet(isPresented: $showShelf) { ShelfTab() }
         .environment(\.openPaywall, OpenPaywallAction { reason in paywall = reason })
+        .onChange(of: env.pendingDeepLink, initial: true) { consumeDeepLink() }
+        .onChange(of: env.subscription.loaded) { consumeDeepLink() }
+    }
+
+    // MARK: Widget deep links
+
+    /// Routes `env.pendingDeepLink` (set by `RootView.onOpenURL`) through the same paths the
+    /// + menu and tab bar use. Scan waits for the subscription row so a Pro member opening
+    /// the Scan widget on a cold launch never sees the paywall flash before `warmUp` lands.
+    private func consumeDeepLink() {
+        guard let link = env.pendingDeepLink else { return }
+        if link == .scan && !env.subscription.loaded { return }
+        env.pendingDeepLink = nil
+        Task { await openDeepLink(link) }
+    }
+
+    private var isPresenting: Bool {
+        presentScanner || paywall != nil || showQuick || showCheckIn || showAddProduct
+            || showCompare || showAssistant || showShelf
+    }
+
+    private func openDeepLink(_ link: SkintelDeepLink) async {
+        if isPresenting {
+            // Only one sheet/cover can be up; close whatever is showing, let the dismissal
+            // animation finish, then present the destination.
+            pending = nil
+            showQuick = false
+            presentScanner = false
+            paywall = nil
+            showCheckIn = false
+            showAddProduct = false
+            showCompare = false
+            showAssistant = false
+            showShelf = false
+            try? await Task.sleep(for: .milliseconds(650))
+        }
+        let assistantInTab = assistantPlacement == AssistantPlacement.tab
+        switch link {
+        case .scan:
+            openScanner()
+        case .ask:
+            if assistantInTab { tab = .ask } else { showAssistant = true }
+        case .shelf:
+            // Shelf owns the tab slot only when Ask Skintel lives on Today.
+            if assistantInTab { showShelf = true } else { tab = .shelf }
+        case .checkin:
+            showCheckIn = true
+        }
+    }
+
+    /// The Pro gate for the scanner, shared by the + menu and the Scan widget.
+    private func openScanner() {
+        if env.subscription.entitlement.canUseScanner { presentScanner = true } else { paywall = .scanner }
     }
 
     /// The menu sheet has to finish dismissing before the next sheet or cover can present.
@@ -111,7 +164,7 @@ struct MainTabView: View {
         pending = nil
         switch action {
         case .scan:
-            if env.subscription.entitlement.canUseScanner { presentScanner = true } else { paywall = .scanner }
+            openScanner()
         case .checkIn:
             showCheckIn = true
         case .addByHand:

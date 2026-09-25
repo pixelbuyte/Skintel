@@ -89,7 +89,9 @@
 		</dict>
 	</array>
 
-	<!-- Required-reason APIs actually used. UserDefaults holds only UI preferences. -->
+	<!-- Required-reason APIs actually used. UserDefaults holds only UI preferences (CA92.1)
+	     and, in the App Group shared with the SkintelWidgets extension, the Shelf widget's
+	     product count + names (1C8F.1). -->
 	<key>NSPrivacyAccessedAPITypes</key>
 	<array>
 		<dict>
@@ -98,6 +100,7 @@
 			<key>NSPrivacyAccessedAPITypeReasons</key>
 			<array>
 				<string>CA92.1</string>
+				<string>1C8F.1</string>
 			</array>
 		</dict>
 	</array>

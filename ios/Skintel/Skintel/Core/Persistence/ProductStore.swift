@@ -37,7 +37,11 @@ final class ProductStore {
 
     func load() async {
         if case .loaded = state {} else { state = .loading }
-        do { state = .loaded(try await db.products()) }
+        do {
+            let list = try await db.products()
+            state = .loaded(list)
+            ShelfWidgetSync.publish(list)
+        }
         catch let e as APIError {
             // Keep stale data visible on a transient failure; only show the error state cold.
             if state.value == nil { state = .failed(e) }
@@ -65,10 +69,15 @@ final class ProductStore {
         if var list = state.value {
             list.removeAll { $0.id == id }
             state = .loaded(list)
+            ShelfWidgetSync.publish(list)
         }
     }
 
-    func reset() { state = .idle }
+    /// Sign-out: also wipes the Shelf widget's snapshot.
+    func reset() {
+        state = .idle
+        ShelfWidgetSync.clear()
+    }
 
     private func blank(_ s: String?) -> String? {
         guard let t = s?.trimmingCharacters(in: .whitespacesAndNewlines), !t.isEmpty else { return nil }
