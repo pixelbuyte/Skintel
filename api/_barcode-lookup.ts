@@ -157,8 +157,11 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     return json(res, result);
   }
 
+  // Both databases are asked at once (each capped at 5 s) instead of one after the other;
+  // Open Beauty Facts still wins when it has the product. fetchProduct never rejects.
+  const offPending = fetchProduct('https://world.openfoodfacts.org', upc);
   const obf = await fetchProduct('https://world.openbeautyfacts.org', upc);
-  const off = obf ? null : await fetchProduct('https://world.openfoodfacts.org', upc);
+  const off = obf ? null : await offPending;
   const dbHit = obf ?? off;
   const dbSource: 'openbeautyfacts' | 'openfoodfacts' | null = obf
     ? 'openbeautyfacts'
