@@ -55,7 +55,7 @@ struct ProductsListView: View {
         }
         .refreshable { await env.products.load() }
         .skPageBackground()
-        .skHint(.shelf, when: !env.products.products.isEmpty)
+        .skHint(.shelf, when: !env.products.products.isEmpty || env.isNewFreeShelf)
         .skNavigationTitle("Shelf")
         .toolbar {
             ToolbarItem(placement: .topBarTrailing) {
