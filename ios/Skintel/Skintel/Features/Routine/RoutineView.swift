@@ -7,11 +7,20 @@ struct RoutineView: View {
     @Environment(AppEnvironment.self) private var env
     @Environment(\.openPaywall) private var openPaywall
 
-    @State private var slot: RoutineStore.Slot = RoutineStore.currentSlot()
+    @State private var slot: RoutineStore.Slot
     @State private var analysis: Loadable<RoutineAnalysis> = .idle
     @State private var showPicker = false
     @State private var showTemplates = false
     @State private var editMode: EditMode = .inactive
+    @State private var showAsk = false
+    @State private var showAddProduct = false
+    /// "Build with what I have" was tapped: skip the setup help for the rest of this visit.
+    @State private var buildWithShelf = false
+
+    /// Opens on `slot` when given (Today's "Set up" rows), else on the current part of the day.
+    init(slot: RoutineStore.Slot? = nil) {
+        _slot = State(initialValue: slot ?? RoutineStore.currentSlot())
+    }
 
     private var ids: [String] { env.routine.ids(slot) }
 
@@ -20,7 +29,11 @@ struct RoutineView: View {
             Section {
                 header.listRowBackground(Color.clear).listRowInsets(EdgeInsets()).listRowSeparator(.hidden)
             }
-            if ids.isEmpty {
+            if ids.isEmpty && offersSetupHelp {
+                Section {
+                    setupHelp.listRowBackground(Color.clear).listRowInsets(EdgeInsets()).listRowSeparator(.hidden)
+                }
+            } else if ids.isEmpty {
                 Section {
                     emptyState.listRowBackground(Color.clear).listRowInsets(EdgeInsets()).listRowSeparator(.hidden)
                 }
@@ -51,6 +64,8 @@ struct RoutineView: View {
         .skHint(.routine, when: ids.count > 1)
         .sheet(isPresented: $showPicker) { ShelfPickerSheet(exclude: Set(ids)) { env.routine.add($0, to: slot); Haptics.success() } }
         .sheet(isPresented: $showTemplates) { templatesSheet }
+        .skAskSheet(isPresented: $showAsk, initialQuestion: askQuestion)
+        .sheet(isPresented: $showAddProduct) { AddProductHub().skProGates() }
         .onChange(of: slot) { _, _ in analysis = .idle }
     }
 
@@ -94,6 +109,88 @@ struct RoutineView: View {
             }
         }
         .padding(.bottom, SKSpace.xxl)
+    }
+
+    // MARK: Setup help
+
+    /// A shelf this size or smaller gets the setup help before an empty slot's builder.
+    private static let setupHelpShelfSize = 5
+
+    /// Only once the shelf has loaded, so a slow load never shows the wrong count.
+    private var offersSetupHelp: Bool {
+        guard !buildWithShelf, let shelf = env.products.state.value else { return false }
+        return shelf.count <= Self.setupHelpShelfSize
+    }
+
+    private var slotName: String { slot == .am ? "morning" : "night" }
+
+    /// Put in Ask Skintel's composer, not sent.
+    private var askQuestion: String { "What should my \(slotName) routine include?" }
+
+    /// A small shelf: ideas from Ask Skintel (gated as everywhere else), the Add a product
+    /// hub, or straight on with what's there.
+    private var setupHelp: some View {
+        let count = env.products.products.count
+        let shelfLine = count == 0 ? "which is empty" : "which has \(count) product\(count == 1 ? "" : "s")"
+        return VStack(spacing: SKSpace.md) {
+            SKEmptyState(icon: "list.number",
+                         title: count == 0 ? "Start with your shelf" : "Want more to choose from?",
+                         message: "A routine is built from your shelf, \(shelfLine) so far. Get ideas for your \(slotName) routine, or add what you already use.",
+                         drop: slot == .pm ? "DropNight" : "DropRoutineBuilder")
+            VStack(spacing: SKSpace.sm) {
+                setupOption(icon: "sparkles", title: "Get recommendations from Ask Skintel",
+                            subtitle: "“\(askQuestion)”", locked: !env.subscription.entitlement.isPro) {
+                    showAsk = true
+                }
+                setupOption(icon: "viewfinder", title: "Scan or add products",
+                            subtitle: "Scan, photo, link or type it in", locked: false) {
+                    showAddProduct = true
+                }
+                if count > 0 {
+                    Button { buildWithShelf = true } label: {
+                        Text("Build with what I have")
+                            .font(SKFont.sans(15, weight: .semibold, relativeTo: .subheadline))
+                            .foregroundStyle(SKColor.muted)
+                            .frame(maxWidth: .infinity, minHeight: 44)
+                            .contentShape(Rectangle())
+                    }
+                    .buttonStyle(SKPressStyle())
+                    .padding(.top, SKSpace.xs)
+                }
+            }
+            .skPagePadding()
+        }
+        .padding(.bottom, SKSpace.xxl)
+    }
+
+    private func setupOption(icon: String, title: String, subtitle: String, locked: Bool,
+                             action: @escaping () -> Void) -> some View {
+        Button(action: action) {
+            SKCard {
+                HStack(spacing: SKSpace.lg) {
+                    Image(systemName: icon)
+                        .font(.system(size: 18, weight: .semibold))
+                        .foregroundStyle(SKColor.primary)
+                        .frame(width: 48, height: 48)
+                        .background(SKColor.blush, in: RoundedRectangle(cornerRadius: 14, style: .continuous))
+                        .accessibilityHidden(true)
+                    VStack(alignment: .leading, spacing: 3) {
+                        Text(title).font(SKFont.cardTitle).foregroundStyle(SKColor.ink)
+                            .multilineTextAlignment(.leading)
+                        Text(subtitle).font(SKFont.secondary).foregroundStyle(SKColor.muted)
+                            .multilineTextAlignment(.leading)
+                        if locked { SKChip("Skintel+").fixedSize().padding(.top, 2) }
+                    }
+                    Spacer(minLength: 0)
+                    Image(systemName: "chevron.right")
+                        .font(.system(size: 13, weight: .semibold))
+                        .foregroundStyle(SKColor.muted)
+                        .accessibilityHidden(true)
+                }
+            }
+            .contentShape(RoundedRectangle(cornerRadius: SKRadius.card, style: .continuous))
+        }
+        .buttonStyle(SKPressStyle())
     }
 
     private func stepRow(index: Int, id: String) -> some View {

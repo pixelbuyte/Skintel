@@ -279,6 +279,7 @@ struct HomeView: View {
                 if item.isSetUp {
                     withAnimation(SKAnimation.ios(0.3)) { slot = item.kind == .morning ? .am : .pm }
                 } else {
+                    slot = item.kind == .morning ? .am : .pm
                     path.append(.routine)
                 }
             case .checkIn:
@@ -504,7 +505,7 @@ struct HomeView: View {
         case .productForm(let mode): ProductFormView(mode: mode)
         case .verdict(let scanID): VerdictView(scanID: scanID)
         case .culprits: TriggersView()
-        case .routine: RoutineView()
+        case .routine: RoutineView(slot: slot)
         case .recommend: RecommendView()
         case .settings: SettingsView()
         }
