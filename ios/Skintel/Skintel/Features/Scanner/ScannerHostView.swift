@@ -179,6 +179,9 @@ struct ScannerHostView: View {
                     RoundedRectangle(cornerRadius: SKRadius.button, style: .continuous).stroke(.white.opacity(0.18))
                 }
             }
+            // Glass isn't a hit-test surface, so the whole pill is made the target, not
+            // just its icon and label.
+            .contentShape(RoundedRectangle(cornerRadius: SKRadius.button, style: .continuous))
         }
         .buttonStyle(SKPressStyle())
     }
