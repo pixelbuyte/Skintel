@@ -19,4 +19,8 @@ enum WidgetColor {
     static let muted = Color("WidgetMuted")
     static let line = Color("WidgetLine")
     static let bubble = Color("WidgetBubble")
+    /// Outcome tones: the app's sage / clay / bad foregrounds, lightened for dark mode.
+    static let good = Color("WidgetGood")
+    static let caution = Color("WidgetCaution")
+    static let bad = Color("WidgetBad")
 }
