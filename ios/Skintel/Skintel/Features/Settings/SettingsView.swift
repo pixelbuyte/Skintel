@@ -22,9 +22,11 @@ struct SettingsView: View {
     @AppStorage(RoutineReminders.amOnKey) private var amOn = false
     @AppStorage(RoutineReminders.pmOnKey) private var pmOn = false
     @AppStorage(RoutineReminders.checkInOnKey) private var checkInOn = false
+    @AppStorage(UpgradeWallStyle.key) private var wallStyle: UpgradeWallStyle = .arch
     @State private var showEditProfile = false
     @State private var showPersonalization = false
     @State private var showAccount = false
+    @State private var previewWall = false
 
     var body: some View {
         ScrollView {
@@ -61,6 +63,22 @@ struct SettingsView: View {
                     SettingsLinkRow(title: "Terms", url: env.config.termsURL, last: true)
                 }
 
+                // TestFlight and Xcode builds only (StoreKit's app transaction environment);
+                // App Store builds never show this and always use the arch.
+                if env.subscriptionService.isTestBuild {
+                    SettingsGroup(title: "Upgrade screen style",
+                                  footer: "Test builds only. App Store builds always use Arch.") {
+                        ForEach(UpgradeWallStyle.allCases) { s in
+                            SettingsChoiceRow(title: s.name, subtitle: s.blurb, selected: wallStyle == s) {
+                                wallStyle = s
+                            }
+                        }
+                        SettingsRow(title: "Preview", subtitle: "The Ask Skintel wall in this style", last: true) {
+                            previewWall = true
+                        }
+                    }
+                }
+
                 Text("Skintel \(Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "") · Not medical advice. Patterns, not prescriptions.")
                     .font(SKFont.caption).foregroundStyle(SKColor.muted).frame(maxWidth: .infinity).multilineTextAlignment(.center)
             }
@@ -73,10 +91,12 @@ struct SettingsView: View {
         .navigationDestination(isPresented: $showPersonalization) { PersonalizationView() }
         .navigationDestination(isPresented: $showAccount) { AccountDataView() }
         .sheet(isPresented: $showEditProfile) { EditProfileSheet() }
+        .fullScreenCover(isPresented: $previewWall) { ProLockedView(feature: .ask) }
         .task {
             await env.subscription.load()
             await env.journal.load()
         }
+        .task { await env.subscriptionService.checkBuildEnvironment() }
     }
 
     // MARK: Profile

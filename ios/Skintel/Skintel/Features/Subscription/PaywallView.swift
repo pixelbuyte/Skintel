@@ -9,10 +9,14 @@ import SkintelCore
 /// plans; the purchase button stays pinned so it never scrolls away.
 struct PaywallView: View {
     let reason: PaywallReason
+    /// From the Add a product hub: the add method tapped, so the scanner demo matches it.
+    var method: ScanMethod? = nil
     @Environment(AppEnvironment.self) private var env
     @Environment(\.dismiss) private var dismiss
     @State private var service: SubscriptionService?
     @State private var selected: SubscriptionService.ProductID = .founding
+    /// Free trials StoreKit reports on the monthly and yearly plans for this Apple ID.
+    @State private var trials: [SubscriptionService.ProductID: SubscriptionService.FreeTrial] = [:]
 
     private var isPro: Bool { env.subscription.entitlement.isPro }
 
@@ -67,6 +71,13 @@ struct PaywallView: View {
             async let f: () = env.subscription.loadFoundingSeats()
             _ = await (p, f)
             if (env.subscription.foundingSeatsRemaining ?? 1) <= 0 || s.product(.founding) == nil { selected = .proYearly }
+        }
+        // Re-checked whenever the plans (re)load, so "Try Again" picks a trial up too.
+        .task(id: service?.products.count ?? 0) {
+            guard let s = service else { return }
+            for id in [SubscriptionService.ProductID.proMonthly, .proYearly] {
+                trials[id] = await s.eligibleFreeTrial(id)
+            }
         }
         .onChange(of: env.subscription.entitlement.isPro) { _, isPro in
             if isPro { Task { try? await Task.sleep(for: .seconds(1.2)); dismiss() } }
@@ -165,6 +176,9 @@ struct PaywallView: View {
                 VStack(alignment: .leading, spacing: 2) {
                     Text(id == .proMonthly ? "Skintel+ Monthly" : "Skintel+ Yearly").font(SKFont.cardTitle).foregroundStyle(SKColor.ink)
                     Text(caption).font(SKFont.caption).foregroundStyle(SKColor.muted)
+                    if let trial = trials[id] {
+                        Text(trial.terms).font(SKFont.sans(12, weight: .semibold, relativeTo: .caption)).foregroundStyle(SKColor.primary)
+                    }
                 }
                 Spacer()
                 (Text(product.displayPrice).font(SKFont.sans(17, weight: .semibold)) + Text(" \(service?.periodText(id) ?? "")").font(SKFont.secondary))
@@ -183,7 +197,7 @@ struct PaywallView: View {
     private var benefits: some View {
         VStack(alignment: .leading, spacing: SKSpace.sm) {
             Text("Everything in Skintel+ · tap to watch").skLabelStyle()
-            ProBenefitsList(highlight: isPro ? nil : reason)
+            ProBenefitsList(highlight: isPro ? nil : reason, method: method)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding(.top, SKSpace.sm)
@@ -195,7 +209,10 @@ struct PaywallView: View {
             if case .failed(let msg) = s.phase, !s.products.isEmpty { SKInlineError(message: msg) }
             SKButton(title: ctaTitle(s), kind: .dark, isLoading: isBusy(s.phase)) { Task { await s.purchase(selected) } }
                 .disabled(s.product(selected) == nil)
-            if selected != .founding {
+            if let trial = trials[selected] {
+                Text("\(trial.terms) Auto-renews until cancelled in App Store settings. Cancel at least 24 hours before the trial ends to avoid being charged.")
+                    .font(SKFont.caption).foregroundStyle(SKColor.muted).multilineTextAlignment(.center)
+            } else if selected != .founding {
                 Text("Auto-renews until cancelled in App Store settings. Cancel at least 24 hours before the period ends to avoid renewal.")
                     .font(SKFont.caption).foregroundStyle(SKColor.muted).multilineTextAlignment(.center)
             } else {
@@ -207,6 +224,7 @@ struct PaywallView: View {
 
     private func ctaTitle(_ s: SubscriptionService) -> String {
         guard let p = s.product(selected) else { return "Unavailable" }
+        if trials[selected] != nil { return "Start free trial" }
         switch selected {
         case .founding: return "Join · \(p.displayPrice) once"
         case .proMonthly: return "Subscribe · \(p.displayPrice)/mo"
@@ -261,6 +279,8 @@ struct PaywallView: View {
 /// before they pay. Reduce Motion shows the finished frame.
 struct FeatureDemo: View {
     let reason: PaywallReason
+    /// For `.scanner`: label photos and links play their own demo; nil plays the barcode one.
+    var method: ScanMethod? = nil
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State private var phase = 0
     /// Demos with several stories (Ask) move to the next one after each full loop.
@@ -308,7 +328,7 @@ struct FeatureDemo: View {
     private var content: some View {
         switch reason {
         case .journalAnalysis, .culprits: journalDemo
-        case .scanner: scanDemo
+        case .scanner: scannerDemo
         case .compare: compareDemo
         case .recommend: recommendDemo
         case .routine: routineDemo
@@ -321,7 +341,7 @@ struct FeatureDemo: View {
         let steps: [String]
         switch reason {
         case .journalAnalysis, .culprits: steps = ["Reading check-ins…", "Your last 7 days", "When products joined", "Pattern found"]
-        case .scanner: steps = ["Point at a barcode", "Scanning…", "Found it", "Verdict for your skin"]
+        case .scanner: steps = scannerSteps
         case .compare: steps = ["Two cleansers", "Scoring both…", "Against your triggers", "Clear winner"]
         case .recommend: steps = ["Reading your shelf…", "Pick 1", "Pick 2", "Three that fit"]
         case .routine: steps = ["Your night routine", "Checking each step…", "Conflict found", "How to fix it"]
@@ -337,7 +357,7 @@ struct FeatureDemo: View {
     private var summary: String {
         switch reason {
         case .journalAnalysis, .culprits: "Skintel lines up a week of check-ins with when each product joined the shelf and finds that breakouts followed a new toner."
-        case .scanner: "A barcode scan returns a verdict of 86, clean, with no match to your triggers."
+        case .scanner: scannerSummary
         case .compare: "Two cleansers are scored against your triggers and the gentler one wins."
         case .recommend: "Three product picks that avoid what broke you out."
         case .routine: "A night routine check flags retinol and glycolic acid on the same night."
@@ -514,6 +534,168 @@ struct FeatureDemo: View {
             }
             Spacer(minLength: 0)
         }
+    }
+
+    // MARK: Scanner demos by add method
+
+    /// Barcode (and no method) keeps the scan demo above; label photos and links get theirs.
+    @ViewBuilder
+    private var scannerDemo: some View {
+        switch method ?? .barcode {
+        case .barcode: scanDemo
+        case .label: labelDemo
+        case .link: linkDemo
+        }
+    }
+
+    private var scannerSteps: [String] {
+        switch method ?? .barcode {
+        case .barcode: ["Point at a barcode", "Scanning…", "Found it", "Verdict for your skin"]
+        case .label: ["Photo of a label", "Reading the label…", "Ingredients found", "Checked for triggers"]
+        case .link: ["Paste a link", "Opening the page…", "Ingredients found", "Checked for triggers"]
+        }
+    }
+
+    private var scannerSummary: String {
+        switch method ?? .barcode {
+        case .barcode: "A barcode scan returns a verdict of 86, clean, with no match to your triggers."
+        case .label: "A photo of an ingredient label is read line by line, the ingredient list appears, and nothing matches your triggers."
+        case .link: "A pasted product link opens, the product's ingredient list comes back from the page, and nothing matches your triggers."
+        }
+    }
+
+    private static let labelLines: [CGFloat] = [0.95, 0.72, 0.88, 0.6, 0.82, 0.5, 0.9, 0.66, 0.4]
+    private static let labelIngredients = ["Aqua", "Glycerin", "Niacinamide", "Ceramide NP", "Panthenol", "Squalane"]
+
+    /// A photographed back label: a reading band passes down its lines, then the ingredient
+    /// list they hold appears beside it and is checked against your triggers.
+    private var labelDemo: some View {
+        HStack(alignment: .top, spacing: SKSpace.lg) {
+            labelPhoto
+                .frame(width: 118)
+            VStack(alignment: .leading, spacing: 5) {
+                Text(phase == 0 ? "Photo of the label" : phase == 1 ? "Reading…" : "Ingredients")
+                    .font(SKFont.dataSmall)
+                    .foregroundStyle(SKColor.muted)
+                    .padding(.bottom, 2)
+                ForEach(Array(Self.labelIngredients.enumerated()), id: \.offset) { i, name in
+                    Text(name)
+                        .font(SKFont.sans(14, weight: .medium, relativeTo: .subheadline))
+                        .foregroundStyle(SKColor.ink)
+                        .lineLimit(1)
+                        .opacity(phase >= 2 ? 1 : 0)
+                        .offset(x: phase >= 2 ? 0 : 12)
+                        .animation(reduceMotion ? nil : SKAnimation.emil(0.5).delay(Double(i) * 0.07), value: phase)
+                }
+                Spacer(minLength: 0)
+                SKChip("No triggers", tone: .good)
+                    .opacity(phase >= 3 ? 1 : 0)
+            }
+            Spacer(minLength: 0)
+        }
+    }
+
+    /// The label itself: grey lines of small print that turn terracotta once read.
+    private var labelPhoto: some View {
+        ZStack(alignment: .topLeading) {
+            RoundedRectangle(cornerRadius: 18, style: .continuous).fill(SKColor.bg)
+            VStack(alignment: .leading, spacing: 11) {
+                Text("INGREDIENTS")
+                    .font(SKFont.mono(9, bold: true, relativeTo: .caption2))
+                    .tracking(0.8)
+                    .foregroundStyle(SKColor.ink.opacity(0.7))
+                ForEach(Self.labelLines.indices, id: \.self) { i in
+                    Capsule()
+                        .fill(phase >= 2 ? SKColor.primary.opacity(0.45) : SKColor.muted.opacity(0.3))
+                        .frame(width: 82 * Self.labelLines[i], height: 5)
+                }
+            }
+            .padding(.horizontal, 16)
+            .padding(.vertical, 20)
+            GeometryReader { geo in
+                RoundedRectangle(cornerRadius: 5, style: .continuous)
+                    .fill(SKColor.primary.opacity(0.18))
+                    .frame(height: 18)
+                    .offset(y: geo.size.height * (sweep ? 0.74 : 0.16))
+            }
+            .padding(.horizontal, 10)
+            .opacity(phase == 1 ? 1 : 0)
+            ScanBrackets()
+                .stroke(phase >= 2 ? SKColor.goodFg : SKColor.primary, style: StrokeStyle(lineWidth: 3, lineCap: .round))
+                .padding(8)
+        }
+    }
+
+    private static let linkIngredients = ["Aqua", "Glycerin", "Rose Water", "Ceramide NP", "Hyaluronic Acid"]
+
+    /// A product link pasted in: the page opens, the product and its ingredient list come
+    /// back, and the list is checked against your triggers.
+    private var linkDemo: some View {
+        VStack(alignment: .leading, spacing: SKSpace.md) {
+            linkField
+            HStack(spacing: SKSpace.md) {
+                SKProductMark(name: "Rose Gel Cream", size: 38)
+                VStack(alignment: .leading, spacing: 2) {
+                    Text("Rose Gel Cream").font(SKFont.sans(15, weight: .semibold, relativeTo: .subheadline)).foregroundStyle(SKColor.ink)
+                    Text("Ingredient list from the page").font(SKFont.caption).foregroundStyle(SKColor.muted)
+                }
+                Spacer(minLength: 0)
+            }
+            .opacity(phase >= 2 ? 1 : 0)
+            .offset(y: phase >= 2 ? 0 : 10)
+            FlowLayout(spacing: 6) {
+                ForEach(Array(Self.linkIngredients.enumerated()), id: \.offset) { i, name in
+                    Text(name)
+                        .font(SKFont.mono(11, relativeTo: .caption))
+                        .foregroundStyle(SKColor.ink)
+                        .padding(.horizontal, 9)
+                        .frame(height: 24)
+                        .background(SKColor.neutralChip, in: Capsule())
+                        .opacity(phase >= 2 ? 1 : 0)
+                        .scaleEffect(phase >= 2 ? 1 : 0.85)
+                        .animation(reduceMotion ? nil : SKAnimation.emil(0.5).delay(0.1 + Double(i) * 0.06), value: phase)
+                }
+            }
+            Spacer(minLength: 0)
+            SKChip("No triggers", tone: .good)
+                .opacity(phase >= 3 ? 1 : 0)
+        }
+    }
+
+    /// The pasted address, a loading line while the page opens, then a check.
+    private var linkField: some View {
+        HStack(spacing: SKSpace.sm) {
+            Image(systemName: "link")
+                .font(.system(size: 13, weight: .semibold))
+                .foregroundStyle(SKColor.primary)
+            Text("shop.example.com/rose-gel-cream")
+                .font(SKFont.mono(12, relativeTo: .caption))
+                .foregroundStyle(SKColor.ink)
+                .lineLimit(1)
+                .truncationMode(.middle)
+            Spacer(minLength: 0)
+            if phase >= 2 {
+                Image(systemName: "checkmark.circle.fill")
+                    .font(.system(size: 16, weight: .semibold))
+                    .foregroundStyle(SKColor.goodFg)
+                    .transition(.scale.combined(with: .opacity))
+            }
+        }
+        .padding(.horizontal, 12)
+        .frame(height: 44)
+        .background(SKColor.bg, in: RoundedRectangle(cornerRadius: 14, style: .continuous))
+        .overlay(alignment: .bottomLeading) {
+            GeometryReader { geo in
+                Capsule()
+                    .fill(SKColor.primary)
+                    .frame(width: geo.size.width * (sweep ? 0.9 : 0.3), height: 3)
+                    .frame(maxHeight: .infinity, alignment: .bottom)
+            }
+            .padding(.horizontal, 12)
+            .opacity(phase == 1 ? 1 : 0)
+        }
+        .overlay(RoundedRectangle(cornerRadius: 14, style: .continuous)
+            .stroke(phase == 0 ? SKColor.primary.opacity(0.6) : SKColor.line, lineWidth: phase == 0 ? 1.5 : 1))
     }
 
     private var compareDemo: some View {
@@ -901,6 +1083,8 @@ struct ProBenefitIcon: View {
 /// came from, that benefit leads, opened up with its demo already playing.
 struct ProBenefitsList: View {
     var highlight: PaywallReason? = nil
+    /// The add method behind a scanner gate, so the lead demo shows that method.
+    var method: ScanMethod? = nil
     @State private var demo: ProBenefit?
 
     private var lead: ProBenefit? { highlight.flatMap { ProBenefit($0) } }
@@ -952,7 +1136,7 @@ struct ProBenefitsList: View {
                 Spacer(minLength: 0)
             }
             .accessibilityElement(children: .combine)
-            FeatureDemo(reason: reason)
+            FeatureDemo(reason: reason, method: method)
         }
         .padding(SKSpace.md)
         .background(SKColor.blush, in: RoundedRectangle(cornerRadius: 28, style: .continuous))
@@ -1167,12 +1351,50 @@ struct MascotUpgradeHero: View {
     }
 }
 
+// MARK: - Add methods behind the scanner gate
+
+/// Which "Add a product" method a free account tapped. All three share the scanner's gate
+/// (`canUseScanner`); this only picks the wall's drop and words and the plans page's demo,
+/// so a pasted link doesn't show a barcode being scanned.
+enum ScanMethod: String, Identifiable, Sendable {
+    case barcode, label, link
+    var id: String { rawValue }
+}
+
 // MARK: - Hard wall
 
+/// The two Skintel+ wall layouts. The App Store always gets `.arch`; TestFlight and Xcode
+/// builds can switch in Settings (You) to compare them.
+enum UpgradeWallStyle: String, CaseIterable, Identifiable {
+    /// A: the feature's drop in an arched window, its name and three lines, then the buttons.
+    case arch
+    /// B: the feature's own demo (sample data) over the top of the screen, a panel below.
+    case demo
+
+    static let key = "wall.style"
+    var id: String { rawValue }
+
+    var name: String {
+        switch self {
+        case .arch: "Arch"
+        case .demo: "Feature demo"
+        }
+    }
+
+    var blurb: String {
+        switch self {
+        case .arch: "The drop in an arched window. Default"
+        case .demo: "The feature's demo above, a panel below"
+        }
+    }
+}
+
 /// What a Free member sees instead of a Skintel+ feature. It takes the whole screen and
-/// shows nothing of the feature itself: no live demo, no preview, nothing blurred behind
-/// it. A branded scene (the feature's drop in an arched window), the feature's name, three
-/// things it does, then Get Skintel+ (the plans, which show every feature) or a way back.
+/// shows nothing of the member's own data. Style A (the default, and always on the App
+/// Store): a branded scene (the feature's drop in an arched window), the feature's name,
+/// three things it does, then Get Skintel+ (the plans, which show every feature) or a way
+/// back. Style B (test builds only, see `UpgradeWallStyle`): the feature's demo with sample
+/// data over the top, and a panel with its name and the same two buttons.
 /// `openPaywall` presents it full-screen; a Skintel+ tab shows it as its root while
 /// `MainTabView` hides the tab bar.
 struct ProLockedView: View {
@@ -1184,15 +1406,47 @@ struct ProLockedView: View {
     let feature: Feature
     /// Where "back" goes when the wall fills a tab; nil means it was presented and closes.
     var leave: (() -> Void)? = nil
+    /// For the scanner wall from Add a product: label photos and links get their own drop,
+    /// words and demo; nil and `.barcode` keep the scanner wall as it is.
+    var method: ScanMethod? = nil
 
     @Environment(AppEnvironment.self) private var env
     @Environment(\.dismiss) private var dismiss
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @AppStorage(UpgradeWallStyle.key) private var chosenStyle: UpgradeWallStyle = .arch
     @State private var showPlans = false
     @State private var shown = false
     @State private var floating = false
 
+    /// Only a test build honours the Settings choice; the App Store always gets the arch.
+    private var style: UpgradeWallStyle {
+        env.subscriptionService.isTestBuild ? chosenStyle : .arch
+    }
+
     var body: some View {
+        Group {
+            if style == .demo { demoLayout } else { archLayout }
+        }
+        .sheet(isPresented: $showPlans, onDismiss: {
+            if env.subscription.entitlement.isPro { unlocked() }
+        }) {
+            PaywallView(reason: feature.reason, method: method)
+        }
+        .onChange(of: env.subscription.entitlement.isPro) { _, isPro in
+            // A membership that loads late, or is bought on another device, opens the way.
+            if isPro && !showPlans { unlocked() }
+        }
+        .task {
+            if reduceMotion { shown = true; return }
+            withAnimation(.spring(response: 0.7, dampingFraction: 0.82)) { shown = true }
+            try? await Task.sleep(for: .seconds(0.8))
+            withAnimation(.easeInOut(duration: 2.6).repeatForever(autoreverses: true)) { floating = true }
+        }
+        .task { await env.subscriptionService.checkBuildEnvironment() }
+    }
+
+    /// Style A: the arch, the feature's name and what it does, buttons pinned below.
+    private var archLayout: some View {
         GeometryReader { geo in
             let stageHeight = min(max(geo.size.height * 0.42, 220), 340)
             ScrollView {
@@ -1210,20 +1464,53 @@ struct ProLockedView: View {
         }
         .safeAreaInset(edge: .bottom, spacing: 0) { actions }
         .background { backdrop }
-        .sheet(isPresented: $showPlans, onDismiss: {
-            if env.subscription.entitlement.isPro { unlocked() }
-        }) {
-            PaywallView(reason: feature.reason)
+    }
+
+    /// Style B: the feature at work over the top of the screen (the plans page's demo, sample
+    /// data only, never the member's own), and a panel over the bottom with the way on.
+    private var demoLayout: some View {
+        VStack(spacing: 0) {
+            FeatureDemo(reason: feature.reason, method: method)
+                .skPagePadding()
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+                .clipped()
+            demoPanel
         }
-        .onChange(of: env.subscription.entitlement.isPro) { _, isPro in
-            // A membership that loads late, or is bought on another device, opens the way.
-            if isPro && !showPlans { unlocked() }
+        .background { backdrop }
+    }
+
+    private var demoPanel: some View {
+        VStack(spacing: SKSpace.lg) {
+            VStack(spacing: SKSpace.sm) {
+                Text("Skintel+")
+                    .font(SKFont.mono(11, bold: true, relativeTo: .caption))
+                    .textCase(.uppercase)
+                    .tracking(2)
+                    .foregroundStyle(SKColor.primary)
+                    .padding(.horizontal, 14)
+                    .padding(.vertical, 7)
+                    .background(SKColor.blush, in: Capsule())
+                Text(name)
+                    .font(SKFont.hero)
+                    .foregroundStyle(SKColor.ink)
+                    .multilineTextAlignment(.center)
+                    .accessibilityAddTraits(.isHeader)
+                Text(tagline)
+                    .font(SKFont.sans(17, relativeTo: .body))
+                    .foregroundStyle(SKColor.muted)
+                    .multilineTextAlignment(.center)
+            }
+            buttons
         }
-        .task {
-            if reduceMotion { shown = true; return }
-            withAnimation(.spring(response: 0.7, dampingFraction: 0.82)) { shown = true }
-            try? await Task.sleep(for: .seconds(0.8))
-            withAnimation(.easeInOut(duration: 2.6).repeatForever(autoreverses: true)) { floating = true }
+        .skPagePadding()
+        .padding(.top, SKSpace.xl)
+        .padding(.bottom, SKSpace.sm)
+        .frame(maxWidth: .infinity)
+        .background {
+            UnevenRoundedRectangle(topLeadingRadius: SKRadius.sheet, topTrailingRadius: SKRadius.sheet, style: .continuous)
+                .fill(SKColor.cream)
+                .shadow(color: SKColor.ink.opacity(0.08), radius: 16, y: -4)
+                .ignoresSafeArea(edges: .bottom)
         }
     }
 
@@ -1275,7 +1562,7 @@ struct ProLockedView: View {
                 .fill(SKColor.primary.opacity(0.16))
                 .frame(width: drop * 0.6, height: 14)
                 .padding(.bottom, sill - 7)
-            SKDrop(feature.drop, size: drop)
+            SKDrop(dropArt, size: drop)
                 .offset(y: floating ? -6 : 0)
                 .padding(.bottom, sill)
         }
@@ -1298,23 +1585,67 @@ struct ProLockedView: View {
             .overlay(Capsule().stroke(SKColor.bg, lineWidth: 3))
     }
 
+    // MARK: Words and art
+
+    /// Label photos and links (scanner wall only) get their own drop and words; every other
+    /// wall, and the barcode, keeps the feature's own.
+    private var scanMethod: ScanMethod { feature == .scanner ? (method ?? .barcode) : .barcode }
+
+    private var dropArt: String {
+        switch scanMethod {
+        case .barcode: feature.drop
+        case .label: "DropIngredients"
+        case .link: "DropRoutineBuilder"
+        }
+    }
+
+    private var name: String {
+        switch scanMethod {
+        case .barcode: feature.name
+        case .label: "Label photos"
+        case .link: "Product links"
+        }
+    }
+
+    private var tagline: String {
+        switch scanMethod {
+        case .barcode: feature.tagline
+        case .label: "Photograph the list, get a verdict."
+        case .link: "Paste a link, get a verdict."
+        }
+    }
+
+    private var gets: [String] {
+        switch scanMethod {
+        case .barcode: feature.gets
+        case .label:
+            ["For products without a barcode",
+             "The ingredient list read from your photo",
+             "Checked against what broke you out"]
+        case .link:
+            ["From a brand's or a shop's product page",
+             "The ingredient list pulled from the page",
+             "Checked against what broke you out"]
+        }
+    }
+
     // MARK: Copy and actions
 
     private var copy: some View {
         VStack(spacing: SKSpace.lg) {
             VStack(spacing: SKSpace.xs) {
-                Text(feature.name)
+                Text(name)
                     .font(SKFont.hero)
                     .foregroundStyle(SKColor.ink)
                     .multilineTextAlignment(.center)
                     .accessibilityAddTraits(.isHeader)
-                Text(feature.tagline)
+                Text(tagline)
                     .font(SKFont.serif(21, relativeTo: .title3, italic: true))
                     .foregroundStyle(SKColor.primary)
                     .multilineTextAlignment(.center)
             }
             VStack(alignment: .leading, spacing: SKSpace.md) {
-                ForEach(Array(feature.gets.enumerated()), id: \.offset) { i, line in
+                ForEach(Array(gets.enumerated()), id: \.offset) { i, line in
                     HStack(alignment: .top, spacing: SKSpace.md) {
                         Image(systemName: "checkmark")
                             .font(.system(size: 11, weight: .bold))
@@ -1343,6 +1674,19 @@ struct ProLockedView: View {
     }
 
     private var actions: some View {
+        buttons
+            .skPagePadding()
+            .padding(.top, SKSpace.md)
+            .padding(.bottom, SKSpace.sm)
+            .background {
+                LinearGradient(colors: [SKColor.bg.opacity(0), SKColor.bg],
+                               startPoint: .top, endPoint: UnitPoint(x: 0.5, y: 0.35))
+                    .ignoresSafeArea(edges: .bottom)
+            }
+    }
+
+    /// Get Skintel+ (the plans) and the way back, shared by both styles.
+    private var buttons: some View {
         VStack(spacing: SKSpace.sm) {
             SKButton(title: "Get Skintel+") {
                 Haptics.tap()
@@ -1351,14 +1695,6 @@ struct ProLockedView: View {
             SKButton(title: leave == nil ? "Maybe later" : "Back to Today", kind: .secondary) {
                 if let leave { leave() } else { dismiss() }
             }
-        }
-        .skPagePadding()
-        .padding(.top, SKSpace.md)
-        .padding(.bottom, SKSpace.sm)
-        .background {
-            LinearGradient(colors: [SKColor.bg.opacity(0), SKColor.bg],
-                           startPoint: .top, endPoint: UnitPoint(x: 0.5, y: 0.35))
-                .ignoresSafeArea(edges: .bottom)
         }
     }
 }

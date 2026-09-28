@@ -44,6 +44,8 @@ private struct AddProductFlow: View {
     @State private var showScanner = false
     @State private var showCamera = false
     @State private var paywall: PaywallReason?
+    /// A free account's scanner wall, showing the add method that was tapped.
+    @State private var scanWall: ScanMethod?
 
     private enum Choice { case scan, photo, link, typeIt }
 
@@ -92,6 +94,7 @@ private struct AddProductFlow: View {
             }
             .ignoresSafeArea()
         }
+        .fullScreenCover(item: $scanWall) { ProLockedView(feature: .scanner, method: $0) }
         .sheet(item: $paywall) { PaywallView(reason: $0) }
         .environment(\.openPaywall, OpenPaywallAction { paywall = $0 })
         .onChange(of: model.phase) { _, phase in
@@ -154,14 +157,14 @@ private struct AddProductFlow: View {
     }
 
     /// Scan, photo and link keep the scanner's gate exactly (`canUseScanner`, else the
-    /// `.scanner` paywall); typing it in keeps the free shelf limit.
+    /// scanner wall, showing the method tapped); typing it in keeps the free shelf limit.
     private func choose(_ choice: Choice) {
         Haptics.tap()
         switch choice {
         case .scan:
-            if entitled { showScanner = true } else { paywall = .scanner }
+            if entitled { showScanner = true } else { scanWall = .barcode }
         case .photo:
-            guard entitled else { paywall = .scanner; return }
+            guard entitled else { scanWall = .label; return }
             if !model.isBusy { model.reset() }
             switch CameraPermission.status {
             // The page explains how to turn the camera back on.
@@ -169,7 +172,7 @@ private struct AddProductFlow: View {
             case .authorized, .notDetermined: showCamera = true
             }
         case .link:
-            guard entitled else { paywall = .scanner; return }
+            guard entitled else { scanWall = .link; return }
             if !model.isBusy { model.reset() }
             path.append(AddProductRoute.link)
         case .typeIt:

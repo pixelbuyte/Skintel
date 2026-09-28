@@ -1,5 +1,6 @@
 import SwiftUI
 import SkintelCore
+import SkinstelMascot
 
 /// Signed-in but not yet profiled: age range, skin profile (§04), then camera permission (§05).
 /// Step 1 of the four is the welcome screen shown before sign-in.
@@ -168,6 +169,7 @@ struct CameraStepView: View {
     @Bindable var model: OnboardingViewModel
     let back: () -> Void
     @AppStorage("onboarding.skipped") private var onboardingSkipped = false
+    @AppStorage(OnboardingOfferView.pendingKey) private var offerPending = false
     @State private var permission: CameraPermission.Status = CameraPermission.status
     @State private var showDenied = false
     @State private var showRestricted = false
@@ -243,6 +245,9 @@ struct CameraStepView: View {
         case .restricted: showRestricted = true
         case .notDetermined, .authorized: break
         }
+        // The Skintel+ offer shows once, between this step and the app (see `RootView`).
+        // Set first so "Skip for now" after a failed save still passes through it.
+        offerPending = true
         _ = await model.complete()
     }
 
@@ -255,6 +260,284 @@ struct CameraStepView: View {
                 .background(SKColor.goodBg, in: Circle())
             Text(text).font(SKFont.sans(17, relativeTo: .body)).foregroundStyle(SKColor.ink)
         }
+    }
+}
+
+// MARK: - Skintel+ offer
+
+/// One screen between the last onboarding step and the app, for accounts that aren't
+/// Skintel+ yet. What it offers comes from StoreKit, never assumed:
+/// 1. a free trial, only when the yearly or monthly plan has an introductory free-trial
+///    offer AND this Apple ID can still take it;
+/// 2. otherwise the founding deal, while it is on sale;
+/// 3. otherwise the regular plan.
+/// Prices are StoreKit's `displayPrice`. Buying goes through `SubscriptionService.purchase`,
+/// and Skintel+ only unlocks once the server confirms it. "Continue with Free" is always on
+/// screen.
+struct OnboardingOfferView: View {
+    /// Set as onboarding finishes; cleared when this screen is done with (see `RootView`).
+    static let pendingKey = "onboarding.offerPending"
+
+    let done: () -> Void
+
+    @Environment(AppEnvironment.self) private var env
+    /// False while the membership is checked, so a member never sees the offer.
+    @State private var ready = false
+    @State private var loaded = false
+    @State private var offer: Offer? = nil
+    @State private var attempt = 0
+    @State private var finished = false
+
+    enum Offer {
+        case trial(SubscriptionService.ProductID, SubscriptionService.FreeTrial)
+        case founding
+        case plan(SubscriptionService.ProductID)
+
+        var productID: SubscriptionService.ProductID {
+            switch self {
+            case .trial(let id, _), .plan(let id): id
+            case .founding: .founding
+            }
+        }
+    }
+
+    private static let benefitLines: [(icon: String, text: String)] = [
+        ("viewfinder", "Scan a barcode, label photo or product link"),
+        ("sparkles", "Ask Skintel, answered from your shelf"),
+        ("checkmark.shield", "Triggers, Insights, Compare and an unlimited shelf"),
+    ]
+
+    private var service: SubscriptionService { env.subscriptionService }
+
+    var body: some View {
+        Group {
+            if ready { screen } else { SplashView() }
+        }
+        .task(id: attempt) {
+            if attempt == 0 {
+                await env.subscription.confirmIfUnsure()
+                if env.subscription.entitlement.isPro { finish(); return }
+                ready = true
+                env.analytics.track(.paywallViewed(reason: "onboarding"))
+            }
+            loaded = false
+            let s = env.subscriptionService
+            s.startObserving()
+            async let p: () = s.loadProducts()
+            async let f: () = env.subscription.loadFoundingSeats()
+            _ = await (p, f)
+            offer = await resolveOffer(s)
+            loaded = true
+        }
+        .onChange(of: env.subscription.entitlement.isPro) { _, isPro in
+            if isPro { finish() }
+        }
+    }
+
+    /// Trial first (yearly, then monthly), then the founding deal, then the plain plan.
+    private func resolveOffer(_ s: SubscriptionService) async -> Offer? {
+        for id in [SubscriptionService.ProductID.proYearly, .proMonthly] {
+            if let trial = await s.eligibleFreeTrial(id) { return .trial(id, trial) }
+        }
+        if s.product(.founding) != nil, (env.subscription.foundingSeatsRemaining ?? 1) > 0 { return .founding }
+        if s.product(.proYearly) != nil { return .plan(.proYearly) }
+        if s.product(.proMonthly) != nil { return .plan(.proMonthly) }
+        return nil
+    }
+
+    private func finish() {
+        guard !finished else { return }
+        finished = true
+        done()
+    }
+
+    // MARK: Screen
+
+    private var screen: some View {
+        VStack(spacing: 0) {
+            ScrollView {
+                VStack(spacing: SKSpace.lg) {
+                    SKMascot(action: .wave, height: 128, settleAfter: .seconds(3))
+                        .accessibilityHidden(true)
+                    VStack(spacing: SKSpace.sm) {
+                        Text("Skintel+")
+                            .font(SKFont.mono(11, relativeTo: .caption))
+                            .textCase(.uppercase)
+                            .tracking(2)
+                            .foregroundStyle(SKColor.primary)
+                            .padding(.horizontal, 14)
+                            .padding(.vertical, 7)
+                            .background(SKColor.blush, in: Capsule())
+                        Text(title)
+                            .font(SKFont.hero)
+                            .foregroundStyle(SKColor.ink)
+                            .multilineTextAlignment(.center)
+                            .accessibilityAddTraits(.isHeader)
+                    }
+                    benefits
+                    price
+                }
+                .frame(maxWidth: .infinity)
+                .skPagePadding()
+                .padding(.top, SKSpace.xl)
+                .padding(.bottom, SKSpace.lg)
+            }
+            .scrollBounceBehavior(.basedOnSize)
+            actions
+        }
+        .skPageBackground()
+    }
+
+    private var title: String {
+        guard let offer else { return "Meet Skintel+." }
+        switch offer {
+        case .trial: return "Try Skintel+ free."
+        case .founding: return "The founding member deal."
+        case .plan: return "Meet Skintel+."
+        }
+    }
+
+    private var benefits: some View {
+        VStack(alignment: .leading, spacing: SKSpace.md) {
+            ForEach(Self.benefitLines.indices, id: \.self) { i in
+                HStack(spacing: SKSpace.md) {
+                    Image(systemName: Self.benefitLines[i].icon)
+                        .font(.system(size: 15, weight: .semibold))
+                        .foregroundStyle(SKColor.primary)
+                        .frame(width: 34, height: 34)
+                        .background(SKColor.blush, in: RoundedRectangle(cornerRadius: 10, style: .continuous))
+                        .accessibilityHidden(true)
+                    Text(Self.benefitLines[i].text)
+                        .font(SKFont.sans(16, relativeTo: .body))
+                        .foregroundStyle(SKColor.ink)
+                        .fixedSize(horizontal: false, vertical: true)
+                    Spacer(minLength: 0)
+                }
+            }
+        }
+        .padding(SKSpace.lg)
+        .background(SKColor.cream, in: RoundedRectangle(cornerRadius: SKRadius.card, style: .continuous))
+        .overlay(RoundedRectangle(cornerRadius: SKRadius.card, style: .continuous).stroke(SKColor.line))
+    }
+
+    /// The offer's price, straight from StoreKit.
+    @ViewBuilder
+    private var price: some View {
+        if !loaded {
+            SKSkeleton(height: 96)
+        } else if let offer {
+            VStack(spacing: SKSpace.xs) {
+                switch offer {
+                case .trial(let id, let trial):
+                    Text("\(trial.length) free")
+                        .font(SKFont.serif(44, relativeTo: .largeTitle))
+                        .foregroundStyle(SKColor.ink)
+                    Text("then \(service.priceText(id) ?? "")\(service.periodText(id))")
+                        .font(SKFont.sans(16, weight: .semibold, relativeTo: .body))
+                        .foregroundStyle(SKColor.primary)
+                case .founding:
+                    HStack(alignment: .firstTextBaseline, spacing: 8) {
+                        Text(service.priceText(.founding) ?? "").font(SKFont.price).foregroundStyle(SKColor.ink)
+                        Text("once").font(SKFont.sans(18, relativeTo: .title3)).foregroundStyle(SKColor.muted)
+                    }
+                    Text("Three months of Skintel+ · nothing renews")
+                        .font(SKFont.sans(16, weight: .semibold, relativeTo: .body))
+                        .foregroundStyle(SKColor.primary)
+                case .plan(let id):
+                    HStack(alignment: .firstTextBaseline, spacing: 4) {
+                        Text(service.priceText(id) ?? "").font(SKFont.price).foregroundStyle(SKColor.ink)
+                        Text(service.periodText(id)).font(SKFont.sans(18, relativeTo: .title3)).foregroundStyle(SKColor.muted)
+                    }
+                    Text(id == .proYearly ? "Skintel+ Yearly · cancel anytime" : "Skintel+ Monthly · cancel anytime")
+                        .font(SKFont.sans(16, weight: .semibold, relativeTo: .body))
+                        .foregroundStyle(SKColor.primary)
+                }
+            }
+            .multilineTextAlignment(.center)
+            .frame(maxWidth: .infinity)
+        } else {
+            VStack(spacing: SKSpace.md) {
+                SKInlineError(message: unavailableMessage)
+                SKButton(title: "Try Again", kind: .secondary) { attempt += 1 }
+            }
+        }
+    }
+
+    private var unavailableMessage: String {
+        switch service.phase {
+        case .unavailable(let msg), .failed(let msg): msg
+        default: "Plans are unavailable right now. You can get Skintel+ later from You."
+        }
+    }
+
+    // MARK: Actions
+
+    private var actions: some View {
+        VStack(spacing: SKSpace.sm) {
+            if let msg = service.lastMessage {
+                Text(msg).font(SKFont.secondary).foregroundStyle(SKColor.cautionFg).multilineTextAlignment(.center)
+            }
+            if case .failed(let msg) = service.phase, offer != nil {
+                SKInlineError(message: msg)
+            }
+            if let offer, loaded {
+                SKButton(title: primaryTitle(offer), isLoading: isBusy) {
+                    Haptics.tap()
+                    Task { await service.purchase(offer.productID) }
+                }
+                Text(smallPrint(offer))
+                    .font(SKFont.caption)
+                    .foregroundStyle(SKColor.muted)
+                    .multilineTextAlignment(.center)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+            SKButton(title: "Continue with Free", kind: .secondary) { finish() }
+            footer
+        }
+        .skPagePadding()
+        .padding(.top, SKSpace.md)
+        .padding(.bottom, SKSpace.sm)
+        .background {
+            SKColor.bg
+                .overlay(alignment: .top) { Rectangle().fill(SKColor.line).frame(height: 1) }
+                .ignoresSafeArea(edges: .bottom)
+        }
+    }
+
+    private func primaryTitle(_ offer: Offer) -> String {
+        switch offer {
+        case .trial: "Start free trial"
+        case .founding, .plan: "Get Skintel+"
+        }
+    }
+
+    /// The terms beside the button: what is charged, when, and how to stop it.
+    private func smallPrint(_ offer: Offer) -> String {
+        switch offer {
+        case .trial(_, let trial):
+            "\(trial.terms) Renews automatically until cancelled. Cancel anytime in Settings, at least 24 hours before the trial ends, to avoid being charged."
+        case .founding:
+            "One payment. Skintel+ ends after three months and never renews."
+        case .plan(let id):
+            "\(service.priceText(id) ?? "")\(service.periodText(id)), renews automatically until cancelled. Cancel anytime in Settings, at least 24 hours before the period ends, to avoid renewal."
+        }
+    }
+
+    private var isBusy: Bool {
+        switch service.phase {
+        case .purchasing, .verifying, .restoring: true
+        default: false
+        }
+    }
+
+    private var footer: some View {
+        HStack(spacing: SKSpace.xl) {
+            Button("Restore") { Task { await service.restore() } }
+            Link("Terms", destination: env.config.termsURL)
+            Link("Privacy", destination: env.config.privacyURL)
+        }
+        .font(SKFont.sans(14, weight: .medium)).foregroundStyle(SKColor.muted).underline()
+        .padding(.top, SKSpace.xs)
     }
 }
 
