@@ -259,14 +259,19 @@ struct AskAboutProductButton: View {
 
     private func open() {
         Haptics.tap()
-        // Free accounts get the full-screen Skintel+ wall, never the chat.
-        guard env.subscription.entitlement.isPro else { showWall = true; return }
-        if let productID, let p = env.products.product(id: productID) {
-            request = AskRequest(question: nil, tagged: [p.product])
-        } else if let scan {
-            request = AskRequest(question: Self.draft(for: scan), tagged: [])
-        } else {
-            request = AskRequest(question: nil, tagged: [])
+        Task {
+            // A member whose row hasn't arrived yet (or failed to load) reads as Free, so the
+            // server is asked first; only a confirmed Free account gets the wall.
+            await env.subscription.confirmIfUnsure()
+            // Free accounts get the full-screen Skintel+ wall, never the chat.
+            guard env.subscription.entitlement.isPro else { showWall = true; return }
+            if let productID, let p = env.products.product(id: productID) {
+                request = AskRequest(question: nil, tagged: [p.product])
+            } else if let scan {
+                request = AskRequest(question: Self.draft(for: scan), tagged: [])
+            } else {
+                request = AskRequest(question: nil, tagged: [])
+            }
         }
     }
 

@@ -198,18 +198,25 @@ struct MainTabView: View {
     }
 
     /// Tab taps: a Free member tapping a Skintel+ tab gets its wall over everything and
-    /// stays where they were. Until the membership row loads, the tab opens and shows its
-    /// own wall, so a member never sees a wall flash up and has to close it.
+    /// stays where they were. Until the membership row loads (or after a failed fetch) the
+    /// server is asked first, so a member goes straight to the tab and never sees a wall.
     private var tabSelection: Binding<MainTab> {
         Binding(get: { tab }, set: { select($0) })
     }
 
     private func select(_ next: MainTab) {
-        if let feature = Self.lockedFeature(for: next), env.subscription.loaded, !env.subscription.entitlement.isPro {
-            lastWall = feature
-            wall = feature
-        } else {
+        guard let feature = Self.lockedFeature(for: next), !env.subscription.entitlement.isPro else {
             tab = next
+            return
+        }
+        Task {
+            await env.subscription.confirmIfUnsure()
+            if env.subscription.entitlement.isPro {
+                tab = next
+            } else {
+                lastWall = feature
+                wall = feature
+            }
         }
     }
 
