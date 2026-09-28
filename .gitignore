@@ -29,3 +29,6 @@ dist-ssr
 grant-pro.mjs
 test-checkout.mjs
 .env.production
+
+# App Store Connect one-time-use code files (secrets)
+scripts/asc/out/
