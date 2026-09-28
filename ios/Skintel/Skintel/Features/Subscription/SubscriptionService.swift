@@ -36,6 +36,11 @@ final class SubscriptionService {
     private(set) var phase: Phase = .idle
     private(set) var products: [StoreKit.Product] = []
     private(set) var lastMessage: String?
+    /// True on TestFlight and Xcode builds: StoreKit signed this install's app transaction in
+    /// the sandbox or Xcode environment. False on the App Store, and until StoreKit answers.
+    /// Only unlocks test-build settings (the upgrade screen style); never any entitlement.
+    private(set) var isTestBuild = false
+    private var buildChecked = false
 
     private let api: SkintelAPI
     private let store: SubscriptionStore
@@ -192,6 +197,23 @@ final class SubscriptionService {
         case .proMonthly: "/month"
         case .proYearly: "/year"
         case .founding: "once"
+        }
+    }
+
+    // MARK: Build environment
+
+    /// Reads where this install came from, once per launch (retried if StoreKit fails).
+    /// An unverified app transaction, or any error, leaves `isTestBuild` false.
+    func checkBuildEnvironment() async {
+        guard !buildChecked else { return }
+        buildChecked = true
+        do {
+            let result = try await AppTransaction.shared
+            if case .verified(let app) = result {
+                isTestBuild = app.environment == .sandbox || app.environment == .xcode
+            }
+        } catch {
+            buildChecked = false
         }
     }
 

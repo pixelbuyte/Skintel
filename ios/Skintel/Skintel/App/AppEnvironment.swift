@@ -44,6 +44,9 @@ final class AppEnvironment {
 
     /// Everything a signed-in user's screens need, loaded together after sign-in.
     func warmUp() async {
+        // Ready before any Skintel+ wall opens, so a test build shows its chosen wall style
+        // straight away. Runs alongside; nothing below waits on it.
+        Task { await subscriptionService.checkBuildEnvironment() }
         async let p: () = products.load()
         async let s: () = subscription.load()
         _ = await (p, s)

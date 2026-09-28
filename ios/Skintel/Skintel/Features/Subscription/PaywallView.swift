@@ -1363,10 +1363,38 @@ enum ScanMethod: String, Identifiable, Sendable {
 
 // MARK: - Hard wall
 
+/// The two Skintel+ wall layouts. The App Store always gets `.arch`; TestFlight and Xcode
+/// builds can switch in Settings (You) to compare them.
+enum UpgradeWallStyle: String, CaseIterable, Identifiable {
+    /// A: the feature's drop in an arched window, its name and three lines, then the buttons.
+    case arch
+    /// B: the feature's own demo (sample data) over the top of the screen, a panel below.
+    case demo
+
+    static let key = "wall.style"
+    var id: String { rawValue }
+
+    var name: String {
+        switch self {
+        case .arch: "Arch"
+        case .demo: "Feature demo"
+        }
+    }
+
+    var blurb: String {
+        switch self {
+        case .arch: "The drop in an arched window. Default"
+        case .demo: "The feature's demo above, a panel below"
+        }
+    }
+}
+
 /// What a Free member sees instead of a Skintel+ feature. It takes the whole screen and
-/// shows nothing of the feature itself: no live demo, no preview, nothing blurred behind
-/// it. A branded scene (the feature's drop in an arched window), the feature's name, three
-/// things it does, then Get Skintel+ (the plans, which show every feature) or a way back.
+/// shows nothing of the member's own data. Style A (the default, and always on the App
+/// Store): a branded scene (the feature's drop in an arched window), the feature's name,
+/// three things it does, then Get Skintel+ (the plans, which show every feature) or a way
+/// back. Style B (test builds only, see `UpgradeWallStyle`): the feature's demo with sample
+/// data over the top, and a panel with its name and the same two buttons.
 /// `openPaywall` presents it full-screen; a Skintel+ tab shows it as its root while
 /// `MainTabView` hides the tab bar.
 struct ProLockedView: View {
@@ -1385,11 +1413,40 @@ struct ProLockedView: View {
     @Environment(AppEnvironment.self) private var env
     @Environment(\.dismiss) private var dismiss
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @AppStorage(UpgradeWallStyle.key) private var chosenStyle: UpgradeWallStyle = .arch
     @State private var showPlans = false
     @State private var shown = false
     @State private var floating = false
 
+    /// Only a test build honours the Settings choice; the App Store always gets the arch.
+    private var style: UpgradeWallStyle {
+        env.subscriptionService.isTestBuild ? chosenStyle : .arch
+    }
+
     var body: some View {
+        Group {
+            if style == .demo { demoLayout } else { archLayout }
+        }
+        .sheet(isPresented: $showPlans, onDismiss: {
+            if env.subscription.entitlement.isPro { unlocked() }
+        }) {
+            PaywallView(reason: feature.reason, method: method)
+        }
+        .onChange(of: env.subscription.entitlement.isPro) { _, isPro in
+            // A membership that loads late, or is bought on another device, opens the way.
+            if isPro && !showPlans { unlocked() }
+        }
+        .task {
+            if reduceMotion { shown = true; return }
+            withAnimation(.spring(response: 0.7, dampingFraction: 0.82)) { shown = true }
+            try? await Task.sleep(for: .seconds(0.8))
+            withAnimation(.easeInOut(duration: 2.6).repeatForever(autoreverses: true)) { floating = true }
+        }
+        .task { await env.subscriptionService.checkBuildEnvironment() }
+    }
+
+    /// Style A: the arch, the feature's name and what it does, buttons pinned below.
+    private var archLayout: some View {
         GeometryReader { geo in
             let stageHeight = min(max(geo.size.height * 0.42, 220), 340)
             ScrollView {
@@ -1407,20 +1464,53 @@ struct ProLockedView: View {
         }
         .safeAreaInset(edge: .bottom, spacing: 0) { actions }
         .background { backdrop }
-        .sheet(isPresented: $showPlans, onDismiss: {
-            if env.subscription.entitlement.isPro { unlocked() }
-        }) {
-            PaywallView(reason: feature.reason, method: method)
+    }
+
+    /// Style B: the feature at work over the top of the screen (the plans page's demo, sample
+    /// data only, never the member's own), and a panel over the bottom with the way on.
+    private var demoLayout: some View {
+        VStack(spacing: 0) {
+            FeatureDemo(reason: feature.reason, method: method)
+                .skPagePadding()
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+                .clipped()
+            demoPanel
         }
-        .onChange(of: env.subscription.entitlement.isPro) { _, isPro in
-            // A membership that loads late, or is bought on another device, opens the way.
-            if isPro && !showPlans { unlocked() }
+        .background { backdrop }
+    }
+
+    private var demoPanel: some View {
+        VStack(spacing: SKSpace.lg) {
+            VStack(spacing: SKSpace.sm) {
+                Text("Skintel+")
+                    .font(SKFont.mono(11, bold: true, relativeTo: .caption))
+                    .textCase(.uppercase)
+                    .tracking(2)
+                    .foregroundStyle(SKColor.primary)
+                    .padding(.horizontal, 14)
+                    .padding(.vertical, 7)
+                    .background(SKColor.blush, in: Capsule())
+                Text(name)
+                    .font(SKFont.hero)
+                    .foregroundStyle(SKColor.ink)
+                    .multilineTextAlignment(.center)
+                    .accessibilityAddTraits(.isHeader)
+                Text(tagline)
+                    .font(SKFont.sans(17, relativeTo: .body))
+                    .foregroundStyle(SKColor.muted)
+                    .multilineTextAlignment(.center)
+            }
+            buttons
         }
-        .task {
-            if reduceMotion { shown = true; return }
-            withAnimation(.spring(response: 0.7, dampingFraction: 0.82)) { shown = true }
-            try? await Task.sleep(for: .seconds(0.8))
-            withAnimation(.easeInOut(duration: 2.6).repeatForever(autoreverses: true)) { floating = true }
+        .skPagePadding()
+        .padding(.top, SKSpace.xl)
+        .padding(.bottom, SKSpace.sm)
+        .frame(maxWidth: .infinity)
+        .background {
+            UnevenRoundedRectangle(topLeadingRadius: SKRadius.sheet, topTrailingRadius: SKRadius.sheet, style: .continuous)
+                .fill(SKColor.cream)
+                .shadow(color: SKColor.ink.opacity(0.08), radius: 16, y: -4)
+                .ignoresSafeArea(edges: .bottom)
         }
     }
 
@@ -1584,6 +1674,19 @@ struct ProLockedView: View {
     }
 
     private var actions: some View {
+        buttons
+            .skPagePadding()
+            .padding(.top, SKSpace.md)
+            .padding(.bottom, SKSpace.sm)
+            .background {
+                LinearGradient(colors: [SKColor.bg.opacity(0), SKColor.bg],
+                               startPoint: .top, endPoint: UnitPoint(x: 0.5, y: 0.35))
+                    .ignoresSafeArea(edges: .bottom)
+            }
+    }
+
+    /// Get Skintel+ (the plans) and the way back, shared by both styles.
+    private var buttons: some View {
         VStack(spacing: SKSpace.sm) {
             SKButton(title: "Get Skintel+") {
                 Haptics.tap()
@@ -1592,14 +1695,6 @@ struct ProLockedView: View {
             SKButton(title: leave == nil ? "Maybe later" : "Back to Today", kind: .secondary) {
                 if let leave { leave() } else { dismiss() }
             }
-        }
-        .skPagePadding()
-        .padding(.top, SKSpace.md)
-        .padding(.bottom, SKSpace.sm)
-        .background {
-            LinearGradient(colors: [SKColor.bg.opacity(0), SKColor.bg],
-                           startPoint: .top, endPoint: UnitPoint(x: 0.5, y: 0.35))
-                .ignoresSafeArea(edges: .bottom)
         }
     }
 }
