@@ -194,4 +194,45 @@ final class SubscriptionService {
         case .founding: "once"
         }
     }
+
+    // MARK: Introductory free trial
+
+    /// A plan's introductory free trial that this Apple ID can still take.
+    struct FreeTrial: Equatable, Sendable {
+        /// "3 days", "1 week", "1 month": the length StoreKit reports for the offer.
+        let length: String
+        /// "3 days free, then $79.99/year." Both the length and the price come from StoreKit.
+        let terms: String
+    }
+
+    /// The free trial on the monthly or yearly plan, only when App Store Connect has an
+    /// introductory offer on that plan whose payment mode is a free trial AND this Apple ID
+    /// is still eligible for the group's introductory offer. Nil otherwise (including the
+    /// founding pass, and before products load), so no screen mentions a trial StoreKit
+    /// doesn't report. Buying the plan as usual starts the trial; StoreKit applies it.
+    func eligibleFreeTrial(_ id: ProductID) async -> FreeTrial? {
+        guard id != .founding,
+              let plan = product(id),
+              let info = plan.subscription,
+              let offer = info.introductoryOffer,
+              offer.paymentMode == .freeTrial else { return nil }
+        guard await StoreKit.Product.SubscriptionInfo.isEligibleForIntroOffer(for: info.subscriptionGroupID) else { return nil }
+        let length = Self.trialLength(offer.period, count: offer.periodCount)
+        return FreeTrial(length: length, terms: "\(length) free, then \(plan.displayPrice)\(periodText(id)).")
+    }
+
+    private static func trialLength(_ period: StoreKit.Product.SubscriptionPeriod, count: Int) -> String {
+        let n = period.value * max(count, 1)
+        let unit: String
+        if period.unit == .day {
+            unit = "day"
+        } else if period.unit == .week {
+            unit = "week"
+        } else if period.unit == .month {
+            unit = "month"
+        } else {
+            unit = "year"
+        }
+        return "\(n) \(unit)\(n == 1 ? "" : "s")"
+    }
 }

@@ -13,6 +13,8 @@ struct PaywallView: View {
     @Environment(\.dismiss) private var dismiss
     @State private var service: SubscriptionService?
     @State private var selected: SubscriptionService.ProductID = .founding
+    /// Free trials StoreKit reports on the monthly and yearly plans for this Apple ID.
+    @State private var trials: [SubscriptionService.ProductID: SubscriptionService.FreeTrial] = [:]
 
     private var isPro: Bool { env.subscription.entitlement.isPro }
 
@@ -67,6 +69,13 @@ struct PaywallView: View {
             async let f: () = env.subscription.loadFoundingSeats()
             _ = await (p, f)
             if (env.subscription.foundingSeatsRemaining ?? 1) <= 0 || s.product(.founding) == nil { selected = .proYearly }
+        }
+        // Re-checked whenever the plans (re)load, so "Try Again" picks a trial up too.
+        .task(id: service?.products.count ?? 0) {
+            guard let s = service else { return }
+            for id in [SubscriptionService.ProductID.proMonthly, .proYearly] {
+                trials[id] = await s.eligibleFreeTrial(id)
+            }
         }
         .onChange(of: env.subscription.entitlement.isPro) { _, isPro in
             if isPro { Task { try? await Task.sleep(for: .seconds(1.2)); dismiss() } }
@@ -165,6 +174,9 @@ struct PaywallView: View {
                 VStack(alignment: .leading, spacing: 2) {
                     Text(id == .proMonthly ? "Skintel+ Monthly" : "Skintel+ Yearly").font(SKFont.cardTitle).foregroundStyle(SKColor.ink)
                     Text(caption).font(SKFont.caption).foregroundStyle(SKColor.muted)
+                    if let trial = trials[id] {
+                        Text(trial.terms).font(SKFont.sans(12, weight: .semibold, relativeTo: .caption)).foregroundStyle(SKColor.primary)
+                    }
                 }
                 Spacer()
                 (Text(product.displayPrice).font(SKFont.sans(17, weight: .semibold)) + Text(" \(service?.periodText(id) ?? "")").font(SKFont.secondary))
@@ -195,7 +207,10 @@ struct PaywallView: View {
             if case .failed(let msg) = s.phase, !s.products.isEmpty { SKInlineError(message: msg) }
             SKButton(title: ctaTitle(s), kind: .dark, isLoading: isBusy(s.phase)) { Task { await s.purchase(selected) } }
                 .disabled(s.product(selected) == nil)
-            if selected != .founding {
+            if let trial = trials[selected] {
+                Text("\(trial.terms) Auto-renews until cancelled in App Store settings. Cancel at least 24 hours before the trial ends to avoid being charged.")
+                    .font(SKFont.caption).foregroundStyle(SKColor.muted).multilineTextAlignment(.center)
+            } else if selected != .founding {
                 Text("Auto-renews until cancelled in App Store settings. Cancel at least 24 hours before the period ends to avoid renewal.")
                     .font(SKFont.caption).foregroundStyle(SKColor.muted).multilineTextAlignment(.center)
             } else {
@@ -207,6 +222,7 @@ struct PaywallView: View {
 
     private func ctaTitle(_ s: SubscriptionService) -> String {
         guard let p = s.product(selected) else { return "Unavailable" }
+        if trials[selected] != nil { return "Start free trial" }
         switch selected {
         case .founding: return "Join · \(p.displayPrice) once"
         case .proMonthly: return "Subscribe · \(p.displayPrice)/mo"
