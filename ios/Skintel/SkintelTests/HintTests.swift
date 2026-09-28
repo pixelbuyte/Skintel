@@ -34,3 +34,15 @@ import UIKit
     #expect(HintID.routine.message(isPro: false).contains("Skintel+"))
     #expect(!HintID.today.message(isPro: false).contains("scan"))
 }
+
+/// A new Free member's empty-shelf Today and Shelf tips point to adding a product, never to
+/// scanning (Skintel+); a member's wording doesn't depend on the shelf.
+@Test func emptyShelfHintsPointFreeAccountsToAddingAProduct() {
+    for id in [HintID.today, .shelf] {
+        let m = id.message(isPro: false, emptyShelf: true)
+        #expect(m.lowercased().contains("add"))
+        #expect(!m.lowercased().contains("scan"))
+        #expect(m != id.message(isPro: false))
+        #expect(id.message(isPro: true, emptyShelf: true) == id.message(isPro: true))
+    }
+}

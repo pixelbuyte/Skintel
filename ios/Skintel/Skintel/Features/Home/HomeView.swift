@@ -40,7 +40,7 @@ struct HomeView: View {
             .skPageBackground()
             .toolbar(.hidden, for: .navigationBar)
             .navigationDestination(for: AppDestination.self) { destination(for: $0) }
-            .skHint(.today, when: !env.products.products.isEmpty && !showCheckIn && !showAssistant)
+            .skHint(.today, when: (!env.products.products.isEmpty || env.isNewFreeShelf) && !showCheckIn && !showAssistant)
         }
         .tint(SKColor.primary)
         .sheet(isPresented: $showCheckIn) { CheckInSheet() }

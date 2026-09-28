@@ -53,16 +53,22 @@ enum HintID: String, CaseIterable, Sendable {
     }
 
     /// About two lines. `isPro` only changes the wording where a Skintel+ part must be named.
-    func message(isPro: Bool) -> String {
+    /// `emptyShelf` only matters to a Free account's Today and Shelf tips, which then point to
+    /// adding a first product (a member's Today and Shelf tips wait for a real shelf).
+    func message(isPro: Bool, emptyShelf: Bool = false) -> String {
         switch self {
         case .today:
             isPro
                 ? "Tick off routine steps and log your skin in one tap. Tap + to scan, add a product or check in."
-                : "Tick off routine steps and log your skin in one tap. Tap + to add a product or check in."
+                : emptyShelf
+                    ? "Tap “Add your first product” (or +) to put something on your shelf. Your routine and check-ins show up here after that."
+                    : "Tick off routine steps and log your skin in one tap. Tap + to add a product or check in."
         case .shelf:
             isPro
                 ? "Mark each product Worked, Unsure or Broke out. With two “Broke out” products, Triggers looks for what they share."
-                : "Mark each product Worked, Unsure or Broke out. With two “Broke out” products, Triggers (Skintel+) looks for what they share."
+                : emptyShelf
+                    ? "Tap + to add a product you use, then mark how it went: Worked, Unsure or Broke out."
+                    : "Mark each product Worked, Unsure or Broke out. With two “Broke out” products, Triggers (Skintel+) looks for what they share."
         case .insights:
             "Built only from your routine ticks, check-ins and shelf. It gets sharper after about a week of check-ins."
         case .ask:
@@ -96,6 +102,16 @@ enum HintID: String, CaseIterable, Sendable {
 }
 
 // MARK: - Modifier
+
+extension AppEnvironment {
+    /// A confirmed Free account whose shelf has loaded empty (a new Free member). Today's and
+    /// Shelf's tips show for it too, pointing to adding a first product; a member's tips still
+    /// wait for a non-empty shelf.
+    var isNewFreeShelf: Bool {
+        products.isLoaded && products.products.isEmpty
+            && subscription.loaded && subscription.lastError == nil && !subscription.entitlement.isPro
+    }
+}
 
 extension View {
     /// Shows `id`'s one-time tip over this screen about 0.8 s after it appears, once
@@ -146,7 +162,8 @@ private struct SKHintModifier: ViewModifier {
                             .accessibilityHidden(true)
                             .transition(.opacity)
                         SKHintCard(id: id,
-                                   message: id.message(isPro: env.subscription.entitlement.isPro),
+                                   message: id.message(isPro: env.subscription.entitlement.isPro,
+                                                       emptyShelf: env.products.products.isEmpty),
                                    offersSkipAll: offersSkipAll,
                                    gotIt: { close(skippingAll: false) },
                                    skipAll: { close(skippingAll: true) })

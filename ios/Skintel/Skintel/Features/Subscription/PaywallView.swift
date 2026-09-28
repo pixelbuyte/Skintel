@@ -1537,7 +1537,7 @@ private struct AskSheetPresenter: ViewModifier {
         content
             .onChange(of: isPresented) { _, open in
                 if open {
-                    if env.subscription.entitlement.isPro { chat = true } else { wall = true }
+                    Task { await presentChatOrWall() }
                 } else {
                     chat = false
                     wall = false
@@ -1551,6 +1551,14 @@ private struct AskSheetPresenter: ViewModifier {
             }) {
                 ProLockedView(feature: .ask)
             }
+    }
+
+    /// A member whose row hasn't arrived yet (or whose last fetch failed) reads as Free, so
+    /// that is checked with the server first; only a confirmed Free account gets the wall.
+    private func presentChatOrWall() async {
+        await env.subscription.confirmIfUnsure()
+        guard isPresented else { return }
+        if env.subscription.entitlement.isPro { chat = true } else { wall = true }
     }
 }
 

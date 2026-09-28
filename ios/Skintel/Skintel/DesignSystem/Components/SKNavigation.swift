@@ -57,6 +57,9 @@ struct SKGlassButton: View {
                 .foregroundStyle(.white)
                 .frame(width: 44, height: 44)
                 .skGlass(in: Circle(), tint: SKGlass.cameraTint, fallback: .white.opacity(0.14))
+                // Glass isn't a hit-test surface (the pre-26 fill was), so without this only
+                // the small glyph takes the tap and the camera view under it eats the rest.
+                .contentShape(Circle())
         }
         .buttonStyle(SKPressStyle(scale: 0.92))
         .accessibilityLabel(label)

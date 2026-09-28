@@ -26,6 +26,12 @@ struct ProductsListView: View {
                                          message: "Add what you use and how your skin reacted. Skintel needs two “broke out” products to start finding patterns.",
                                          mascot: .serum,
                                          actionTitle: "Add your first product") { addTapped() }
+                            // The way back after "Hide samples".
+                            Button("Show examples") { withAnimation(SKAnimation.ios(0.3)) { samplesHidden = false } }
+                                .font(SKFont.sans(14, weight: .semibold, relativeTo: .subheadline))
+                                .foregroundStyle(SKColor.muted)
+                                .frame(minHeight: 44)
+                                .frame(maxWidth: .infinity)
                         } else {
                             SampleShelf(onAdd: { addTapped() }) { withAnimation(SKAnimation.ios(0.3)) { samplesHidden = true } }
                         }
@@ -49,7 +55,7 @@ struct ProductsListView: View {
         }
         .refreshable { await env.products.load() }
         .skPageBackground()
-        .skHint(.shelf, when: !env.products.products.isEmpty)
+        .skHint(.shelf, when: !env.products.products.isEmpty || env.isNewFreeShelf)
         .skNavigationTitle("Shelf")
         .toolbar {
             ToolbarItem(placement: .topBarTrailing) {

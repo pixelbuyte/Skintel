@@ -220,6 +220,10 @@ private struct AskModelToggle: View {
                 .accessibilityAddTraits(on ? [.isButton, .isSelected] : .isButton)
             }
         }
+        // The pill slides whenever the model changes here, even when the tap's withAnimation
+        // doesn't reach this view (the value travels through @AppStorage and a full re-render
+        // of the chat). Scoped to the toggle, like the tab bar's selection pill.
+        .animation(reduceMotion ? nil : SKAnimation.ios(0.3), value: selection)
         .padding(3)
         .background(SKColor.neutralChip, in: Capsule())
     }
