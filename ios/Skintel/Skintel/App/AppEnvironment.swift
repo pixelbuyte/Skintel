@@ -17,8 +17,13 @@ final class AppEnvironment {
     let scans: ScanStore
     let routine: RoutineStore
     let journal: JournalStore
+    let assistant: AssistantStore
     let subscriptionService: SubscriptionService
     let analytics: any Analytics
+
+    /// A widget deep link waiting for the signed-in tab UI to route it (see
+    /// `MainTabView`). Dropped when the user is signed out or still onboarding.
+    var pendingDeepLink: SkintelDeepLink?
 
     init(config: AppConfiguration) {
         self.config = config
@@ -33,11 +38,15 @@ final class AppEnvironment {
         self.scans = ScanStore()
         self.routine = RoutineStore()
         self.journal = JournalStore(api: api)
+        self.assistant = AssistantStore()
         self.subscriptionService = SubscriptionService(api: api, store: subscription, session: session, analytics: analytics)
     }
 
     /// Everything a signed-in user's screens need, loaded together after sign-in.
     func warmUp() async {
+        // Ready before any Skintel+ wall opens, so a test build shows its chosen wall style
+        // straight away. Runs alongside; nothing below waits on it.
+        Task { await subscriptionService.checkBuildEnvironment() }
         async let p: () = products.load()
         async let s: () = subscription.load()
         _ = await (p, s)
@@ -46,11 +55,13 @@ final class AppEnvironment {
     }
 
     func resetAfterSignOut() {
+        pendingDeepLink = nil
         products.reset()
         subscription.reset()
         scans.reset()
         routine.reset()
         journal.reset()
+        assistant.reset()
     }
 }
 

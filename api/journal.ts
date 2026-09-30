@@ -18,7 +18,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (req.method === 'GET') {
     const { data, error } = await sb
       .from('skin_journal')
-      .select('id, entry_date, condition, notes, photo_url, created_at')
+      .select('id, user_id, entry_date, condition, notes, photo_url, created_at')
       .eq('user_id', user.id)
       .order('entry_date', { ascending: false })
       .limit(90);
@@ -56,7 +56,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         },
         { onConflict: 'user_id,entry_date' },
       )
-      .select('id, entry_date, condition, notes, photo_url, created_at')
+      .select('id, user_id, entry_date, condition, notes, photo_url, created_at')
       .single();
     if (error) return json(res, { error: error.message }, 500);
     return json(res, { entry: data });

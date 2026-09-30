@@ -38,7 +38,7 @@ export interface Subscription {
   updated_at: string;
 }
 
-export interface Culprit {
+export interface Trigger {
   name: string;
   normalized: string;
   badCount: number;

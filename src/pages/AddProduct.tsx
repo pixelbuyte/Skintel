@@ -3,7 +3,7 @@ import { useLocation, useNavigate, Link } from 'react-router-dom';
 import { ArrowLeft, ChevronDown, Sparkles, Loader2, Sun, Moon } from 'lucide-react';
 import { useProducts } from '@/hooks/useProducts';
 import { useSubscription } from '@/hooks/useSubscription';
-import { useCulprits } from '@/hooks/useCulprits';
+import { useTriggers } from '@/hooks/useTriggers';
 import { parseInci } from '@/lib/inci';
 import type { Outcome } from '@/lib/types';
 import { PaywallBanner } from '@/components/PaywallBanner';
@@ -63,7 +63,7 @@ export default function AddProduct() {
 
   const { addProduct, products } = useProducts();
   const { tier, productLimit } = useSubscription();
-  const { high, medium } = useCulprits(products);
+  const { high, medium } = useTriggers(products);
   const [brand, setBrand] = useState(prefill?.brand ?? '');
   const [productName, setProductName] = useState(prefill?.productName ?? '');
   const [category, setCategory] = useState('');
@@ -82,7 +82,7 @@ export default function AddProduct() {
   const parsed = parseInci(ingredientsRaw);
   const atCap = tier === 'free' && products.length >= productLimit;
 
-  const culpritMap = useMemo(() => {
+  const triggerMap = useMemo(() => {
     const m = new Map<string, { name: string; risk: 'high' | 'medium'; badCount: number }>();
     for (const c of high) m.set(c.normalized, { name: c.name, risk: 'high', badCount: c.badCount });
     for (const c of medium) m.set(c.normalized, { name: c.name, risk: 'medium', badCount: c.badCount });
@@ -107,7 +107,7 @@ export default function AddProduct() {
 
     const localMatches: { name: string; risk: 'high' | 'medium'; badCount: number }[] = [];
     for (const i of parsed) {
-      const hit = culpritMap.get(i.normalized);
+      const hit = triggerMap.get(i.normalized);
       if (hit) localMatches.push(hit);
     }
 
@@ -148,7 +148,7 @@ export default function AddProduct() {
 
     return () => { cancelled = true; };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [ingredientsRaw, culpritMap]);
+  }, [ingredientsRaw, triggerMap]);
 
   async function doSave(routineSlot?: 'am' | 'pm') {
     setErr(null);

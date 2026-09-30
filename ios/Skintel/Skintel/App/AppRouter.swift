@@ -22,9 +22,12 @@ enum AppRoute: Equatable {
 
 struct RootView: View {
     @Environment(AppEnvironment.self) private var env
-    /// Users who tap "Maybe later" on the last onboarding step shouldn't be re-asked
-    /// every launch on this device; the server flag is still the durable truth.
+    /// Users who tap "Skip for now" after a profile-save failure on the last onboarding
+    /// step shouldn't be stuck re-attempting it every launch on this device; the server
+    /// flag (`onboardingComplete`) is still the durable truth once the save succeeds.
     @AppStorage("onboarding.skipped") private var onboardingSkipped = false
+    /// Onboarding just finished: the Skintel+ offer shows once before the app opens.
+    @AppStorage(OnboardingOfferView.pendingKey) private var offerPending = false
     @State private var warmed = false
 
     private var route: AppRoute {
@@ -41,18 +44,39 @@ struct RootView: View {
             case .onboarding:
                 OnboardingFlow().transition(.opacity)
             case .main:
-                MainTabView().transition(.opacity)
+                if offerPending {
+                    OnboardingOfferView {
+                        withAnimation(SKAnimation.ios(0.35)) { offerPending = false }
+                    }
+                    .transition(.opacity)
+                } else {
+                    MainTabView().transition(.opacity)
+                }
             }
         }
         .animation(SKAnimation.ios(0.35), value: route)
         .task { await env.session.restore() }
+        // Widget links (skintel://scan|ask|shelf|checkin). Kept while the session is still
+        // restoring so a cold launch lands where the widget pointed; signed-out users just
+        // see the normal welcome flow, and onboarding isn't interrupted.
+        .onOpenURL { url in
+            guard let link = SkintelDeepLink(url: url) else { return }
+            switch route {
+            case .launching, .main: env.pendingDeepLink = link
+            case .signedOut, .onboarding: env.pendingDeepLink = nil
+            }
+        }
         .onChange(of: route, initial: true) { _, new in
             switch new {
-            case .main, .onboarding:
+            case .main:
+                if !warmed { warmed = true; Task { await env.warmUp() } }
+            case .onboarding:
+                env.pendingDeepLink = nil
                 if !warmed { warmed = true; Task { await env.warmUp() } }
             case .signedOut:
                 warmed = false
                 onboardingSkipped = false
+                offerPending = false
                 env.resetAfterSignOut()
             case .launching:
                 break

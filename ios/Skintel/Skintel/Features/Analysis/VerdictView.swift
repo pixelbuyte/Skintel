@@ -15,7 +15,7 @@ struct VerdictView: View {
         if let scan = env.scans.scans[scanID] {
             content(scan)
         } else {
-            SKEmptyState(icon: "questionmark.circle", title: "Scan not found", message: "Scan the product again.")
+            SKEmptyState(icon: "questionmark.circle", title: "Scan not found", message: "Scan the product again.", drop: "DropScanner")
                 .skPageBackground()
         }
     }
@@ -46,6 +46,8 @@ struct VerdictView: View {
 
                 actions(scan)
                     .padding(.top, SKSpace.sm)
+
+                AskAboutProductButton(scan: scan)
             }
             .skPagePadding()
             .padding(.vertical, SKSpace.md)
@@ -53,6 +55,7 @@ struct VerdictView: View {
         }
         .skPageBackground()
         .skNavigationTitle("Analysis")
+        .skHint(.verdict)
         .toolbar {
             ToolbarItem(placement: .topBarTrailing) {
                 ShareLink(item: shareText(scan)) { Image(systemName: "square.and.arrow.up") }
@@ -98,7 +101,7 @@ struct VerdictView: View {
                         .skPrimaryGlow()
                 }
                 .buttonStyle(SKPressStyle())
-                Text("Tell Skintel how your skin reacts and this product joins your culprit analysis.")
+                Text("Tell Skintel how your skin reacts and this product counts toward your Triggers.")
                     .font(SKFont.caption).foregroundStyle(SKColor.muted).multilineTextAlignment(.center)
             }
         }

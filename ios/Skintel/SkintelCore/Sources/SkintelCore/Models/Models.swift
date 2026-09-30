@@ -162,6 +162,19 @@ public struct JournalEntry: Codable, Sendable, Identifiable, Hashable {
         self.id = id; self.userID = userID; self.entryDate = entryDate; self.condition = condition
         self.notes = notes; self.photoURL = photoURL; self.createdAt = createdAt
     }
+
+    // Deployments of `/api/journal` before this fix omit `user_id`; a missing owner must not
+    // fail the whole list, since every entry it returns is already scoped to the caller.
+    public init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        id = try c.decode(String.self, forKey: .id)
+        userID = try c.decodeIfPresent(String.self, forKey: .userID) ?? ""
+        entryDate = try c.decode(String.self, forKey: .entryDate)
+        condition = try c.decode(JournalCondition.self, forKey: .condition)
+        notes = try c.decodeIfPresent(String.self, forKey: .notes)
+        photoURL = try c.decodeIfPresent(String.self, forKey: .photoURL)
+        createdAt = try c.decodeIfPresent(String.self, forKey: .createdAt) ?? ""
+    }
 }
 
 /// Output of the local co-occurrence engine (src/lib/correlate.ts).
@@ -213,13 +226,38 @@ public enum SkinConcern: String, Codable, Sendable, CaseIterable, Identifiable {
     }
 }
 
+/// An age bracket, never a birthdate. Optional everywhere: "Prefer not to say" is `nil`.
+public enum AgeRange: String, Codable, Sendable, CaseIterable, Identifiable {
+    case under18 = "under_18"
+    case from18to24 = "18_24"
+    case from25to34 = "25_34"
+    case from35to44 = "35_44"
+    case from45to54 = "45_54"
+    case over55 = "55_plus"
+
+    public var id: String { rawValue }
+    public var label: String {
+        switch self {
+        case .under18: "Under 18"
+        case .from18to24: "18–24"
+        case .from25to34: "25–34"
+        case .from35to44: "35–44"
+        case .from45to54: "45–54"
+        case .over55: "55+"
+        }
+    }
+}
+
 public struct SkinProfile: Codable, Sendable, Hashable {
     public var skinType: SkinType?
     public var concerns: [SkinConcern]
+    /// Optional; older saved profiles decode without it.
+    public var ageRange: AgeRange?
 
-    public init(skinType: SkinType? = nil, concerns: [SkinConcern] = []) {
+    public init(skinType: SkinType? = nil, concerns: [SkinConcern] = [], ageRange: AgeRange? = nil) {
         self.skinType = skinType
         self.concerns = concerns
+        self.ageRange = ageRange
     }
 
     /// "Combination · breakout-prone · fragrance-sensitive"-style summary used in the found sheet.
@@ -252,7 +290,9 @@ public enum ISO8601 {
         let f = DateFormatter()
         f.calendar = Calendar(identifier: .gregorian)
         f.locale = Locale(identifier: "en_US_POSIX")
-        f.timeZone = TimeZone(identifier: "UTC")
+        // Journal and routine days are the person's calendar days (the web app keys them the
+        // same way); UTC filed evening check-ins in the Americas under tomorrow.
+        f.timeZone = TimeZone.autoupdatingCurrent
         f.dateFormat = "yyyy-MM-dd"
         return f
     }()
@@ -269,7 +309,7 @@ public enum ISO8601 {
         return dayOnly.date(from: s)
     }
 
-    /// YYYY-MM-DD in UTC — the shape `/api/journal` expects for `entryDate`.
+    /// YYYY-MM-DD in the device's time zone — the shape `/api/journal` expects for `entryDate`.
     public static func dayString(_ date: Date) -> String {
         dayOnly.string(from: date)
     }

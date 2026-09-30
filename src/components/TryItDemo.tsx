@@ -6,7 +6,7 @@ import { parseInci } from '@/lib/inci';
 import {
   categorizeIngredients,
   generateVerdict,
-  type Culprit,
+  type Trigger,
 } from '@/lib/ingredient-knowledge';
 import { VerdictCard } from './VerdictCard';
 import { Bucket } from './Bucket';
@@ -35,7 +35,7 @@ const SHELF_PRODUCTS = [
   },
 ] as const;
 
-const EMPTY_MAP: Map<string, Culprit> = new Map();
+const EMPTY_MAP: Map<string, Trigger> = new Map();
 
 export function TryItDemo() {
   const [analyzed, setAnalyzed] = useState<string | null>(null);
@@ -52,10 +52,10 @@ export function TryItDemo() {
     if (!analyzed) return null;
     const parsed = parseInci(analyzed);
     if (parsed.length === 0) return null;
-    const culpritMap = selectedProduct
+    const triggerMap = selectedProduct
       ? new Map(selectedProduct.triggers.map((name) => [name.toLowerCase(), { name, risk: 'high' as const, badCount: 3 }]))
       : EMPTY_MAP;
-    const buckets = categorizeIngredients(parsed, culpritMap);
+    const buckets = categorizeIngredients(parsed, triggerMap);
     const verdict = generateVerdict(buckets);
     return { buckets, verdict, count: parsed.length };
   }, [analyzed, selectedProduct]);

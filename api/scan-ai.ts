@@ -1,9 +1,6 @@
-import Anthropic from '@anthropic-ai/sdk';
 import type { VercelRequest, VercelResponse } from '@vercel/node';
+import { complete, parseJsonObject, SCAN_MODELS } from './_ai.js';
 import { getServiceClient, getUserFromAuthHeader, json } from './_lib.js';
-
-const PRIMARY_MODEL = 'claude-opus-4-8';
-const FALLBACK_MODEL = 'claude-sonnet-4-6';
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (req.method !== 'POST') return json(res, { error: 'Method not allowed' }, 405);
@@ -58,7 +55,7 @@ Rules:
 1. Produce ONE flag entry for EVERY token in the input ingredient list, in order — including water/glycerin/etc. Use level="low" for benign or beneficial ingredients (state benefit briefly), level="medium" for moderate-risk, level="high" for high-risk (comedogenic, sensitizing, irritating).
 2. For non-ingredient tokens or obvious nonsense (e.g. "meth", "heluim", random letters, misspellings of common gases/metals/drugs) emit level="high" with reason="Not a valid INCI ingredient — likely typo, corruption, or tampering." and source="general".
 3. Cross-reference user's personal correlation hits (provided below). When an ingredient matches both personal history AND general risk, source="both". Personal-only = "personal". General knowledge only = "general".
-4. Reasons must be ONE specific sentence — name the mechanism (e.g. "Comedogenic rating 4/5 — clogs pores in acne-prone skin", "Common contact sensitizer in fragrance allergy panels", "Humectant that draws water into stratum corneum"). No filler ("This may be" → "Is"). No marketing. No disclaimers.
+4. Reasons must be ONE specific sentence — name the mechanism (e.g. "Comedogenic rating 4/5 — clogs pores in acne-prone skin", "Common contact sensitizer in fragrance allergy panels"). For level="low", keep the reason under 8 words (e.g. "Humectant that draws in water"). No filler ("This may be" → "Is"). No marketing. No disclaimers.
 5. Comedogenic offenders to weight high: coconut oil, isopropyl myristate, isopropyl palmitate, myristyl myristate, lanolin, algae/seaweed extracts, cocoa butter, wheat germ oil, oleic-acid-heavy oils. Sensitizers: fragrance/parfum, linalool, limonene, citral, geraniol, MI/MCI, formaldehyde releasers (DMDM hydantoin, quaternium-15), denatured alcohol, essential oils. Surfactants harsh on acne-prone: SLS, sodium coco-sulfate.
 6. Verdict rule: if any high-level flag → "avoid"; else if any medium → "caution"; else "clean".
 7. score 0-100: start at 100; subtract 15 per high flag, 5 per medium flag, 0 per low. Floor at 0.
@@ -89,65 +86,22 @@ ${inci}
 
 Return strict JSON only. No prose.`;
 
-  const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY! });
-
-  async function callModel(model: string) {
-    return client.messages.create({
-      model,
-      max_tokens: 8192,
-      system,
-      messages: [{ role: 'user', content: userMsg }],
-    });
-  }
-
-  let resp: Awaited<ReturnType<typeof callModel>>;
-  let usedModel = PRIMARY_MODEL;
+  let ai: Awaited<ReturnType<typeof complete>>;
   try {
-    resp = await callModel(PRIMARY_MODEL);
-  } catch (primaryErr: any) {
-    console.error('scan-ai primary model failed', {
-      model: PRIMARY_MODEL,
-      status: primaryErr?.status,
-      message: primaryErr?.message,
-      type: primaryErr?.type,
-    });
-    // Fall back to Sonnet if Opus 4.8 errors (account not yet entitled,
-    // model not yet rolled out to this region, etc.)
-    try {
-      resp = await callModel(FALLBACK_MODEL);
-      usedModel = FALLBACK_MODEL;
-    } catch (fallbackErr: any) {
-      console.error('scan-ai fallback model failed', {
-        model: FALLBACK_MODEL,
-        status: fallbackErr?.status,
-        message: fallbackErr?.message,
-        type: fallbackErr?.type,
-      });
-      return json(
-        res,
-        {
-          error: 'AI scan failed on both models',
-          primary: { model: PRIMARY_MODEL, detail: String(primaryErr?.message ?? primaryErr) },
-          fallback: { model: FALLBACK_MODEL, detail: String(fallbackErr?.message ?? fallbackErr) },
-        },
-        500,
-      );
-    }
+    // ~45 tokens per flag; 4k covers a 60-ingredient label with room for the summary.
+    ai = await complete({ models: SCAN_MODELS, system, prompt: userMsg, maxTokens: 4096, temperature: 0.2, json: true });
+  } catch (e) {
+    console.error('scan-ai failed', { message: String((e as Error)?.message ?? e) });
+    return json(res, { error: 'AI scan failed', detail: String((e as Error)?.message ?? e) }, 500);
   }
-
-  const text = resp.content
-    .filter((b): b is Anthropic.TextBlock => b.type === 'text')
-    .map((b) => b.text)
-    .join('');
 
   let parsed: unknown;
   try {
-    const match = text.match(/\{[\s\S]*\}/);
-    parsed = JSON.parse(match ? match[0] : text);
+    parsed = parseJsonObject(ai.text);
   } catch {
-    return json(res, { error: 'Model returned invalid JSON', raw: text.slice(0, 500) }, 502);
+    return json(res, { error: 'Model returned invalid JSON', raw: ai.text.slice(0, 500) }, 502);
   }
 
-  return json(res, { result: parsed, usage: resp.usage, model: usedModel });
+  return json(res, { result: parsed, usage: ai.usage, model: ai.model });
 }
 

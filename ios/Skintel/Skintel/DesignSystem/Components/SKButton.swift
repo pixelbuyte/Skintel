@@ -2,6 +2,8 @@ import SwiftUI
 
 enum SKButtonKind {
     case primary, secondary, ghost, dark, destructive
+    /// A finished state ("PM routine done"): clear Liquid Glass warmed with Skintel brown.
+    case done
 }
 
 /// 52pt buttons from the spec (.btn-p / .btn-s / .btn-ghost), with a press scale on the
@@ -31,7 +33,7 @@ struct SKButton: View {
             .frame(maxWidth: fullWidth ? .infinity : nil)
             .frame(height: kind == .ghost ? 40 : 52)
             .padding(.horizontal, fullWidth ? 0 : SKSpace.xl)
-            .background(background, in: RoundedRectangle(cornerRadius: SKRadius.button, style: .continuous))
+            .modifier(SKButtonSurface(kind: kind, fill: background))
             .overlay {
                 if kind == .secondary {
                     RoundedRectangle(cornerRadius: SKRadius.button, style: .continuous).stroke(SKColor.line, lineWidth: 1)
@@ -52,9 +54,11 @@ struct SKButton: View {
         case .secondary: SKColor.ink
         case .ghost: SKColor.muted
         case .destructive: SKColor.cream
+        case .done: SKColor.primary
         }
     }
 
+    /// Solid fill, and the pre-iOS 26 fallback for `.done`.
     private var background: Color {
         switch kind {
         case .primary: SKColor.primary
@@ -62,6 +66,23 @@ struct SKButton: View {
         case .ghost: .clear
         case .dark: SKColor.ink
         case .destructive: SKColor.badFg
+        case .done: SKColor.blush
+        }
+    }
+}
+
+private struct SKButtonSurface: ViewModifier {
+    let kind: SKButtonKind
+    let fill: Color
+
+    func body(content: Content) -> some View {
+        let shape = RoundedRectangle(cornerRadius: SKRadius.button, style: .continuous)
+        if kind == .done {
+            content
+                .skGlass(in: shape, interactive: false, tint: SKColor.primary.opacity(0.12), fallback: fill)
+                .overlay(shape.stroke(SKColor.primary.opacity(0.3), lineWidth: 1))
+        } else {
+            content.background(fill, in: shape)
         }
     }
 }

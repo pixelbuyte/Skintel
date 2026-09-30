@@ -22,6 +22,11 @@ final class SubscriptionService {
         case idle
         case loadingProducts
         case ready
+        /// StoreKit answered but returned no products for our ids — e.g. they aren't
+        /// submitted for review yet, or the catalog hasn't propagated. Distinct from
+        /// `.failed`: nothing threw, so this isn't a network/StoreKit error to blame on
+        /// the user's connection, and the retry path is identical either way.
+        case unavailable(String)
         case purchasing(String)
         case verifying
         case restoring
@@ -31,6 +36,11 @@ final class SubscriptionService {
     private(set) var phase: Phase = .idle
     private(set) var products: [StoreKit.Product] = []
     private(set) var lastMessage: String?
+    /// True on TestFlight and Xcode builds: StoreKit signed this install's app transaction in
+    /// the sandbox or Xcode environment. False on the App Store, and until StoreKit answers.
+    /// Only unlocks test-build settings (the upgrade screen style); never any entitlement.
+    private(set) var isTestBuild = false
+    private var buildChecked = false
 
     private let api: SkintelAPI
     private let store: SubscriptionStore
@@ -56,9 +66,17 @@ final class SubscriptionService {
             products = fetched.sorted { a, b in
                 (ProductID.allCases.firstIndex { $0.rawValue == a.id } ?? 0) < (ProductID.allCases.firstIndex { $0.rawValue == b.id } ?? 0)
             }
-            phase = fetched.isEmpty ? .failed("Plans aren't available right now. Check your connection and try again.") : .ready
+            // Empty is a legitimate StoreKit answer (nothing thrown), not the same failure
+            // as a network/StoreKit error below - keep them distinguishable so the copy
+            // doesn't blame the user's connection for a catalog/App Store Connect gap.
+            phase = fetched.isEmpty ? .unavailable("Plans are temporarily unavailable. Please try again in a moment.") : .ready
         } catch {
-            phase = .failed("Couldn't load plans from the App Store.")
+            // The technical error is diagnostics-only - never surface raw Apple/system
+            // error text in production UI; the user-facing message stays calm and generic.
+            #if DEBUG
+            print("[StoreKit] Failed to load products: \(error)")
+            #endif
+            phase = .failed("Couldn't load plans right now. Please try again.")
         }
     }
 
@@ -180,5 +198,63 @@ final class SubscriptionService {
         case .proYearly: "/year"
         case .founding: "once"
         }
+    }
+
+    // MARK: Build environment
+
+    /// Reads where this install came from, once per launch (retried if StoreKit fails).
+    /// An unverified app transaction, or any error, leaves `isTestBuild` false.
+    func checkBuildEnvironment() async {
+        guard !buildChecked else { return }
+        buildChecked = true
+        do {
+            let result = try await AppTransaction.shared
+            if case .verified(let app) = result {
+                isTestBuild = app.environment == .sandbox || app.environment == .xcode
+            }
+        } catch {
+            buildChecked = false
+        }
+    }
+
+    // MARK: Introductory free trial
+
+    /// A plan's introductory free trial that this Apple ID can still take.
+    struct FreeTrial: Equatable, Sendable {
+        /// "3 days", "1 week", "1 month": the length StoreKit reports for the offer.
+        let length: String
+        /// "3 days free, then $79.99/year." Both the length and the price come from StoreKit.
+        let terms: String
+    }
+
+    /// The free trial on the monthly or yearly plan, only when App Store Connect has an
+    /// introductory offer on that plan whose payment mode is a free trial AND this Apple ID
+    /// is still eligible for the group's introductory offer. Nil otherwise (including the
+    /// founding pass, and before products load), so no screen mentions a trial StoreKit
+    /// doesn't report. Buying the plan as usual starts the trial; StoreKit applies it.
+    func eligibleFreeTrial(_ id: ProductID) async -> FreeTrial? {
+        guard id != .founding,
+              let plan = product(id),
+              let info = plan.subscription,
+              let offer = info.introductoryOffer,
+              offer.paymentMode == .freeTrial else { return nil }
+        guard await StoreKit.Product.SubscriptionInfo.isEligibleForIntroOffer(for: info.subscriptionGroupID) else { return nil }
+        let length = Self.trialLength(offer.period, count: offer.periodCount)
+        return FreeTrial(length: length, terms: "\(length) free, then \(plan.displayPrice)\(periodText(id)).")
+    }
+
+    private static func trialLength(_ period: StoreKit.Product.SubscriptionPeriod, count: Int) -> String {
+        let n = period.value * max(count, 1)
+        let unit: String
+        if period.unit == .day {
+            unit = "day"
+        } else if period.unit == .week {
+            unit = "week"
+        } else if period.unit == .month {
+            unit = "month"
+        } else {
+            unit = "year"
+        }
+        return "\(n) \(unit)\(n == 1 ? "" : "s")"
     }
 }

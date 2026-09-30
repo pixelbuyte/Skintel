@@ -7,6 +7,7 @@ enum AppDestination: Hashable {
     case productDetail(id: String)
     case productForm(ProductFormMode)
     case verdict(scanID: String)
+    /// The Triggers screen (`TriggersView`). The case keeps its old name; people see "Triggers".
     case culprits
     case routine
     case recommend

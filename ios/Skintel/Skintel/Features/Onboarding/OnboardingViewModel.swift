@@ -7,6 +7,8 @@ import SkintelCore
 final class OnboardingViewModel {
     var skinType: SkinType?
     var concerns: Set<SkinConcern> = []
+    /// `nil` is a valid answer ("Prefer not to say").
+    var ageRange: AgeRange?
     var isSaving = false
     var error: String?
 
@@ -19,10 +21,11 @@ final class OnboardingViewModel {
         let existing = session.user?.skinProfile ?? SkinProfile()
         skinType = existing.skinType
         concerns = Set(existing.concerns)
+        ageRange = existing.ageRange
     }
 
     var profile: SkinProfile {
-        SkinProfile(skinType: skinType, concerns: SkinConcern.allCases.filter { concerns.contains($0) })
+        SkinProfile(skinType: skinType, concerns: SkinConcern.allCases.filter { concerns.contains($0) }, ageRange: ageRange)
     }
 
     var canContinue: Bool { skinType != nil }

@@ -36,6 +36,14 @@ final class SubscriptionStore {
         loaded = true
     }
 
+    /// Asks the server again when "Free" might be wrong for a member: the row hasn't loaded
+    /// yet, or the last fetch failed (which leaves `subscription` nil). Gates call this before
+    /// showing a Skintel+ wall. A confirmed row, Free or Skintel+, is left alone.
+    func confirmIfUnsure() async {
+        guard !entitlement.isPro, !loaded || lastError != nil else { return }
+        await load()
+    }
+
     func loadFoundingSeats() async {
         foundingSeatsRemaining = try? await db.foundingSeatsRemaining()
     }

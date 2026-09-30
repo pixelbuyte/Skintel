@@ -1,5 +1,6 @@
 import SwiftUI
 import SkintelCore
+import SkinstelMascot
 
 /// Design §09: the barcode hit slides up and analysis starts immediately — no confirm
 /// step. Also hosts the not-found / failed / needs-INCI states of the same flow.
@@ -45,7 +46,7 @@ struct FoundSheet: View {
                         .disabled(INCI.parse(pastedINCI).isEmpty)
                 }
             case .failed(let e, let retry):
-                header(name: e == .proRequired ? "Skintel Pro needed" : "That didn't work", sub: "")
+                header(name: e == .proRequired ? "Skintel+ needed" : "That didn't work", sub: "")
                 Text(e.userMessage).font(SKFont.secondary).foregroundStyle(SKColor.muted)
                 HStack(spacing: SKSpace.md) {
                     SKButton(title: "Back to camera", kind: .secondary) { model.reset() }
@@ -63,10 +64,10 @@ struct FoundSheet: View {
         .interactiveDismissDisabled(model.isBusy)
     }
 
+    /// Verdicts read the ingredient list and your triggers, never your skin type, so the
+    /// line only names what the check really uses.
     private var profileLine: String {
-        let p = env.session.user?.skinProfile.summary ?? ""
         let culprits = env.products.culprits.all.count
-        if !p.isEmpty { return "Matching against \(p)" }
         return culprits > 0 ? "Matching against \(culprits) known trigger\(culprits == 1 ? "" : "s")" : "Matching against your shelf"
     }
 
@@ -83,13 +84,16 @@ struct FoundSheet: View {
     private func progressCard(title: String, subtitle: String) -> some View {
         VStack(alignment: .leading, spacing: SKSpace.md) {
             HStack(spacing: SKSpace.md) {
-                ProgressView().tint(SKColor.primary)
+                // Loops only while this phase lasts; the text says what is actually happening.
+                SKMascot(action: .scan, height: 72)
                 VStack(alignment: .leading, spacing: 3) {
                     Text(title).font(SKFont.cardTitle).foregroundStyle(SKColor.ink)
                     Text(subtitle).font(SKFont.secondary).foregroundStyle(SKColor.muted)
                 }
+                .accessibilityElement(children: .combine)
             }
-            .padding(SKSpace.lg)
+            .padding(.vertical, SKSpace.sm)
+            .padding(.horizontal, SKSpace.lg)
             .frame(maxWidth: .infinity, alignment: .leading)
             .background(SKColor.cautionBg.opacity(0.6), in: RoundedRectangle(cornerRadius: SKRadius.card, style: .continuous))
             .overlay(RoundedRectangle(cornerRadius: SKRadius.card, style: .continuous).stroke(SKColor.cautionFg.opacity(0.2)))

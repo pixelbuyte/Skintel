@@ -1,0 +1,267 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Skintel — App Store preview cut</title>
+<style>
+:root{
+  --bg:#F4EDE0; --cream:#FFFEFA; --primary:#A35848; --primary-hover:#8E4538;
+  --ink:#1A1814; --muted:#6B6760; --line:#EAE6DF;
+  --good-bg:#EEF2DD; --good-fg:#5C7A4F;
+  --bad-bg:#FDEAEA; --bad-fg:#B22B2B;
+  --unsure-bg:#FFF4E0; --unsure-fg:#8B6914;
+  --serif:"Instrument Serif",Georgia,serif;
+  --sans:"DM Sans",ui-sans-serif,system-ui,sans-serif;
+  --mono:"JetBrains Mono",ui-monospace,monospace;
+}
+*{margin:0;padding:0;box-sizing:border-box}
+html,body{width:393px;height:852px;overflow:hidden;background:#0B0A08}
+body{font-family:var(--sans);color:var(--ink)}
+.h-serif{font-family:var(--serif);font-weight:400;letter-spacing:-.01em}
+.mono{font-family:var(--mono)}
+.muted{color:var(--muted)}
+.card{background:var(--cream);border:1px solid var(--line);border-radius:16px;box-shadow:0 1px 2px rgba(26,24,20,.04),0 1px 3px rgba(26,24,20,.06)}
+.chip{display:inline-flex;align-items:center;gap:5px;border-radius:999px;padding:5px 11px;font-size:12px;font-weight:600}
+.chip.good{background:var(--good-bg);color:var(--good-fg)}
+.chip.bad{background:var(--bad-bg);color:var(--bad-fg)}
+.dot{width:6px;height:6px;border-radius:50%;display:inline-block}
+.ring{position:relative;display:flex;align-items:center;justify-content:center}
+.ring svg{transform:rotate(-90deg)}
+.ring .rv{position:absolute;text-align:center}
+.ring .rv b{font-family:var(--serif);font-weight:400;display:block}
+.ring .rv i{font-style:normal;font-size:10px;font-weight:600;letter-spacing:.14em;text-transform:uppercase;color:var(--muted)}
+.pthumb{border-radius:10px;background:linear-gradient(180deg,#FBF6EC,#F1E9DA);display:flex;align-items:center;justify-content:center;flex:none}
+.prod{display:block;--pb:url(#pbBlue);--pl:#FFFEFA;--pc:#3A342C;--pa:#6E93B4}
+
+/* -------- stage: 5 full-bleed scenes, crossfaded -------- */
+.stage{position:relative;width:393px;height:852px}
+.scene{position:absolute;inset:0;opacity:0;transition:opacity .5s cubic-bezier(.32,.72,0,1);overflow:hidden}
+.scene.on{opacity:1}
+
+@keyframes scanSweep{0%{transform:translateY(-46px)}50%{transform:translateY(46px)}100%{transform:translateY(-46px)}}
+@keyframes sparkle{0%,100%{opacity:.55;transform:scale(.9)}50%{opacity:1;transform:scale(1.06)}}
+@keyframes markRise{0%{opacity:0;transform:translateY(14px) scale(.92)}100%{opacity:1;transform:none}}
+@keyframes fillUp{0%{width:0%}100%{width:62%}}
+@keyframes ringDraw{from{stroke-dashoffset:320.4}to{stroke-dashoffset:57.7}}
+@keyframes chipIn{0%{opacity:0;transform:scale(.8)}100%{opacity:1;transform:none}}
+@keyframes rowIn{0%{opacity:0;transform:translateY(8px)}100%{opacity:1;transform:none}}
+@keyframes fadeUp{0%{opacity:0;transform:translateY(10px)}100%{opacity:1;transform:none}}
+.anim-scan{animation:scanSweep 2.4s cubic-bezier(.32,.72,0,1) infinite}
+.anim-sparkle{animation:sparkle 2.8s ease-in-out infinite}
+.anim-mark{animation:markRise .7s cubic-bezier(.32,.72,0,1) both}
+.anim-fill{animation:fillUp 1.6s cubic-bezier(.32,.72,0,1) both}
+.anim-ring{animation:ringDraw 1.3s cubic-bezier(.32,.72,0,1) both .35s}
+.anim-chip{animation:chipIn .5s cubic-bezier(.32,.72,0,1) both .3s}
+.anim-row1{animation:rowIn .45s cubic-bezier(.32,.72,0,1) both .5s}
+.anim-row2{animation:rowIn .45s cubic-bezier(.32,.72,0,1) both .68s}
+.anim-fadeup{animation:fadeUp .6s cubic-bezier(.32,.72,0,1) both}
+</style>
+</head>
+<body>
+
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <defs>
+    <symbol id="star" viewBox="0 0 100 100">
+      <path d="M50 23 L56 44 L77 50 L56 56 L50 77 L44 56 L23 50 L44 44 Z" fill="currentColor"/>
+      <path d="M71 63.6 L72.6 69.4 L78.4 71 L72.6 72.6 L71 78.4 L69.4 72.6 L63.6 71 L69.4 69.4 Z" fill="currentColor" opacity=".9"/>
+      <path d="M70.4 17 L71.6 21.2 L75.8 22.4 L71.6 23.6 L70.4 27.8 L69.2 23.6 L65 22.4 L69.2 21.2 Z" fill="currentColor" opacity=".75"/>
+    </symbol>
+    <linearGradient id="pbBlue" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#E4EDF6"/><stop offset="1" stop-color="#AEC3D8"/></linearGradient>
+    <linearGradient id="pWrap" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#FFFFFF" stop-opacity=".50"/>
+      <stop offset=".2" stop-color="#FFFFFF" stop-opacity="0"/>
+      <stop offset=".6" stop-color="#000000" stop-opacity="0"/>
+      <stop offset="1" stop-color="#000000" stop-opacity=".24"/>
+    </linearGradient>
+    <linearGradient id="pGloss" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#FFFFFF" stop-opacity="0"/>
+      <stop offset=".16" stop-color="#FFFFFF" stop-opacity=".66"/>
+      <stop offset=".74" stop-color="#FFFFFF" stop-opacity=".34"/>
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0"/>
+    </linearGradient>
+    <linearGradient id="pBase" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#000000" stop-opacity="0"/>
+      <stop offset="1" stop-color="#000000" stop-opacity=".22"/>
+    </linearGradient>
+    <linearGradient id="pCapShine" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#FFFFFF" stop-opacity=".38"/>
+      <stop offset=".3" stop-color="#FFFFFF" stop-opacity=".08"/>
+      <stop offset="1" stop-color="#000000" stop-opacity=".26"/>
+    </linearGradient>
+    <linearGradient id="pLabelWrap" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#000000" stop-opacity=".11"/>
+      <stop offset=".13" stop-color="#000000" stop-opacity="0"/>
+      <stop offset=".68" stop-color="#000000" stop-opacity="0"/>
+      <stop offset="1" stop-color="#000000" stop-opacity=".15"/>
+    </linearGradient>
+    <clipPath id="cPump"><path d="M10 74c0 4.4 2.6 7 7 7h26c4.4 0 7-2.6 7-7V33c0-3.4-1.5-5.3-4.5-6.7l-7.6-3.6c-1.3-.6-1.9-1.6-1.9-3V17H24v2.7c0 1.4-.6 2.4-1.9 3l-7.6 3.6c-3 1.4-4.5 3.3-4.5 6.7z"/></clipPath>
+    <clipPath id="cPumpLabel"><rect x="14" y="40" width="32" height="27" rx="2.6"/></clipPath>
+    <symbol id="pPump" viewBox="0 0 60 84">
+      <path d="M25.4 13.4V9c0-2.2 1.8-4 4-4h3.2c2.2 0 4 1.8 4 4v1.5h5.2c1.5 0 2.7 1.2 2.7 2.7v3.2h-4v-2.7h-3.9v-.3z" fill="var(--pc)"/>
+      <path d="M25.4 13.4V9c0-2.2 1.8-4 4-4h3.2c2.2 0 4 1.8 4 4v1.5h5.2c1.5 0 2.7 1.2 2.7 2.7v3.2h-4v-2.7h-3.9v-.3z" fill="url(#pCapShine)"/>
+      <rect x="22.6" y="12.6" width="14.8" height="5.4" rx="1.7" fill="var(--pc)"/>
+      <path d="M26 13.6v3.4M30 13.6v3.4M34 13.6v3.4" stroke="#FFFFFF" stroke-opacity=".16" stroke-width="1.1"/>
+      <rect x="22.6" y="12.6" width="14.8" height="5.4" rx="1.7" fill="url(#pCapShine)"/>
+      <path d="M10 74c0 4.4 2.6 7 7 7h26c4.4 0 7-2.6 7-7V33c0-3.4-1.5-5.3-4.5-6.7l-7.6-3.6c-1.3-.6-1.9-1.6-1.9-3V17H24v2.7c0 1.4-.6 2.4-1.9 3l-7.6 3.6c-3 1.4-4.5 3.3-4.5 6.7z" fill="var(--pb)"/>
+      <g clip-path="url(#cPump)">
+        <rect x="8" y="15" width="44" height="68" fill="url(#pWrap)"/>
+        <rect x="8" y="64" width="44" height="19" fill="url(#pBase)"/>
+        <rect x="14" y="40" width="32" height="27" rx="2.6" fill="var(--pl)" stroke="#000000" stroke-opacity=".07" stroke-width=".6"/>
+        <g clip-path="url(#cPumpLabel)">
+          <rect x="14" y="55.5" width="32" height="11.5" fill="var(--pa)"/>
+          <circle cx="30" cy="55.5" r="7" fill="var(--pl)"/>
+        </g>
+        <rect x="14" y="40" width="32" height="27" rx="2.6" fill="url(#pLabelWrap)"/>
+        <rect x="13.4" y="29" width="5.2" height="45" rx="2.6" fill="url(#pGloss)"/>
+      </g>
+    </symbol>
+    <symbol id="barcode" viewBox="0 0 120 40" preserveAspectRatio="none">
+      <g fill="#14120F">
+        <rect x="2" y="0" width="1.6" height="40"/><rect x="6" y="0" width="1" height="40"/>
+        <rect x="9" y="0" width="3" height="40"/><rect x="14" y="0" width="1" height="40"/>
+        <rect x="17" y="0" width="2" height="40"/><rect x="21" y="0" width="1.4" height="40"/>
+        <rect x="25" y="0" width="1" height="40"/><rect x="28" y="0" width="3.4" height="40"/>
+        <rect x="34" y="0" width="1" height="40"/><rect x="37" y="0" width="2" height="40"/>
+        <rect x="41.5" y="0" width="1.2" height="40"/><rect x="45" y="0" width="2.6" height="40"/>
+        <rect x="50" y="0" width="1" height="40"/><rect x="53" y="0" width="1.6" height="40"/>
+        <rect x="57" y="0" width="3" height="40"/><rect x="62" y="0" width="1" height="40"/>
+        <rect x="65" y="0" width="2.2" height="40"/><rect x="70" y="0" width="1.4" height="40"/>
+        <rect x="74" y="0" width="1" height="40"/><rect x="77" y="0" width="3.2" height="40"/>
+        <rect x="83" y="0" width="1.2" height="40"/><rect x="87" y="0" width="2" height="40"/>
+        <rect x="91" y="0" width="1" height="40"/><rect x="94" y="0" width="2.8" height="40"/>
+        <rect x="99" y="0" width="1.4" height="40"/><rect x="103" y="0" width="1" height="40"/>
+        <rect x="106" y="0" width="3" height="40"/><rect x="111" y="0" width="1.2" height="40"/>
+        <rect x="115" y="0" width="1.8" height="40"/>
+      </g>
+    </symbol>
+  </defs>
+</svg>
+
+<div class="stage" id="stage">
+
+  <!-- SCENE 1 — scanning -->
+  <div class="scene on" id="sc-scan" style="background:radial-gradient(46% 40% at 50% 44%,rgba(163,88,72,.38) 0%,rgba(163,88,72,0) 72%),radial-gradient(130% 80% at 25% 10%,#4A2E28 0%,rgba(74,46,40,0) 55%),radial-gradient(120% 90% at 85% 90%,#5A3529 0%,rgba(90,53,41,0) 50%),linear-gradient(170deg,#241713 0%,#150D0A 80%)">
+    <div style="position:absolute;left:50%;top:46%;top:46%;transform:translate(-50%,calc(-50% - 22px)) rotate(-4deg);filter:drop-shadow(0 26px 34px rgba(0,0,0,.5))">
+      <svg class="prod" width="132" height="232" viewBox="0 0 60 84"><use href="#pPump"/></svg>
+    </div>
+    <div style="position:absolute;left:50%;top:46%;transform:translate(-50%,-50%) rotate(-4deg);width:104px;height:46px;border-radius:4px;background:#FBF9F4;padding:6px 8px;box-shadow:0 2px 10px rgba(0,0,0,.3)">
+      <svg width="100%" height="100%" viewBox="0 0 120 40" preserveAspectRatio="none"><use href="#barcode"/></svg>
+    </div>
+    <div style="position:absolute;left:50%;top:46%;transform:translate(-50%,-50%);width:266px;height:184px;border-radius:28px;box-shadow:0 0 0 2000px rgba(8,7,6,.58)"></div>
+    <div style="position:absolute;left:50%;top:46%;transform:translate(-50%,-50%);width:266px;height:184px;border-radius:28px;border:1px solid rgba(255,254,250,.22)"></div>
+    <svg style="position:absolute;left:50%;top:46%;transform:translate(-50%,-50%)" width="278" height="196" viewBox="0 0 278 196" fill="none" stroke="#FFFEFA" stroke-width="5" stroke-linecap="round"><path d="M6 52 v-24 a22 22 0 0 1 22-22 h24"/><path d="M272 52 v-24 a22 22 0 0 0 -22-22 h-24"/><path d="M6 144 v24 a22 22 0 0 0 22 22 h24"/><path d="M272 144 v24 a22 22 0 0 1 -22 22 h-24"/></svg>
+    <div style="position:absolute;left:50%;top:46%;transform:translate(-50%,-50%);width:266px;height:184px;border-radius:28px;overflow:hidden">
+      <div class="anim-scan" style="position:absolute;left:14px;right:14px;top:calc(50% - 1.5px);height:3px;border-radius:2px;background:linear-gradient(90deg,rgba(217,145,127,0),#D9917F 22%,#F0B9A6 50%,#D9917F 78%,rgba(217,145,127,0));box-shadow:0 0 22px rgba(217,145,127,.9)"></div>
+    </div>
+    <div style="position:absolute;left:50%;transform:translateX(-50%);top:64%;display:flex;align-items:center;gap:8px;background:rgba(11,10,8,.6);border-radius:999px;padding:9px 16px 9px 12px;color:#FFFEFA;font-size:13px;font-weight:500;white-space:nowrap">
+      <span style="width:7px;height:7px;border-radius:50%;background:#D9917F;box-shadow:0 0 8px #D9917F" class="anim-sparkle"></span>Hold steady — reading barcode
+    </div>
+    <div class="h-serif anim-fadeup" style="position:absolute;left:0;right:0;top:104px;text-align:center;color:#FFFEFA;font-size:26px;padding:0 30px">Scan any product.</div>
+  </div>
+
+  <!-- SCENE 2 — match found, analyzing -->
+  <div class="scene" id="sc-found" style="background:linear-gradient(170deg,#23201B 0%,#12100D 80%)">
+    <div style="position:absolute;inset:0;background:rgba(11,10,8,.45)"></div>
+    <div style="position:absolute;left:0;right:0;bottom:0;background:var(--bg);border-radius:26px 26px 0 0;box-shadow:0 -12px 32px rgba(26,24,20,.3);padding:10px 22px 44px">
+      <div style="width:40px;height:5px;border-radius:3px;background:#DDD6C9;margin:4px auto 18px"></div>
+      <div style="display:flex;align-items:center;gap:14px">
+        <div class="pthumb" style="width:58px;height:58px;border-radius:14px"><svg class="prod" width="33" height="46" viewBox="0 0 60 84"><use href="#pPump"/></svg></div>
+        <div style="flex:1">
+          <div style="font-weight:700;font-size:16.5px;color:var(--ink)">CeraVe Foaming Facial Cleanser</div>
+          <div class="mono" style="font-size:11px;color:var(--muted);margin-top:3px">3 606000 537400 · matched ✓</div>
+        </div>
+      </div>
+      <div class="card" style="margin-top:18px;padding:16px;display:flex;align-items:center;gap:14px;background:#FBF6EC;border-color:#EDE3CE">
+        <svg width="26" height="26" viewBox="0 0 26 26" fill="none"><circle cx="13" cy="13" r="10.5" stroke="#EAE6DF" stroke-width="3.5"/><path d="M13 2.5 a10.5 10.5 0 0 1 10.5 10.5" stroke="#A35848" stroke-width="3.5" stroke-linecap="round"/></svg>
+        <div style="flex:1">
+          <div style="font-weight:600;font-size:14px;color:var(--ink)">Reading 24 ingredients…</div>
+          <div style="font-size:12px;color:var(--muted);margin-top:2px">Matching against combination · breakout-prone</div>
+        </div>
+      </div>
+      <div style="margin-top:14px;height:6px;border-radius:3px;background:#EFEAE2;overflow:hidden"><i class="anim-fill" style="display:block;height:100%;border-radius:3px;background:linear-gradient(90deg,#A35848,#D9917F)"></i></div>
+      <div style="display:flex;justify-content:space-between;margin-top:16px;font-size:12.5px">
+        <span class="muted">Auto-confirmed — no extra taps</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- SCENE 3 — verdict reveal -->
+  <div class="scene" id="sc-verdict" style="background:var(--bg);padding:100px 22px 0">
+    <div class="card anim-fadeup" style="padding:20px;background:linear-gradient(135deg,#EEF2DD 0%,#FFFEFA 55%);border-color:rgba(92,122,79,.2)">
+      <div style="display:flex;justify-content:space-between;align-items:center">
+        <span class="chip good anim-chip" style="letter-spacing:.1em;text-transform:uppercase;font-size:10.5px">Good match</span>
+      </div>
+      <div style="display:flex;align-items:center;gap:20px;margin-top:16px">
+        <div class="ring">
+          <svg width="118" height="118" viewBox="0 0 118 118">
+            <circle cx="59" cy="59" r="51" stroke="rgba(92,122,79,.1)" stroke-width="9" fill="none"/>
+            <circle class="anim-ring" cx="59" cy="59" r="51" stroke="#5C7A4F" stroke-width="9" fill="none" stroke-linecap="round" stroke-dasharray="320.4" stroke-dashoffset="320.4" style="filter:drop-shadow(0 0 6px rgba(92,122,79,.35))"/>
+          </svg>
+          <div class="rv"><b style="font-size:40px">82</b><i>match</i></div>
+        </div>
+        <div style="flex:1;display:flex;flex-direction:column;gap:9px">
+          <div class="anim-row1" style="display:flex;justify-content:space-between;font-size:13px;border-bottom:1px solid rgba(92,122,79,.15);padding-bottom:8px"><span class="muted">Good for you</span><b style="color:var(--good-fg)">14</b></div>
+          <div class="anim-row2" style="display:flex;justify-content:space-between;font-size:13px"><span class="muted">Watch</span><b style="color:var(--unsure-fg)">2</b></div>
+        </div>
+      </div>
+      <div style="margin-top:14px;font-size:13.5px;line-height:1.5;color:var(--ink)">Gentle gel cleanser that fits <b>combination, breakout-prone</b> skin.</div>
+    </div>
+    <div class="h-serif anim-fadeup" style="margin-top:26px;font-size:24px;text-align:center;color:var(--ink)">A verdict for <em style="color:var(--primary)">your</em> skin.</div>
+  </div>
+
+  <!-- SCENE 4 — trigger found -->
+  <div class="scene" id="sc-trigger" style="background:var(--bg);padding:110px 22px 0">
+    <div class="card anim-fadeup" style="padding:18px;border:1.5px solid var(--bad-fg);background:linear-gradient(180deg,#FFFEFA,#FDEAEA)">
+      <span class="chip bad" style="letter-spacing:.1em;text-transform:uppercase;font-size:10.5px">Top trigger</span>
+      <div style="display:flex;align-items:center;gap:14px;margin-top:14px">
+        <div class="pthumb" style="width:52px;height:52px;border-radius:13px"><svg class="prod" width="29" height="41" style="--pb:url(#pbBlue)" viewBox="0 0 60 84"><use href="#pPump"/></svg></div>
+        <div style="flex:1">
+          <div style="font-weight:700;font-size:15.5px">Fragrance-heavy lotion</div>
+          <div style="font-size:12.5px;color:var(--muted);margin-top:2px">Used ≤48h before 3 of your last 4 breakouts</div>
+        </div>
+      </div>
+      <div class="mono anim-chip" style="text-align:right;font-size:11px;color:var(--bad-fg);margin-top:10px">87% confidence</div>
+    </div>
+    <div class="h-serif anim-fadeup" style="margin-top:26px;font-size:24px;text-align:center;color:var(--ink)">Find what's <em style="color:var(--primary)">really</em><br>breaking you out.</div>
+  </div>
+
+  <!-- SCENE 5 — end card -->
+  <div class="scene" id="sc-end" style="background:linear-gradient(180deg,#1A1814 0%,#12100D 100%);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:20px">
+    <div class="anim-mark" style="width:96px;height:96px;border-radius:24px;position:relative;overflow:hidden;background:linear-gradient(135deg,#B2634F 0%,#A35848 55%,#8E4538 100%);display:flex;align-items:center;justify-content:center;box-shadow:0 18px 40px rgba(163,88,72,.35)">
+      <svg width="62" height="62" style="color:#FFFEFA" class="anim-sparkle"><use href="#star"/></svg>
+    </div>
+    <div class="h-serif" style="font-size:46px;color:#FFFEFA">Skintel</div>
+    <div style="color:#B29C8F;font-size:14px">Know what touches your skin.</div>
+    <div class="mono" style="color:#8A8177;font-size:11px;letter-spacing:.1em;text-transform:uppercase;margin-top:10px">Coming to the App Store</div>
+  </div>
+
+</div>
+
+<script>
+  // Advance scenes on a timer; exposed on window so Playwright can also drive it directly.
+  const order = ['sc-scan','sc-found','sc-verdict','sc-trigger','sc-end'];
+  const holds  = [3200, 2600, 4300, 3400, 3000]; // ms to hold each scene before crossfading
+  let i = 0;
+  window.__sceneIndex = 0;
+  function restartRingIfVerdict(id){
+    if (id !== 'sc-verdict') return;
+    const ring = document.querySelector('#sc-verdict .anim-ring');
+    ring.style.animation = 'none';
+    void ring.offsetWidth;
+    ring.style.animation = '';
+  }
+  function show(idx){
+    document.querySelectorAll('.scene').forEach(el => el.classList.remove('on'));
+    const id = order[idx];
+    document.getElementById(id).classList.add('on');
+    window.__sceneIndex = idx;
+    restartRingIfVerdict(id);
+  }
+  function loop(){
+    show(i);
+    setTimeout(() => { i = (i + 1) % order.length; if (i !== 0) loop(); else window.__done = true; }, holds[i]);
+  }
+  window.__startPromo = loop;
+</script>
+</body>
+</html>

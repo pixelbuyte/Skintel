@@ -1,0 +1,12 @@
+<!-- iOS app icon master (1024x1024 render at 2x). Derived from public/icons/skintel.svg with: square canvas (iOS applies its own mask), accent sparkles pixel-snapped to whole pixels at 1024 and drawn at full opacity so they stay crisp at 29-60pt. Circle, main sparkle, colours unchanged. -->
+<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512">
+  <rect width="512" height="512" fill="#FAF8F5"/>
+  <g transform="translate(256 256)">
+    <circle r="160" fill="#A35848"/>
+    <g fill="#FFFEFA" transform="translate(-72 -72)">
+      <path d="M72 0 L88 56 L144 72 L88 88 L72 144 L56 88 L0 72 L56 56 Z"/>
+    </g>
+    <g fill="#FFFEFA" transform="translate(36 36) scale(0.555556)"><path d="M36 0 L44 28 L72 36 L44 44 L36 72 L28 44 L0 36 L28 28 Z"/></g>
+    <g fill="#FFFEFA" transform="translate(39.5 -88.5) scale(0.402778)"><path d="M36 0 L44 28 L72 36 L44 44 L36 72 L28 44 L0 36 L28 28 Z"/></g>
+  </g>
+</svg>

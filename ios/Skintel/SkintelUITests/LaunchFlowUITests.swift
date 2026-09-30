@@ -11,8 +11,13 @@ final class LaunchFlowUITests: XCTestCase {
     }
 
     func testWelcomeShowsAndRoutesToSignUpAndSignIn() {
+        let next = app.buttons["Next"]
+        XCTAssertTrue(next.waitForExistence(timeout: 8), "Welcome screen should appear after the splash")
+        next.tap()
+        XCTAssertTrue(app.staticTexts["Create an account and you get:"].waitForExistence(timeout: 4), "Page 2 lists the free benefits")
+        app.buttons["Next"].tap()
         let getStarted = app.buttons["Get started"]
-        XCTAssertTrue(getStarted.waitForExistence(timeout: 8), "Welcome screen should appear after the splash")
+        XCTAssertTrue(getStarted.waitForExistence(timeout: 4), "Last page ends on Get started")
         getStarted.tap()
         XCTAssertTrue(app.staticTexts["Create your account."].waitForExistence(timeout: 4))
 

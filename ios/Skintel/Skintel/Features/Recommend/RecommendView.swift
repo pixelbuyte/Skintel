@@ -1,5 +1,6 @@
 import SwiftUI
 import SkintelCore
+import SkinstelMascot
 
 /// Recommend.tsx: goal + budget → `/api/recommend`, which builds avoid/prefer lists from
 /// the shelf server-side. Options are the web's six goals and three budget presets.
@@ -140,5 +141,1012 @@ struct RecommendView: View {
         } catch let e as APIError {
             if e.requiresPaywall { openPaywall(.recommend); result = .idle } else { result = .failed(e) }
         } catch { result = .failed(.network(error.localizedDescription)) }
+    }
+}
+
+// MARK: - Ask Skintel
+
+/// Where Ask Skintel lives, chosen in You › Preferences: its own tab, or a button at the
+/// top of Today (with Shelf taking the tab slot back).
+enum AssistantPlacement {
+    static let key = "assistant.placement"
+    static let tab = "tab"
+    static let corner = "corner"
+}
+
+/// Ask Skintel's two models, switched with the toggle in the composer. The raw value is
+/// the name the server maps to a provider model; the app never sends provider model ids.
+enum AskModel: String, CaseIterable, Identifiable {
+    case luna, sol
+    static let key = "assistant.model"
+
+    var id: String { rawValue }
+
+    var name: String {
+        switch self {
+        case .luna: "Luna"
+        case .sol: "Sol"
+        }
+    }
+
+    var blurb: String {
+        switch self {
+        case .luna: "Fastest for everyday questions"
+        case .sol: "Most thorough for ingredients and reactions"
+        }
+    }
+
+    var icon: String {
+        switch self {
+        case .luna: "moon.stars.fill"
+        case .sol: "sun.max.fill"
+        }
+    }
+}
+
+/// Two-model switch in the Ask Skintel composer: the selected side is a Skintel-brown pill
+/// that slides across, like the AM/PM toggle on Today.
+private struct AskModelToggle: View {
+    @Binding var selection: AskModel
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @Namespace private var ns
+
+    var body: some View {
+        HStack(spacing: 0) {
+            ForEach(AskModel.allCases) { m in
+                let on = selection == m
+                Button {
+                    guard !on else { return }
+                    Haptics.selection()
+                    withAnimation(reduceMotion ? nil : SKAnimation.ios(0.3)) { selection = m }
+                } label: {
+                    HStack(spacing: 5) {
+                        Image(systemName: m.icon).font(.system(size: 11, weight: .semibold))
+                        Text(m.name).font(SKFont.sans(14, weight: .semibold, relativeTo: .subheadline))
+                    }
+                    .foregroundStyle(on ? SKColor.cream : SKColor.muted)
+                    .padding(.horizontal, 12)
+                    .frame(height: 30)
+                    .background {
+                        if on {
+                            Capsule().fill(SKColor.primary).matchedGeometryEffect(id: "askModel", in: ns)
+                        }
+                    }
+                    .contentShape(Capsule())
+                }
+                .buttonStyle(.plain)
+                .accessibilityLabel(m.name)
+                .accessibilityHint(m.blurb)
+                .accessibilityAddTraits(on ? [.isButton, .isSelected] : .isButton)
+            }
+        }
+        // The pill slides whenever the model changes here, even when the tap's withAnimation
+        // doesn't reach this view (the value travels through @AppStorage and a full re-render
+        // of the chat). Scoped to the toggle, like the tab bar's selection pill.
+        .animation(reduceMotion ? nil : SKAnimation.ios(0.3), value: selection)
+        .padding(3)
+        .background(SKColor.neutralChip, in: Capsule())
+    }
+}
+
+struct AssistantMessage: Codable, Identifiable, Sendable, Equatable {
+    enum Role: String, Codable, Sendable { case user, assistant, notice, upsell }
+    var id = UUID()
+    var role: Role
+    var text: String
+    /// Products the person mentioned that aren't on their shelf yet. Optional so chats saved
+    /// before this field existed still load.
+    var suggestions: [SuggestedProduct]? = nil
+    /// Names of shelf products tagged in this question (optional for older chats).
+    var tags: [String]? = nil
+}
+
+/// A saved Ask Skintel conversation.
+struct AssistantConversation: Codable, Identifiable, Sendable, Equatable {
+    var id: UUID
+    var title: String
+    var updatedAt: Date
+    var messages: [AssistantMessage]
+}
+
+/// Chat history, kept on this device only (like the routine) and cleared on sign-out.
+@MainActor
+@Observable
+final class AssistantStore {
+    private(set) var conversations: [AssistantConversation] = []
+    private let fileURL: URL
+    private static let maxConversations = 50
+
+    init(directory: URL? = nil) {
+        let dir = directory ?? FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0]
+            .appendingPathComponent("Skintel", isDirectory: true)
+        try? FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
+        fileURL = dir.appendingPathComponent("assistant.v1.json")
+        load()
+    }
+
+    func save(_ conversation: AssistantConversation) {
+        var list = conversations.filter { $0.id != conversation.id }
+        list.append(conversation)
+        list.sort { $0.updatedAt > $1.updatedAt }
+        conversations = Array(list.prefix(Self.maxConversations))
+        persist()
+    }
+
+    func delete(id: UUID) {
+        conversations.removeAll { $0.id == id }
+        persist()
+    }
+
+    func reset() {
+        conversations = []
+        try? FileManager.default.removeItem(at: fileURL)
+    }
+
+    private func load() {
+        guard let data = try? Data(contentsOf: fileURL),
+              let list = try? JSONDecoder().decode([AssistantConversation].self, from: data) else { return }
+        conversations = list
+    }
+
+    private func persist() {
+        guard let data = try? JSONEncoder().encode(conversations) else { return }
+        try? data.write(to: fileURL, options: [.atomic, .completeFileProtection])
+    }
+}
+
+/// The Skintel assistant. Suggested questions have written answers (free, instant, and
+/// personalised from the shelf and routine where that is accurate). Typed questions go to
+/// the model through `/api/assistant` for Pro accounts; the key never leaves the server.
+struct AssistantView: View {
+    /// False when hosted as a tab: there is nothing to close.
+    var showsClose = true
+    /// Room kept under the composer for the floating tab bar when hosted as a tab.
+    var tabBarClearance: CGFloat = 0
+    /// Put in the composer (not sent) when opened from a check-in's "Go deeper".
+    var initialQuestion: String? = nil
+    /// Shelf products already tagged in the composer when opened ("Ask Skintel about this").
+    var initialTagged: [Product] = []
+    /// Where "back" goes from the Free-plan wall when hosted as a tab.
+    var leave: (() -> Void)? = nil
+
+    @Environment(AppEnvironment.self) private var env
+    @Environment(\.dismiss) private var dismiss
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @State private var conversationID = UUID()
+    @State private var messages: [AssistantMessage] = []
+    @State private var draft = ""
+    @State private var isAnswering = false
+    @State private var showHistory = false
+    @State private var paywall: PaywallReason?
+    @State private var addingProduct: SuggestedProduct?
+    @State private var tagged: [Product] = []
+    @AppStorage(AskModel.key) private var askModel: AskModel = .luna
+    @FocusState private var inputFocused: Bool
+
+    private static let upsellText = "Typing your own questions is part of Skintel+. The suggested questions stay free."
+
+    private var isPro: Bool { env.subscription.entitlement.isPro }
+
+    var body: some View {
+        if isPro {
+            chat
+        } else {
+            ProLockedView(feature: .ask, leave: leave)
+        }
+    }
+
+    private var chat: some View {
+        NavigationStack {
+            ScrollViewReader { proxy in
+                ScrollView {
+                    VStack(alignment: .leading, spacing: SKSpace.lg) {
+                        if messages.isEmpty {
+                            welcome
+                        } else {
+                            ForEach(messages) { m in
+                                if m.role == .upsell {
+                                    AskProGate { paywall = .assistant }.id(m.id)
+                                } else {
+                                    AssistantBubble(message: m, shelfNames: shelfNames) { addingProduct = $0 }.id(m.id)
+                                }
+                            }
+                            if isAnswering && messages.last?.role == .user {
+                                TypingDots()
+                            }
+                        }
+                    }
+                    .skPagePadding()
+                    .padding(.top, SKSpace.md)
+                    .padding(.bottom, SKSpace.lg)
+                }
+                .scrollDismissesKeyboard(.interactively)
+                .onChange(of: messages.count) { _, _ in scrollToEnd(proxy) }
+                .onChange(of: messages.last?.text) { _, _ in scrollToEnd(proxy) }
+            }
+            .skHint(.ask, when: !shelfProducts.isEmpty && !inputFocused && !isAnswering)
+            .safeAreaInset(edge: .bottom, spacing: 0) { composer }
+            .skPageBackground()
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .topBarLeading) {
+                    if showsClose {
+                        Button("Close") { dismiss() }.font(SKFont.bodyMedium)
+                    }
+                }
+                ToolbarItem(placement: .principal) {
+                    Text("Ask Skintel").font(SKFont.navTitle).foregroundStyle(SKColor.ink)
+                }
+                ToolbarItemGroup(placement: .topBarTrailing) {
+                    Button { showHistory = true } label: { Image(systemName: "clock.arrow.circlepath") }
+                        .disabled(isAnswering)
+                        .accessibilityLabel("Chat history")
+                    Button { startNewChat() } label: { Image(systemName: "square.and.pencil") }
+                        .disabled(messages.isEmpty || isAnswering)
+                        .accessibilityLabel("New chat")
+                }
+            }
+        }
+        .tint(SKColor.primary)
+        .sheet(isPresented: $showHistory) {
+            AssistantHistoryView { open($0) }
+                .presentationDetents([.medium, .large])
+        }
+        .sheet(item: $paywall) { PaywallView(reason: $0) }
+        .sheet(item: $addingProduct) { p in
+            NavigationStack {
+                ProductFormView(mode: .add(prefill: ScanCandidate(brand: p.brand, productName: p.productName, inci: "", upc: nil, source: "assistant")))
+            }
+        }
+        .onAppear {
+            if messages.isEmpty, draft.isEmpty, let initialQuestion { draft = initialQuestion }
+            if messages.isEmpty, tagged.isEmpty, !initialTagged.isEmpty {
+                tagged = Array(initialTagged.prefix(MentionPanel.limit))
+            }
+        }
+    }
+
+    // MARK: Empty state
+
+    private var welcome: some View {
+        VStack(alignment: .leading, spacing: SKSpace.lg) {
+            VStack(alignment: .leading, spacing: SKSpace.sm) {
+                HStack(alignment: .bottom, spacing: SKSpace.md) {
+                    VStack(alignment: .leading, spacing: SKSpace.sm) {
+                        AssistantAvatar(size: 44)
+                        Text("What can I help with?").font(SKFont.hero).foregroundStyle(SKColor.ink)
+                    }
+                    Spacer(minLength: 0)
+                    SKMascot(action: .idle, height: 96)
+                }
+                Text("Ask about your routine, ingredients or a reaction. Answers use your shelf and routine.")
+                    .font(SKFont.sans(16, relativeTo: .body)).foregroundStyle(SKColor.muted)
+            }
+            .padding(.top, SKSpace.xl)
+            VStack(spacing: SKSpace.sm) {
+                ForEach(AssistantPrompt.allCases) { p in
+                    Button { ask(p) } label: { suggestionCard(p) }
+                        .buttonStyle(SKPressStyle())
+                }
+            }
+        }
+    }
+
+    private func suggestionCard(_ p: AssistantPrompt) -> some View {
+        HStack(spacing: SKSpace.md) {
+            Image(systemName: p.icon)
+                .font(.system(size: 16, weight: .semibold))
+                .foregroundStyle(SKColor.primary)
+                .frame(width: 36, height: 36)
+                .background(SKColor.blush, in: RoundedRectangle(cornerRadius: 11, style: .continuous))
+            Text(p.question)
+                .font(SKFont.sans(16, weight: .medium, relativeTo: .body))
+                .foregroundStyle(SKColor.ink)
+                .multilineTextAlignment(.leading)
+            Spacer(minLength: 0)
+            Image(systemName: "arrow.up.right")
+                .font(.system(size: 12, weight: .semibold))
+                .foregroundStyle(SKColor.muted)
+        }
+        .padding(SKSpace.md)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(SKColor.cream, in: RoundedRectangle(cornerRadius: SKRadius.card, style: .continuous))
+        .overlay(RoundedRectangle(cornerRadius: SKRadius.card, style: .continuous).stroke(SKColor.line))
+    }
+
+    // MARK: Composer
+
+    private var remainingPrompts: [AssistantPrompt] {
+        AssistantPrompt.allCases.filter { p in !messages.contains { $0.role == .user && $0.text == p.question } }
+    }
+
+    private var shelfProducts: [Product] { env.products.products.map(\.product) }
+
+    /// What follows a trailing "@" in the draft (empty right after typing it), or nil when
+    /// the draft isn't mid-mention.
+    private var mentionQuery: String? {
+        guard !shelfProducts.isEmpty, let at = draft.lastIndex(of: "@") else { return nil }
+        let before = draft[..<at]
+        guard before.isEmpty || before.last?.isWhitespace == true else { return nil }
+        let rest = draft[draft.index(after: at)...]
+        guard rest.count <= 40, !rest.contains(where: \.isNewline) else { return nil }
+        return String(rest)
+    }
+
+    private func startMention() {
+        if mentionQuery == nil {
+            draft += (draft.isEmpty || draft.last?.isWhitespace == true) ? "@" : " @"
+        }
+        inputFocused = true
+    }
+
+    /// Tags (or untags) the product and removes the "@query" from the draft.
+    private func pickMention(_ p: Product) {
+        Haptics.selection()
+        if let at = draft.lastIndex(of: "@") { draft = String(draft[..<at]) }
+        withAnimation(SKAnimation.ios(0.25)) {
+            if let i = tagged.firstIndex(where: { $0.id == p.id }) {
+                tagged.remove(at: i)
+            } else if tagged.count < MentionPanel.limit {
+                tagged.append(p)
+            }
+        }
+        inputFocused = true
+    }
+
+    private var canSend: Bool {
+        !draft.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty && !isAnswering
+    }
+
+    private var composer: some View {
+        VStack(spacing: SKSpace.sm) {
+            if !messages.isEmpty && !remainingPrompts.isEmpty {
+                ScrollView(.horizontal, showsIndicators: false) {
+                    HStack(spacing: SKSpace.sm) {
+                        ForEach(remainingPrompts) { p in
+                            Button { ask(p) } label: {
+                                Text(p.question)
+                                    .font(SKFont.sans(14, weight: .medium, relativeTo: .subheadline))
+                                    .foregroundStyle(SKColor.ink)
+                                    .lineLimit(1)
+                                    .padding(.horizontal, 14)
+                                    .frame(height: 38)
+                                    .background(SKColor.cream, in: Capsule())
+                                    .overlay(Capsule().stroke(SKColor.line))
+                            }
+                            .buttonStyle(SKPressStyle())
+                            .disabled(isAnswering)
+                        }
+                    }
+                    .padding(.horizontal, SKSpace.lg)
+                }
+            }
+            if let q = mentionQuery, !MentionPanel.matches(shelfProducts, q).isEmpty || !q.contains(" ") {
+                MentionPanel(products: shelfProducts, query: q, tagged: tagged) { pickMention($0) }
+                    .padding(.horizontal, SKSpace.lg)
+                    .transition(.move(edge: .bottom).combined(with: .opacity))
+            }
+            VStack(alignment: .leading, spacing: 6) {
+                if !tagged.isEmpty {
+                    ScrollView(.horizontal, showsIndicators: false) {
+                        HStack(spacing: 6) {
+                            ForEach(tagged) { p in
+                                ProductTagChip(name: p.productName, category: p.category) {
+                                    withAnimation(SKAnimation.ios(0.25)) { tagged.removeAll { $0.id == p.id } }
+                                }
+                            }
+                        }
+                        .padding(.horizontal, 14)
+                    }
+                    .padding(.top, 12)
+                }
+                TextField(tagged.isEmpty ? "Ask about your skin or products" : "Ask about \(tagged.count == 1 ? "this product" : "these products")", text: $draft)
+                    .font(SKFont.body)
+                    .foregroundStyle(SKColor.ink)
+                    .focused($inputFocused)
+                    .submitLabel(.send)
+                    .onSubmit(sendDraft)
+                    .padding(.horizontal, 18)
+                    .padding(.top, 14)
+                HStack(spacing: SKSpace.sm) {
+                    Button(action: startMention) {
+                        Image(systemName: "at")
+                            .font(.system(size: 15, weight: .semibold))
+                            .foregroundStyle(tagged.isEmpty ? SKColor.ink : SKColor.primary)
+                            .frame(width: 34, height: 34)
+                            .background(tagged.isEmpty ? SKColor.neutralChip : SKColor.blush, in: Circle())
+                    }
+                    .buttonStyle(.plain)
+                    .disabled(env.products.products.isEmpty)
+                    .accessibilityLabel("Tag products from your shelf")
+                    AskModelToggle(selection: $askModel)
+                    Spacer(minLength: 0)
+                    Button(action: sendDraft) {
+                        Image(systemName: "arrow.up")
+                            .font(.system(size: 16, weight: .bold))
+                            .foregroundStyle(SKColor.cream)
+                            .frame(width: 36, height: 36)
+                            .background(canSend ? SKColor.primary : SKColor.muted.opacity(0.35), in: Circle())
+                    }
+                    .buttonStyle(.plain)
+                    .disabled(!canSend)
+                    .accessibilityLabel("Send")
+                }
+                .padding(.leading, 10)
+                .padding(.trailing, 8)
+                .padding(.bottom, 8)
+            }
+            .skGlass(in: RoundedRectangle(cornerRadius: 26, style: .continuous), interactive: false, fallback: SKColor.cream)
+            .overlay(RoundedRectangle(cornerRadius: 26, style: .continuous).stroke(SKColor.line))
+            .padding(.horizontal, SKSpace.lg)
+            Group {
+                if isPro {
+                    VStack(spacing: 2) {
+                        HStack(spacing: 4) {
+                            Text(askModel.name)
+                                .font(SKFont.sans(12, weight: .semibold, relativeTo: .caption))
+                                .foregroundStyle(SKColor.primary)
+                            Text("· \(askModel.blurb)")
+                        }
+                        Text("Answers can be wrong. Skintel isn't a doctor.")
+                    }
+                } else {
+                    Text("Suggested questions are free. Typing your own is part of Skintel+.")
+                }
+            }
+            .font(SKFont.caption)
+            .foregroundStyle(SKColor.muted)
+            .multilineTextAlignment(.center)
+            .padding(.horizontal, SKSpace.xl)
+        }
+        .padding(.top, SKSpace.sm)
+        .padding(.bottom, SKSpace.sm + tabBarClearance)
+        .animation(SKAnimation.ios(0.25), value: mentionQuery)
+        .background {
+            LinearGradient(colors: [SKColor.bg.opacity(0), SKColor.bg], startPoint: .top, endPoint: .center)
+                .ignoresSafeArea(edges: .bottom)
+        }
+    }
+
+    // MARK: Conversation
+
+    private func ask(_ p: AssistantPrompt) {
+        guard !isAnswering else { return }
+        inputFocused = false
+        Haptics.tap()
+        messages.append(AssistantMessage(role: .user, text: p.question))
+        deliver(answer(for: p), role: .assistant)
+    }
+
+    private func sendDraft() {
+        let question = draft.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !question.isEmpty, !isAnswering else { return }
+        draft = ""
+        Haptics.tap()
+        let tags = tagged
+        tagged = []
+        messages.append(AssistantMessage(role: .user, text: question, tags: tags.isEmpty ? nil : tags.map(\.productName)))
+        guard isPro else {
+            deliver(Self.upsellText, role: .upsell)
+            return
+        }
+        var turns: [SkintelAPI.AssistantTurn] = []
+        for m in messages {
+            if m.role == .user { turns.append(SkintelAPI.AssistantTurn(role: "user", content: m.text)) }
+            if m.role == .assistant { turns.append(SkintelAPI.AssistantTurn(role: "assistant", content: m.text)) }
+        }
+        let am = names(.am)
+        let pm = names(.pm)
+        let api = env.api
+        let model = askModel.rawValue
+        isAnswering = true
+        Task {
+            do {
+                let reply = try await api.askAssistant(messages: turns, amRoutine: am, pmRoutine: pm, model: model,
+                                                       tagged: tags.map(\.id))
+                deliver(reply.reply, role: .assistant, alreadyWaited: true, suggestions: reply.products)
+            } catch let e as APIError {
+                if e.requiresPaywall {
+                    deliver(Self.upsellText, role: .upsell, alreadyWaited: true)
+                } else if case .server(let status, _) = e, status == 503 {
+                    deliver("Ask Skintel isn't switched on yet. Try one of the suggested questions for now.", role: .notice, alreadyWaited: true)
+                } else {
+                    deliver(e.userMessage, role: .notice, alreadyWaited: true)
+                }
+            } catch {
+                deliver(error.localizedDescription, role: .notice, alreadyWaited: true)
+            }
+        }
+    }
+
+    /// A short typing pause (skipped when the network already made them wait), then answers
+    /// are revealed word by word the way a live assistant streams. Reduce Motion shows the
+    /// text at once. Every finished exchange is saved to history.
+    private func deliver(_ text: String, role: AssistantMessage.Role, alreadyWaited: Bool = false,
+                         suggestions: [SuggestedProduct] = []) {
+        isAnswering = true
+        let reduce = reduceMotion
+        let chatID = conversationID
+        let offered: [SuggestedProduct]? = suggestions.isEmpty ? nil : suggestions
+        Task {
+            if !alreadyWaited {
+                try? await Task.sleep(for: .milliseconds(reduce ? 150 : 700))
+            }
+            guard chatID == conversationID else {
+                isAnswering = false
+                return
+            }
+            if reduce || role != .assistant {
+                messages.append(AssistantMessage(role: role, text: text, suggestions: offered))
+            } else {
+                let message = AssistantMessage(role: role, text: "")
+                messages.append(message)
+                var shown = ""
+                for (i, word) in text.split(separator: " ", omittingEmptySubsequences: false).enumerated() {
+                    shown += i == 0 ? String(word) : " " + String(word)
+                    if let index = messages.firstIndex(where: { $0.id == message.id }) { messages[index].text = shown }
+                    try? await Task.sleep(for: .milliseconds(22))
+                }
+                // The shelf card appears once the answer has finished writing out.
+                if let index = messages.firstIndex(where: { $0.id == message.id }) { messages[index].suggestions = offered }
+            }
+            isAnswering = false
+            saveConversation()
+        }
+    }
+
+    /// Lower-cased names already on the shelf, so an added suggestion shows as done.
+    private var shelfNames: Set<String> {
+        Set(env.products.products.map { $0.product.productName.lowercased() })
+    }
+
+    private func saveConversation() {
+        guard let first = messages.first(where: { $0.role == .user }) else { return }
+        env.assistant.save(AssistantConversation(id: conversationID,
+                                                 title: String(first.text.prefix(80)),
+                                                 updatedAt: Date(),
+                                                 messages: messages))
+    }
+
+    private func startNewChat() {
+        conversationID = UUID()
+        messages = []
+        draft = ""
+        tagged = []
+    }
+
+    private func open(_ conversation: AssistantConversation) {
+        conversationID = conversation.id
+        messages = conversation.messages
+        draft = ""
+    }
+
+    private func scrollToEnd(_ proxy: ScrollViewProxy) {
+        guard let last = messages.last else { return }
+        if reduceMotion {
+            proxy.scrollTo(last.id, anchor: .bottom)
+        } else {
+            withAnimation(SKAnimation.ios(0.3)) { proxy.scrollTo(last.id, anchor: .bottom) }
+        }
+    }
+
+    // MARK: Written answers
+
+    private func answer(for p: AssistantPrompt) -> String {
+        switch p {
+        case .order:
+            return orderAnswer()
+        case .retinolVitaminC:
+            return "They're usually best kept apart rather than layered together:\n\n• **Vitamin C in the morning.** It pairs well with sunscreen.\n• **Retinol at night.** Sunlight breaks it down.\n\nIf you're new to retinol, start with 2–3 nights a week and build up slowly. Skip exfoliating acids on retinol nights, and wear sunscreen every morning, because retinol makes skin more sensitive to the sun."
+        case .irritated:
+            return irritatedAnswer()
+        case .patchTest:
+            return "The American Academy of Dermatology suggests:\n\n1. Put a small amount on a spot where it won't be washed off, like the bend of your elbow.\n2. Do this twice a day for 7 to 10 days.\n3. If there's no reaction, it's likely fine to use on your face.\n\nTry one new product at a time, about a week apart. Otherwise you can't tell which one caused a reaction."
+        }
+    }
+
+    private func names(_ slot: RoutineStore.Slot) -> [String] {
+        env.routine.ids(slot).compactMap { env.products.product(id: $0)?.product.productName }
+    }
+
+    private func numbered(_ items: [String]) -> String {
+        items.enumerated().map { "\($0.offset + 1). \($0.element)" }.joined(separator: "\n")
+    }
+
+    private func orderAnswer() -> String {
+        let am = names(.am)
+        let pm = names(.pm)
+        if am.isEmpty && pm.isEmpty {
+            return "An order that works for most routines:\n\n1. Cleanser\n2. Toner or essence\n3. Serums and treatments\n4. Moisturiser\n5. Sunscreen, in the morning\n\nAdd your products to a routine and Skintel keeps them in this order on Today."
+        }
+        var parts = ["Here's your routine as you've set it up:"]
+        if !am.isEmpty { parts.append("**Morning**\n" + numbered(am)) }
+        if !pm.isEmpty { parts.append("**Night**\n" + numbered(pm)) }
+        parts.append("The rule of thumb is thinnest to thickest: cleanser, toner, serums, moisturiser, then sunscreen last in the morning. You can reorder steps in Routine.")
+        return parts.joined(separator: "\n\n")
+    }
+
+    private func irritatedAnswer() -> String {
+        var s = "Keep tonight simple:\n\n• A gentle cleanser\n• A plain, fragrance-free moisturiser\n• Pause strong actives for a couple of nights: retinoids, exfoliating acids and vitamin C\n\nIf you started something new in the last two weeks, that's the first thing to suspect. Log how your skin feels on Today so Skintel can spot a pattern."
+        if let top = env.products.culprits.all.first {
+            s += "\n\nYour shelf's top suspect ingredient is **\(top.name)**. Check whether anything you used recently contains it."
+        }
+        s += "\n\nIf the irritation is severe, spreading, or lasts more than a few days, see a dermatologist."
+        return s
+    }
+}
+
+/// Past conversations, newest first. Swipe to delete.
+private struct AssistantHistoryView: View {
+    let onOpen: (AssistantConversation) -> Void
+    @Environment(AppEnvironment.self) private var env
+    @Environment(\.dismiss) private var dismiss
+
+    var body: some View {
+        NavigationStack {
+            Group {
+                if env.assistant.conversations.isEmpty {
+                    SKEmptyState(icon: "bubble.left.and.bubble.right",
+                                 title: "No chats yet",
+                                 message: "Your conversations with Ask Skintel are saved here, on this device.",
+                                 drop: "DropAsk")
+                        .padding(SKSpace.xl)
+                        .frame(maxHeight: .infinity)
+                } else {
+                    List {
+                        ForEach(env.assistant.conversations) { c in
+                            Button {
+                                onOpen(c)
+                                dismiss()
+                            } label: {
+                                VStack(alignment: .leading, spacing: 3) {
+                                    Text(c.title).font(SKFont.cardTitle).foregroundStyle(SKColor.ink).lineLimit(2)
+                                    Text(subtitle(c)).font(SKFont.secondary).foregroundStyle(SKColor.muted)
+                                }
+                                .padding(.vertical, 4)
+                            }
+                            .listRowBackground(SKColor.cream)
+                        }
+                        .onDelete { offsets in
+                            let ids = offsets.map { env.assistant.conversations[$0].id }
+                            for id in ids { env.assistant.delete(id: id) }
+                        }
+                    }
+                    .scrollContentBackground(.hidden)
+                }
+            }
+            .skPageBackground()
+            .navigationTitle("Chats")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .topBarTrailing) {
+                    Button("Done") { dismiss() }.font(SKFont.bodyMedium)
+                }
+            }
+        }
+        .tint(SKColor.primary)
+    }
+
+    private func subtitle(_ c: AssistantConversation) -> String {
+        let questions = c.messages.filter { $0.role == .user }.count
+        return "\(DateFormatting.relative(c.updatedAt)) · \(questions) \(questions == 1 ? "question" : "questions")"
+    }
+}
+
+private enum AssistantPrompt: String, CaseIterable, Identifiable {
+    case order, retinolVitaminC, irritated, patchTest
+
+    var id: String { rawValue }
+
+    var question: String {
+        switch self {
+        case .order: "What order should I use my products in?"
+        case .retinolVitaminC: "Can I use retinol and vitamin C together?"
+        case .irritated: "My skin feels irritated. What should I do tonight?"
+        case .patchTest: "How do I patch test a new product?"
+        }
+    }
+
+    var icon: String {
+        switch self {
+        case .order: "list.number"
+        case .retinolVitaminC: "drop"
+        case .irritated: "bandage"
+        case .patchTest: "hand.raised"
+        }
+    }
+}
+
+private struct AssistantBubble: View {
+    let message: AssistantMessage
+    var shelfNames: Set<String> = []
+    var onAdd: (SuggestedProduct) -> Void = { _ in }
+
+    var body: some View {
+        switch message.role {
+        case .user:
+            VStack(alignment: .trailing, spacing: 6) {
+                if let tags = message.tags, !tags.isEmpty {
+                    HStack(spacing: 6) {
+                        Spacer(minLength: 48)
+                        ForEach(tags, id: \.self) { ProductTagChip(name: $0) }
+                    }
+                }
+                HStack {
+                    Spacer(minLength: 48)
+                    Text(message.text)
+                        .font(SKFont.body)
+                        .foregroundStyle(SKColor.cream)
+                        .padding(.horizontal, 16)
+                        .padding(.vertical, 11)
+                        .background(SKColor.primary, in: RoundedRectangle(cornerRadius: 20, style: .continuous))
+                }
+            }
+        case .assistant, .notice, .upsell:
+            HStack(alignment: .top, spacing: SKSpace.md) {
+                AssistantAvatar(size: 28)
+                VStack(alignment: .leading, spacing: SKSpace.md) {
+                    Text(Self.rich(message.text))
+                        .font(SKFont.sans(16, relativeTo: .body))
+                        .foregroundStyle(message.role == .assistant ? SKColor.ink : SKColor.muted)
+                        .lineSpacing(3)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .textSelection(.enabled)
+                    if let suggestions = message.suggestions, !suggestions.isEmpty {
+                        shelfCard(suggestions)
+                    }
+                }
+            }
+        }
+    }
+
+    private func shelfCard(_ items: [SuggestedProduct]) -> some View {
+        VStack(alignment: .leading, spacing: SKSpace.sm) {
+            Label("Add \(items.count == 1 ? "this" : "these") to your shelf?", systemImage: "square.stack")
+                .font(SKFont.sans(14.5, weight: .semibold, relativeTo: .subheadline))
+                .foregroundStyle(SKColor.ink)
+            ForEach(items) { p in
+                let added = shelfNames.contains(p.productName.lowercased())
+                HStack(spacing: SKSpace.md) {
+                    SKProductMark(name: p.productName, size: 36)
+                    VStack(alignment: .leading, spacing: 1) {
+                        Text(p.productName).font(SKFont.sans(15, weight: .semibold, relativeTo: .subheadline)).foregroundStyle(SKColor.ink).lineLimit(2)
+                        let meta = [p.brand, p.category].compactMap { $0 }.joined(separator: " · ")
+                        if !meta.isEmpty { Text(meta).font(SKFont.caption).foregroundStyle(SKColor.muted) }
+                    }
+                    Spacer(minLength: 0)
+                    if added {
+                        Label("Added", systemImage: "checkmark")
+                            .font(SKFont.sans(13.5, weight: .semibold, relativeTo: .caption))
+                            .foregroundStyle(SKColor.goodFg)
+                    } else {
+                        Button { onAdd(p) } label: {
+                            Text("Add")
+                                .font(SKFont.sans(14, weight: .semibold, relativeTo: .subheadline))
+                                .foregroundStyle(SKColor.cream)
+                                .padding(.horizontal, 14)
+                                .frame(height: 34)
+                                .background(SKColor.primary, in: Capsule())
+                        }
+                        .buttonStyle(SKPressStyle())
+                        .accessibilityLabel("Add \(p.productName) to your shelf")
+                    }
+                }
+            }
+            Text("Opens the product form filled in. You check it before it's saved.")
+                .font(SKFont.caption).foregroundStyle(SKColor.muted)
+        }
+        .padding(SKSpace.md)
+        .background(SKColor.cream, in: RoundedRectangle(cornerRadius: 18, style: .continuous))
+        .overlay(RoundedRectangle(cornerRadius: 18, style: .continuous).stroke(SKColor.line))
+    }
+
+    /// Inline markdown only (bold), keeping the answer's line breaks and numbering as written.
+    static func rich(_ s: String) -> AttributedString {
+        let options = AttributedString.MarkdownParsingOptions(interpretedSyntax: .inlineOnlyPreservingWhitespace)
+        return (try? AttributedString(markdown: s, options: options)) ?? AttributedString(s)
+    }
+}
+
+private struct AssistantAvatar: View {
+    let size: CGFloat
+
+    var body: some View {
+        Image(systemName: "sparkles")
+            .font(.system(size: size * 0.46, weight: .semibold))
+            .foregroundStyle(SKColor.cream)
+            .frame(width: size, height: size)
+            .background(SKColor.primary, in: Circle())
+            .accessibilityHidden(true)
+    }
+}
+
+private struct TypingDots: View {
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @State private var on = false
+
+    var body: some View {
+        HStack(spacing: SKSpace.md) {
+            AssistantAvatar(size: 28)
+            HStack(spacing: 5) {
+                ForEach(0..<3, id: \.self) { i in
+                    Circle()
+                        .fill(SKColor.muted)
+                        .frame(width: 7, height: 7)
+                        .opacity(on ? 1 : 0.3)
+                        .animation(reduceMotion ? nil : .easeInOut(duration: 0.6).repeatForever().delay(Double(i) * 0.2), value: on)
+                }
+            }
+            .padding(.horizontal, 14)
+            .padding(.vertical, 12)
+            .background(SKColor.cream, in: Capsule())
+            Spacer(minLength: 0)
+            // Shown only while a request is in flight (see `isAnswering`).
+            SKMascot(action: .thinking, height: 64)
+        }
+        .onAppear { on = true }
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel("Skintel is typing")
+    }
+}
+
+/// A shelf product tagged into a question: bottle or photo, name, and (in the composer) a remove button.
+private struct ProductTagChip: View {
+    let name: String
+    var category: String? = nil
+    var onRemove: (() -> Void)? = nil
+
+    var body: some View {
+        HStack(spacing: 6) {
+            SKProductMark(name: name, size: 22, category: category)
+            Text(name)
+                .font(SKFont.sans(13, weight: .semibold, relativeTo: .caption))
+                .foregroundStyle(SKColor.ink)
+                .lineLimit(1)
+            if let onRemove {
+                Button(action: onRemove) {
+                    Image(systemName: "xmark")
+                        .font(.system(size: 10, weight: .bold))
+                        .foregroundStyle(SKColor.muted)
+                        .frame(width: 20, height: 20)
+                }
+                .buttonStyle(.plain)
+                .accessibilityLabel("Remove \(name)")
+            }
+        }
+        .padding(.leading, 4)
+        .padding(.trailing, onRemove == nil ? 10 : 6)
+        .frame(height: 30)
+        .background(SKColor.cream, in: Capsule())
+        .overlay(Capsule().stroke(SKColor.line))
+    }
+}
+
+/// ChatGPT-style mention list above the composer: shelf products matching what follows
+/// "@". Up to three can be tagged; the server reads their ingredient lists.
+private struct MentionPanel: View {
+    let products: [Product]
+    let query: String
+    let tagged: [Product]
+    let pick: (Product) -> Void
+
+    static let limit = 3
+
+    static func matches(_ products: [Product], _ query: String) -> [Product] {
+        let q = query.trimmingCharacters(in: .whitespaces).lowercased()
+        guard !q.isEmpty else { return products }
+        return products.filter { "\($0.brand ?? "") \($0.productName)".lowercased().contains(q) }
+    }
+
+    var body: some View {
+        let found = Self.matches(products, query)
+        VStack(alignment: .leading, spacing: 0) {
+            Text(query.isEmpty ? "Type to search your shelf" : "Shelf products matching \u{201C}\(query)\u{201D}")
+                .font(SKFont.secondary)
+                .foregroundStyle(SKColor.muted)
+                .lineLimit(1)
+                .padding(.horizontal, 18)
+                .padding(.top, 14)
+                .padding(.bottom, 6)
+            if found.isEmpty {
+                Text("Nothing on your shelf matches.")
+                    .font(SKFont.secondary)
+                    .foregroundStyle(SKColor.muted)
+                    .padding(.horizontal, 18)
+                    .padding(.bottom, 14)
+            } else {
+                ScrollView {
+                    VStack(spacing: 2) {
+                        ForEach(found.indices, id: \.self) { i in
+                            row(found[i], highlighted: i == 0)
+                        }
+                    }
+                    .padding(.horizontal, 6)
+                    .padding(.bottom, 6)
+                }
+                .scrollBounceBehavior(.basedOnSize)
+                .frame(maxHeight: 250)
+                .fixedSize(horizontal: false, vertical: found.count <= 4)
+            }
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .skGlass(in: RoundedRectangle(cornerRadius: 24, style: .continuous), interactive: false, fallback: SKColor.cream)
+        .overlay(RoundedRectangle(cornerRadius: 24, style: .continuous).stroke(SKColor.line))
+        .shadow(color: .black.opacity(0.08), radius: 16, y: 6)
+    }
+
+    private func row(_ p: Product, highlighted: Bool) -> some View {
+        let on = tagged.contains { $0.id == p.id }
+        let full = !on && tagged.count >= Self.limit
+        return Button { pick(p) } label: {
+            HStack(spacing: SKSpace.md) {
+                SKProductMark(name: p.productName, size: 34, category: p.category)
+                Text(p.productName)
+                    .font(SKFont.sans(16, weight: .medium, relativeTo: .body))
+                    .foregroundStyle(SKColor.ink)
+                    .lineLimit(1)
+                Spacer(minLength: SKSpace.sm)
+                Text(on ? "Tagged" : (p.category ?? p.brand ?? "Shelf").capitalized)
+                    .font(SKFont.secondary)
+                    .foregroundStyle(on ? SKColor.primary : SKColor.muted)
+                    .lineLimit(1)
+            }
+            .padding(.horizontal, 12)
+            .frame(height: 52)
+            .background(highlighted ? SKColor.neutralChip.opacity(0.7) : .clear, in: RoundedRectangle(cornerRadius: 18, style: .continuous))
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(SKPressStyle())
+        .disabled(full)
+        .opacity(full ? 0.45 : 1)
+        .accessibilityLabel(on ? "\(p.productName), tagged" : p.productName)
+        .accessibilityHint(on ? "Removes the tag" : "Tags this product in your question")
+    }
+}
+
+/// The upgrade card a free account sees after typing its own question: a looping demo of
+/// what Pro answers look like (tagging, adding a mentioned product, spotting one already on
+/// the shelf), then one clear way to upgrade.
+private struct AskProGate: View {
+    let onUpgrade: () -> Void
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: SKSpace.md) {
+            FeatureDemo(reason: .assistant)
+            HStack(spacing: 8) {
+                Text("SKINTEL+")
+                    .font(SKFont.mono(11, bold: true))
+                    .tracking(1.5)
+                    .foregroundStyle(SKColor.cream)
+                    .padding(.horizontal, 8)
+                    .padding(.vertical, 4)
+                    .background(SKColor.primary, in: Capsule())
+                Text("Ask anything with Skintel+").font(SKFont.cardTitle).foregroundStyle(SKColor.ink)
+            }
+            VStack(alignment: .leading, spacing: 10) {
+                row("at", "Tag products from your shelf and ask about them")
+                row("plus.square.on.square", "Mention a product and add it to your shelf")
+                row("checkmark.seal", "Knows your shelf, routine and check-ins")
+            }
+            SKButton(title: "Get Skintel+", kind: .dark, action: onUpgrade)
+            Text("Suggested questions stay free.")
+                .font(SKFont.caption)
+                .foregroundStyle(SKColor.muted)
+                .frame(maxWidth: .infinity)
+        }
+        .padding(SKSpace.md)
+        .background(SKColor.blush, in: RoundedRectangle(cornerRadius: 28, style: .continuous))
+        .overlay(RoundedRectangle(cornerRadius: 28, style: .continuous).stroke(SKColor.line))
+    }
+
+    private func row(_ icon: String, _ text: String) -> some View {
+        HStack(spacing: SKSpace.sm) {
+            Image(systemName: icon)
+                .font(.system(size: 13, weight: .semibold))
+                .foregroundStyle(SKColor.primary)
+                .frame(width: 26, height: 26)
+                .background(SKColor.cream, in: Circle())
+            Text(text).font(SKFont.sans(15, relativeTo: .subheadline)).foregroundStyle(SKColor.ink)
+        }
     }
 }

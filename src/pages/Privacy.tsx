@@ -62,6 +62,11 @@ export default function Privacy() {
         </li>
         <li>Breakout/outcome tags you attach to a product ("worked," "unsure," "broke out").</li>
         <li>Journal entries and routine entries (AM/PM steps) you write or build.</li>
+        <li>
+          An optional skin profile: your skin type, the concerns you pick, and an age range (for
+          example "25–34") if you choose to share it. We never ask for your date of birth. Ask
+          Skintel uses this profile to tailor its answers, and you can change or clear it any time.
+        </li>
       </ul>
       <p>
         This content is the entire reason Skintel exists, and it's also the most sensitive data we

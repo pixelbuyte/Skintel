@@ -7,7 +7,6 @@ import {
   ScanLine,
   Settings,
   LogOut,
-  Sparkles,
   Sun,
   Lightbulb,
   BookOpen,
@@ -20,7 +19,7 @@ import { useSubscription } from '@/hooks/useSubscription';
 const NAV = [
   { to: '/app', label: 'Dashboard', icon: LayoutDashboard, end: true },
   { to: '/app/products', label: 'Products', icon: Package },
-  { to: '/app/culprits', label: 'Culprits', icon: AlertTriangle },
+  { to: '/app/triggers', label: 'Triggers', icon: AlertTriangle },
   { to: '/app/scanner', label: 'Scanner', icon: ScanLine },
   { to: '/app/journal', label: 'Journal', icon: BookOpen },
   { to: '/app/routine', label: 'Routine', icon: Sun },
@@ -44,7 +43,7 @@ export function MobileTopBar() {
       >
         <div className="flex items-center justify-between px-4 py-3">
           <NavLink to="/app" className="flex items-center gap-2">
-            <Sparkles className="text-primary" size={20} />
+            <img src="/icons/skintel.svg" alt="" width={22} height={22} className="shrink-0" />
             <span className="font-display text-xl">Skintel</span>
           </NavLink>
           <button
@@ -71,7 +70,7 @@ export function MobileTopBar() {
           >
             <div className="flex items-center justify-between mb-4">
               <div className="flex items-center gap-2">
-                <Sparkles className="text-primary" size={20} />
+                <img src="/icons/skintel.svg" alt="" width={22} height={22} className="shrink-0" />
                 <span className="font-display text-xl">Skintel</span>
               </div>
               <button

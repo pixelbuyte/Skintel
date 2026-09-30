@@ -120,6 +120,7 @@ struct ScannerHostView: View {
         }
         .statusBarHidden(!embedded)
         .toolbar(.hidden, for: .navigationBar)
+        .skHint(.scan, when: permission == .authorized && model.phase == .scanning && !showManual && !showCamera)
         .sheet(isPresented: $showManual) { ManualEntrySheet(model: model) }
         .fullScreenCover(isPresented: $showCamera) {
             CameraCaptureView { image in
@@ -168,8 +169,19 @@ struct ScannerHostView: View {
             .foregroundStyle(.white)
             .frame(maxWidth: .infinity)
             .frame(height: 52)
-            .background(.white.opacity(0.14), in: RoundedRectangle(cornerRadius: SKRadius.button, style: .continuous))
-            .overlay(RoundedRectangle(cornerRadius: SKRadius.button, style: .continuous).stroke(.white.opacity(0.18)))
+            .skGlass(in: RoundedRectangle(cornerRadius: SKRadius.button, style: .continuous),
+                     tint: SKGlass.cameraTint, fallback: .white.opacity(0.14))
+            .overlay {
+                // The hairline is the pre-26 stand-in for glass's own edge highlight.
+                if #available(iOS 26, *) {
+                    EmptyView()
+                } else {
+                    RoundedRectangle(cornerRadius: SKRadius.button, style: .continuous).stroke(.white.opacity(0.18))
+                }
+            }
+            // Glass isn't a hit-test surface, so the whole pill is made the target, not
+            // just its icon and label.
+            .contentShape(RoundedRectangle(cornerRadius: SKRadius.button, style: .continuous))
         }
         .buttonStyle(SKPressStyle())
     }
@@ -179,17 +191,32 @@ struct ScannerHostView: View {
     private var permissionState: some View {
         VStack(spacing: SKSpace.lg) {
             Image(systemName: "camera").font(.system(size: 34, weight: .light)).foregroundStyle(.white)
-            Text(permission == .denied ? "Camera is off for Skintel" : "Camera access")
-                .font(SKFont.section).foregroundStyle(.white)
-            Text(permission == .denied
-                 ? "Turn it on in Settings to scan barcodes. You can still type a barcode or paste ingredients."
-                 : "Skintel needs the camera to read barcodes.")
+            Text(permissionTitle).font(SKFont.section).foregroundStyle(.white)
+            Text(permissionMessage)
                 .font(SKFont.secondary).foregroundStyle(.white.opacity(0.75)).multilineTextAlignment(.center)
+            // Settings only helps for a plain denial. A restriction (parental controls/MDM)
+            // may not be something Settings can lift, so we don't offer it as a fix there.
             if permission == .denied {
                 SKButton(title: "Open Settings", kind: .secondary, fullWidth: false) { CameraPermission.openSettings() }
             }
         }
         .padding(SKSpace.xxl)
+    }
+
+    private var permissionTitle: String {
+        switch permission {
+        case .denied: "Camera is off for Skintel"
+        case .restricted: "Camera access is restricted"
+        case .notDetermined, .authorized: "Camera access"
+        }
+    }
+
+    private var permissionMessage: String {
+        switch permission {
+        case .denied: "Turn it on in Settings to scan barcodes. You can still type a barcode or paste ingredients."
+        case .restricted: "This device doesn't allow camera access for Skintel. You can still type a barcode or paste ingredients."
+        case .notDetermined, .authorized: "Skintel needs the camera to read barcodes."
+        }
     }
 
     private var lockedState: some View {
@@ -201,10 +228,10 @@ struct ScannerHostView: View {
                 }
                 Spacer()
                 ScannerIllustration().frame(height: 200).frame(maxWidth: .infinity)
-                Text("Scanning is a Pro feature").font(SKFont.section).foregroundStyle(SKColor.ink)
+                Text("Scanning comes with Skintel+").font(SKFont.section).foregroundStyle(SKColor.ink)
                 Text("Barcode, label photo and link import all run through Skintel's AI. Free accounts can add up to five products by pasting the ingredient list.")
                     .font(SKFont.secondary).foregroundStyle(SKColor.muted).multilineTextAlignment(.center)
-                SKButton(title: "See Skintel Pro") { openPaywall(.scanner) }
+                SKButton(title: "Get Skintel+") { openPaywall(.scanner) }
                 SKButton(title: "Add a product by hand", kind: .secondary) { path.append(.productForm(.add(prefill: nil))) }
                 Spacer()
             }

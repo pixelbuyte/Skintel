@@ -1,7 +1,7 @@
 import { Link } from 'react-router-dom';
 import { Package, Check, X, HelpCircle, ScanLine, ArrowRight, TrendingUp, Sparkles, AlertTriangle } from 'lucide-react';
 import { useProducts } from '@/hooks/useProducts';
-import { useCulprits } from '@/hooks/useCulprits';
+import { useTriggers } from '@/hooks/useTriggers';
 import { useAuth } from '@/hooks/useAuth';
 import { OutcomeBadge } from '@/components/OutcomeBadge';
 import { isPreview } from '@/lib/preview';
@@ -54,7 +54,7 @@ function PremiumStatCard({
 export default function Dashboard() {
   const { user } = useAuth();
   const { products, loading } = useProducts();
-  const { high, medium } = useCulprits(products);
+  const { high, medium } = useTriggers(products);
 
   const total = products.length;
   const good = products.filter((p) => p.outcome === 'good').length;
@@ -150,7 +150,7 @@ export default function Dashboard() {
                     Top suspect ingredients
                   </h2>
                 </div>
-                <Link to="/app/culprits" className="text-sm text-primary inline-flex items-center gap-1 hover:gap-1.5 transition-all">
+                <Link to="/app/triggers" className="text-sm text-primary inline-flex items-center gap-1 hover:gap-1.5 transition-all">
                   See all <ArrowRight size={14} />
                 </Link>
               </div>

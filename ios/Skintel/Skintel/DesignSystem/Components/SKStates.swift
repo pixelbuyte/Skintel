@@ -1,5 +1,6 @@
 import SwiftUI
 import SkintelCore
+import SkinstelMascot
 
 /// One loading/loaded/failed shape for every async screen, so no view invents its own.
 enum Loadable<Value: Sendable>: Sendable {
@@ -46,16 +47,26 @@ struct SKEmptyState: View {
     let icon: String
     let title: String
     let message: String
+    /// A still drop illustration (asset name, e.g. "DropAsk") in place of the icon tile.
+    var drop: String? = nil
+    /// Shows the animated mascot doing this in place of the icon tile. A `.wave` settles into `.idle`.
+    var mascot: SkinstelMascotAction? = nil
     var actionTitle: String? = nil
     var action: (() -> Void)? = nil
 
     var body: some View {
         VStack(spacing: SKSpace.md) {
-            Image(systemName: icon)
-                .font(.system(size: 30, weight: .light))
-                .foregroundStyle(SKColor.primary)
-                .frame(width: 64, height: 64)
-                .background(SKColor.blush, in: RoundedRectangle(cornerRadius: 18, style: .continuous))
+            if let drop {
+                SKDrop(drop, size: 132)
+            } else if let mascot {
+                SKMascot(action: mascot, height: 132, settleAfter: mascot == .wave ? Duration.seconds(3) : nil)
+            } else {
+                Image(systemName: icon)
+                    .font(.system(size: 30, weight: .light))
+                    .foregroundStyle(SKColor.primary)
+                    .frame(width: 64, height: 64)
+                    .background(SKColor.blush, in: RoundedRectangle(cornerRadius: 18, style: .continuous))
+            }
             Text(title).font(SKFont.section).foregroundStyle(SKColor.ink).multilineTextAlignment(.center)
             Text(message).font(SKFont.secondary).foregroundStyle(SKColor.muted).multilineTextAlignment(.center)
             if let actionTitle, let action {
@@ -118,5 +129,47 @@ struct SKOfflineBanner: View {
         .padding(.vertical, 8)
         .frame(maxWidth: .infinity)
         .background(SKColor.cautionBg)
+    }
+}
+
+/// The Skinstel mascot as a quiet, decorative companion. Hidden from VoiceOver by the
+/// package, so the text next to it must say what is happening. Pass `settleAfter` for a
+/// brief moment (a greeting, a celebration) that should return to `.idle` on its own.
+struct SKMascot: View {
+    let action: SkinstelMascotAction
+    var height: CGFloat = 120
+    var isPlaying = true
+    var settleAfter: Duration? = nil
+    @State private var settled = false
+
+    var body: some View {
+        SkinstelMascot(action: settled ? .idle : action, isPlaying: isPlaying)
+            .frame(width: (height * 420 / 510).rounded(), height: height)
+            .task(id: action) {
+                settled = false
+                guard let settleAfter else { return }
+                try? await Task.sleep(for: settleAfter)
+                if !Task.isCancelled { settled = true }
+            }
+    }
+}
+
+/// One of the still drop illustrations in the asset catalog ("DropAsk", "DropScanner", …).
+/// Decorative: the text next to it carries the meaning. At most one per screen.
+struct SKDrop: View {
+    let name: String
+    var size: CGFloat = 96
+
+    init(_ name: String, size: CGFloat = 96) {
+        self.name = name
+        self.size = size
+    }
+
+    var body: some View {
+        Image(name)
+            .resizable()
+            .scaledToFit()
+            .frame(width: size, height: size)
+            .accessibilityHidden(true)
     }
 }

@@ -47,6 +47,78 @@ private func session(onboarded: Bool) -> Session {
 }
 
 @MainActor
+@Test func routineStoreRecordsCompletedDaysPerSlot() {
+    let dir = tempDir()
+    let store = RoutineStore(directory: dir)
+    store.add("a", to: .am); store.add("b", to: .am); store.add("a", to: .pm)
+    store.toggleDone("a", in: .am)
+    #expect(store.daysCompleted(.am) == 0)          // one of two steps is not a completed day
+    store.toggleDone("b", in: .am)
+    #expect(store.daysCompleted(.am) == 1)
+    #expect(store.daysCompleted(.pm) == 0)          // PM was never ticked as a routine
+    store.toggleDone("b", in: .am)                  // un-tick: the day is no longer complete
+    #expect(store.daysCompleted(.am) == 0)
+    store.markAllDone(.pm)
+    #expect(store.daysCompleted(.pm) == 1)
+    #expect(RoutineStore(directory: dir).daysCompleted(.pm) == 1)   // survives a relaunch
+}
+
+@MainActor
+@Test func routineCompletionForTodayDrivesTheTodayChecklist() {
+    let store = RoutineStore(directory: tempDir())
+    store.add("a", to: .am); store.add("b", to: .pm)
+    #expect(!store.isComplete(.am) && !store.isComplete(.pm))
+    store.toggleDone("a", in: .am)
+    #expect(store.isComplete(.am))
+    #expect(!store.isComplete(.pm))
+    #expect(!store.isComplete(.am, on: "2000-01-01"))              // other days are their own
+    store.toggleDone("a", in: .am)                                  // un-tick clears it
+    #expect(!store.isComplete(.am))
+}
+
+@Test func skinLogPromptFollowsTheTimeOfDay() {
+    func at(_ hour: Int) -> Date {
+        Calendar.current.date(from: DateComponents(year: 2026, month: 9, day: 25, hour: hour, minute: 10))!
+    }
+    #expect(SkinLogPrompt.line(at(7)) == "How did your skin wake up?")
+    #expect(SkinLogPrompt.line(at(13)) == "How's your skin holding up?")
+    #expect(SkinLogPrompt.line(at(19)) == "How did your skin do today?")
+    #expect(SkinLogPrompt.line(at(23)) == "Before bed: how's your skin?")
+    #expect(SkinLogPrompt.line(at(2)) == "Before bed: how's your skin?")
+}
+
+@MainActor
+@Test func routineFileSavedBeforeCompletionHistoryStillLoads() throws {
+    let dir = tempDir()
+    let legacy = #"{"am":["a"],"pm":["b"],"doneToday":[],"doneDay":"2000-01-01"}"#
+    try Data(legacy.utf8).write(to: dir.appendingPathComponent("routine.v1.json"))
+    let store = RoutineStore(directory: dir)
+    #expect(store.ids(.am) == ["a"] && store.ids(.pm) == ["b"])     // not wiped by the new field
+    #expect(store.daysCompleted(.am) == 0)
+}
+
+@MainActor
+@Test func assistantHistoryPersistsNewestFirstAndDeletes() {
+    let dir = tempDir()
+    let store = AssistantStore(directory: dir)
+    let a = AssistantConversation(id: UUID(), title: "Order?", updatedAt: Date(timeIntervalSince1970: 100),
+                                  messages: [AssistantMessage(role: .user, text: "Order?")])
+    let b = AssistantConversation(id: UUID(), title: "Patch test?", updatedAt: Date(timeIntervalSince1970: 200),
+                                  messages: [AssistantMessage(role: .user, text: "Patch test?"), AssistantMessage(role: .assistant, text: "Elbow.")])
+    store.save(a); store.save(b)
+    #expect(store.conversations.map(\.title) == ["Patch test?", "Order?"])
+    var updated = a
+    updated.updatedAt = Date(timeIntervalSince1970: 300)
+    store.save(updated)                                             // re-saving replaces, doesn't duplicate
+    #expect(store.conversations.map(\.title) == ["Order?", "Patch test?"])
+    let reloaded = AssistantStore(directory: dir)
+    #expect(reloaded.conversations.count == 2)
+    #expect(reloaded.conversations.last?.messages.last?.text == "Elbow.")
+    reloaded.delete(id: a.id)
+    #expect(AssistantStore(directory: dir).conversations.map(\.id) == [b.id])
+}
+
+@MainActor
 @Test func scanStoreReKeysUnsavedScanOntoProduct() {
     let store = ScanStore(directory: tempDir())
     let result = ScanResult(verdict: .clean, score: 82, summary: "ok", flags: [], notes: nil)
