@@ -31,6 +31,14 @@ Routing:
 6. Ask before destructive actions: deleting files, dropping data, force push.
 7. End with a short summary: changed, verified, left.
 
+## Token economy
+
+- Minimise tokens. Read only the lines you need (offset/limit or grep), never whole large files.
+- Don't spawn sub-agents, screenshots or previews unless asked. Ask one short question instead of
+  exploring when the request is ambiguous.
+- PR safety-net check-ins run every **6 hours** (not 50 min / 4 h). Each check-in is one cheap status
+  call; if nothing changed, re-arm silently and say nothing. Stop after 3 empty check-ins.
+
 Repo practice: work on a branch, open a PR, the founder reviews and merges. Don't push to `main`.
 
 ## Style
