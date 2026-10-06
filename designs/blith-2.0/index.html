@@ -1,0 +1,261 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Skintel · Blith 2.0</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500&display=block" rel="stylesheet">
+<style>
+/* Blith 2.0 tokens. One accent (teal), one grey family (cool), three verdict tones.
+   Radii: cards 20, controls 14, chips 10, pills full. Spacing on a 4pt grid. */
+:root{
+  --f:Inter,-apple-system,"SF Pro Text",system-ui,sans-serif;
+  --bg:#0B0D0E; --s1:#141719; --s2:#1B1F22; --s3:#252A2E; --line:rgba(255,255,255,.07);
+  --t1:#F2F4F3; --t2:#9BA3A6; --t3:#646C70;
+  --acc:#3CC8C0; --acc-dim:rgba(60,200,192,.14);
+  --good:#7BD88F; --good-dim:rgba(123,216,143,.14);
+  --watch:#E8A15C; --watch-dim:rgba(232,161,92,.14);
+  --bad:#FF6B5E; --bad-dim:rgba(255,107,94,.14);
+}
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:#050607;color:var(--t1);font-family:var(--f);padding:48px 48px 64px;width:2290px}
+.num{font-variant-numeric:tabular-nums;font-feature-settings:"tnum"}
+.mono{font-family:"JetBrains Mono",ui-monospace,monospace}
+header{display:flex;align-items:flex-end;justify-content:space-between;margin-bottom:34px}
+header h1{font-size:40px;font-weight:800;letter-spacing:-.02em}
+header p{color:var(--t2);font-size:16px;margin-top:6px;max-width:980px;line-height:1.5}
+.swatches{display:flex;gap:10px}
+.sw{display:flex;flex-direction:column;align-items:center;gap:6px;font:500 11px "JetBrains Mono",ui-monospace,monospace;color:var(--t3)}
+.sw i{width:44px;height:44px;border-radius:12px;border:1px solid var(--line)}
+.row{display:flex;gap:28px}
+.cap{font:600 12px "JetBrains Mono",ui-monospace,monospace;letter-spacing:.14em;text-transform:uppercase;color:var(--t3);margin:0 0 10px 6px}
+.phone{width:390px;height:844px;border-radius:54px;background:var(--bg);border:10px solid #000;box-shadow:0 0 0 2px #2A2F33;position:relative;overflow:hidden}
+.isl{position:absolute;top:11px;left:50%;margin-left:-62px;width:124px;height:36px;background:#000;border-radius:20px;z-index:9}
+.sb{position:absolute;top:17px;left:32px;right:28px;display:flex;justify-content:space-between;font:600 16px var(--f);z-index:8}
+.scr{position:absolute;inset:0;padding:62px 16px 96px;overflow:hidden}
+.tab{position:absolute;left:0;right:0;bottom:0;height:84px;background:rgba(20,23,25,.92);border-top:1px solid var(--line);display:flex;justify-content:space-around;padding-top:10px}
+.tab div{display:flex;flex-direction:column;align-items:center;gap:4px;font:500 10px var(--f);color:var(--t3)}
+.tab div.on{color:var(--acc)}
+.tab svg{width:24px;height:24px}
+svg.i{width:18px;height:18px;stroke:currentColor;fill:none;stroke-width:1.9;stroke-linecap:round;stroke-linejoin:round}
+.lt{font-size:30px;font-weight:700;letter-spacing:-.02em;margin:6px 4px 14px}
+.eyebrow{font:600 12px var(--f);color:var(--t2);margin:0 4px 4px}
+.card{background:var(--s1);border-radius:20px;padding:16px;border:1px solid var(--line)}
+.card+.card{margin-top:12px}
+.lbl{font:600 13px var(--f);color:var(--t2)}
+.big{font-size:52px;font-weight:800;letter-spacing:-.03em;line-height:1}
+.h{font-size:17px;font-weight:600}
+.sub{font-size:13px;color:var(--t2);line-height:1.4}
+.chip{display:inline-flex;align-items:center;gap:6px;height:28px;padding:0 10px;border-radius:10px;background:var(--s2);font:600 12px var(--f);color:var(--t2)}
+.pill{display:inline-flex;align-items:center;gap:6px;height:24px;padding:0 10px;border-radius:999px;font:700 12px var(--f)}
+.good{color:var(--good)}.bad{color:var(--bad)}.watch{color:var(--watch)}.acc{color:var(--acc)}
+.bg-good{background:var(--good-dim)}.bg-bad{background:var(--bad-dim)}.bg-watch{background:var(--watch-dim)}.bg-acc{background:var(--acc-dim)}
+.btn{height:52px;border-radius:14px;background:var(--acc);color:#04211F;display:flex;align-items:center;justify-content:center;gap:8px;font:700 16px var(--f)}
+.btn2{height:44px;border-radius:14px;background:var(--s2);color:var(--t1);display:flex;align-items:center;justify-content:center;font:600 15px var(--f)}
+.list>div{display:flex;align-items:center;gap:12px;padding:12px 0;border-top:1px solid var(--line)}
+.list>div:first-child{border-top:0;padding-top:4px}
+.dot{width:8px;height:8px;border-radius:50%;flex:none}
+.bar{height:6px;border-radius:3px;background:var(--s3);overflow:hidden}
+.bar i{display:block;height:100%;border-radius:3px}
+.note{width:390px;margin-top:14px;color:var(--t2);font-size:13px;line-height:1.5;padding:0 6px}
+.note b{color:var(--t1);font-weight:600}
+</style>
+</head>
+<body>
+<header>
+  <div>
+    <div class="cap" style="margin-left:0;color:var(--acc)">Skintel · Blith 2.0 · design concept</div>
+    <h1>Your skin, read like a dashboard.</h1>
+    <p>One score up top, the reason under it, details a tap away. Graphite surfaces with a single blue-green accent. Colour carries meaning only: green good, copper watch, coral avoid. Numbers are tabular and every chart is a Swift Charts mark type.</p>
+  </div>
+  <div class="swatches">
+    <div class="sw"><i style="background:#0B0D0E"></i>bg</div><div class="sw"><i style="background:#141719"></i>card</div>
+    <div class="sw"><i style="background:#3CC8C0"></i>accent</div><div class="sw"><i style="background:#7BD88F"></i>good</div>
+    <div class="sw"><i style="background:#E8A15C"></i>watch</div><div class="sw"><i style="background:#FF6B5E"></i>avoid</div>
+  </div>
+</header>
+
+<div class="row">
+
+<!-- 1. TODAY -->
+<div><div class="cap">01 · Today</div>
+<div class="phone"><div class="isl"></div><div class="sb"><span>9:41</span><span>●●● ▮</span></div>
+<div class="scr">
+  <div class="eyebrow">Tuesday, Oct 6</div>
+  <div style="display:flex;justify-content:space-between;align-items:center"><div class="lt" style="margin-bottom:12px">Today</div>
+  <div style="width:36px;height:36px;border-radius:50%;background:var(--s2);display:flex;align-items:center;justify-content:center;font:700 14px var(--f);color:var(--t2)">R</div></div>
+
+  <div class="card" style="display:flex;gap:16px;align-items:center">
+    <svg width="118" height="118" viewBox="0 0 118 118">
+      <circle cx="59" cy="59" r="50" fill="none" stroke="#252A2E" stroke-width="11"/>
+      <circle cx="59" cy="59" r="50" fill="none" stroke="#3CC8C0" stroke-width="11" stroke-linecap="round" stroke-dasharray="235.6 314.2" transform="rotate(-90 59 59)"/>
+      <text x="59" y="63" text-anchor="middle" fill="#F2F4F3" font-family="Inter, -apple-system, system-ui, sans-serif" font-weight="800" font-size="34" class="num">75</text>
+      <text x="59" y="82" text-anchor="middle" fill="#9BA3A6" font-family="Inter, -apple-system, system-ui, sans-serif" font-weight="600" font-size="10">SKIN SCORE</text>
+    </svg>
+    <div style="flex:1">
+      <div class="pill bg-good good">▲ 8 vs last week</div>
+      <div class="h" style="margin-top:10px">Calm and clear</div>
+      <div class="sub" style="margin-top:4px">5 good days out of 7. Nothing new on your shelf since Friday.</div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div style="display:flex;justify-content:space-between"><span class="lbl">Last 14 days</span><span class="lbl" style="color:var(--t3)">Journal</span></div>
+    <div style="display:flex;justify-content:space-between;margin-top:14px">
+      <span class="dot" style="width:14px;height:14px;background:var(--good)"></span><span class="dot" style="width:14px;height:14px;background:var(--good)"></span><span class="dot" style="width:14px;height:14px;background:var(--watch)"></span><span class="dot" style="width:14px;height:14px;background:var(--bad)"></span><span class="dot" style="width:14px;height:14px;background:var(--bad)"></span><span class="dot" style="width:14px;height:14px;background:var(--watch)"></span><span class="dot" style="width:14px;height:14px;background:var(--good)"></span>
+      <span class="dot" style="width:14px;height:14px;background:var(--good)"></span><span class="dot" style="width:14px;height:14px;background:var(--s3)"></span><span class="dot" style="width:14px;height:14px;background:var(--good)"></span><span class="dot" style="width:14px;height:14px;background:var(--good)"></span><span class="dot" style="width:14px;height:14px;background:var(--watch)"></span><span class="dot" style="width:14px;height:14px;background:var(--good)"></span><span class="dot" style="width:14px;height:14px;background:transparent;border:2px dashed var(--acc)"></span>
+    </div>
+    <div style="display:flex;justify-content:space-between;margin-top:8px;font:500 11px var(--f);color:var(--t3)"><span>Sep 23</span><span>Today</span></div>
+  </div>
+
+  <div class="card" style="border-color:rgba(255,107,94,.28)">
+    <div style="display:flex;justify-content:space-between;align-items:center"><span class="pill bg-bad bad">Top trigger</span><span class="mono" style="font-size:12px;color:var(--t2)">87% sure</span></div>
+    <div class="h" style="margin-top:12px">Fragrance</div>
+    <div class="sub" style="margin-top:4px">In 3 of your last 4 breakouts, always within 48h. Found in <b style="color:var(--t1)">Daily Lotion</b>.</div>
+    <div style="display:flex;gap:8px;margin-top:14px"><div class="btn2" style="flex:1;background:var(--bad-dim);color:var(--bad)">Pause product</div><div class="btn2" style="flex:1">Why?</div></div>
+  </div>
+
+  <div class="card" style="display:flex;align-items:center;gap:12px">
+    <div style="width:40px;height:40px;border-radius:12px;background:var(--acc-dim);display:flex;align-items:center;justify-content:center" class="acc"><svg class="i" viewBox="0 0 24 24"><path d="M12 20a8 8 0 1 0 0-16 8 8 0 0 0 0 16z"/><path d="M12 8v4l3 2"/></svg></div>
+    <div style="flex:1"><div class="h" style="font-size:15px">Tonight · 4 steps</div><div class="sub">Retinol night. 2 min after cleanser.</div></div>
+    <span class="mono" style="color:var(--t2);font-size:12px">9:00 PM</span>
+  </div>
+</div>
+<div class="tab"><div class="on"><svg class="i" viewBox="0 0 24 24"><path d="M4 11l8-7 8 7v9H4z"/></svg>Today</div><div><svg class="i" viewBox="0 0 24 24"><path d="M4 7V4h3M17 4h3v3M20 17v3h-3M7 20H4v-3M7 12h10"/></svg>Scan</div><div><svg class="i" viewBox="0 0 24 24"><path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/></svg>Insights</div><div><svg class="i" viewBox="0 0 24 24"><rect x="4" y="3" width="16" height="18" rx="3"/><path d="M8 8h8M8 12h8M8 16h5"/></svg>Shelf</div></div>
+</div>
+<div class="note"><b>Pattern:</b> Whoop-style single hero score, then the one reason (top trigger) and one action. The 14-day strip replaces the old 4-number stat row.</div>
+</div>
+
+<!-- 2. SCAN RESULT -->
+<div><div class="cap">02 · Scan result</div>
+<div class="phone"><div class="isl"></div><div class="sb"><span>9:41</span><span>●●● ▮</span></div>
+<div class="scr">
+  <div style="display:flex;justify-content:space-between;align-items:center;margin:0 4px 10px"><span class="acc" style="font:600 16px var(--f)">‹ Scan</span><span style="color:var(--t2);font:600 16px var(--f)">Share</span></div>
+  <div class="eyebrow">Barrier Moisturizer · scanned now</div>
+  <div style="display:flex;align-items:baseline;gap:10px;margin:2px 4px 4px"><span class="big num">82</span><span class="h" style="color:var(--t2)">/ 100 match</span></div>
+  <div style="margin:0 4px 16px"><span class="pill bg-good good">Good for your skin</span></div>
+
+  <div class="card">
+    <div style="display:flex;justify-content:space-between"><span class="lbl">24 ingredients</span><span class="lbl num">14 · 8 · 2</span></div>
+    <div style="display:flex;gap:3px;height:12px;margin-top:12px">
+      <i style="flex:14;background:var(--good);border-radius:6px 2px 2px 6px"></i><i style="flex:8;background:var(--s3);border-radius:2px"></i><i style="flex:2;background:var(--watch);border-radius:2px 6px 6px 2px"></i>
+    </div>
+    <div style="display:flex;gap:16px;margin-top:10px;font:500 12px var(--f);color:var(--t2)"><span><span class="dot" style="display:inline-block;background:var(--good)"></span> Helps</span><span><span class="dot" style="display:inline-block;background:var(--t3)"></span> Neutral</span><span><span class="dot" style="display:inline-block;background:var(--watch)"></span> Watch</span></div>
+  </div>
+
+  <div class="card">
+    <div class="lbl" style="margin-bottom:6px">What matters for you</div>
+    <div class="list">
+      <div><span class="dot" style="background:var(--good)"></span><div style="flex:1"><div class="h" style="font-size:15px">Niacinamide 4%</div><div class="sub">Calms the redness you logged last week</div></div></div>
+      <div><span class="dot" style="background:var(--good)"></span><div style="flex:1"><div class="h" style="font-size:15px">Ceramide NP</div><div class="sub">Rebuilds barrier</div></div></div>
+      <div><span class="dot" style="background:var(--watch)"></span><div style="flex:1"><div class="h" style="font-size:15px">Cocamidopropyl betaine</div><div class="sub">Rare irritant. Not one of your triggers.</div></div></div>
+    </div>
+  </div>
+
+  <div class="card" style="display:flex;align-items:center;gap:12px">
+    <div style="flex:1"><div class="lbl">Vs. what's on your shelf</div><div class="sub" style="margin-top:4px">Beats your current moisturizer by <b class="good">+18</b></div></div>
+    <svg width="96" height="40" viewBox="0 0 96 40"><rect x="8" y="16" width="30" height="24" rx="5" fill="#252A2E"/><rect x="56" y="2" width="30" height="38" rx="5" fill="#3CC8C0"/></svg>
+  </div>
+
+  <div style="display:flex;gap:10px;margin-top:14px"><div class="btn" style="flex:1">Add to shelf</div><div class="btn2" style="width:110px;height:52px">Compare</div></div>
+</div>
+<div class="tab"><div><svg class="i" viewBox="0 0 24 24"><path d="M4 11l8-7 8 7v9H4z"/></svg>Today</div><div class="on"><svg class="i" viewBox="0 0 24 24"><path d="M4 7V4h3M17 4h3v3M20 17v3h-3M7 20H4v-3M7 12h10"/></svg>Scan</div><div><svg class="i" viewBox="0 0 24 24"><path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/></svg>Insights</div><div><svg class="i" viewBox="0 0 24 24"><rect x="4" y="3" width="16" height="18" rx="3"/><path d="M8 8h8M8 12h8M8 16h5"/></svg>Shelf</div></div>
+</div>
+<div class="note"><b>Pattern:</b> the 24-ingredient list becomes one stacked bar (a Swift Charts BarMark), and only the 3 ingredients that matter to <i>you</i> are listed. The full list moves one tap deeper.</div>
+</div>
+
+<!-- 3. INSIGHTS / TRIGGERS -->
+<div><div class="cap">03 · Insights</div>
+<div class="phone"><div class="isl"></div><div class="sb"><span>9:41</span><span>●●● ▮</span></div>
+<div class="scr">
+  <div class="lt">Insights</div>
+  <div style="display:flex;gap:6px;margin:0 0 12px"><span class="chip" style="background:var(--t1);color:#0B0D0E">30 days</span><span class="chip">90 days</span><span class="chip">All</span></div>
+
+  <div class="card">
+    <div class="lbl">Breakouts vs. Daily Lotion use</div>
+    <svg width="100%" height="150" viewBox="0 0 326 150" style="margin-top:10px">
+      <g stroke="#1F2427"><line x1="0" y1="20" x2="326" y2="20"/><line x1="0" y1="70" x2="326" y2="70"/><line x1="0" y1="120" x2="326" y2="120"/></g>
+      <g fill="rgba(60,200,192,.35)">
+        <rect x="6" y="110" width="8" height="10" rx="2"/><rect x="48" y="110" width="8" height="10" rx="2"/><rect x="104" y="110" width="8" height="10" rx="2"/><rect x="118" y="110" width="8" height="10" rx="2"/><rect x="188" y="110" width="8" height="10" rx="2"/><rect x="258" y="110" width="8" height="10" rx="2"/>
+      </g>
+      <path d="M0 112 C 30 112 40 100 62 52 C 76 30 88 96 100 104 C 112 110 124 40 140 30 C 156 24 170 104 186 108 C 204 112 210 60 228 50 C 244 44 250 110 270 112 C 290 114 310 108 326 110" fill="none" stroke="#FF6B5E" stroke-width="2.5"/>
+      <g fill="#FF6B5E"><circle cx="62" cy="52" r="4"/><circle cx="140" cy="30" r="4"/><circle cx="228" cy="50" r="4"/></g>
+      <g font-family="Inter, -apple-system, system-ui, sans-serif" font-size="10" fill="#646C70"><text x="0" y="142">Sep 7</text><text x="150" y="142">Sep 21</text><text x="290" y="142">Today</text></g>
+    </svg>
+    <div style="display:flex;gap:16px;font:500 12px var(--f);color:var(--t2)"><span><span class="dot" style="display:inline-block;background:var(--bad)"></span> Breakout severity</span><span><span class="dot" style="display:inline-block;background:var(--acc)"></span> Used lotion</span></div>
+    <div class="sub" style="margin-top:10px">Every flare came 1 to 2 days after the lotion.</div>
+  </div>
+
+  <div class="card">
+    <div class="lbl" style="margin-bottom:6px">Suspects, ranked</div>
+    <div class="list">
+      <div style="display:block"><div style="display:flex;justify-content:space-between"><span class="h" style="font-size:15px">Fragrance</span><span class="mono bad" style="font-size:13px">87%</span></div><div class="bar" style="margin-top:8px"><i style="width:87%;background:var(--bad)"></i></div></div>
+      <div style="display:block"><div style="display:flex;justify-content:space-between"><span class="h" style="font-size:15px">Linalool</span><span class="mono watch" style="font-size:13px">54%</span></div><div class="bar" style="margin-top:8px"><i style="width:54%;background:var(--watch)"></i></div></div>
+      <div style="display:block"><div style="display:flex;justify-content:space-between"><span class="h" style="font-size:15px">Retinol 0.5%</span><span class="mono" style="font-size:13px;color:var(--t2)">22%</span></div><div class="bar" style="margin-top:8px"><i style="width:22%;background:var(--t3)"></i></div><div class="sub" style="margin-top:6px">Likely purge, not a trigger. Re-check week 6.</div></div>
+    </div>
+  </div>
+</div>
+<div class="tab"><div><svg class="i" viewBox="0 0 24 24"><path d="M4 11l8-7 8 7v9H4z"/></svg>Today</div><div><svg class="i" viewBox="0 0 24 24"><path d="M4 7V4h3M17 4h3v3M20 17v3h-3M7 20H4v-3M7 12h10"/></svg>Scan</div><div class="on"><svg class="i" viewBox="0 0 24 24"><path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/></svg>Insights</div><div><svg class="i" viewBox="0 0 24 24"><rect x="4" y="3" width="16" height="18" rx="3"/><path d="M8 8h8M8 12h8M8 16h5"/></svg>Shelf</div></div>
+</div>
+<div class="note"><b>Pattern:</b> the evidence is shown, not asserted. A LineMark of breakouts over BarMarks of product use proves the link, and confidence is a bar, not just a number.</div>
+</div>
+
+<!-- 4. CHECK-IN -->
+<div><div class="cap">04 · Daily check-in</div>
+<div class="phone"><div class="isl"></div><div class="sb"><span>9:41</span><span>●●● ▮</span></div>
+<div class="scr">
+  <div style="display:flex;justify-content:space-between;align-items:center;margin:0 4px"><span style="color:var(--t2);font:600 16px var(--f)">Cancel</span><span class="pill bg-acc acc">12-day streak</span></div>
+  <div class="lt" style="margin-top:18px">How's your skin today?</div>
+  <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px">
+    <div class="card" style="text-align:center;padding:18px 8px;border:2px solid var(--good);background:var(--good-dim)"><div style="width:36px;height:36px;border-radius:50%;margin:0 auto 10px;background:var(--good)"></div><div class="h" style="font-size:15px">Clear</div></div>
+    <div class="card" style="text-align:center;padding:18px 8px;margin-top:0"><div style="width:36px;height:36px;border-radius:50%;margin:0 auto 10px;background:var(--watch)"></div><div class="h" style="font-size:15px">So-so</div></div>
+    <div class="card" style="text-align:center;padding:18px 8px;margin-top:0"><div style="width:36px;height:36px;border-radius:50%;margin:0 auto 10px;background:var(--bad)"></div><div class="h" style="font-size:15px">Broke out</div></div>
+  </div>
+  <div class="card" style="margin-top:12px">
+    <div class="lbl">Used today · from your routine</div>
+    <div style="display:flex;flex-wrap:wrap;gap:8px;margin-top:12px"><span class="chip" style="background:var(--acc-dim);color:var(--acc)">✓ Cleanser</span><span class="chip" style="background:var(--acc-dim);color:var(--acc)">✓ Toner</span><span class="chip" style="background:var(--acc-dim);color:var(--acc)">✓ Moisturizer</span><span class="chip">Retinol</span><span class="chip">+ Other</span></div>
+  </div>
+  <div class="card">
+    <div class="lbl">Anything else? <span style="color:var(--t3)">Optional</span></div>
+    <div style="display:flex;flex-wrap:wrap;gap:8px;margin-top:12px"><span class="chip">Bad sleep</span><span class="chip">Workout</span><span class="chip">Sun</span><span class="chip">Stress</span><span class="chip">Shaved</span></div>
+  </div>
+  <div style="position:absolute;left:16px;right:16px;bottom:110px"><div class="btn">Save check-in</div></div>
+</div>
+<div class="tab"><div class="on"><svg class="i" viewBox="0 0 24 24"><path d="M4 11l8-7 8 7v9H4z"/></svg>Today</div><div><svg class="i" viewBox="0 0 24 24"><path d="M4 7V4h3M17 4h3v3M20 17v3h-3M7 20H4v-3M7 12h10"/></svg>Scan</div><div><svg class="i" viewBox="0 0 24 24"><path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/></svg>Insights</div><div><svg class="i" viewBox="0 0 24 24"><rect x="4" y="3" width="16" height="18" rx="3"/><path d="M8 8h8M8 12h8M8 16h5"/></svg>Shelf</div></div>
+</div>
+<div class="note"><b>Pattern:</b> three taps, done. Products prefill from the routine, and context tags (sleep, shaving, workout) feed the trigger model. Presented as a sheet over Today.</div>
+</div>
+
+<!-- 5. SHELF -->
+<div><div class="cap">05 · Shelf</div>
+<div class="phone"><div class="isl"></div><div class="sb"><span>9:41</span><span>●●● ▮</span></div>
+<div class="scr">
+  <div style="display:flex;justify-content:space-between;align-items:center"><div class="lt">Shelf</div><span class="acc" style="font:600 16px var(--f);margin-right:4px">+ Add</span></div>
+  <div class="card" style="display:flex;gap:14px;align-items:center">
+    <div><div class="lbl">Shelf score</div><div class="big num" style="font-size:40px;margin-top:6px">71</div></div>
+    <div style="flex:1">
+      <div class="bar" style="height:8px"><i style="width:71%;background:var(--acc)"></i></div>
+      <div class="sub" style="margin-top:8px">Remove 1 product to reach <b class="good">84</b></div>
+    </div>
+  </div>
+  <div class="card" style="border-color:rgba(232,161,92,.3);display:flex;gap:12px;align-items:flex-start">
+    <span class="watch" style="font:700 18px var(--f);line-height:1">!</span>
+    <div><div class="h" style="font-size:15px">Retinol + 2% BHA clash</div><div class="sub" style="margin-top:2px">Same night can wreck your barrier. Alternate nights.</div></div>
+  </div>
+  <div class="card">
+    <div class="list">
+      <div><div style="width:40px;height:40px;border-radius:12px;background:var(--s2)"></div><div style="flex:1"><div class="h" style="font-size:15px">Barrier Moisturizer</div><div class="sub">Moisturize · AM / PM</div></div><span class="pill bg-good good num">86</span></div>
+      <div><div style="width:40px;height:40px;border-radius:12px;background:var(--s2)"></div><div style="flex:1"><div class="h" style="font-size:15px">Gentle Cleanser</div><div class="sub">Cleanse · AM / PM</div></div><span class="pill bg-good good num">82</span></div>
+      <div><div style="width:40px;height:40px;border-radius:12px;background:var(--s2)"></div><div style="flex:1"><div class="h" style="font-size:15px">Retinol 0.5% Serum</div><div class="sub">Treat · PM</div></div><span class="pill bg-watch watch num">64</span></div>
+      <div><div style="width:40px;height:40px;border-radius:12px;background:var(--s2)"></div><div style="flex:1"><div class="h" style="font-size:15px">Daily Lotion</div><div class="sub">Contains your top trigger</div></div><span class="pill bg-bad bad num">31</span></div>
+    </div>
+  </div>
+</div>
+<div class="tab"><div><svg class="i" viewBox="0 0 24 24"><path d="M4 11l8-7 8 7v9H4z"/></svg>Today</div><div><svg class="i" viewBox="0 0 24 24"><path d="M4 7V4h3M17 4h3v3M20 17v3h-3M7 20H4v-3M7 12h10"/></svg>Scan</div><div><svg class="i" viewBox="0 0 24 24"><path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/></svg>Insights</div><div class="on"><svg class="i" viewBox="0 0 24 24"><rect x="4" y="3" width="16" height="18" rx="3"/><path d="M8 8h8M8 12h8M8 16h5"/></svg>Shelf</div></div>
+</div>
+<div class="note"><b>Pattern:</b> one score per product, sorted worst-last, with the fix stated as a number ("remove 1 to reach 84"). Clashes surface above the list, not buried in Routine.</div>
+</div>
+
+</div>
+</body>
+</html>
