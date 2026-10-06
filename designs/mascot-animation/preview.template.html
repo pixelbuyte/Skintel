@@ -142,8 +142,11 @@ function mascotSVG(width, height, time, action, {still = false, travels = false,
   let b = '';
   b += rot(p.leftLeg, pv('leftFoot'), outlined('leftFoot', col('skin')));
   b += rot(p.rightLeg, pv('rightFoot'), outlined('rightFoot', col('skin')));
-  b += outlined('body', 'url(#mascotSkin)');
-  b += `<path d="${d('shade')}" fill="${col('shade', op('shade'))}"/><path d="${d('shine')}" fill="${col('shine', op('shine'))}"/>`;
+  // Shade and shine clipped to the droplet and painted under the outline, matching SkinstelMascot.swift.
+  b += `<defs><clipPath id="mascotBodyClip"><path d="${d('body')}"/></clipPath><linearGradient id="mascotShine" gradientUnits="userSpaceOnUse" x1="239" y1="80" x2="145" y2="222"><stop offset="0" stop-color="${col('shine', op('shine'))}"/><stop offset="1" stop-color="${col('shine', 0)}"/></linearGradient></defs>`;
+  b += `<path d="${d('body')}" fill="url(#mascotSkin)"/>`;
+  b += `<g clip-path="url(#mascotBodyClip)"><path d="${d('shade')}" fill="${col('shade', op('shade'))}"/><path d="${d('shine')}" fill="url(#mascotShine)"/></g>`;
+  b += outlined('body', 'none');
   for (const n of ['leftBlush', 'rightBlush']) { const [cx, cy, rx, ry] = el(n); b += ellipse(cx, cy, rx, ry, col('blush', op('blush'))); }
   const face = `fill="none" stroke="${col('ink')}" stroke-width="${sw('face')}" ${round}`;
   if (action === 'celebrate') b += `<path d="${d('happyLeft')}" ${face}/><path d="${d('happyRight')}" ${face}/>`;
