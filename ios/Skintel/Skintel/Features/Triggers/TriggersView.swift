@@ -13,6 +13,7 @@ struct TriggersView: View {
     @State private var expanded: Set<String> = []
     @State private var demo: PaywallReason?
     @State private var showShelf = false
+    @State private var showAIConsent = false
 
     /// `Correlate.run` needs an ingredient in at least this many "broke out" products.
     private static let threshold = 2
@@ -38,6 +39,7 @@ struct TriggersView: View {
         .overlay(alignment: .topLeading) { BackButton() }
         .onAppear { env.analytics.track(.culpritViewed) }
         .sheet(isPresented: $showShelf) { ShelfTab() }
+        .aiConsentSheet(isPresented: $showAIConsent) { Task { await analyze() } }
         .sheet(item: $demo) { reason in
             FeatureDemoSheet(reason: reason,
                              title: reason == .culprits ? "What you'll see" : "What your journal will show",
@@ -299,6 +301,7 @@ struct TriggersView: View {
 
     private func analyze() async {
         guard env.subscription.entitlement.isPro else { openPaywall(.culprits); return }
+        guard AIConsent.isGranted else { showAIConsent = true; return }
         await env.journal.analyze()
         if case .failed(let e) = env.journal.analysis, e.requiresPaywall { openPaywall(.culprits) }
     }

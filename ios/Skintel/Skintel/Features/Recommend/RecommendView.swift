@@ -321,6 +321,7 @@ struct AssistantView: View {
     @State private var paywall: PaywallReason?
     @State private var addingProduct: SuggestedProduct?
     @State private var tagged: [Product] = []
+    @State private var showAIConsent = false
     @AppStorage(AskModel.key) private var askModel: AskModel = .luna
     @FocusState private var inputFocused: Bool
 
@@ -393,6 +394,7 @@ struct AssistantView: View {
                 .presentationDetents([.medium, .large])
         }
         .sheet(item: $paywall) { PaywallView(reason: $0) }
+        .aiConsentSheet(isPresented: $showAIConsent) { sendDraft() }
         .sheet(item: $addingProduct) { p in
             NavigationStack {
                 ProductFormView(mode: .add(prefill: ScanCandidate(brand: p.brand, productName: p.productName, inci: "", upc: nil, source: "assistant")))
@@ -621,6 +623,8 @@ struct AssistantView: View {
     private func sendDraft() {
         let question = draft.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !question.isEmpty, !isAnswering else { return }
+        // A free account only gets the upgrade card, so nothing personal is sent for it.
+        if isPro && !AIConsent.isGranted { showAIConsent = true; return }
         draft = ""
         Haptics.tap()
         let tags = tagged
@@ -1148,5 +1152,74 @@ private struct AskProGate: View {
                 .background(SKColor.cream, in: Circle())
             Text(text).font(SKFont.sans(15, relativeTo: .subheadline)).foregroundStyle(SKColor.ink)
         }
+    }
+}
+
+// MARK: - AI consent
+
+/// Permission to send personal details to AI providers. Asked once, before the first typed
+/// Ask Skintel question or journal analysis; withdrawn under Settings > Personalization.
+/// Label scans send a product photo or ingredient text and nothing about the person, so they
+/// don't need it, and the suggested questions are answered on the device.
+enum AIConsent {
+    static let key = "ai.consent.v1"
+    static var isGranted: Bool { UserDefaults.standard.bool(forKey: key) }
+}
+
+struct AIConsentSheet: View {
+    @Environment(AppEnvironment.self) private var env
+    @Environment(\.dismiss) private var dismiss
+    @AppStorage(AIConsent.key) private var granted = false
+    let onAllow: () -> Void
+
+    var body: some View {
+        ScrollView {
+            VStack(alignment: .leading, spacing: SKSpace.lg) {
+                Text("Before Skintel answers")
+                    .font(SKFont.section).foregroundStyle(SKColor.ink)
+                    .accessibilityAddTraits(.isHeader)
+                Text("To give answers that fit you, Skintel sends these details to AI providers. They return a reply and nothing else.")
+                    .font(SKFont.sans(16, relativeTo: .body)).foregroundStyle(SKColor.ink)
+                VStack(alignment: .leading, spacing: 10) {
+                    row("bubble.left", "Your question and the chat so far")
+                    row("person.crop.circle", "Your skin type, concerns and age range, and the note you wrote for Ask Skintel")
+                    row("square.stack", "The names and outcomes of products on your shelf, and your routine")
+                    row("calendar", "Your recent skin check-ins, including any notes you added")
+                }
+                Text("The providers are OpenAI, Google and Anthropic, some reached through OpenRouter. Your name and email are not sent. You can turn this off any time in Settings. Answers are not medical advice.")
+                    .font(SKFont.secondary).foregroundStyle(SKColor.muted)
+                Link("Read the privacy policy", destination: env.config.privacyURL)
+                    .font(SKFont.secondary)
+                SKButton(title: "Allow and continue") {
+                    granted = true
+                    dismiss()
+                    onAllow()
+                }
+                SKButton(title: "Not now", kind: .ghost) { dismiss() }
+            }
+            .skPagePadding()
+            .padding(.vertical, SKSpace.xl)
+        }
+        .skPageBackground()
+        .presentationDetents([.large])
+    }
+
+    private func row(_ icon: String, _ text: String) -> some View {
+        HStack(alignment: .top, spacing: SKSpace.sm) {
+            Image(systemName: icon)
+                .font(.system(size: 13, weight: .semibold))
+                .foregroundStyle(SKColor.primary)
+                .frame(width: 26, height: 26)
+                .background(SKColor.cream, in: Circle())
+                .accessibilityHidden(true)
+            Text(text).font(SKFont.sans(15, relativeTo: .subheadline)).foregroundStyle(SKColor.ink)
+        }
+    }
+}
+
+extension View {
+    /// Presents the AI consent sheet; `onAllow` runs once the person has agreed.
+    func aiConsentSheet(isPresented: Binding<Bool>, onAllow: @escaping () -> Void) -> some View {
+        sheet(isPresented: isPresented) { AIConsentSheet(onAllow: onAllow) }
     }
 }

@@ -9,8 +9,9 @@
 	<array/>
 
 	<!-- Data the app sends off-device. All of it is what the user typed or chose, sent to
-	     Skintel's own backend (Supabase + skinstel.com) to make the product work.
-	     Nothing is shared with third parties for their purposes. -->
+	     Skintel's own backend (Supabase + skinstel.com) to make the product work. Some of it is
+	     passed on to AI providers (OpenRouter, OpenAI, Google, Anthropic) to answer the person;
+	     they act as processors and nothing is shared for their own purposes. -->
 	<key>NSPrivacyCollectedDataTypes</key>
 	<array>
 		<dict>
@@ -53,6 +54,33 @@
 			<!-- Products, ingredient lists, journal entries, skin profile. -->
 			<key>NSPrivacyCollectedDataType</key>
 			<string>NSPrivacyCollectedDataTypeOtherUserContent</string>
+			<key>NSPrivacyCollectedDataTypeLinked</key>
+			<true/>
+			<key>NSPrivacyCollectedDataTypeTracking</key>
+			<false/>
+			<key>NSPrivacyCollectedDataTypePurposes</key>
+			<array>
+				<string>NSPrivacyCollectedDataTypePurposeAppFunctionality</string>
+			</array>
+		</dict>
+		<dict>
+			<!-- Skin check-ins and notes, skin type and concerns the person chooses to enter.
+			     Also sent to AI providers for Ask Skintel and journal analysis after consent. -->
+			<key>NSPrivacyCollectedDataType</key>
+			<string>NSPrivacyCollectedDataTypeHealth</string>
+			<key>NSPrivacyCollectedDataTypeLinked</key>
+			<true/>
+			<key>NSPrivacyCollectedDataTypeTracking</key>
+			<false/>
+			<key>NSPrivacyCollectedDataTypePurposes</key>
+			<array>
+				<string>NSPrivacyCollectedDataTypePurposeAppFunctionality</string>
+			</array>
+		</dict>
+		<dict>
+			<!-- Optional age range (for example 25-34). -->
+			<key>NSPrivacyCollectedDataType</key>
+			<string>NSPrivacyCollectedDataTypeOtherDataTypes</string>
 			<key>NSPrivacyCollectedDataTypeLinked</key>
 			<true/>
 			<key>NSPrivacyCollectedDataTypeTracking</key>

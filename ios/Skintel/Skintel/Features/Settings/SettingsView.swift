@@ -63,8 +63,9 @@ struct SettingsView: View {
                     SettingsLinkRow(title: "Terms", url: env.config.termsURL, last: true)
                 }
 
-                // TestFlight and Xcode builds only (StoreKit's app transaction environment);
-                // App Store builds never show this and always use the arch.
+                // Xcode debug builds only. App Review runs in the sandbox, which `isTestBuild` also
+                // matches, so a release build (TestFlight included) never shows this and uses the arch.
+                #if DEBUG
                 if env.subscriptionService.isTestBuild {
                     SettingsGroup(title: "Upgrade screen style",
                                   footer: "Test builds only. App Store builds always use Arch.") {
@@ -78,6 +79,7 @@ struct SettingsView: View {
                         }
                     }
                 }
+                #endif
 
                 Text("Skintel \(Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "") · Not medical advice. Patterns, not prescriptions.")
                     .font(SKFont.caption).foregroundStyle(SKColor.muted).frame(maxWidth: .infinity).multilineTextAlignment(.center)
@@ -460,6 +462,7 @@ private struct PersonalizationView: View {
     @AppStorage(RoutineReminders.checkInOnKey) private var checkInOn = false
     @AppStorage(RoutineReminders.checkInTimeKey) private var checkInMinutes = 20 * 60
     @AppStorage(CheckInPrompt.enabledKey) private var askOnOpen = true
+    @AppStorage(AIConsent.key) private var aiConsent = false
     @State private var tipsReset = false
 
     var body: some View {
@@ -501,6 +504,15 @@ private struct PersonalizationView: View {
                         Text("Ask when I open Skintel").font(SKFont.sans(17, relativeTo: .body)).foregroundStyle(SKColor.ink)
                         Text("Once in the morning and once in the evening").font(SKFont.secondary).foregroundStyle(SKColor.muted)
                     }
+                }
+                .tint(SKColor.primary)
+                .padding(.horizontal, SKSpace.lg).padding(.vertical, 10)
+            }
+
+            SettingsGroup(title: "AI and privacy",
+                          footer: "Ask Skintel and journal analysis send your skin profile, shelf, routine and recent check-ins to AI providers. Turned off, they ask again before sending anything. Suggested questions never leave your iPhone.") {
+                Toggle(isOn: $aiConsent) {
+                    Text("Share details with AI").font(SKFont.sans(17, relativeTo: .body)).foregroundStyle(SKColor.ink)
                 }
                 .tint(SKColor.primary)
                 .padding(.horizontal, SKSpace.lg).padding(.vertical, 10)

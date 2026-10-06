@@ -110,6 +110,8 @@ intentional, do not "fix" it, and do not add real secrets to any xcconfig.
 
 ## Known gotchas
 
+- **App Review has rejected twice** (IAPs not submitted, EULA/privacy metadata, "Pro" naming, privacy).
+  Read `docs/APP_REVIEW_NOTES.md` before touching subscriptions, paywall copy, privacy or store metadata.
 - **Vercel Hobby limit is 12 functions, and `api/` has exactly 12** (every `api/*.ts` not starting
   with `_`). A 13th endpoint fails the deploy. Add logic as a `_module.ts` or fold it into an existing
   function via `?action=` plus a `vercel.json` rewrite (as `apple.ts`, `account.ts`, `recommend.ts` do).
