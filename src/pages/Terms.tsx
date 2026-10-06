@@ -23,7 +23,7 @@ export default function Terms() {
 
       <h2 className="font-display text-2xl mt-8 mb-2">Billing</h2>
       <p>
-        Pro plans renew monthly or yearly via Stripe. You can cancel anytime from Settings; access
+        Skintel+ plans renew monthly or yearly via Stripe. You can cancel anytime from Settings; access
         continues until the end of the current billing period. We don't issue refunds for partial
         periods.
       </p>

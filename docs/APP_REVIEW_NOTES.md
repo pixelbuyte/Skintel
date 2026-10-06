@@ -21,6 +21,28 @@ check-ins store symptoms and Ask Skintel uses OpenRouter, Google and OpenAI; no 
 before sending personal data to AI; account deletion doesn't revoke the Sign in with Apple token
 (needs the founder's `.p8` key in Vercel); `PrivacyInfo.xcprivacy` should list health + age range.
 
+## Code fixes made after the 2 Oct rejection (PR #56)
+
+- Privacy policy and Terms (`src/pages/Privacy.tsx`, `Terms.tsx`): names OpenRouter, Google, OpenAI and Anthropic;
+  new section 3a says exactly what Ask Skintel and journal analysis send; health-related check-ins are no longer
+  described as "not collected"; "Pro" is now Skintel+.
+- In-app consent (`AIConsent` / `AIConsentSheet` in `RecommendView.swift`): asked once before the first typed Ask
+  Skintel question or journal analysis; a toggle in Settings > Personalization withdraws it. Suggested questions and
+  label scans don't need it (they send nothing personal).
+- `PrivacyInfo.xcprivacy`: added Health (check-ins) and Other Data Types (age range).
+- Paywall and onboarding copy: removed "14-day refund via Apple"; "Verdict for your skin" is now "Ingredient verdict".
+- The "Upgrade screen style" picker is `#if DEBUG` only. `isTestBuild` is also true for App Review (sandbox), so it
+  must not ship in a release build.
+- The paywall already shows plan title, length, StoreKit price and Terms/Privacy links.
+- NOT done: revoking the Sign in with Apple token on account deletion (5.1.1(v)). Apple needs an authorization
+  code exchanged for a token, which the Supabase id-token sign-in doesn't keep, so it needs a re-authorize step at
+  deletion plus the founder's `.p8` key in Vercel. Design it first; don't write it blind.
+- Not compiled: there is no Swift toolchain in the agent environment. Confirm with Codemagic `ios-ci`.
+
+Founder still does in ASC: App Privacy answers must match the manifest (Health, Other Data Types, plus the existing
+types, all "linked to you", not used for tracking); subscriptions Ready to Submit and attached to the version;
+group display name and app name spelled "Skintel"; EULA link in the description; Privacy Policy URL.
+
 ## Rules that would have prevented this
 
 1. **IAP products ship with the version.** Create every product with its exact id

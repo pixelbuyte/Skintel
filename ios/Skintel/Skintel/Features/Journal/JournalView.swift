@@ -15,6 +15,7 @@ struct JournalView: View {
     @State private var saving = false
     @State private var error: String?
     @State private var primed = false
+    @State private var showAIConsent = false
     @State private var pendingDelete: JournalEntry?
     @State private var path: [AppDestination] = []
     @FocusState private var notesFocused: Bool
@@ -61,6 +62,7 @@ struct JournalView: View {
             }
         }
         .tint(SKColor.primary)
+        .aiConsentSheet(isPresented: $showAIConsent) { Task { await analyze() } }
         .task {
             await env.journal.load()
             prime()
@@ -238,6 +240,7 @@ struct JournalView: View {
 
     private func analyze() async {
         guard env.subscription.entitlement.isPro else { openPaywall(.journalAnalysis); return }
+        guard AIConsent.isGranted else { showAIConsent = true; return }
         await env.journal.analyze()
         if case .failed(let e) = env.journal.analysis, e.requiresPaywall { openPaywall(.journalAnalysis) }
     }

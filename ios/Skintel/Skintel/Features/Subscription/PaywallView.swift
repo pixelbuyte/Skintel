@@ -216,7 +216,7 @@ struct PaywallView: View {
                 Text("Auto-renews until cancelled in App Store settings. Cancel at least 24 hours before the period ends to avoid renewal.")
                     .font(SKFont.caption).foregroundStyle(SKColor.muted).multilineTextAlignment(.center)
             } else {
-                Text("One payment. Skintel+ ends after three months and never renews. 14-day refund via Apple.")
+                Text("One payment. Skintel+ ends after three months and never renews.")
                     .font(SKFont.caption).foregroundStyle(SKColor.muted).multilineTextAlignment(.center)
             }
         }
@@ -550,7 +550,7 @@ struct FeatureDemo: View {
 
     private var scannerSteps: [String] {
         switch method ?? .barcode {
-        case .barcode: ["Point at a barcode", "Scanning…", "Found it", "Verdict for your skin"]
+        case .barcode: ["Point at a barcode", "Scanning…", "Found it", "Ingredient verdict"]
         case .label: ["Photo of a label", "Reading the label…", "Ingredients found", "Checked for triggers"]
         case .link: ["Paste a link", "Opening the page…", "Ingredients found", "Checked for triggers"]
         }

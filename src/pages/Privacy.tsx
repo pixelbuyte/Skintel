@@ -1,6 +1,6 @@
 import { PublicPage } from '@/components/PublicPage';
 
-const LAST_UPDATED = 'September 17, 2026';
+const LAST_UPDATED = 'October 6, 2026';
 
 function H2({ children }: { children: React.ReactNode }) {
   return <h2 className="font-display text-2xl mt-10 mb-2">{children}</h2>;
@@ -61,7 +61,10 @@ export default function Privacy() {
           photo of the product's packaging (see Section 3 for what happens to that photo).
         </li>
         <li>Breakout/outcome tags you attach to a product ("worked," "unsure," "broke out").</li>
-        <li>Journal entries and routine entries (AM/PM steps) you write or build.</li>
+        <li>
+          Daily skin check-ins (how your skin looks or feels that day, and any note you add),
+          journal entries, and routine entries (AM/PM steps) you write or build.
+        </li>
         <li>
           An optional skin profile: your skin type, the concerns you pick, and an age range (for
           example "25–34") if you choose to share it. We never ask for your date of birth. Ask
@@ -70,14 +73,17 @@ export default function Privacy() {
       </ul>
       <p>
         This content is the entire reason Skintel exists, and it's also the most sensitive data we
-        hold. We do not collect medical or health-diagnosis data — a "breakout" tag is your own
-        subjective label on a product, not a clinical record, and we do not ask about or store any
-        skin condition, diagnosis, or medication.
+        hold. Skin check-ins, your skin type and concerns, and any note you write about your skin
+        are health-related information that you choose to enter. We store them only to run the
+        features you use. We do not ask for or store medical records, clinical diagnoses, or
+        prescriptions, and a "breakout" tag is your own subjective label on a product, not a
+        clinical record. Anything you type into a note is stored as you wrote it, so leave out
+        anything you would rather not share.
       </p>
 
       <H3>2.3 Payment information</H3>
       <p>
-        If you subscribe to Pro, payment is handled entirely by Stripe (on the web) or Apple's
+        If you subscribe to Skintel+, payment is handled entirely by Stripe (on the web) or Apple's
         StoreKit/App Store (on iOS). We never see, receive, or store your full card number, card
         expiry, CVV, or Apple ID password. What we store on our side is limited to: which plan
         you're on, its status (active, canceled, etc.), and an opaque customer/subscription
@@ -108,13 +114,34 @@ export default function Privacy() {
       <p>
         When you scan a product's barcode, we look it up against a product database and our own
         cache. When you scan a photo of a product's packaging instead — because the barcode is
-        missing or unreadable — that photo is sent to Anthropic's API, which reads the label and
-        returns the brand, product name, and ingredient list as structured text. The photo itself is
-        not stored by Skintel after that request completes; only the resulting text (the ingredient
-        list) is saved to your account, the same as if you'd pasted it in yourself. Anthropic
-        processes this under its commercial API terms, which exclude API inputs from being used to
-        train their models, and we do not attach your name, email, or account identifier to the
-        image or text we send.
+        missing or unreadable — that photo is sent to an AI provider, which reads the label and
+        returns the brand, product name, and ingredient list as structured text. We route these
+        requests through OpenRouter to models from Google (Gemini) and OpenAI, and fall back to
+        Anthropic's API if OpenRouter is unavailable. The photo itself is not stored by Skintel
+        after that request completes; only the resulting text (the ingredient list) is saved to
+        your account, the same as if you'd pasted it in yourself. We do not attach your name,
+        email, or account identifier to the image or text we send. Product links and ingredient
+        text you paste for a verdict are handled the same way.
+      </p>
+
+      <H2>3a. Ask Skintel and journal analysis</H2>
+      <p>
+        Ask Skintel (the in-app assistant) and the journal analysis in Triggers use AI models to
+        answer you. When you ask a question, we send the provider your question and the earlier
+        messages in that chat, together with context from your account so the answer is relevant:
+        your skin type, concerns and age range (if you set them), the note you wrote for Ask
+        Skintel, the names and outcomes of products on your shelf, your AM/PM routine, and your most
+        recent skin check-ins including any notes you added. Journal analysis sends your check-ins
+        from the last 90 days and your product names and outcomes. We do not send your name, email
+        address, or account identifier.
+      </p>
+      <p>
+        Ask Skintel answers are generated by Luna (OpenAI, through OpenRouter, with Google Gemini as
+        a fallback) or Sol (Anthropic's Claude, through OpenRouter, with Luna as a fallback).
+        Journal analysis uses Anthropic's API. These providers process the data only to return a
+        response to us. The app asks for your permission before it first sends this information,
+        you can use Skintel without it, and you can withdraw permission in Settings. Chat history is
+        kept on your device only. Answers are informational and are not medical advice.
       </p>
 
       <H2>4. How we use your information</H2>
@@ -135,9 +162,9 @@ export default function Privacy() {
 
       <H2>5. Automated processing — what it is and isn't</H2>
       <p>
-        Skintel's "verdicts," culprit detection, and routine-conflict warnings are generated by a
-        mix of rule-based ingredient logic and, for photo scans, Anthropic's API for OCR/label
-        reading as described in Section 3. None of this is used to make — or feed into — any legal
+        Skintel's "verdicts," trigger detection, and routine-conflict warnings are generated by a
+        mix of rule-based ingredient logic and, for photo scans, Ask Skintel and journal analysis,
+        the AI providers described in Sections 3 and 3a. None of this is used to make — or feed into — any legal
         or similarly significant automated decision about you (for example, nothing related to
         credit, employment, insurance, or access to essential services). It is informational
         skincare guidance based on ingredient data and the outcomes you choose to tag, not medical
@@ -162,7 +189,9 @@ export default function Privacy() {
       <ul className="list-disc pl-5 space-y-1">
         <li><strong>Supabase</strong> — our database and authentication provider. Your account data and content live here, in a Postgres database hosted in the United States (see Section 9 on international transfers), protected by row-level security (Section 9).</li>
         <li><strong>Vercel</strong> — hosts the web app and all API routes, and provides the standard request logging described in Section 2.4 and the aggregated analytics described in Section 8.</li>
-        <li><strong>Anthropic</strong> — processes ingredient text and, for photo scans, the packaging photo, as described in Section 3.</li>
+        <li><strong>OpenRouter</strong> — routes AI requests (label photos, ingredient text, and Ask Skintel questions with the context in Section 3a) to the model providers below.</li>
+        <li><strong>Google</strong> (Gemini models) and <strong>OpenAI</strong> — process those AI requests when OpenRouter selects their models, as described in Sections 3 and 3a.</li>
+        <li><strong>Anthropic</strong> — processes label photos, ingredient text, Ask Skintel questions (Sol) and journal analysis, as described in Sections 3 and 3a.</li>
         <li><strong>Stripe</strong> — processes web subscription payments and holds your payment method on our behalf; we receive back only subscription status and identifiers, never full card details.</li>
         <li><strong>Apple</strong> — processes iOS subscription payments through the App Store/StoreKit; we receive back a signed transaction we verify server-side, never your Apple ID credentials or card details.</li>
       </ul>
@@ -200,7 +229,7 @@ export default function Privacy() {
         are hashed by Supabase's authentication system.
       </p>
       <p>
-        Our infrastructure (Supabase's database, Vercel's hosting, Anthropic's API) is based in the
+        Our infrastructure (Supabase's database, Vercel's hosting, and our AI providers) is based in the
         United States. If you're accessing Skintel from the EU, UK, or elsewhere outside the US,
         your data will be transferred to and processed in the US. By using Skintel, you understand
         that your information will be processed in the United States, which may have different data

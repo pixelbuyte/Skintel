@@ -193,7 +193,7 @@ struct CameraStepView: View {
                     VStack(alignment: .leading, spacing: SKSpace.lg) {
                         stepRow(1, "Point at any barcode — front or back")
                         stepRow(2, "AI reads the full ingredient list")
-                        stepRow(3, "Verdict for your skin in seconds")
+                        stepRow(3, "Ingredient verdict in seconds")
                     }
 
                     Text("Skintel uses the camera to scan barcodes and photograph ingredient labels.")
