@@ -86,12 +86,62 @@ package has its own suite: `cd SkintelCore && swift test` (works on Linux too).
 
 Apple's Root CA G3 is embedded in `api/_apple.ts` (and kept at `api/_apple/AppleRootCA-G3.cer`); nothing to configure.
 
+### Sign in with Apple account deletion
+
+Native sign-in with an ID token does not give Supabase an Apple refresh token to revoke.
+Account deletion therefore asks the user to confirm with Apple again, sends that fresh
+authorization code and nonce to the authenticated server, and exchanges and revokes the
+Apple token **before** deleting the Supabase account. Tokens are not stored or logged.
+
+1. Apple Developer → Certificates, Identifiers & Profiles → Keys: create a key with
+   **Sign in with Apple** enabled and configure its primary App ID as `com.skintel.app`.
+   Keep the downloaded `.p8` key private. This is a Sign in with Apple key, not the
+   App Store Connect key used for signing builds or verifying purchases.
+2. Vercel → Skintel project → Settings → Environment Variables: configure these
+   server-only variables for Production and the preview used for testing:
+
+   | Variable | Value |
+   |---|---|
+   | `APPLE_SIGN_IN_TEAM_ID` | Apple Developer team ID |
+   | `APPLE_SIGN_IN_KEY_ID` | Sign in with Apple key ID |
+   | `APPLE_SIGN_IN_PRIVATE_KEY` | Complete `.p8` PEM; real newlines or escaped `\n` are accepted |
+
+   The native client ID is fixed to `com.skintel.app`. No private key belongs in an
+   iOS config file, the browser bundle, git, or chat. Redeploy the API after configuring
+   its variables so the deployment has the current values.
+3. Test using a disposable Apple-linked account in the iOS app: You → Account & data
+   → Delete account → type DELETE → confirm with the same Apple account. Verify the
+   account and its products, ingredients, journal and subscription record are gone,
+   and Apple no longer lists Skintel under Sign in with Apple.
+4. Test Cancel, a different Apple account, an expired confirmation and an Apple outage.
+   Each must preserve the account and its data. Also test an email-only account:
+   it deletes without an Apple prompt or Apple key.
+
+Without the key, Apple-linked deletion reports temporarily unavailable and deletes
+nothing. Older clients cannot bypass revocation. Apple-linked accounts deleting from
+the web are directed to the iOS flow; email-only web deletion remains available.
+Deletion does not cancel App Store billing; the existing separate cancellation notice
+remains in place. The database's `ON DELETE CASCADE` constraints perform the account
+data deletion atomically with the auth user (`supabase/schema.sql` and
+`supabase/migration_journal.sql`). No database migration is required.
+
+Offline API verification: `npm run test:account` compiles the API with strict TypeScript
+and tests Apple/Supabase requests using mocks; it never deletes a real account.
+
 ## 6. Before submitting
 
 - Detach the StoreKit configuration from the scheme's Run action (or archive — archives never use it).
 - Run `/appstore-check` and `/ship-check` (Claude Code skills in `.claude/skills/`).
 - Work through `APP_STORE_CHECKLIST.md`.
 - Screenshots: 6.7" and 6.1" sets. The design previews in `designs/previews/` are not screenshots of the app.
+- For the current rejection, read the full 2.3.8 and 5.1.1 Messages and the attached
+  screenshots before resubmitting; titles alone do not establish that a fix is sufficient.
+- Submit all three purchase products with review screenshots, and populate App Store
+  Connect's Privacy Policy URL plus the App Description's Terms of Use link (or custom
+  EULA). In-app legal links do not populate those metadata fields.
+- Release from `main` only after `ios-ci` is green. Build 42 predates PR #62's privacy
+  and paywall changes; use a new build containing that merge and the deletion fix.
+  Build numbers are assigned by the release workflow, never hard-coded in source.
 
 ## Things that intentionally are not set up
 

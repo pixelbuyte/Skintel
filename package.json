@@ -6,6 +6,7 @@
   "scripts": {
     "dev": "vite",
     "build": "tsc -b && vite build",
+    "test:account": "node --test tests/account-deletion.test.mjs",
     "lint": "eslint .",
     "preview": "vite preview",
     "ios:build": "npm run build && cap sync ios",

@@ -15,7 +15,7 @@ Status legend: ✅ done in code · 🔧 needs an external step (see `IOS_SETUP.m
 | Privacy manifest | ✅ | `PrivacyInfo.xcprivacy`: no tracking; email, name, user id, user content, photos (OCR), purchase history; UserDefaults CA92.1 |
 | App Privacy answers | 🔧 | Must match the manifest when filling in App Store Connect |
 | Sign in with Apple | ✅ / 🔧 | Native `SignInWithAppleButton` + nonce; Supabase Apple provider needs `com.skintel.app` in client ids |
-| Account deletion in-app | ✅ | Settings → Delete account → type DELETE → `/api/delete-account` → local sign-out |
+| Account deletion in-app | ✅ / 🔧 | You → Account & data → type DELETE → Apple-linked accounts confirm with Apple → server exchanges/revokes Apple token → auth delete with data cascades → local sign-out. Sign in with Apple key required in Vercel; see `IOS_SETUP.md` §5. Live Apple/device verification still required. |
 | Restore purchases | ✅ | Paywall footer and Settings → `AppStore.sync()` + `currentEntitlements` → backend verify |
 | StoreKit products | 🔧 | Create the three products in App Store Connect (`IOS_SETUP.md` §3) |
 | Prices from the store | ✅ | `Product.displayPrice` everywhere; nothing hard-coded |

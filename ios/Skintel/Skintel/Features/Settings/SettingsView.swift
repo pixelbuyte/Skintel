@@ -1,3 +1,4 @@
+import AuthenticationServices
 import StoreKit
 import SwiftUI
 import UserNotifications
@@ -635,6 +636,10 @@ private struct AccountDataView: View {
     @State private var deleteConfirmText = ""
     @State private var deleting = false
     @State private var deleteError: String?
+    @State private var showAppleDelete = false
+    @State private var appleDeleteUserID: String?
+    @State private var appleDeleteNonce: String?
+    @State private var appleDeleteError: String?
 
     var body: some View {
         SettingsPage(title: "Account & data") {
@@ -711,7 +716,7 @@ private struct AccountDataView: View {
         } message: { Text("Your shelf and journal stay in your account.") }
         .alert("Delete your account?", isPresented: $showDelete) {
             TextField("Type DELETE to confirm", text: $deleteConfirmText)
-            Button("Delete everything", role: .destructive) { Task { await deleteAccount() } }
+            Button("Delete everything", role: .destructive) { Task { await beginDeletion() } }
                 .disabled(deleteConfirmText != "DELETE")
             Button("Cancel", role: .cancel) { deleteConfirmText = "" }
         } message: {
@@ -720,6 +725,11 @@ private struct AccountDataView: View {
         .alert("Couldn't delete", isPresented: Binding(get: { deleteError != nil }, set: { if !$0 { deleteError = nil } })) {
             Button("OK", role: .cancel) {}
         } message: { Text(deleteError ?? "") }
+        .sheet(isPresented: $showAppleDelete, onDismiss: {
+            appleDeleteNonce = nil; appleDeleteUserID = nil; deleteConfirmText = ""
+        }) {
+            appleDeletionConfirmation
+        }
         .overlay { if deleting { ZStack { Color.black.opacity(0.3).ignoresSafeArea(); ProgressView().tint(.white) } } }
         .task { await env.subscription.load() }
     }
@@ -751,11 +761,80 @@ private struct AccountDataView: View {
         }
     }
 
-    private func deleteAccount() async {
+    private var appleDeletionConfirmation: some View {
+        VStack(alignment: .leading, spacing: SKSpace.lg) {
+            Text("Confirm with Apple").font(SKFont.pageTitle).foregroundStyle(SKColor.ink)
+            Text("Use the Apple account you used for Skintel. Continuing disconnects Sign in with Apple and permanently deletes your Skintel account and data. App Store subscriptions must still be cancelled separately.")
+                .font(SKFont.secondary).foregroundStyle(SKColor.muted)
+            if let appleDeleteError {
+                Text(appleDeleteError).font(SKFont.secondary).foregroundStyle(SKColor.badFg)
+            }
+            SignInWithAppleButton(.continue) { request in
+                let nonce = AppleNonce.random()
+                appleDeleteNonce = nonce
+                request.requestedScopes = []
+                request.nonce = AppleNonce.sha256(nonce)
+            } onCompletion: { result in
+                Task { await handleAppleDeletion(result) }
+            }
+            .signInWithAppleButtonStyle(.black)
+            .frame(height: 52)
+            .clipShape(RoundedRectangle(cornerRadius: SKRadius.button, style: .continuous))
+            .accessibilityLabel("Confirm with Apple and delete account")
+            .disabled(deleting)
+            SKButton(title: "Cancel", kind: .secondary) { showAppleDelete = false }
+        }
+        .padding(SKSpace.lg)
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+        .skPageBackground()
+        .presentationDetents([.large])
+    }
+
+    private func beginDeletion() async {
+        guard !deleting else { return }
+        deleting = true; deleteError = nil; appleDeleteError = nil
+        defer { deleting = false }
+        do {
+            // Use the current server identity, including linked Apple accounts, rather
+            // than a cached session or user-editable profile metadata.
+            let requirements = try await env.api.accountDeletionRequirements()
+            if let appleUserID = requirements.appleUserID {
+                appleDeleteUserID = appleUserID
+                showAppleDelete = true
+            } else {
+                await deleteAccount()
+            }
+        } catch {
+            deleteError = (error as? APIError)?.userMessage ?? error.localizedDescription
+        }
+    }
+
+    private func handleAppleDeletion(_ result: Result<ASAuthorization, Error>) async {
+        let nonce = appleDeleteNonce
+        appleDeleteNonce = nil
+        switch result {
+        case .failure(let error):
+            if (error as? ASAuthorizationError)?.code == .canceled { return }
+            appleDeleteError = "Apple confirmation didn't complete. Your account has not been deleted."
+        case .success(let authorization):
+            guard let credential = authorization.credential as? ASAuthorizationAppleIDCredential,
+                  credential.user == appleDeleteUserID,
+                  let codeData = credential.authorizationCode,
+                  let code = String(data: codeData, encoding: .utf8), !code.isEmpty,
+                  let nonce else {
+                appleDeleteError = "Confirm with the Apple account you used for Skintel. Your account has not been deleted."
+                return
+            }
+            showAppleDelete = false
+            await deleteAccount(appleAuthorizationCode: code, appleNonce: nonce)
+        }
+    }
+
+    private func deleteAccount(appleAuthorizationCode: String? = nil, appleNonce: String? = nil) async {
         deleting = true
         defer { deleting = false; deleteConfirmText = "" }
         do {
-            try await env.api.deleteAccount()
+            try await env.api.deleteAccount(appleAuthorizationCode: appleAuthorizationCode, appleNonce: appleNonce)
             env.session.signOutLocally()
         } catch {
             deleteError = (error as? APIError)?.userMessage ?? error.localizedDescription

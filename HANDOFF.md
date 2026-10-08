@@ -155,8 +155,10 @@ your shelf, routine and check-ins.
   - No in-app disclosure/consent before Ask Skintel sends personal data to third-party AI (guideline 5.1.2(i)).
   - Privacy policy (`src/pages/Privacy.tsx`) names Anthropic only; it must also name OpenRouter, Google and
     OpenAI, and stop saying no health data is collected (check-ins store symptoms).
-  - Account deletion (`api/account.ts`) doesn't revoke the Sign in with Apple token (5.1.1(v)); needs a
-    Sign in with Apple key in Vercel env.
+  - Account deletion now has a native Apple reconfirmation and server token-revocation
+    path. It still needs the Sign in with Apple key in Vercel env and live-device
+    verification (`IOS_SETUP.md` §5). Do not call the 5.1.1 rejection resolved without
+    reading Apple's full message.
   - Privacy manifest should list health (symptoms) and age range.
   - Remove "14-day refund via Apple" from the founding plan copy; reword "Verdict for your skin".
 
