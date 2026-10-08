@@ -1,0 +1,13 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(swiftc -parse *)",
+      "Bash(/opt/swift/usr/bin/swiftc -parse *)",
+      "mcp__github__pull_request_read",
+      "mcp__Vercel__get_runtime_logs",
+      "mcp__github__list_pull_requests",
+      "mcp__Mobbin__search_screens",
+      "mcp__Claude_Code_Remote__list_repos"
+    ]
+  }
+}
