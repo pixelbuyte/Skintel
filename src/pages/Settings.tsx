@@ -115,7 +115,10 @@ export default function Settings() {
         method: 'POST',
         headers: { Authorization: `Bearer ${session.access_token}` },
       });
-      if (!res.ok) throw new Error('Delete failed');
+      if (!res.ok) {
+        const data = await res.json();
+        throw new Error(data?.error ?? 'Delete failed');
+      }
       await signOut();
       nav('/');
     } catch (e: any) {

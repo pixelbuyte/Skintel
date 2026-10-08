@@ -107,8 +107,17 @@ public struct SkintelAPI: Sendable {
         return r.data
     }
 
-    public func deleteAccount() async throws {
-        try await send("POST", "delete-account", [:], body: [String: String]())
+    public struct AccountDeletionRequirements: Decodable, Sendable {
+        public let appleUserID: String?
+    }
+
+    public func accountDeletionRequirements() async throws -> AccountDeletionRequirements {
+        try await get(AccountDeletionRequirements.self, "account", ["action": "deletion-requirements"])
+    }
+
+    public func deleteAccount(appleAuthorizationCode: String? = nil, appleNonce: String? = nil) async throws {
+        struct Body: Encodable { let appleAuthorizationCode: String?; let appleNonce: String? }
+        try await send("POST", "delete-account", [:], body: Body(appleAuthorizationCode: appleAuthorizationCode, appleNonce: appleNonce))
     }
 
     // MARK: Apple IAP

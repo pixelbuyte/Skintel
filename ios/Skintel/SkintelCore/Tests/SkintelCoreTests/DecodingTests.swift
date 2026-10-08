@@ -6,6 +6,13 @@ private func decode<T: Decodable>(_ t: T.Type, _ json: String) throws -> T {
     try JSONCoding.decode(T.self, from: Data(json.utf8))
 }
 
+@Test func accountDeletionRequirementsDecodeAppleAndEmailAccounts() throws {
+    let apple = try decode(SkintelAPI.AccountDeletionRequirements.self, #"{"appleUserID":"apple-user"}"#)
+    #expect(apple.appleUserID == "apple-user")
+    let email = try decode(SkintelAPI.AccountDeletionRequirements.self, #"{"appleUserID":null}"#)
+    #expect(email.appleUserID == nil)
+}
+
 @Test func decodesPostgRESTProductWithNestedIngredientsSorted() throws {
     let json = """
     [{"id":"p1","user_id":"u","brand":"CeraVe","product_name":"Foaming Cleanser","category":"Cleanser",
