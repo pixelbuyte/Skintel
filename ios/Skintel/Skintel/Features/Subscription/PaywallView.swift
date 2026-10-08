@@ -213,10 +213,10 @@ struct PaywallView: View {
                 Text("\(trial.terms) Auto-renews until cancelled in App Store settings. Cancel at least 24 hours before the trial ends to avoid being charged.")
                     .font(SKFont.caption).foregroundStyle(SKColor.muted).multilineTextAlignment(.center)
             } else if selected != .founding {
-                Text("Auto-renews until cancelled in App Store settings. Cancel at least 24 hours before the period ends to avoid renewal.")
+                Text("\(selected == .proMonthly ? "Skintel+ Monthly" : "Skintel+ Yearly") · 1 \(selected == .proMonthly ? "month" : "year") · \(s.product(selected)?.displayPrice ?? "")\(service?.periodText(selected) ?? ""). Auto-renews until cancelled in App Store settings. Cancel at least 24 hours before the period ends to avoid renewal.")
                     .font(SKFont.caption).foregroundStyle(SKColor.muted).multilineTextAlignment(.center)
             } else {
-                Text("One payment. Skintel+ ends after three months and never renews. 14-day refund via Apple.")
+                Text("One payment. Skintel+ ends after three months and never renews.")
                     .font(SKFont.caption).foregroundStyle(SKColor.muted).multilineTextAlignment(.center)
             }
         }
@@ -265,8 +265,8 @@ struct PaywallView: View {
     private var footer: some View {
         HStack(spacing: SKSpace.xl) {
             Button("Restore") { Task { await service?.restore() } }
-            Link("Terms", destination: env.config.termsURL)
-            Link("Privacy", destination: env.config.privacyURL)
+            Link("Terms of Use", destination: env.config.termsURL)
+            Link("Privacy Policy", destination: env.config.privacyURL)
         }
         .font(SKFont.sans(14, weight: .medium)).foregroundStyle(SKColor.muted).underline()
         .padding(.top, SKSpace.sm)

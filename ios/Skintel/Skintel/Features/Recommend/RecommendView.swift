@@ -322,6 +322,9 @@ struct AssistantView: View {
     @State private var addingProduct: SuggestedProduct?
     @State private var tagged: [Product] = []
     @AppStorage(AskModel.key) private var askModel: AskModel = .luna
+    /// Set once the user agrees to Ask Skintel sending their data to third-party AI (5.1.2(i)).
+    @AppStorage("ask.aiConsent") private var aiConsent = false
+    @State private var showAIConsent = false
     @FocusState private var inputFocused: Bool
 
     private static let upsellText = "Typing your own questions is part of Skintel+. The suggested questions stay free."
@@ -393,6 +396,12 @@ struct AssistantView: View {
                 .presentationDetents([.medium, .large])
         }
         .sheet(item: $paywall) { PaywallView(reason: $0) }
+        .alert("Send your question to AI?", isPresented: $showAIConsent) {
+            Button("Allow") { aiConsent = true; sendDraft() }
+            Button("Not now", role: .cancel) {}
+        } message: {
+            Text("To answer, Ask Skintel sends your question, your shelf and routine, and your check-in notes to third-party AI providers through OpenRouter (including Google, OpenAI and Anthropic). We use them only to write your answer, never for ads. You can read the details in our Privacy Policy.")
+        }
         .sheet(item: $addingProduct) { p in
             NavigationStack {
                 ProductFormView(mode: .add(prefill: ScanCandidate(brand: p.brand, productName: p.productName, inci: "", upc: nil, source: "assistant")))
@@ -621,6 +630,8 @@ struct AssistantView: View {
     private func sendDraft() {
         let question = draft.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !question.isEmpty, !isAnswering else { return }
+        // Only Skintel+ questions leave the device, so only they need the disclosure first.
+        if isPro && !aiConsent { showAIConsent = true; return }
         draft = ""
         Haptics.tap()
         let tags = tagged
