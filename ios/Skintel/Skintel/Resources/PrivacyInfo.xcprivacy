@@ -63,6 +63,20 @@
 			</array>
 		</dict>
 		<dict>
+			<!-- Check-ins: how skin felt, symptoms, flare notes. Sent to Skintel's backend and, when
+			     the user asks Ask Skintel, to AI providers to write the answer. -->
+			<key>NSPrivacyCollectedDataType</key>
+			<string>NSPrivacyCollectedDataTypeHealth</string>
+			<key>NSPrivacyCollectedDataTypeLinked</key>
+			<true/>
+			<key>NSPrivacyCollectedDataTypeTracking</key>
+			<false/>
+			<key>NSPrivacyCollectedDataTypePurposes</key>
+			<array>
+				<string>NSPrivacyCollectedDataTypePurposeAppFunctionality</string>
+			</array>
+		</dict>
+		<dict>
 			<!-- A photo of an ingredient label is uploaded for OCR and not retained. -->
 			<key>NSPrivacyCollectedDataType</key>
 			<string>NSPrivacyCollectedDataTypePhotosorVideos</string>

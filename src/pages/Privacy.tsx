@@ -98,7 +98,7 @@ export default function Privacy() {
       <ul className="list-disc pl-5 space-y-1">
         <li>Full legal name, home address, or phone number.</li>
         <li>Date of birth (beyond the age confirmation described in Section 10).</li>
-        <li>Medical records, health diagnoses, or insurance information.</li>
+        <li>Medical records, clinical diagnoses, or insurance information. (Skin check-ins you log yourself — how your skin felt, symptoms, flare notes — are health-related data you choose to give us, and we treat them as sensitive.)</li>
         <li>Precise geolocation.</li>
         <li>Photos of your face or skin — the camera is used only to photograph product packaging.</li>
         <li>Advertising identifiers (IDFA) or any data used to build an ad profile.</li>
@@ -163,6 +163,7 @@ export default function Privacy() {
         <li><strong>Supabase</strong> — our database and authentication provider. Your account data and content live here, in a Postgres database hosted in the United States (see Section 9 on international transfers), protected by row-level security (Section 9).</li>
         <li><strong>Vercel</strong> — hosts the web app and all API routes, and provides the standard request logging described in Section 2.4 and the aggregated analytics described in Section 8.</li>
         <li><strong>Anthropic</strong> — processes ingredient text and, for photo scans, the packaging photo, as described in Section 3.</li>
+        <li><strong>OpenRouter, Google and OpenAI</strong> — when you use Ask Skintel (Skintel+), your question, shelf, routine and check-in notes are sent through OpenRouter to AI models from Google, OpenAI or Anthropic to write your answer. In the iOS app we ask for your permission before the first question is sent. We send these providers the text needed for the answer; we do not use it for advertising.</li>
         <li><strong>Stripe</strong> — processes web subscription payments and holds your payment method on our behalf; we receive back only subscription status and identifiers, never full card details.</li>
         <li><strong>Apple</strong> — processes iOS subscription payments through the App Store/StoreKit; we receive back a signed transaction we verify server-side, never your Apple ID credentials or card details.</li>
       </ul>
