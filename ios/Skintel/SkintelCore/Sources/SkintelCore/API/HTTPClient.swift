@@ -25,31 +25,57 @@ public struct HTTPClient: Sendable {
     public func send(_ request: URLRequest) async throws -> Response {
         var req = request
         if req.timeoutInterval == 60 { req.timeoutInterval = timeout }
+        // A GET is safe to repeat. One quick retry rides out a dropped or stalled connection
+        // (common on cellular, and on the first request after the app resumes) instead of
+        // failing the whole screen with "The request timed out."
+        let attempts = (req.httpMethod ?? "GET") == "GET" ? 2 : 1
+        for attempt in 1...attempts {
+            do {
+                return try await perform(req)
+            } catch let e as URLError where attempt < attempts && Self.isTransient(e) {
+                logger?("↻ retry \(req.url?.path ?? "") (\(e.code.rawValue))")
+                try? await Task.sleep(nanoseconds: 400_000_000)
+            } catch let e as URLError {
+                throw Self.map(e)
+            } catch let e as APIError {
+                throw e
+            } catch is CancellationError {
+                throw APIError.cancelled
+            } catch {
+                throw APIError.network(error.localizedDescription)
+            }
+        }
+        throw APIError.network("The request timed out.")
+    }
+
+    private func perform(_ req: URLRequest) async throws -> Response {
         logger?("→ \(req.httpMethod ?? "GET") \(req.url?.path ?? "")")
-        do {
-            let (data, resp) = try await session.data(for: req)
-            guard let http = resp as? HTTPURLResponse else {
-                throw APIError.network("Not an HTTP response")
-            }
-            var headers: [String: String] = [:]
-            for (k, v) in http.allHeaderFields {
-                if let ks = k as? String, let vs = v as? String { headers[ks.lowercased()] = vs }
-            }
-            logger?("← \(http.statusCode) \(req.url?.path ?? "") (\(data.count)b)")
-            return Response(status: http.statusCode, data: data, headers: headers)
-        } catch let e as APIError {
-            throw e
-        } catch let e as URLError {
-            switch e.code {
-            case .cancelled: throw APIError.cancelled
-            case .notConnectedToInternet, .networkConnectionLost, .dataNotAllowed: throw APIError.offline
-            case .timedOut: throw APIError.network("The request timed out.")
-            default: throw APIError.network(e.localizedDescription)
-            }
-        } catch is CancellationError {
-            throw APIError.cancelled
-        } catch {
-            throw APIError.network(error.localizedDescription)
+        let (data, resp) = try await session.data(for: req)
+        guard let http = resp as? HTTPURLResponse else {
+            throw APIError.network("Not an HTTP response")
+        }
+        var headers: [String: String] = [:]
+        for (k, v) in http.allHeaderFields {
+            if let ks = k as? String, let vs = v as? String { headers[ks.lowercased()] = vs }
+        }
+        logger?("← \(http.statusCode) \(req.url?.path ?? "") (\(data.count)b)")
+        return Response(status: http.statusCode, data: data, headers: headers)
+    }
+
+    /// Failures a second attempt can plausibly fix. Being offline is not one of them.
+    static func isTransient(_ e: URLError) -> Bool {
+        switch e.code {
+        case .timedOut, .networkConnectionLost, .cannotConnectToHost, .cannotFindHost, .dnsLookupFailed: true
+        default: false
+        }
+    }
+
+    static func map(_ e: URLError) -> APIError {
+        switch e.code {
+        case .cancelled: .cancelled
+        case .notConnectedToInternet, .networkConnectionLost, .dataNotAllowed: .offline
+        case .timedOut: .network("The request timed out.")
+        default: .network(e.localizedDescription)
         }
     }
 }
