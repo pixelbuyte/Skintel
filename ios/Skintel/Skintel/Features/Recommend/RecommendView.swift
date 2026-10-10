@@ -28,6 +28,9 @@ struct RecommendView: View {
     @State private var budget = "mid"
     @State private var notes = ""
     @State private var result: Loadable<RecommendResult> = .idle
+    /// Set once the user agrees to "Find a product" sending shelf data to a third-party AI (5.1.2(i)).
+    @AppStorage("recommend.aiConsent") private var aiConsent = false
+    @State private var showAIConsent = false
 
     var body: some View {
         ScrollView {
@@ -128,10 +131,17 @@ struct RecommendView: View {
         .skPageBackground()
         .toolbar(.hidden, for: .navigationBar)
         .overlay(alignment: .topLeading) { BackButton().padding(.top, 2) }
+        .alert("Use AI to find products?", isPresented: $showAIConsent) {
+            Button("Allow") { aiConsent = true; Task { await run() } }
+            Button("Not now", role: .cancel) {}
+        } message: {
+            Text("To pick products, Skintel sends the ingredients from your shelf history, your goal, budget and notes to a third-party AI provider (Anthropic). We use them only to write your suggestions, never for ads. Details are in our Privacy Policy.")
+        }
     }
 
     private func run() async {
         guard env.subscription.entitlement.isPro else { openPaywall(.recommend); return }
+        guard aiConsent else { showAIConsent = true; return }
         result = .loading
         let b = budgets.first { $0.id == budget }
         do {
