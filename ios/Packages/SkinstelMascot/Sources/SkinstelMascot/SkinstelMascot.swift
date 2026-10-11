@@ -162,9 +162,15 @@ enum MascotRenderer {
                 Gradient.Stop(color: color("skinDeep", art), location: 1),
             ]),
             startPoint: CGPoint(x: g[0], y: g[1]), endPoint: CGPoint(x: g[2], y: g[3])))
+        // Shade and shine are clipped to the droplet so they never spill past its edge, and are
+        // painted before the outline so the stroke stays one clean line.
+        var skinLayer = body
+        skinLayer.clip(to: droplet)
+        skinLayer.fill(path("shade", art), with: .color(color("shade", art, opacity: art.opacity("shade"))))
+        skinLayer.fill(path("shine", art), with: .linearGradient(
+            Gradient(colors: [color("shine", art, opacity: art.opacity("shine")), color("shine", art, opacity: 0)]),
+            startPoint: CGPoint(x: 239, y: 80), endPoint: CGPoint(x: 145, y: 222)))
         outlined(droplet, fill: nil, ink: ink, width: rig.outlineWidth, in: &body)
-        body.fill(path("shade", art), with: .color(color("shade", art, opacity: art.opacity("shade"))))
-        body.fill(path("shine", art), with: .color(color("shine", art, opacity: art.opacity("shine"))))
         let blush = color("blush", art, opacity: art.opacity("blush"))
         for name in ["leftBlush", "rightBlush"] {
             let e = art.ellipse(name)
