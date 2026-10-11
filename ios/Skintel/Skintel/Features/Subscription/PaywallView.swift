@@ -133,17 +133,25 @@ struct PaywallView: View {
                     foundingCard(founding, seats: seats)
                 }
                 if let monthly = s.product(.proMonthly) { planRow(.proMonthly, product: monthly, caption: "Cancel anytime") }
-                if let yearly = s.product(.proYearly) { planRow(.proYearly, product: yearly, caption: yearlyCaption(s)) }
+                if let yearly = s.product(.proYearly) { planRow(.proYearly, product: yearly, caption: yearlyCaption(s), badge: yearlySavingBadge(s)) }
             }
         }
     }
 
+    /// "Billed annually · $6.67/mo": the yearly price spread over twelve months, in the
+    /// storefront's currency. The billed yearly amount stays the prominent price.
     private func yearlyCaption(_ s: SubscriptionService) -> String {
-        if let m = s.product(.proMonthly), let y = s.product(.proYearly) {
-            let saving = (m.price * 12) - y.price
-            if saving > 0 { return "Save \(saving.formatted(.currency(code: y.priceFormatStyle.currencyCode))) a year" }
-        }
-        return "Billed yearly"
+        guard let y = s.product(.proYearly) else { return "Billed annually" }
+        return "Billed annually · \((y.price / 12).formatted(y.priceFormatStyle))/mo"
+    }
+
+    /// "SAVE 25%" against twelve months of the monthly plan; nil when yearly isn't cheaper.
+    private func yearlySavingBadge(_ s: SubscriptionService) -> String? {
+        guard let m = s.product(.proMonthly), let y = s.product(.proYearly) else { return nil }
+        let twelveMonths = m.price * 12
+        guard twelveMonths > 0, y.price < twelveMonths else { return nil }
+        let percent = Int((NSDecimalNumber(decimal: (twelveMonths - y.price) / twelveMonths).doubleValue * 100).rounded(.down))
+        return percent > 0 ? "SAVE \(percent)%" : nil
     }
 
     private func foundingCard(_ p: StoreKit.Product, seats: Int?) -> some View {
@@ -171,7 +179,7 @@ struct PaywallView: View {
         .accessibilityAddTraits(selected == .founding ? [.isButton, .isSelected] : .isButton)
     }
 
-    private func planRow(_ id: SubscriptionService.ProductID, product: StoreKit.Product, caption: String) -> some View {
+    private func planRow(_ id: SubscriptionService.ProductID, product: StoreKit.Product, caption: String, badge: String? = nil) -> some View {
         Button { selected = id; Haptics.selection() } label: {
             HStack(spacing: SKSpace.md) {
                 Circle().stroke(selected == id ? SKColor.primary : SKColor.line, lineWidth: 1.5).frame(width: 22, height: 22)
@@ -191,6 +199,18 @@ struct PaywallView: View {
             .background(SKColor.cream, in: RoundedRectangle(cornerRadius: SKRadius.card, style: .continuous))
             .overlay(RoundedRectangle(cornerRadius: SKRadius.card, style: .continuous)
                 .stroke(selected == id ? SKColor.primary : SKColor.line, lineWidth: selected == id ? 1.5 : 1))
+            .overlay(alignment: .topTrailing) {
+                if let badge {
+                    Text(badge)
+                        .font(SKFont.mono(10, bold: true))
+                        .tracking(1.2)
+                        .foregroundStyle(SKColor.cream)
+                        .padding(.horizontal, 8)
+                        .padding(.vertical, 4)
+                        .background(SKColor.primary, in: Capsule())
+                        .offset(x: -14, y: -10)
+                }
+            }
         }
         .buttonStyle(SKPressStyle())
         .accessibilityAddTraits(selected == id ? [.isButton, .isSelected] : .isButton)
@@ -199,8 +219,10 @@ struct PaywallView: View {
     /// Every Skintel+ feature. From a wall, that feature leads, opened up with its demo.
     private var benefits: some View {
         VStack(alignment: .leading, spacing: SKSpace.sm) {
-            Text("Everything in Skintel+ · tap to watch").skLabelStyle()
-            ProBenefitsList(highlight: isPro ? nil : reason, method: method)
+            Text(isPro ? "Everything in Skintel+ · tap to watch" : "What you get · tap to watch").skLabelStyle()
+            // Compact before purchase so the plans and button sit on the first screen;
+            // the full list and its demos open from "See all".
+            ProBenefitsList(highlight: isPro ? nil : reason, method: method, limit: isPro ? nil : 3)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding(.top, SKSpace.sm)
@@ -227,7 +249,7 @@ struct PaywallView: View {
 
     private func ctaTitle(_ s: SubscriptionService) -> String {
         guard let p = s.product(selected) else { return "Unavailable" }
-        if trials[selected] != nil { return "Start free trial" }
+        if let trial = trials[selected] { return "Try \(trial.length) free" }
         switch selected {
         case .founding: return "Join · \(p.displayPrice) once"
         case .proMonthly: return "Subscribe · \(p.displayPrice)/mo"
@@ -1088,11 +1110,88 @@ struct ProBenefitsList: View {
     var highlight: PaywallReason? = nil
     /// The add method behind a scanner gate, so the lead demo shows that method.
     var method: ScanMethod? = nil
+    /// When set, only this many rows show (the gate's own feature first), then
+    /// "See all N features" opens the full list with its demos in a sheet.
+    var limit: Int? = nil
     @State private var demo: ProBenefit?
+    @State private var showAll = false
 
     private var lead: ProBenefit? { highlight.flatMap { ProBenefit($0) } }
 
     var body: some View {
+        if let limit {
+            compact(limit)
+        } else {
+            full
+        }
+    }
+
+    private func compact(_ limit: Int) -> some View {
+        let ordered = (lead.map { [$0] } ?? []) + ProBenefit.allCases.filter { $0 != lead }
+        let shown = Array(ordered.prefix(limit))
+        return VStack(spacing: 0) {
+            ForEach(shown) { b in
+                row(b)
+                Rectangle().fill(SKColor.line).frame(height: 1).padding(.leading, 56)
+            }
+            Button { Haptics.tap(); showAll = true } label: {
+                HStack {
+                    Text("See all \(ordered.count) features")
+                        .font(SKFont.sans(15, weight: .semibold, relativeTo: .subheadline))
+                        .foregroundStyle(SKColor.primary)
+                    Spacer(minLength: 0)
+                    Image(systemName: "chevron.right")
+                        .font(.system(size: 13, weight: .semibold))
+                        .foregroundStyle(SKColor.primary)
+                }
+                .padding(.vertical, 12)
+                .contentShape(Rectangle())
+            }
+            .buttonStyle(SKPressStyle())
+        }
+        .sheet(item: $demo) { b in
+            FeatureDemoSheet(reason: b.reason, title: b.title, message: b.demoMessage)
+        }
+        .sheet(isPresented: $showAll) {
+            NavigationStack {
+                ScrollView {
+                    ProBenefitsList(highlight: highlight, method: method)
+                        .skPagePadding()
+                        .padding(.vertical, SKSpace.md)
+                }
+                .skPageBackground()
+                .navigationTitle("Everything in Skintel+")
+                .navigationBarTitleDisplayMode(.inline)
+                .toolbar {
+                    ToolbarItem(placement: .topBarTrailing) { Button("Done") { showAll = false } }
+                }
+            }
+            .tint(SKColor.primary)
+        }
+    }
+
+    private func row(_ b: ProBenefit) -> some View {
+        Button { Haptics.tap(); demo = b } label: {
+            HStack(spacing: SKSpace.md) {
+                ProBenefitIcon(benefit: b)
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(b.title).font(SKFont.sans(16, weight: .semibold, relativeTo: .body)).foregroundStyle(SKColor.ink)
+                    Text(b.detail).font(SKFont.caption).foregroundStyle(SKColor.muted)
+                }
+                Spacer(minLength: 0)
+                Image(systemName: "play.circle.fill")
+                    .font(.system(size: 20))
+                    .foregroundStyle(SKColor.primary.opacity(0.85))
+            }
+            .padding(.vertical, 10)
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(SKPressStyle())
+        .accessibilityHint("Plays a short demo")
+    }
+
+    @ViewBuilder
+    private var full: some View {
         let rest = ProBenefit.allCases.filter { $0 != lead }
         VStack(spacing: 0) {
             if let lead, let highlight {
@@ -1100,23 +1199,7 @@ struct ProBenefitsList: View {
                     .padding(.bottom, SKSpace.sm)
             }
             ForEach(rest) { b in
-                Button { Haptics.tap(); demo = b } label: {
-                    HStack(spacing: SKSpace.md) {
-                        ProBenefitIcon(benefit: b)
-                        VStack(alignment: .leading, spacing: 2) {
-                            Text(b.title).font(SKFont.sans(16, weight: .semibold, relativeTo: .body)).foregroundStyle(SKColor.ink)
-                            Text(b.detail).font(SKFont.caption).foregroundStyle(SKColor.muted)
-                        }
-                        Spacer(minLength: 0)
-                        Image(systemName: "play.circle.fill")
-                            .font(.system(size: 20))
-                            .foregroundStyle(SKColor.primary.opacity(0.85))
-                    }
-                    .padding(.vertical, 10)
-                    .contentShape(Rectangle())
-                }
-                .buttonStyle(SKPressStyle())
-                .accessibilityHint("Plays a short demo")
+                row(b)
                 if b != rest.last {
                     Rectangle().fill(SKColor.line).frame(height: 1).padding(.leading, 56)
                 }
