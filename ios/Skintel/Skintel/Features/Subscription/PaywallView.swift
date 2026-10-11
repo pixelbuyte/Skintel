@@ -124,7 +124,19 @@ struct PaywallView: View {
     private func plans(_ s: SubscriptionService) -> some View {
         VStack(spacing: SKSpace.md) {
             if s.products.isEmpty, let msg = emptyProductsMessage(s.phase) {
-                SKCard { VStack(alignment: .leading, spacing: SKSpace.md) { SKInlineError(message: msg); SKButton(title: "Try Again", kind: .secondary) { Task { await s.loadProducts() } } } }
+                SKCard {
+                    VStack(alignment: .leading, spacing: SKSpace.md) {
+                        SKInlineError(message: msg)
+                        SKButton(title: "Try Again", kind: .secondary) { Task { await s.loadProducts() } }
+                        // TestFlight/Xcode only: which App Store Connect product ids are missing.
+                        if s.isTestBuild, !s.missingPlanIDs.isEmpty {
+                            Text("Test build · App Store returned no product for \(s.missingPlanIDs.joined(separator: ", "))")
+                                .font(SKFont.dataSmall)
+                                .foregroundStyle(SKColor.muted)
+                                .textSelection(.enabled)
+                        }
+                    }
+                }
             } else if s.products.isEmpty {
                 SKSkeleton(height: 180); SKSkeleton(height: 72); SKSkeleton(height: 72)
             } else {
