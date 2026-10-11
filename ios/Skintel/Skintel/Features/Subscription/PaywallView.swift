@@ -188,7 +188,18 @@ struct PaywallView: View {
                     Text(id == .proMonthly ? "Skintel+ Monthly" : "Skintel+ Yearly").font(SKFont.cardTitle).foregroundStyle(SKColor.ink)
                     Text(caption).font(SKFont.caption).foregroundStyle(SKColor.muted)
                     if let trial = trials[id] {
-                        Text(trial.terms).font(SKFont.sans(12, weight: .semibold, relativeTo: .caption)).foregroundStyle(SKColor.primary)
+                        HStack(spacing: 6) {
+                            Text("\(trial.length) free")
+                                .font(SKFont.sans(12, weight: .semibold, relativeTo: .caption))
+                                .foregroundStyle(SKColor.primaryPressed)
+                                .padding(.horizontal, 8)
+                                .padding(.vertical, 3)
+                                .background(SKColor.primary.opacity(0.16), in: Capsule())
+                            Text("then \(product.displayPrice)\(service?.periodText(id) ?? "")")
+                                .font(SKFont.caption)
+                                .foregroundStyle(SKColor.muted)
+                        }
+                        .accessibilityElement(children: .combine)
                     }
                 }
                 Spacer()
@@ -1106,6 +1117,84 @@ struct ProBenefitIcon: View {
 
 /// Every Skintel+ benefit as a row; tapping one plays its demo. Given the gate someone
 /// came from, that benefit leads, opened up with its demo already playing.
+/// "See all" on the paywall: every Skintel+ feature as a card with its live demo,
+/// swiped one after another, with page dots underneath.
+private struct FeatureDeck: View {
+    let benefits: [ProBenefit]
+    var method: ScanMethod? = nil
+    @State var page: Int
+    @Environment(\.dismiss) private var dismiss
+
+    var body: some View {
+        VStack(spacing: SKSpace.md) {
+            HStack {
+                Text("\(page + 1) of \(benefits.count)")
+                    .font(SKFont.mono(11))
+                    .tracking(1.5)
+                    .foregroundStyle(SKColor.muted)
+                Spacer()
+                Button("Done") { dismiss() }
+                    .font(SKFont.sans(16, weight: .semibold))
+                    .foregroundStyle(SKColor.primary)
+            }
+            .padding(.horizontal, SKSpace.lg)
+            .padding(.top, SKSpace.lg)
+
+            TabView(selection: $page) {
+                ForEach(Array(benefits.enumerated()), id: \.element) { i, b in
+                    card(b, number: i + 1)
+                        .padding(.horizontal, SKSpace.lg)
+                        .tag(i)
+                }
+            }
+            .tabViewStyle(.page(indexDisplayMode: .never))
+
+            HStack(spacing: 7) {
+                ForEach(benefits.indices, id: \.self) { i in
+                    Capsule()
+                        .fill(i == page ? SKColor.primary : SKColor.line)
+                        .frame(width: i == page ? 20 : 7, height: 7)
+                }
+            }
+            .animation(.easeOut(duration: 0.2), value: page)
+            .accessibilityHidden(true)
+
+            Text("Swipe for the next feature")
+                .font(SKFont.caption)
+                .foregroundStyle(SKColor.muted)
+
+            SKButton(title: "Back to plans", kind: .dark) { dismiss() }
+                .padding(.horizontal, SKSpace.lg)
+                .padding(.bottom, SKSpace.md)
+        }
+        .background(SKColor.cream.ignoresSafeArea())
+    }
+
+    private func card(_ b: ProBenefit, number: Int) -> some View {
+        VStack(alignment: .leading, spacing: SKSpace.sm) {
+            HStack(spacing: 10) {
+                Text("\(number)")
+                    .font(SKFont.sans(15, weight: .semibold))
+                    .foregroundStyle(SKColor.cream)
+                    .frame(width: 30, height: 30)
+                    .background(SKColor.primary, in: Circle())
+                Text(b.title)
+                    .font(SKFont.serif(28, relativeTo: .title))
+                    .foregroundStyle(SKColor.ink)
+            }
+            Text(b.detail)
+                .font(SKFont.secondary)
+                .foregroundStyle(SKColor.muted)
+            FeatureDemo(reason: b.reason, method: b == .scan ? method : nil)
+            Spacer(minLength: 0)
+        }
+        .padding(SKSpace.md)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(SKColor.bg, in: RoundedRectangle(cornerRadius: 24, style: .continuous))
+        .overlay(RoundedRectangle(cornerRadius: 24, style: .continuous).stroke(SKColor.line))
+    }
+}
+
 struct ProBenefitsList: View {
     var highlight: PaywallReason? = nil
     /// The add method behind a scanner gate, so the lead demo shows that method.
@@ -1114,7 +1203,9 @@ struct ProBenefitsList: View {
     /// "See all N features" opens the full list with its demos in a sheet.
     var limit: Int? = nil
     @State private var demo: ProBenefit?
-    @State private var showAll = false
+    @State private var deck: DeckStart?
+
+    private struct DeckStart: Identifiable { let id: Int }
 
     private var lead: ProBenefit? { highlight.flatMap { ProBenefit($0) } }
 
@@ -1130,13 +1221,13 @@ struct ProBenefitsList: View {
         let ordered = (lead.map { [$0] } ?? []) + ProBenefit.allCases.filter { $0 != lead }
         let shown = Array(ordered.prefix(limit))
         return VStack(spacing: 0) {
-            ForEach(shown) { b in
-                row(b)
+            ForEach(Array(shown.enumerated()), id: \.element) { i, b in
+                row(b) { deck = DeckStart(id: i) }
                 Rectangle().fill(SKColor.line).frame(height: 1).padding(.leading, 56)
             }
-            Button { Haptics.tap(); showAll = true } label: {
+            Button { Haptics.tap(); deck = DeckStart(id: 0) } label: {
                 HStack {
-                    Text("See all \(ordered.count) features")
+                    Text("See all \(ordered.count) features · swipe through")
                         .font(SKFont.sans(15, weight: .semibold, relativeTo: .subheadline))
                         .foregroundStyle(SKColor.primary)
                     Spacer(minLength: 0)
@@ -1149,29 +1240,13 @@ struct ProBenefitsList: View {
             }
             .buttonStyle(SKPressStyle())
         }
-        .sheet(item: $demo) { b in
-            FeatureDemoSheet(reason: b.reason, title: b.title, message: b.demoMessage)
-        }
-        .sheet(isPresented: $showAll) {
-            NavigationStack {
-                ScrollView {
-                    ProBenefitsList(highlight: highlight, method: method)
-                        .skPagePadding()
-                        .padding(.vertical, SKSpace.md)
-                }
-                .skPageBackground()
-                .navigationTitle("Everything in Skintel+")
-                .navigationBarTitleDisplayMode(.inline)
-                .toolbar {
-                    ToolbarItem(placement: .topBarTrailing) { Button("Done") { showAll = false } }
-                }
-            }
-            .tint(SKColor.primary)
+        .sheet(item: $deck) { d in
+            FeatureDeck(benefits: ordered, method: method, page: d.id)
         }
     }
 
-    private func row(_ b: ProBenefit) -> some View {
-        Button { Haptics.tap(); demo = b } label: {
+    private func row(_ b: ProBenefit, onTap: @escaping () -> Void) -> some View {
+        Button { Haptics.tap(); onTap() } label: {
             HStack(spacing: SKSpace.md) {
                 ProBenefitIcon(benefit: b)
                 VStack(alignment: .leading, spacing: 2) {
@@ -1199,7 +1274,7 @@ struct ProBenefitsList: View {
                     .padding(.bottom, SKSpace.sm)
             }
             ForEach(rest) { b in
-                row(b)
+                row(b) { demo = b }
                 if b != rest.last {
                     Rectangle().fill(SKColor.line).frame(height: 1).padding(.leading, 56)
                 }
