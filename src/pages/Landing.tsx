@@ -2326,23 +2326,16 @@ export default function Landing() {
   const soldOut = typeof remaining === 'number' && remaining <= 0;
   useParallaxRoot();
 
-  const [showBar, setShowBar] = useState(false);
   useEffect(() => {
     // Coalesce to one frame with a "already scheduled" guard rather than
-    // cancel-and-reschedule. iOS fires scroll faster than rAF during momentum,
-    // so cancelling each time starves the callback until scrolling stops --
-    // which is why the bar used to lag behind the page and settle mid-content.
+    // cancel-and-reschedule: iOS fires scroll faster than rAF during momentum.
     let scheduled = false;
     const onScroll = () => {
       if (scheduled) return;
       scheduled = true;
       requestAnimationFrame(() => {
         scheduled = false;
-        const y = window.scrollY;
-        setScrolled(y > 8);
-        // Hysteresis band: a position hovering on one threshold would flip
-        // showBar every frame and keep restarting the 300ms slide.
-        setShowBar((prev) => (y > 480 ? true : y < 380 ? false : prev));
+        setScrolled(window.scrollY > 8);
       });
     };
     onScroll();
@@ -2433,12 +2426,6 @@ export default function Landing() {
                   Get 3 months of Pro — $20 <ArrowRight size={16} />
                 </a>
               )}
-              <Link
-                to="/shelf-audit"
-                className="btn-secondary active:scale-[0.97] transition-transform duration-150 ease-emil"
-              >
-                Find my culprit — free
-              </Link>
             </div>
 
             <div className="mt-6 sm:mt-10 flex items-center gap-3 sm:gap-5 text-[11px] sm:text-xs text-muted flex-wrap">
@@ -3197,48 +3184,11 @@ export default function Landing() {
             </ul>
           </div>
         </div>
-        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 pt-6 border-t border-border pb-24 sm:pb-0">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 pt-6 border-t border-border">
           <span>© {new Date().getFullYear()} Skintel. All rights reserved.</span>
           <span className="text-xs">Not medical advice. Patterns, not prescriptions.</span>
         </div>
       </footer>
-
-      {/* ── STICKY MOBILE CTA ── */}
-      <div
-        className="sm:hidden fixed bottom-0 inset-x-0 z-40 transition-transform duration-300 ease-emil"
-        style={{ transform: `translate3d(0, ${showBar ? '0' : '100%'}, 0)` }}
-      >
-        <div
-          // Opaque rather than bg-bg/95 + backdrop-blur-xl: at 95% opacity the
-          // blur was invisible, but backdrop-filter on a fixed element forces
-          // Safari to re-sample and re-blur the page behind it every scroll
-          // frame. That was the bulk of the scroll jank on mobile.
-          className="bg-bg border-t border-border px-4 pt-3 flex items-center gap-3"
-          style={{ paddingBottom: 'calc(0.75rem + env(safe-area-inset-bottom))' }}
-        >
-          <div className="flex-1 min-w-0">
-            <div className="text-sm font-medium leading-tight">
-              {soldOut ? 'Founding batch sold out' : '3 months of Pro — $20'}
-            </div>
-            <div className="text-[11px] text-muted truncate">
-              {soldOut
-                ? 'Join the waitlist for launch'
-                : typeof remaining === 'number'
-                  ? `${remaining} of ${total} seats left · no auto-renew`
-                  : 'Limited founding seats · no auto-renew'}
-            </div>
-          </div>
-          {soldOut ? (
-            <a href="#founding" className="btn-primary shrink-0 active:scale-[0.97] transition-transform duration-150 ease-emil">
-              Waitlist <ArrowRight size={14} />
-            </a>
-          ) : (
-            <a href={checkoutHref} onClick={claimClick('sticky-bar')} className="btn-primary shrink-0 active:scale-[0.97] transition-transform duration-150 ease-emil">
-              Claim <ArrowRight size={14} />
-            </a>
-          )}
-        </div>
-      </div>
     </div>
   );
 }
