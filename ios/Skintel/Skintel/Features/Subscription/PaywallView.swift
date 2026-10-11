@@ -100,8 +100,11 @@ struct PaywallView: View {
         .padding(.top, SKSpace.md)
     }
 
+    /// Only promise the founding deal when it is actually on sale: the product loaded from
+    /// App Store Connect and seats remain. Otherwise the plans below would contradict it.
     private var headline: String {
-        (env.subscription.foundingSeatsRemaining ?? 1) > 0 ? "The founding member deal." : "Everything, for your skin."
+        let foundingOnSale = service?.product(.founding) != nil && (env.subscription.foundingSeatsRemaining ?? 1) > 0
+        return foundingOnSale ? "The founding member deal." : "Everything, for your skin."
     }
 
     private var reasonLine: String {
