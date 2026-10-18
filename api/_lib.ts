@@ -47,10 +47,13 @@ export async function sendEmail({
   to: string;
   subject: string;
   html: string;
-}): Promise<void> {
+}): Promise<boolean> {
   const key = process.env.RESEND_API_KEY;
-  if (!key) return;
-  await fetch('https://api.resend.com/emails', {
+  if (!key) {
+    console.warn('[email] RESEND_API_KEY unset — not sent:', subject);
+    return false;
+  }
+  const r = await fetch('https://api.resend.com/emails', {
     method: 'POST',
     headers: { Authorization: `Bearer ${key}`, 'Content-Type': 'application/json' },
     body: JSON.stringify({
@@ -60,6 +63,8 @@ export async function sendEmail({
       html,
     }),
   });
+  if (!r.ok) console.error('[email] Resend', r.status, (await r.text()).slice(0, 300));
+  return r.ok;
 }
 
 export async function readRawBody(req: VercelRequest): Promise<string> {
