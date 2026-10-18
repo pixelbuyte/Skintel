@@ -38,20 +38,19 @@ export const APP_STORE_URL = 'https://apps.apple.com/app/id6812903021';
 
 /** Sent once, after the user's email is confirmed (or on Sign in with Apple). */
 export function welcomeEmail(): { subject: string; html: string } {
-  const step = (icon: string, title: string, text: string) =>
-    `<tr><td valign="top" width="48" style="padding:0 16px 22px 0;"><img src="${ASSETS}/${icon}.png" width="48" height="48" alt="" style="display:block;border:0;"></td>
-<td valign="top" style="padding:2px 0 22px;"><strong style="font-size:17px;">${title}</strong><br><span style="color:#5E554C;">${text}</span></td></tr>`;
+  const tile = (icon: string, title: string, text: string) =>
+    `<td valign="top" width="50%" style="padding:0 8px 18px;">
+<img src="${ASSETS}/${icon}.png" width="40" height="40" alt="" style="display:block;border:0;margin-bottom:10px;">
+<strong style="font-size:15px;">${title}</strong><br><span style="font-size:14px;line-height:1.45;color:#5E554C;">${text}</span></td>`;
   return {
     subject: 'Your skin deserves better than guesswork',
     html: layout({
       preheader: 'Scan your shelf, log your skin, and let Skintel find what keeps breaking you out.',
-      body: `<h1 style="margin:0 0 12px;font-family:Georgia,'Times New Roman',serif;font-weight:400;font-size:30px;line-height:1.15;">Your skin deserves better than guesswork.</h1>
-<p style="margin:0 0 26px;color:#5E554C;">Welcome to Skintel. No more blaming the wrong product. Skintel learns from your own skin and finds what's really behind your bad days.</p>
-<table role="presentation" cellpadding="0" cellspacing="0" width="100%">
-${step('scan', 'Scan your shelf', 'Point your camera at any barcode or ingredient list. Skintel reads every ingredient for you.')}
-${step('log', 'Log your skin every day', 'Ten seconds a day. The more days you log, the sharper your results.')}
-${step('ask', 'Ask Skintel anything', '“Is this cleanser okay for me?” Answers come from your own shelf and skin history.')}
-${step('find', 'Find your trigger', 'Skintel spots the ingredient your bad days share, so you can finally cut it out.')}
+      body: `<h1 style="margin:0 0 10px;font-family:Georgia,'Times New Roman',serif;font-weight:400;font-size:28px;line-height:1.15;">Your skin deserves better than guesswork.</h1>
+<p style="margin:0 0 24px;color:#5E554C;">Welcome to Skintel. It learns from your own skin and finds what's really behind your bad days.</p>
+<table role="presentation" cellpadding="0" cellspacing="0" width="100%" style="margin:0 -8px;width:calc(100% + 16px);">
+<tr>${tile('scan', 'Scan your shelf', 'Any barcode or ingredient list.')}${tile('log', 'Log your skin', 'Ten seconds a day.')}</tr>
+<tr>${tile('ask', 'Ask Skintel', 'Answers from your own history.')}${tile('find', 'Find your trigger', 'The ingredient your bad days share.')}</tr>
 </table>
 ${button(APP_STORE_URL, 'Open Skintel')}`,
     }),
