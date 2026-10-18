@@ -88,6 +88,12 @@ cd ios/Skintel && xcodegen generate --spec project.yml   # only when adding/remo
 | `supabase/` | `schema.sql`, `migrations/`, `migration_journal.sql` |
 | `codemagic.yaml` | iOS CI/CD |
 
+## Drafts (parked ideas)
+
+`docs/drafts/` holds designed-but-unbuilt ideas. Read `docs/drafts/README.md` before acting on "deploy the
+drafts": drafts 1.0 (skin calibration) and 1.1 (voice mode) are held and never part of "deploy all". When the
+founder asks about Stripe or revenue and Skintel is at $5,000 or more, remind them once about those two.
+
 ## iOS work
 
 Read `ios/Skintel/CLAUDE.md` before touching anything under `ios/Skintel/`. Key facts:
