@@ -42,15 +42,15 @@ export function welcomeEmail(): { subject: string; html: string } {
   return {
     subject: 'Your skin deserves better than guesswork',
     html: layout({
-      preheader: 'Scan your shelf, log your skin, and let Skintel find what keeps breaking you out.',
+      preheader: 'Start with one scan. Skintel takes it from there.',
       body: `<h1 style="margin:0 0 10px;font-family:Georgia,'Times New Roman',serif;font-weight:400;font-size:28px;line-height:1.15;">Your skin deserves better than guesswork.</h1>
-<p style="margin:0 0 24px;color:#5E554C;">Welcome to Skintel. It learns from your own skin and finds what's really behind your bad days.</p>
+<p style="margin:0 0 24px;color:#5E554C;">You've tried the products. Now find out which one is actually the problem.</p>
 <table role="presentation" cellpadding="0" cellspacing="0" width="100%" style="margin:0 -8px;width:calc(100% + 16px);">
-<tr>${tile('scan', 'Scan your shelf', 'Any barcode or ingredient list.')}${tile('log', 'Log your skin', 'Ten seconds a day.')}</tr>
-<tr>${tile('ask', 'Ask Skintel', 'Answers from your own history.')}${tile('find', 'Find your trigger', 'The ingredient your bad days share.')}</tr>
+<tr>${tile('scan', 'Know what’s in it', 'Scan a bottle and see if it suits your skin.')}${tile('log', 'Teach it your skin', 'A quick daily log shows Skintel what your skin hates.')}</tr>
+<tr>${tile('ask', 'Get real answers', 'Ask about any product. Answers built on your skin, not the internet.')}${tile('find', 'Find the culprit', 'See the one ingredient your bad days have in common.')}</tr>
 </table>
 <table role="presentation" cellpadding="0" cellspacing="0" width="100%"><tr>
-<td valign="middle">${button(APP_STORE_URL, 'Open Skintel')}</td>
+<td valign="middle">${button(APP_STORE_URL, 'Scan your first product')}</td>
 <td valign="middle" align="right" style="padding-top:16px;"><a href="${APP_STORE_URL}" style="text-decoration:none;"><img src="${ASSETS}/app-icon.png" width="52" height="52" alt="Skintel on the App Store" style="display:block;border:0;border-radius:12px;"></a></td>
 </tr></table>`,
     }),
