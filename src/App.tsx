@@ -2,9 +2,10 @@ import { Routes, Route, Navigate } from 'react-router-dom';
 import { lazy, Suspense } from 'react';
 import { Layout } from '@/components/Layout';
 import { ProtectedRoute } from '@/components/ProtectedRoute';
-import Landing from '@/pages/Landing';
+import Home from '@/pages/Home';
 import Login from '@/pages/Login';
 
+const Landing = lazy(() => import('@/pages/Landing'));
 const AuthCallback = lazy(() => import('@/pages/AuthCallback'));
 const Pricing = lazy(() => import('@/pages/Pricing'));
 const Discount = lazy(() => import('@/pages/Discount'));
@@ -40,7 +41,8 @@ function App() {
   return (
     <Suspense fallback={<RouteFallback />}>
       <Routes>
-        <Route path="/" element={<Landing />} />
+        <Route path="/" element={<Home />} />
+        <Route path="/classic" element={<Landing />} />
         <Route path="/login" element={<Login />} />
         <Route path="/auth/callback" element={<AuthCallback />} />
         <Route path="/pricing" element={<Pricing />} />

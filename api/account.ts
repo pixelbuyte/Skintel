@@ -1,5 +1,7 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-import { getServiceClient, getUserFromAuthHeader, json } from './_lib.js';
+import { timingSafeEqual } from 'node:crypto';
+import { getServiceClient, getUserFromAuthHeader, json, sendEmail } from './_lib.js';
+import { welcomeEmail } from './_emails.js';
 import {
   AppleAccountDeletionError, appleDeletionUserID, assertAppleDeletionConfigured, revokeAppleForDeletion,
 } from './_apple-auth.js';
@@ -10,6 +12,7 @@ import {
  *
  *   GET  /api/export-data     → /api/account?action=export
  *   POST /api/delete-account  → /api/account?action=delete
+ *   POST /api/account?action=welcome  (Supabase trigger only; see migrations/0005)
  *
  * The action must be a single, explicit value: a request that somehow carries more than
  * one is rejected rather than guessed, because one of these deletes the account.
@@ -28,6 +31,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     case 'deletion-requirements':
       if (req.method !== 'GET') return json(res, { error: 'Method not allowed' }, 405);
       return deletionRequirements(req, res);
+    case 'welcome':
+      if (req.method !== 'POST') return json(res, { error: 'Method not allowed' }, 405);
+      return welcome(req, res);
     default:
       return json(res, { error: 'Unknown action' }, 404);
   }
@@ -99,4 +105,39 @@ async function deleteAccount(req: VercelRequest, res: VercelResponse) {
     if (error instanceof AppleAccountDeletionError) return json(res, { error: error.message }, error.status);
     return json(res, { error: 'Unable to delete your account. Try again.' }, 500);
   }
+}
+
+/**
+ * POST /api/account?action=welcome — called by the Supabase trigger in migrations/0005 when
+ * a user's email becomes confirmed. Authenticated by a shared secret, not a user session.
+ * The address comes from auth.users, never from the request body, and each user gets the
+ * email at most once (processed_webhook_events).
+ */
+async function welcome(req: VercelRequest, res: VercelResponse) {
+  const secret = process.env.EMAIL_WEBHOOK_SECRET;
+  const given = req.headers['x-webhook-secret'];
+  if (!secret || typeof given !== 'string' || given.length !== secret.length ||
+      !timingSafeEqual(Buffer.from(given), Buffer.from(secret))) {
+    return json(res, { error: 'Unauthorized' }, 401);
+  }
+  const body = typeof req.body === 'string' ? JSON.parse(req.body || '{}') : (req.body ?? {});
+  const userId = typeof body.user_id === 'string' ? body.user_id : '';
+  if (!/^[0-9a-f-]{36}$/i.test(userId)) return json(res, { error: 'Bad user_id' }, 400);
+
+  const sb = getServiceClient();
+  const { data, error } = await sb.auth.admin.getUserById(userId);
+  const email = data?.user?.email;
+  if (error || !email) return json(res, { ok: true, skipped: 'no email' });
+
+  const { error: dupe } = await sb.from('processed_webhook_events').insert({ event_id: `welcome:${userId}` });
+  if (dupe) return json(res, { ok: true, skipped: 'already sent' });
+
+  const { subject, html } = welcomeEmail();
+  const sent = await sendEmail({ to: email, subject, html });
+  if (!sent) {
+    // Let a later confirmation retry it.
+    await sb.from('processed_webhook_events').delete().eq('event_id', `welcome:${userId}`);
+    return json(res, { error: 'Send failed' }, 502);
+  }
+  return json(res, { ok: true });
 }

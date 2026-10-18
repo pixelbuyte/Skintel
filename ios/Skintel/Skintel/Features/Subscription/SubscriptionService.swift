@@ -1,5 +1,6 @@
 import Foundation
 import Observation
+import os
 import StoreKit
 import SkintelCore
 
@@ -36,6 +37,11 @@ final class SubscriptionService {
     private(set) var phase: Phase = .idle
     private(set) var products: [StoreKit.Product] = []
     private(set) var lastMessage: String?
+    /// Monthly/yearly ids the App Store returned nothing for on the last load. StoreKit
+    /// silently drops ids it can't find, so this names the gap instead of guessing; shown
+    /// only on TestFlight/Xcode builds. The founding pass is excluded (not on sale).
+    private(set) var missingPlanIDs: [String] = []
+    private let log = Logger(subsystem: "com.skintel.app", category: "storekit")
     /// True on TestFlight and Xcode builds: StoreKit signed this install's app transaction in
     /// the sandbox or Xcode environment. False on the App Store, and until StoreKit answers.
     /// Only unlocks test-build settings (the upgrade screen style); never any entitlement.
@@ -66,6 +72,11 @@ final class SubscriptionService {
             products = fetched.sorted { a, b in
                 (ProductID.allCases.firstIndex { $0.rawValue == a.id } ?? 0) < (ProductID.allCases.firstIndex { $0.rawValue == b.id } ?? 0)
             }
+            let returned = Set(fetched.map(\.id))
+            missingPlanIDs = [ProductID.proMonthly, .proYearly].map(\.rawValue).filter { !returned.contains($0) }
+            if !missingPlanIDs.isEmpty {
+                log.error("App Store returned no product for: \(self.missingPlanIDs.joined(separator: ", "), privacy: .public)")
+            }
             // Empty is a legitimate StoreKit answer (nothing thrown), not the same failure
             // as a network/StoreKit error below - keep them distinguishable so the copy
             // doesn't blame the user's connection for a catalog/App Store Connect gap.
@@ -73,9 +84,7 @@ final class SubscriptionService {
         } catch {
             // The technical error is diagnostics-only - never surface raw Apple/system
             // error text in production UI; the user-facing message stays calm and generic.
-            #if DEBUG
-            print("[StoreKit] Failed to load products: \(error)")
-            #endif
+            log.error("Product request failed: \(String(describing: error), privacy: .public)")
             phase = .failed("Couldn't load plans right now. Please try again.")
         }
     }
