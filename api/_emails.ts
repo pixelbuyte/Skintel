@@ -17,10 +17,7 @@ export function layout({ preheader, body }: { preheader: string; body: string })
 <tr><td style="background:#FFFEFA;border:1px solid #EAE2D6;border-radius:20px;padding:32px 28px;font-family:-apple-system,'Segoe UI',Helvetica,Arial,sans-serif;font-size:16px;line-height:1.55;color:#1A1814;">
 ${body}
 </td></tr>
-<tr><td align="center" style="padding:28px 4px 0;">
-<a href="https://apps.apple.com/app/id6812903021" style="text-decoration:none;"><img src="https://skinstel.com/email/app-icon.png" width="56" height="56" alt="Skintel" style="display:block;border:0;border-radius:13px;"></a>
-</td></tr>
-<tr><td align="center" style="padding:12px 4px 0;font-family:-apple-system,'Segoe UI',Helvetica,Arial,sans-serif;font-size:12px;line-height:1.5;color:#8A7A6C;">
+<tr><td align="center" style="padding:20px 4px 0;font-family:-apple-system,'Segoe UI',Helvetica,Arial,sans-serif;font-size:12px;line-height:1.5;color:#8A7A6C;">
 Skintel · Find the ingredient your bad skin days share.<br>Questions? Reply to this email or write to hello@skinstel.com.
 </td></tr>
 </table></td></tr></table></body></html>`;
@@ -52,7 +49,10 @@ export function welcomeEmail(): { subject: string; html: string } {
 <tr>${tile('scan', 'Scan your shelf', 'Any barcode or ingredient list.')}${tile('log', 'Log your skin', 'Ten seconds a day.')}</tr>
 <tr>${tile('ask', 'Ask Skintel', 'Answers from your own history.')}${tile('find', 'Find your trigger', 'The ingredient your bad days share.')}</tr>
 </table>
-${button(APP_STORE_URL, 'Open Skintel')}`,
+<table role="presentation" cellpadding="0" cellspacing="0" width="100%"><tr>
+<td valign="middle">${button(APP_STORE_URL, 'Open Skintel')}</td>
+<td valign="middle" align="right" style="padding-top:16px;"><a href="${APP_STORE_URL}" style="text-decoration:none;"><img src="${ASSETS}/app-icon.png" width="52" height="52" alt="Skintel on the App Store" style="display:block;border:0;border-radius:12px;"></a></td>
+</tr></table>`,
     }),
   };
 }
