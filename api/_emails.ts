@@ -35,19 +35,19 @@ export const APP_STORE_URL = 'https://apps.apple.com/app/id6812903021';
 
 /** Sent once, after the user's email is confirmed (or on Sign in with Apple). */
 export function welcomeEmail(): { subject: string; html: string } {
-  const tile = (icon: string, title: string) =>
-    `<td valign="top" width="50%" style="padding:0 8px 16px;">
-<table role="presentation" cellpadding="0" cellspacing="0"><tr>
-<td valign="middle" style="padding-right:12px;"><img src="${ASSETS}/${icon}.png" width="40" height="40" alt="" style="display:block;border:0;"></td>
-<td valign="middle" style="font-size:15px;font-weight:600;line-height:1.3;">${title}</td></tr></table></td>`;
+  const tile = (icon: string, title: string, text: string) =>
+    `<td valign="top" width="50%" style="padding:0 8px 18px;">
+<img src="${ASSETS}/${icon}.png" width="40" height="40" alt="" style="display:block;border:0;margin-bottom:10px;">
+<strong style="font-size:15px;">${title}</strong><br><span style="font-size:14px;line-height:1.45;color:#5E554C;">${text}</span></td>`;
   return {
     subject: 'Your skin deserves better than guesswork',
     html: layout({
       preheader: 'Start with one scan. Skintel takes it from there.',
-      body: `<h1 style="margin:0 0 24px;font-family:Georgia,'Times New Roman',serif;font-weight:400;font-size:28px;line-height:1.15;">Your skin deserves better than guesswork.</h1>
+      body: `<h1 style="margin:0 0 10px;font-family:Georgia,'Times New Roman',serif;font-weight:400;font-size:28px;line-height:1.15;">Your skin deserves better than guesswork.</h1>
+<p style="margin:0 0 24px;color:#5E554C;">You've tried the products. Now find out which one is actually the problem.</p>
 <table role="presentation" cellpadding="0" cellspacing="0" width="100%" style="margin:0 -8px;width:calc(100% + 16px);">
-<tr>${tile('scan', 'Scan any bottle')}${tile('find', 'Find your trigger')}</tr>
-<tr>${tile('ask', 'Ask Skintel anything')}${tile('log', 'Track your skin')}</tr>
+<tr>${tile('scan', 'Know what’s in it', 'Scan a bottle and see if it suits your skin.')}${tile('log', 'Teach it your skin', 'A quick daily log shows Skintel what your skin hates.')}</tr>
+<tr>${tile('ask', 'Get real answers', 'Ask about any product. Answers built on your skin, not the internet.')}${tile('find', 'Get personalized results', 'See the one ingredient your bad days have in common.')}</tr>
 </table>
 <table role="presentation" cellpadding="0" cellspacing="0"><tr>
 <td valign="middle">${button(APP_STORE_URL, 'Scan your first product')}</td>
