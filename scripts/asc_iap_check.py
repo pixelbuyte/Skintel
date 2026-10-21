@@ -28,7 +28,13 @@ API = "https://api.appstoreconnect.apple.com"
 
 
 def token() -> str:
-    key = os.environ["APP_STORE_CONNECT_PRIVATE_KEY"].strip().replace("\\n", "\n")
+    key = os.environ["APP_STORE_CONNECT_PRIVATE_KEY"].strip()
+    # Codemagic integrations may pass a reference instead of the key text.
+    if key.startswith("@file:"):
+        key = open(os.path.expanduser(key[len("@file:"):])).read()
+    elif key.startswith("@env:"):
+        key = os.environ[key[len("@env:"):]]
+    key = key.strip().replace("\\n", "\n")
     if "BEGIN" not in key:
         # Bare base64 body: rebuild the PEM framing.
         body = "".join(key.split())
