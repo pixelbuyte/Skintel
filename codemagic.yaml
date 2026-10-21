@@ -25,6 +25,9 @@
 #                 publishing required. Works immediately once this repo is connected to Codemagic.
 #   ios-release - archives, signs and uploads Skintel to TestFlight / App Store Connect. Requires
 #                 the Apple credentials documented in that workflow's comments before it can run.
+#   ios-recording - records an MP4 of a signed-in app tour on the Simulator (AppTourRecording UI
+#                 test). Needs variable group `skintel_demo` with SKINTEL_DEMO_EMAIL and
+#                 SKINTEL_DEMO_PASSWORD (a demo account that has finished onboarding).
 
 workflows:
   ios-ci:
@@ -103,6 +106,94 @@ workflows:
     artifacts:
       - build/ios-ci/Skintel.xcresult
       - $HOME/Library/Developer/Xcode/DerivedData/**/Logs/Test/*.xcresult
+
+  ios-recording:
+    name: iOS Recording - Simulator app tour video (Skintel)
+    max_build_duration: 40
+    instance_type: mac_mini_m2
+    environment:
+      xcode: latest
+      groups:
+        - skintel_demo
+      vars:
+        XCODE_PROJECT: "ios/Skintel/Skintel.xcodeproj"
+        XCODE_SCHEME: "Skintel"
+    scripts:
+      - name: Set up public client configuration (Config.xcconfig)
+        script: |
+          set -euo pipefail
+          cp "$CM_BUILD_DIR/ios/Skintel/Config/Config.example.xcconfig" \
+             "$CM_BUILD_DIR/ios/Skintel/Config/Config.xcconfig"
+
+      - name: Resolve Swift Package Manager dependencies
+        script: |
+          set -euo pipefail
+          xcodebuild -resolvePackageDependencies \
+            -project "$CM_BUILD_DIR/$XCODE_PROJECT" \
+            -scheme "$XCODE_SCHEME"
+
+      - name: Boot an iPhone simulator with a clean status bar
+        script: |
+          set -euo pipefail
+          command -v jq >/dev/null 2>&1 || brew install jq
+          UDID=$(xcrun simctl list devices available -j | jq -r '
+            .devices
+            | to_entries
+            | map(select(.key | contains("com.apple.CoreSimulator.SimRuntime.iOS")))
+            | sort_by(.key)
+            | reverse
+            | .[0].value
+            | map(select(.name | test("^iPhone [0-9]+ Pro$")))
+            | (.[0] // empty).udid
+          ')
+          if [ -z "$UDID" ]; then
+            UDID=$(xcrun simctl list devices available -j | jq -r '[.devices[][] | select(.name | startswith("iPhone"))][0].udid')
+          fi
+          echo "Using simulator: $UDID"
+          xcrun simctl boot "$UDID" || true
+          xcrun simctl bootstatus "$UDID" -b
+          xcrun simctl status_bar "$UDID" override --time 9:41 --dataNetwork wifi --wifiBars 3 \
+            --cellularMode active --cellularBars 4 --batteryState charged --batteryLevel 100
+          echo "SIM_UDID=$UDID" >> "$CM_ENV"
+
+      - name: Build the app and UI tests
+        script: |
+          set -euo pipefail
+          xcodebuild build-for-testing \
+            -project "$CM_BUILD_DIR/$XCODE_PROJECT" \
+            -scheme "$XCODE_SCHEME" \
+            -destination "id=$SIM_UDID" \
+            -derivedDataPath "$CM_BUILD_DIR/build/dd" \
+            CODE_SIGN_IDENTITY="" CODE_SIGNING_REQUIRED=NO CODE_SIGNING_ALLOWED=NO \
+            | tail -n 20
+
+      - name: Record the app tour
+        script: |
+          set -uo pipefail
+          mkdir -p "$CM_BUILD_DIR/build/recording"
+          OUT="$CM_BUILD_DIR/build/recording/skintel-app-tour.mp4"
+          xcrun simctl io "$SIM_UDID" recordVideo --codec=h264 --force "$OUT" &
+          REC=$!
+          sleep 3
+          TEST_RUNNER_SKINTEL_DEMO_EMAIL="$SKINTEL_DEMO_EMAIL" \
+          TEST_RUNNER_SKINTEL_DEMO_PASSWORD="$SKINTEL_DEMO_PASSWORD" \
+          xcodebuild test-without-building \
+            -project "$CM_BUILD_DIR/$XCODE_PROJECT" \
+            -scheme "$XCODE_SCHEME" \
+            -destination "id=$SIM_UDID" \
+            -derivedDataPath "$CM_BUILD_DIR/build/dd" \
+            -only-testing:SkintelUITests/AppTourRecording/testRecordAppTour \
+            -resultBundlePath "$CM_BUILD_DIR/build/recording/AppTour.xcresult" \
+            | tail -n 30
+          STATUS=${PIPESTATUS[0]}
+          sleep 2
+          kill -INT "$REC"
+          wait "$REC" || true
+          ls -lh "$OUT"
+          exit "$STATUS"
+    artifacts:
+      - build/recording/skintel-app-tour.mp4
+      - build/recording/AppTour.xcresult
 
   ios-release:
     name: iOS Release - App Store / TestFlight (Skintel)
