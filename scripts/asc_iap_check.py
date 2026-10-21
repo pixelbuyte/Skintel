@@ -27,14 +27,28 @@ APP_IDS = {
 API = "https://api.appstoreconnect.apple.com"
 
 
+def resolve(name: str) -> str:
+    """Codemagic integrations may pass `@env:VAR` / `@file:path` references instead of values."""
+    v = os.environ.get(name, "").strip()
+    for _ in range(3):
+        if v.startswith("@file:"):
+            v = open(os.path.expanduser(v[len("@file:"):])).read().strip()
+        elif v.startswith("@env:"):
+            v = os.environ.get(v[len("@env:"):], "").strip()
+        else:
+            break
+    return v
+
+
+ISSUER = resolve("APP_STORE_CONNECT_ISSUER_ID")
+KEY_ID = resolve("APP_STORE_CONNECT_KEY_IDENTIFIER")
+# Shapes only, never values: an issuer id is a 36-char UUID, a key id 10 characters.
+print(f"credentials: issuer {len(ISSUER)} chars{' (uuid)' if len(ISSUER) == 36 and ISSUER.count('-') == 4 else ''}, "
+      f"key id {len(KEY_ID)} chars, private key present={bool(os.environ.get('APP_STORE_CONNECT_PRIVATE_KEY'))}")
+
+
 def token() -> str:
-    key = os.environ["APP_STORE_CONNECT_PRIVATE_KEY"].strip()
-    # Codemagic integrations may pass a reference instead of the key text.
-    if key.startswith("@file:"):
-        key = open(os.path.expanduser(key[len("@file:"):])).read()
-    elif key.startswith("@env:"):
-        key = os.environ[key[len("@env:"):]]
-    key = key.strip().replace("\\n", "\n")
+    key = resolve("APP_STORE_CONNECT_PRIVATE_KEY").replace("\\n", "\n")
     if "BEGIN" not in key:
         # Bare base64 body: rebuild the PEM framing.
         body = "".join(key.split())
@@ -47,10 +61,11 @@ def token() -> str:
         key = "-----BEGIN PRIVATE KEY-----\n" + "\n".join(body[i:i + 64] for i in range(0, len(body), 64)) + "\n-----END PRIVATE KEY-----\n"
     now = int(time.time())
     return jwt.encode(
-        {"iss": os.environ["APP_STORE_CONNECT_ISSUER_ID"], "iat": now, "exp": now + 900, "aud": "appstoreconnect-v1"},
+        # Team keys carry the issuer id; individual keys (no issuer) use sub="user".
+        ({"iss": ISSUER} if ISSUER else {"sub": "user"}) | {"iat": now, "exp": now + 900, "aud": "appstoreconnect-v1"},
         key,
         algorithm="ES256",
-        headers={"kid": os.environ["APP_STORE_CONNECT_KEY_IDENTIFIER"], "typ": "JWT"},
+        headers={"kid": KEY_ID, "typ": "JWT"},
     )
 
 
