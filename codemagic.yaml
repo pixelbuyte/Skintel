@@ -213,7 +213,7 @@ workflows:
         script: |
           set -euo pipefail
           python3 -m venv /tmp/asc
-          /tmp/asc/bin/pip install --quiet pyjwt cryptography
+          /tmp/asc/bin/pip install --quiet pyjwt cryptography codemagic-cli-tools
           /tmp/asc/bin/python scripts/asc_iap_check.py
 
   ios-release:

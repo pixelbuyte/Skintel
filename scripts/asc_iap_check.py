@@ -59,7 +59,8 @@ def token() -> str:
         body, _ = rest.split("-----END PRIVATE KEY-----", 1)
         body = "".join(body.split())
         key = "-----BEGIN PRIVATE KEY-----\n" + "\n".join(body[i:i + 64] for i in range(0, len(body), 64)) + "\n-----END PRIVATE KEY-----\n"
-    now = int(time.time())
+    # Back-date iat: Apple answers 401 to a token "issued" even a second in the future.
+    now = int(time.time()) - 60
     return jwt.encode(
         # Team keys carry the issuer id; individual keys (no issuer) use sub="user".
         ({"iss": ISSUER} if ISSUER else {"sub": "user"}) | {"iat": now, "exp": now + 900, "aud": "appstoreconnect-v1"},
@@ -69,6 +70,31 @@ def token() -> str:
     )
 
 
+def clock_skew() -> None:
+    try:
+        with urllib.request.urlopen(urllib.request.Request(API, method="HEAD"), timeout=15) as r:
+            date = r.headers.get("Date")
+    except urllib.error.HTTPError as e:
+        date = e.headers.get("Date")
+    if date:
+        from email.utils import parsedate_to_datetime
+        print(f"clock: build machine is {int(time.time() - parsedate_to_datetime(date).timestamp())} s off Apple")
+
+
+def codemagic_token() -> str | None:
+    """Fallback: the token Codemagic's own CLI generates (the one ios-release uses)."""
+    try:
+        from codemagic.apple.app_store_connect import AppStoreConnectApiClient  # type: ignore
+        from codemagic.apple.app_store_connect import IssuerId, KeyIdentifier  # type: ignore
+        key = resolve("APP_STORE_CONNECT_PRIVATE_KEY")
+        client = AppStoreConnectApiClient(KeyIdentifier(KEY_ID), IssuerId(ISSUER), key)
+        return client.jwt
+    except Exception as e:  # noqa: BLE001 - diagnostic fallback only
+        print(f"codemagic token fallback unavailable: {type(e).__name__}")
+        return None
+
+
+clock_skew()
 TOKEN = token()
 
 
@@ -85,7 +111,14 @@ def get(path: str, **params) -> dict:
 
 
 def main() -> int:
+    global TOKEN
     apps = get("/v1/apps", **{"filter[bundleId]": BUNDLE_ID})["data"]
+    if not apps:
+        alt = codemagic_token()
+        if alt:
+            print("retrying with the Codemagic CLI token")
+            TOKEN = alt
+            apps = get("/v1/apps", **{"filter[bundleId]": BUNDLE_ID})["data"]
     if not apps:
         print(f"No app with bundle id {BUNDLE_ID} visible to this API key.")
         return 1
