@@ -28,7 +28,17 @@ API = "https://api.appstoreconnect.apple.com"
 
 
 def token() -> str:
-    key = os.environ["APP_STORE_CONNECT_PRIVATE_KEY"]
+    key = os.environ["APP_STORE_CONNECT_PRIVATE_KEY"].strip().replace("\\n", "\n")
+    if "BEGIN" not in key:
+        # Bare base64 body: rebuild the PEM framing.
+        body = "".join(key.split())
+        key = "-----BEGIN PRIVATE KEY-----\n" + "\n".join(body[i:i + 64] for i in range(0, len(body), 64)) + "\n-----END PRIVATE KEY-----\n"
+    elif "\n" not in key:
+        # Header, body and footer squashed onto one line with spaces.
+        head, rest = key.split("-----BEGIN PRIVATE KEY-----", 1)
+        body, _ = rest.split("-----END PRIVATE KEY-----", 1)
+        body = "".join(body.split())
+        key = "-----BEGIN PRIVATE KEY-----\n" + "\n".join(body[i:i + 64] for i in range(0, len(body), 64)) + "\n-----END PRIVATE KEY-----\n"
     now = int(time.time())
     return jwt.encode(
         {"iss": os.environ["APP_STORE_CONNECT_ISSUER_ID"], "iat": now, "exp": now + 900, "aud": "appstoreconnect-v1"},
