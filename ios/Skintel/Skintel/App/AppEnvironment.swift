@@ -47,6 +47,8 @@ final class AppEnvironment {
         // Ready before any Skintel+ wall opens, so a test build shows its chosen wall style
         // straight away. Runs alongside; nothing below waits on it.
         Task { await subscriptionService.checkBuildEnvironment() }
+        // Last session's shelf first, so Today draws straight away; the fetch below refreshes it.
+        if let userID = session.user?.id { products.restoreCache(userID: userID) }
         async let p: () = products.load()
         async let s: () = subscription.load()
         _ = await (p, s)

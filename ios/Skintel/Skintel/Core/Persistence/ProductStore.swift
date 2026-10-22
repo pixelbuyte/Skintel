@@ -9,9 +9,24 @@ import SkintelCore
 final class ProductStore {
     private(set) var state: Loadable<[ProductWithIngredients]> = .idle
     private let db: PostgRESTClient
+    private let cacheURL: URL
 
-    init(db: PostgRESTClient) {
+    init(db: PostgRESTClient, directory: URL? = nil) {
         self.db = db
+        let dir = directory ?? FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0]
+            .appendingPathComponent("Skintel", isDirectory: true)
+        try? FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
+        cacheURL = dir.appendingPathComponent("shelf.v1.json")
+    }
+
+    /// The last shelf saved on this device, shown at launch so Today doesn't sit on a
+    /// skeleton while the network fetch runs; `load()` replaces it moments later.
+    func restoreCache(userID: String) {
+        guard state.value == nil,
+              let data = try? Data(contentsOf: cacheURL),
+              let cached = try? JSONDecoder().decode(CachedShelf.self, from: data),
+              cached.userID == userID else { return }
+        state = .loaded(cached.products)
     }
 
     var products: [ProductWithIngredients] { state.value ?? [] }
@@ -41,6 +56,7 @@ final class ProductStore {
             let list = try await db.products()
             state = .loaded(list)
             ShelfWidgetSync.publish(list)
+            persist(list)
         }
         catch let e as APIError {
             // Keep stale data visible on a transient failure; only show the error state cold.
@@ -70,6 +86,7 @@ final class ProductStore {
             list.removeAll { $0.id == id }
             state = .loaded(list)
             ShelfWidgetSync.publish(list)
+            persist(list)
         }
     }
 
@@ -77,6 +94,22 @@ final class ProductStore {
     func reset() {
         state = .idle
         ShelfWidgetSync.clear()
+        try? FileManager.default.removeItem(at: cacheURL)
+    }
+
+    private struct CachedShelf: Codable {
+        var userID: String
+        var products: [ProductWithIngredients]
+    }
+
+    private func persist(_ list: [ProductWithIngredients]) {
+        // An empty shelf has no owner to check against, so it isn't worth caching.
+        guard let owner = list.first?.product.userID,
+              let data = try? JSONEncoder().encode(CachedShelf(userID: owner, products: list)) else {
+            try? FileManager.default.removeItem(at: cacheURL)
+            return
+        }
+        try? data.write(to: cacheURL, options: [.atomic, .completeFileProtection])
     }
 
     private func blank(_ s: String?) -> String? {
