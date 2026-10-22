@@ -168,6 +168,9 @@ function OfferCard() {
       <p className={`mt-2.5 text-center text-[12px] ${err ? 'text-[#A35848]' : 'text-[#8A7A6C]'}`}>
         {err ?? 'Secure checkout by Stripe. Billed by Skintel, not Apple.'}
       </p>
+      <p className="mt-1 text-center text-[12px] text-[#8A7A6C]">
+        Any problem? Email <a href="mailto:skinstelreview@gmail.com" className="underline">skinstelreview@gmail.com</a>. We reply within 24 hours.
+      </p>
     </form>
   );
 }

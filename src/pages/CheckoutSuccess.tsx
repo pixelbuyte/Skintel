@@ -35,6 +35,11 @@ export default function CheckoutSuccess() {
               </p>
             </div>
             <a href="https://apps.apple.com/us/app/skinstel-scan-track-clear/id6812903021" className="btn-primary">Open the App Store</a>
+            <p className="text-sm text-muted mt-6">
+              Not seeing Skintel+ in the app? Email{' '}
+              <a href="mailto:skinstelreview@gmail.com" className="underline">skinstelreview@gmail.com</a> with the email you
+              paid with. We fix it within 24 hours.
+            </p>
           </>
         ) : user ? (
           <>

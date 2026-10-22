@@ -117,7 +117,8 @@ async function sendLaunchWelcome(email: string | null, prepaid: boolean) {
         <p style="color:#5E554C"><strong>To use it:</strong> open Skintel on your iPhone and sign in with <strong>${email}</strong>. That's the account Skintel+ is on.</p>
         <p style="color:#5E554C">New to Skintel? Tap <em>Continue with email</em>, then <em>Forgot password?</em> to set a password for this address.</p>
         <a href="https://apps.apple.com/app/id6812903021" style="display:inline-block;margin-top:10px;background:#A35848;color:#FFFEFA;padding:12px 26px;border-radius:999px;text-decoration:none;font-weight:600">Get the app</a>
-        <p style="color:#8A7A6C;font-size:12px;margin-top:22px">Billed by Skintel through Stripe, not Apple. Manage or cancel any time from the link in your Stripe receipt, or write to hello@skinstel.com.</p>
+        <p style="color:#5E554C;margin-top:18px">Signed in and not seeing Skintel+? Email <a href="mailto:skinstelreview@gmail.com" style="color:#A35848">skinstelreview@gmail.com</a> with the email you paid with. We fix it within 24 hours.</p>
+        <p style="color:#8A7A6C;font-size:12px;margin-top:22px">Billed by Skintel through Stripe, not Apple. Manage or cancel any time from the link in your Stripe receipt.</p>
       </div>`,
   });
 }
