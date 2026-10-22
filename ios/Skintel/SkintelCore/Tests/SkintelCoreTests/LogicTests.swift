@@ -190,3 +190,28 @@ private func sub(_ tier: Tier, _ status: String?) -> Subscription {
     #expect(ISO8601.dayString(noon) == "2026-09-23")
     #expect(ISO8601.date("2026-09-23").map(ISO8601.dayString) == "2026-09-23")
 }
+
+// MARK: - Product highlights (Add product screen)
+
+@Test func highlightsReadWhatACleanserIsGoodForAndWhatToWatch() {
+    let inci = "Aqua/Water/Eau, Cocamidopropyl Hydroxysultaine, Glycerin, Sodium Lauroyl Sarcosinate, Niacinamide, Ceramide NP, Ceramide AP, Ceramide EOP, Carbomer, Methylparaben, Sodium Chloride, Cholesterol, Disodium EDTA, Propylparaben, Citric Acid, Hyaluronic Acid, Phytosphingosine, Xanthan Gum"
+    let h = ProductHighlights.make(INCI.parse(inci))
+    let titles = h.goodFor.map(\.title)
+    #expect(titles.contains("Barrier support"))
+    #expect(titles.contains("Hydration"))
+    #expect(titles.contains("Even tone"))
+    #expect(titles.first == "Barrier support") // five barrier ingredients outrank the rest
+    #expect(h.watch.map(\.title) == ["Parabens"])
+    #expect(h.watch.first?.detail == "Methylparaben, Propylparaben")
+    #expect(h.goodFor.count <= ProductHighlights.maxGood)
+    #expect(h.sentence?.hasPrefix("Barrier support") == true)
+}
+
+@Test func highlightsFlagFragranceAndNeverInventBenefits() {
+    let h = ProductHighlights.make(INCI.parse("Water, Parfum, Linalool, Dimethicone"))
+    #expect(h.watch.map(\.title) == ["Fragrance"])
+    #expect(h.watch.first?.detail == "Parfum, Linalool")
+    #expect(h.goodFor.isEmpty)
+    #expect(h.sentence == nil)
+    #expect(ProductHighlights.make([]).isEmpty)
+}

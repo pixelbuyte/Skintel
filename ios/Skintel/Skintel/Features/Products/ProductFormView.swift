@@ -28,6 +28,11 @@ struct ProductFormView: View {
     @State private var error: String?
     @State private var loaded = false
     @State private var savedID: String?
+    /// True while the raw INCI box is showing. With a list already in place the screen opens on
+    /// what the product is good for instead, and the box sits behind "View all".
+    @State private var ingredientsExpanded = true
+    @Namespace private var reactionNS
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @FocusState private var focus: Field?
 
     private enum Field { case name, brand, inci, notes }
@@ -114,37 +119,45 @@ struct ProductFormView: View {
     private var reactionPicker: some View {
         VStack(alignment: .leading, spacing: SKSpace.sm) {
             SKFieldLabel("How did your skin react?")
-            HStack(spacing: SKSpace.sm) {
+            HStack(spacing: 0) {
                 ForEach([Outcome.good, .unsure, .bad], id: \.self) { o in
-                    reactionButton(o)
+                    reactionSegment(o)
                 }
             }
+            .padding(4)
+            .background(SKColor.neutralChip, in: Capsule())
         }
     }
 
-    private func reactionButton(_ o: Outcome) -> some View {
+    /// One segment of the reaction control. The selected one is a raised cream pill that slides.
+    private func reactionSegment(_ o: Outcome) -> some View {
         let on = outcome == o
         let look = ReactionLook(o)
         return Button {
-            outcome = o
+            withAnimation(reduceMotion ? nil : SKAnimation.ios(0.3)) { outcome = o }
             Haptics.selection()
         } label: {
-            VStack(spacing: 6) {
+            HStack(spacing: 6) {
                 Image(systemName: look.symbol)
-                    .font(.system(size: 17, weight: .semibold))
-                    .foregroundStyle(look.tint)
+                    .font(.system(size: 13, weight: .semibold))
+                    .foregroundStyle(on ? look.tint : SKColor.muted)
                     .accessibilityHidden(true)
                 Text(o.label)
                     .font(SKFont.sans(14, weight: .semibold, relativeTo: .subheadline))
                     .foregroundStyle(on ? SKColor.ink : SKColor.muted)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.8)
             }
-            .frame(maxWidth: .infinity)
-            .frame(minHeight: 64)
-            .padding(.vertical, SKSpace.xs)
-            .background(on ? look.fill : SKColor.cream, in: RoundedRectangle(cornerRadius: SKRadius.card, style: .continuous))
-            .overlay(RoundedRectangle(cornerRadius: SKRadius.card, style: .continuous)
-                .stroke(on ? look.tint : SKColor.line, lineWidth: on ? 1.5 : 1))
-            .contentShape(RoundedRectangle(cornerRadius: SKRadius.card, style: .continuous))
+            .frame(maxWidth: .infinity, minHeight: 44)
+            .background {
+                if on {
+                    Capsule()
+                        .fill(SKColor.cream)
+                        .shadow(color: SKColor.ink.opacity(0.10), radius: 6, y: 2)
+                        .matchedGeometryEffect(id: "reaction", in: reactionNS)
+                }
+            }
+            .contentShape(Capsule())
         }
         .buttonStyle(SKPressStyle())
         .accessibilityLabel(o.label)
@@ -153,39 +166,116 @@ struct ProductFormView: View {
 
     private var ingredientsField: some View {
         let n = parsed.count
+        let showSummary = n > 0 && !ingredientsExpanded
         return VStack(alignment: .leading, spacing: SKSpace.sm) {
             HStack {
-                SKFieldLabel("Ingredients (INCI)")
+                SKFieldLabel(showSummary ? "What it's good for" : "Ingredients (INCI)")
                 Spacer()
-                ClipboardPasteButton { text in inci = text }
+                if !showSummary {
+                    ClipboardPasteButton { text in
+                        inci = text
+                        if !INCI.parse(text).isEmpty { ingredientsExpanded = false }
+                    }
+                }
             }
-            SKTextEditor(placeholder: "Aqua, Glycerin, Niacinamide, …", text: $inci, minHeight: 140, mono: true)
-                .focused($focus, equals: .inci)
-            HStack(spacing: 6) {
+            if showSummary {
+                highlightsCard(ProductHighlights.make(parsed), count: n)
+            } else {
+                SKTextEditor(placeholder: "Aqua, Glycerin, Niacinamide, …", text: $inci, minHeight: 140, mono: true)
+                    .focused($focus, equals: .inci)
+                HStack(spacing: 6) {
+                    if n > 0 {
+                        Image(systemName: "checkmark.circle.fill").font(.system(size: 12, weight: .semibold))
+                    }
+                    Text(n == 0 ? "Paste the list exactly as printed, commas between ingredients."
+                                : "\(n) ingredient\(n == 1 ? "" : "s") recognised")
+                }
+                .font(SKFont.dataSmall)
+                .foregroundStyle(n == 0 ? SKColor.muted : SKColor.goodFg)
+                .accessibilityElement(children: .combine)
                 if n > 0 {
-                    Image(systemName: "checkmark.circle.fill").font(.system(size: 12, weight: .semibold))
+                    Button {
+                        focus = nil
+                        withAnimation(reduceMotion ? nil : SKAnimation.ios(0.3)) { ingredientsExpanded = false }
+                    } label: {
+                        Text("Show what it's good for")
+                            .font(SKFont.sans(15, weight: .semibold, relativeTo: .subheadline))
+                            .foregroundStyle(SKColor.primary)
+                    }
+                    .buttonStyle(SKPressStyle())
                 }
-                Text(n == 0 ? "Paste the list exactly as printed, commas between ingredients."
-                            : "\(n) ingredient\(n == 1 ? "" : "s") recognised")
-            }
-            .font(SKFont.dataSmall)
-            .foregroundStyle(n == 0 ? SKColor.muted : SKColor.goodFg)
-            .accessibilityElement(children: .combine)
-            if n > 0 {
-                FlowLayout(spacing: 6) {
-                    ForEach(parsed.prefix(12), id: \.normalized) { i in SKChip(i.raw) }
-                    if n > 12 { SKChip("+\(n - 12)") }
+                Label {
+                    Text("The ingredient list is what makes verdicts and Triggers work. Without it, Skintel can't check this product or line it up against the ones that broke you out.")
+                } icon: {
+                    Image(systemName: "info.circle")
                 }
+                .font(SKFont.caption)
+                .foregroundStyle(SKColor.muted)
+                .padding(.top, SKSpace.xs)
             }
-            Label {
-                Text("The ingredient list is what makes verdicts and Triggers work. Without it, Skintel can't check this product or line it up against the ones that broke you out.")
-            } icon: {
-                Image(systemName: "info.circle")
-            }
-            .font(SKFont.caption)
-            .foregroundStyle(SKColor.muted)
-            .padding(.top, SKSpace.xs)
         }
+    }
+
+    /// The summary in place of the raw list: what the ingredients do for the skin, anything worth
+    /// watching, and a way into the full list. Read from the curated ingredient table, so it is
+    /// instant and never invented.
+    private func highlightsCard(_ h: ProductHighlights.Result, count n: Int) -> some View {
+        VStack(alignment: .leading, spacing: SKSpace.md) {
+            if h.goodFor.isEmpty {
+                Text("Nothing standout recognised in this list. It's saved in full and still powers verdicts and Triggers.")
+                    .font(SKFont.secondary)
+                    .foregroundStyle(SKColor.muted)
+            } else {
+                ForEach(h.goodFor) { item in highlightRow(item, good: true) }
+            }
+            if !h.watch.isEmpty {
+                Rectangle().fill(SKColor.line).frame(height: 1)
+                Text("Watch for").skLabelStyle()
+                ForEach(h.watch) { item in highlightRow(item, good: false) }
+            }
+            Rectangle().fill(SKColor.line).frame(height: 1)
+            Button {
+                withAnimation(reduceMotion ? nil : SKAnimation.ios(0.3)) { ingredientsExpanded = true }
+            } label: {
+                HStack {
+                    Text("View or edit all \(n) ingredient\(n == 1 ? "" : "s")")
+                        .font(SKFont.sans(15, weight: .semibold, relativeTo: .subheadline))
+                        .foregroundStyle(SKColor.primary)
+                    Spacer(minLength: 0)
+                    Image(systemName: "chevron.down")
+                        .font(.system(size: 13, weight: .semibold))
+                        .foregroundStyle(SKColor.primary)
+                }
+                .contentShape(Rectangle())
+            }
+            .buttonStyle(SKPressStyle())
+        }
+        .padding(SKSpace.lg)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(SKColor.cream, in: RoundedRectangle(cornerRadius: SKRadius.card, style: .continuous))
+        .overlay(RoundedRectangle(cornerRadius: SKRadius.card, style: .continuous).stroke(SKColor.line))
+    }
+
+    private func highlightRow(_ item: ProductHighlights.Item, good: Bool) -> some View {
+        HStack(alignment: .top, spacing: SKSpace.md) {
+            Image(systemName: item.symbol)
+                .font(.system(size: 15, weight: .semibold))
+                .foregroundStyle(good ? SKColor.goodFg : SKColor.primary)
+                .frame(width: 34, height: 34)
+                .background(good ? SKColor.goodBg : SKColor.blush,
+                            in: RoundedRectangle(cornerRadius: SKRadius.tile, style: .continuous))
+                .accessibilityHidden(true)
+            VStack(alignment: .leading, spacing: 2) {
+                Text(item.title)
+                    .font(SKFont.sans(16, weight: .semibold, relativeTo: .body))
+                    .foregroundStyle(SKColor.ink)
+                Text(item.detail)
+                    .font(SKFont.caption)
+                    .foregroundStyle(SKColor.muted)
+            }
+            Spacer(minLength: 0)
+        }
+        .accessibilityElement(children: .combine)
     }
 
     // MARK: Load / save
@@ -213,6 +303,7 @@ struct ProductFormView: View {
             notes = p.product.notes ?? ""
             inci = p.ingredients.map(\.inciRaw).joined(separator: ", ")
         }
+        ingredientsExpanded = parsed.isEmpty
     }
 
     /// A new product starts at the name with the keyboard up, once the push or sheet settles.
