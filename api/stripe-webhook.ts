@@ -11,6 +11,7 @@ function tierFromPriceId(priceId: string | undefined | null): 'pro' | 'founding'
   if (priceId === process.env.VITE_STRIPE_PRICE_FOUNDING) return 'founding';
   if (priceId === process.env.VITE_STRIPE_PRICE_PRO) return 'pro';
   if (priceId === process.env.VITE_STRIPE_PRICE_PRO_YEARLY) return 'pro';
+  if (priceId === process.env.STRIPE_PRICE_LAUNCH_PREPAY) return 'pro';
   return null;
 }
 
@@ -65,6 +66,8 @@ async function upsertFromSubscription(sub: Stripe.Subscription, userIdOverride?:
   const row: Record<string, unknown> = {
     user_id: userId,
     tier: finalTier,
+    // Marks the row as web-billed so an Apple sync on the same account never overwrites it.
+    source: 'stripe',
     stripe_customer_id: typeof sub.customer === 'string' ? sub.customer : sub.customer.id,
     stripe_subscription_id: sub.id,
     status: sub.status,
@@ -78,6 +81,45 @@ async function upsertFromSubscription(sub: Stripe.Subscription, userIdOverride?:
   }
 
   await sb.from('subscriptions').upsert(row, { onConflict: 'user_id' });
+}
+
+/** Prepaid launch quarter: one 3-month period at the launch price, then $8.99 monthly. */
+async function scheduleMonthlyAfterPrepay(sub: Stripe.Subscription) {
+  const monthly = process.env.VITE_STRIPE_PRICE_PRO;
+  if (!monthly || sub.schedule) return;
+  const schedule = await stripe.subscriptionSchedules.create({ from_subscription: sub.id });
+  const first = schedule.phases[0];
+  await stripe.subscriptionSchedules.update(schedule.id, {
+    end_behavior: 'release',
+    phases: [
+      {
+        items: first.items.map((i) => ({
+          price: typeof i.price === 'string' ? i.price : i.price.id,
+          quantity: i.quantity ?? 1,
+        })),
+        start_date: first.start_date,
+        end_date: first.end_date,
+      },
+      { items: [{ price: monthly, quantity: 1 }], duration: { interval: 'month', interval_count: 1 } },
+    ],
+  });
+}
+
+async function sendLaunchWelcome(email: string | null, prepaid: boolean) {
+  if (!email) return;
+  await sendEmail({
+    to: email,
+    subject: "You're Skintel+ — here's how to get in",
+    html: `
+      <div style="font-family:-apple-system,Helvetica,Arial,sans-serif;max-width:520px;margin:0 auto;color:#1A1814;line-height:1.55">
+        <h2 style="font-family:Georgia,serif;font-weight:400;font-size:26px;margin:0 0 10px">You're Skintel+.</h2>
+        <p style="color:#5E554C">${prepaid ? 'Your first 3 months are paid' : 'Your first 3 months are $6.49 each'}, then it's $8.99/month. Cancel any time.</p>
+        <p style="color:#5E554C"><strong>To use it:</strong> open Skintel on your iPhone and sign in with <strong>${email}</strong>. That's the account Skintel+ is on.</p>
+        <p style="color:#5E554C">New to Skintel? Tap <em>Continue with email</em>, then <em>Forgot password?</em> to set a password for this address.</p>
+        <a href="https://apps.apple.com/app/id6812903021" style="display:inline-block;margin-top:10px;background:#A35848;color:#FFFEFA;padding:12px 26px;border-radius:999px;text-decoration:none;font-weight:600">Get the app</a>
+        <p style="color:#8A7A6C;font-size:12px;margin-top:22px">Billed by Skintel through Stripe, not Apple. Manage or cancel any time from the link in your Stripe receipt, or write to hello@skinstel.com.</p>
+      </div>`,
+  });
 }
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
@@ -129,13 +171,12 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
         // Guest founding purchase: no account yet — create (or match) one from
         // the email Stripe collected, and mint a magic link for the welcome email.
-        if (
-          !userId &&
-          session.mode === 'payment' &&
-          session.payment_status === 'paid' &&
-          session.metadata?.tier === 'founding' &&
-          guestEmail
-        ) {
+        const guestFounding =
+          session.mode === 'payment' && session.payment_status === 'paid' && session.metadata?.tier === 'founding';
+        // Website launch offer: a subscription bought with only an email. Skintel+ goes to
+        // the account with that email (the one they sign in to the app with), created if new.
+        const guestLaunch = session.mode === 'subscription' && !!session.metadata?.launch;
+        if (!userId && (guestFounding || guestLaunch) && guestEmail) {
           const sb = getServiceClient();
           const { data: created, error: createErr } = await sb.auth.admin.createUser({
             email: guestEmail,
@@ -154,7 +195,15 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         }
 
         if (session.subscription && userId) {
-          const sub = await stripe.subscriptions.retrieve(session.subscription as string);
+          let sub = await stripe.subscriptions.retrieve(session.subscription as string);
+          if (guestLaunch) {
+            // Later subscription events find the account through this metadata.
+            sub = await stripe.subscriptions.update(sub.id, {
+              metadata: { ...sub.metadata, supabase_user_id: userId },
+            });
+            if (session.metadata?.launch === 'prepay') await scheduleMonthlyAfterPrepay(sub);
+            await sendLaunchWelcome(guestEmail, session.metadata?.launch === 'prepay');
+          }
           await upsertFromSubscription(sub, userId);
         } else if (
           session.mode === 'payment' &&
