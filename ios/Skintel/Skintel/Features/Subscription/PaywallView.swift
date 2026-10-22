@@ -243,7 +243,7 @@ struct PaywallView: View {
     private var benefits: some View {
         VStack(alignment: .leading, spacing: SKSpace.sm) {
             Text(isPro ? "Everything in Skintel+ · tap to watch" : "What you get · tap to watch").skLabelStyle()
-            // Three rows, then "Show all" opens the rest in place, so nobody has to scroll
+            // Three rows, then "Show more" opens the rest in place, so nobody has to scroll
             // past six rows to reach the plans or Restore.
             ProBenefitsList(highlight: isPro ? nil : reason, method: method, limit: 3)
         }
@@ -1212,7 +1212,7 @@ struct ProBenefitsList: View {
     /// The add method behind a scanner gate, so the lead demo shows that method.
     var method: ScanMethod? = nil
     /// When set, only this many rows show (the gate's own feature first), then
-    /// "Show all N features" expands the rest in place. Tapping a row opens the swipe deck.
+    /// "Show more" expands the rest in place. Tapping a row opens the swipe deck.
     var limit: Int? = nil
     @State private var demo: ProBenefit?
     @State private var expanded = false
@@ -1243,15 +1243,15 @@ struct ProBenefitsList: View {
                     Haptics.tap()
                     withAnimation(SKAnimation.emil(0.4)) { expanded.toggle() }
                 } label: {
-                    HStack {
-                        Text(expanded ? "Show less" : "Show all \(ordered.count) features")
+                    HStack(spacing: 6) {
+                        Text(expanded ? "Show less" : "Show more")
                             .font(SKFont.sans(15, weight: .semibold, relativeTo: .subheadline))
-                            .foregroundStyle(SKColor.primary)
-                        Spacer(minLength: 0)
-                        Image(systemName: expanded ? "chevron.up" : "chevron.down")
+                        Image(systemName: "chevron.down")
                             .font(.system(size: 13, weight: .semibold))
-                            .foregroundStyle(SKColor.primary)
+                            .rotationEffect(.degrees(expanded ? 180 : 0))
                     }
+                    .foregroundStyle(SKColor.primary)
+                    .frame(maxWidth: .infinity)
                     .padding(.vertical, 12)
                     .contentShape(Rectangle())
                 }

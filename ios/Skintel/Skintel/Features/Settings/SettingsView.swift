@@ -674,7 +674,7 @@ private struct AccountDataView: View {
 
             SettingsGroup(title: env.subscription.entitlement.isPro ? "Your Skintel+ benefits" : "What Skintel+ adds",
                           footer: "Tap one to watch it work.") {
-                ProBenefitsList().padding(.horizontal, SKSpace.lg).padding(.vertical, 4)
+                ProBenefitsList(limit: 3).padding(.horizontal, SKSpace.lg).padding(.vertical, 4)
             }
 
             SettingsGroup(title: "Your data") {

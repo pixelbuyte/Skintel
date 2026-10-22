@@ -230,7 +230,7 @@ private struct ProBenefitsPage: View {
                 }
                 .padding(.top, SKSpace.xxl)
 
-                ProBenefitsList()
+                ProBenefitsList(limit: 3)
                     .padding(.horizontal, SKSpace.lg)
                     .padding(.vertical, SKSpace.sm)
                     .background(SKColor.cream, in: RoundedRectangle(cornerRadius: SKRadius.card, style: .continuous))
