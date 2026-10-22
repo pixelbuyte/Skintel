@@ -3,7 +3,7 @@ import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { getServiceClient, getUserFromAuthHeader, json } from './_lib.js';
 import { handleAssistant } from './_assistant.js';
 
-const MODEL = 'claude-haiku-4-5-20251001';
+const MODEL = 'claude-haiku-5-5';
 
 type Goal = 'cleanser' | 'moisturizer' | 'serum' | 'sunscreen' | 'toner' | 'exfoliant';
 type Budget = 'drugstore' | 'mid' | 'luxury';
@@ -130,7 +130,9 @@ Return strict JSON only. Exactly ${count} recommendations, all priced at or unde
   try {
     const resp = await client.messages.create({
       model: MODEL,
-      max_tokens: Math.min(8192, 1024 + count * 280),
+      max_tokens: Math.min(12000, 2048 + count * 280),
+      // Haiku 5.5 thinks by default; low effort keeps it quick and leaves the cap for the picks.
+      output_config: { effort: 'low' },
       system,
       messages: [{ role: 'user', content: userMsg }],
     });

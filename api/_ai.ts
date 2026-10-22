@@ -10,7 +10,7 @@ const OPENROUTER_URL = 'https://openrouter.ai/api/v1/chat/completions';
 
 // Picked from OpenRouter's catalog for price per quality (Sep 2026). Tried in order.
 export const SCAN_MODELS = ['google/gemini-3.1-flash-lite', 'openai/gpt-5.6-luna'] as const;
-export const ANTHROPIC_FALLBACK_MODEL = 'claude-haiku-4-5-20251001';
+export const ANTHROPIC_FALLBACK_MODEL = 'claude-haiku-5-5';
 
 export type AiImage = { base64: string; mimeType: string };
 
@@ -113,6 +113,8 @@ async function viaAnthropic(req: AiRequest, apiKey: string): Promise<AiResult> {
   const resp = await client.messages.create({
     model: ANTHROPIC_FALLBACK_MODEL,
     max_tokens: req.maxTokens,
+    // Haiku 5.5 thinks by default and rejects sampling params; low effort keeps scans quick.
+    output_config: { effort: 'low' },
     system: req.system,
     tools: req.webSearch ? [{ type: 'web_search_20250305', name: 'web_search', max_uses: 4 }] : undefined,
     messages: [{ role: 'user', content }],

@@ -55,14 +55,15 @@ your shelf, routine and check-ins.
 
 - `api/_ai.ts` is the one router for scans. **OpenRouter first**, trying in order
   `google/gemini-3.1-flash-lite` then `openai/gpt-5.6-luna` (`SCAN_MODELS`). If OpenRouter is not configured
-  or fails, it falls back to Anthropic directly with `claude-haiku-4-5-20251001`.
+  or fails, it falls back to Anthropic directly with `claude-haiku-5-5` (effort `low`).
 - Used by: barcode lookup (`_barcode-lookup.ts`, with web search), photo/label reading (`_scan-photo-bulk.ts`),
   Compare (`_compare.ts`).
 - **Ask Skintel** (`_assistant.ts`) has two user-selectable tiers, shown in the app as a slide toggle:
   - **Luna** — `openai/gpt-5.6-luna` (fallback `google/gemini-3.1-flash-lite`), low reasoning, fast.
-  - **Sol** — `anthropic/claude-haiku-4.5` via OpenRouter (fallback Luna), longer and more careful.
+  - **Sol** — `anthropic/claude-haiku-5.5` via OpenRouter (fallback Luna), longer and more careful.
 - Link import (`_import-url.ts`) and journal analysis (`_journal-analyze.ts`) call Anthropic directly
-  (`claude-haiku-4-5-20251001`).
+  (`claude-haiku-5-5`, effort `low`). Haiku 5.5 rejects custom `temperature`/`top_p` and thinks by
+  default: set `output_config.effort`, never sampling params.
 - Honesty rule: **verdicts do not use skin type or age** — only Ask Skintel does. Never write copy that says
   otherwise.
 

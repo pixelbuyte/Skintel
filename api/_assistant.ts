@@ -27,7 +27,9 @@ type AssistantTier = {
 };
 
 // Luna: GPT-5.6 Luna, fast and cheap, with light reasoning so it answers quickly. Its token
-// cap leaves room for that reasoning. Sol: Claude Haiku 4.5, for longer, more careful answers.
+// cap leaves room for that reasoning. Sol: Claude Haiku 5.5, for longer, more careful answers.
+// Haiku 5.5 rejects a custom temperature and thinks by default, so Sol sets reasoning
+// effort instead and gets a larger cap.
 const TIERS: Record<'luna' | 'sol', AssistantTier> = {
   luna: {
     models: ['openai/gpt-5.6-luna', 'google/gemini-3.1-flash-lite'],
@@ -36,10 +38,10 @@ const TIERS: Record<'luna' | 'sol', AssistantTier> = {
     extra: { reasoning: { effort: 'low', exclude: true } },
   },
   sol: {
-    models: ['anthropic/claude-haiku-4.5', 'openai/gpt-5.6-luna'],
-    maxTokens: 900,
+    models: ['anthropic/claude-haiku-5.5', 'openai/gpt-5.6-luna'],
+    maxTokens: 2000,
     words: 260,
-    extra: { temperature: 0.4 },
+    extra: { reasoning: { effort: 'low', exclude: true } },
   },
 };
 

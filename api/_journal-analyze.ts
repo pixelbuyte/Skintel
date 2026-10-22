@@ -2,7 +2,7 @@ import Anthropic from '@anthropic-ai/sdk';
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { getServiceClient, getUserFromAuthHeader, json } from './_lib.js';
 
-const MODEL = 'claude-haiku-4-5-20251001';
+const MODEL = 'claude-haiku-5-5';
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (req.method !== 'POST') return json(res, { error: 'Method not allowed' }, 405);
@@ -92,7 +92,9 @@ Return strict JSON only. No prose, no markdown.`;
   try {
     const resp = await client.messages.create({
       model: MODEL,
-      max_tokens: 2048,
+      max_tokens: 4096,
+      // Haiku 5.5 thinks by default; low effort keeps extraction fast and leaves the cap for the JSON.
+      output_config: { effort: 'low' },
       system,
       messages: [{ role: 'user', content: userMsg }],
     });
