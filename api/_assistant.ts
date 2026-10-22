@@ -27,7 +27,9 @@ type AssistantTier = {
 };
 
 // Luna: GPT-5.6 Luna, fast and cheap, with light reasoning so it answers quickly. Its token
-// cap leaves room for that reasoning. Sol: Claude Haiku 4.5, for longer, more careful answers.
+// cap leaves room for that reasoning. Sol: Claude Haiku 5.5, for longer, more careful answers.
+// Haiku 5.5 rejects a custom temperature and thinks by default, so Sol sets reasoning
+// effort instead and gets a larger cap.
 const TIERS: Record<'luna' | 'sol', AssistantTier> = {
   luna: {
     models: ['openai/gpt-5.6-luna', 'google/gemini-3.1-flash-lite'],
@@ -36,10 +38,10 @@ const TIERS: Record<'luna' | 'sol', AssistantTier> = {
     extra: { reasoning: { effort: 'low', exclude: true } },
   },
   sol: {
-    models: ['anthropic/claude-haiku-4.5', 'openai/gpt-5.6-luna'],
-    maxTokens: 900,
+    models: ['anthropic/claude-haiku-5.5', 'openai/gpt-5.6-luna'],
+    maxTokens: 2000,
     words: 260,
-    extra: { temperature: 0.4 },
+    extra: { reasoning: { effort: 'low', exclude: true } },
   },
 };
 
@@ -163,14 +165,6 @@ export async function handleAssistant(req: VercelRequest, res: VercelResponse) {
   if (!user) return json(res, { error: 'Unauthorized' }, 401);
 
   const sb = getServiceClient();
-  const { data: subRow } = await sb
-    .from('subscriptions')
-    .select('tier, status')
-    .eq('user_id', user.id)
-    .maybeSingle();
-  const active = subRow?.status === 'active' || subRow?.status === 'trialing';
-  const isPro = active && (subRow?.tier === 'pro' || subRow?.tier === 'founding');
-  if (!isPro) return json(res, { error: 'Pro required' }, 402);
 
   let body: Record<string, unknown>;
   try {
@@ -210,7 +204,10 @@ export async function handleAssistant(req: VercelRequest, res: VercelResponse) {
 
   const taggedIds = cleanList(body.tagged, 3, 64).filter((id) => UUID.test(id));
 
-  const [{ data: products }, { data: journal }, tagged] = await Promise.all([
+  // The Skintel+ check runs alongside the context reads instead of before them: one database
+  // round trip less before the model starts. Nothing is sent to the model until it passes.
+  const [{ data: subRow }, { data: products }, { data: journal }, tagged] = await Promise.all([
+    sb.from('subscriptions').select('tier, status').eq('user_id', user.id).maybeSingle(),
     sb
       .from('products')
       .select('product_name, brand, category, outcome')
@@ -225,6 +222,9 @@ export async function handleAssistant(req: VercelRequest, res: VercelResponse) {
       .limit(10),
     taggedContext(sb, user.id, taggedIds).catch(() => ''),
   ]);
+  const active = subRow?.status === 'active' || subRow?.status === 'trialing';
+  const isPro = active && (subRow?.tier === 'pro' || subRow?.tier === 'founding');
+  if (!isPro) return json(res, { error: 'Pro required' }, 402);
   const checkIns =
     ((journal ?? []) as JournalRow[])
       .map((j) => {
@@ -247,6 +247,7 @@ export async function handleAssistant(req: VercelRequest, res: VercelResponse) {
 
 Rules:
 - Be concise and practical: short paragraphs or a few bullets, under ${tier.words} words unless they ask for more.
+- Match the length to the message. A greeting or small talk gets one or two friendly sentences and a short question back, never a list of what you can do.
 - Use their skin profile, routine and shelf below whenever relevant, and name their actual products.
 - You are not a doctor. Do not diagnose conditions or give prescription dosing. For severe, spreading, painful, blistering or persistent (more than a few days) reactions, or anything like an allergic reaction, tell them to see a dermatologist or doctor.
 - Do not invent facts about specific products. Say when you're not sure.

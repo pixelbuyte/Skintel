@@ -243,9 +243,9 @@ struct PaywallView: View {
     private var benefits: some View {
         VStack(alignment: .leading, spacing: SKSpace.sm) {
             Text(isPro ? "Everything in Skintel+ · tap to watch" : "What you get · tap to watch").skLabelStyle()
-            // Compact before purchase so the plans and button sit on the first screen;
-            // the full list and its demos open from "See all".
-            ProBenefitsList(highlight: isPro ? nil : reason, method: method, limit: isPro ? nil : 3)
+            // Three rows, then "Show more" opens the rest in place, so nobody has to scroll
+            // past six rows to reach the plans or Restore.
+            ProBenefitsList(highlight: isPro ? nil : reason, method: method, limit: 3)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding(.top, SKSpace.sm)
@@ -1212,9 +1212,10 @@ struct ProBenefitsList: View {
     /// The add method behind a scanner gate, so the lead demo shows that method.
     var method: ScanMethod? = nil
     /// When set, only this many rows show (the gate's own feature first), then
-    /// "See all N features" opens the full list with its demos in a sheet.
+    /// "Show more" expands the rest in place. Tapping a row opens the swipe deck.
     var limit: Int? = nil
     @State private var demo: ProBenefit?
+    @State private var expanded = false
     @State private var deck: DeckStart?
 
     private struct DeckStart: Identifiable { let id: Int }
@@ -1231,26 +1232,31 @@ struct ProBenefitsList: View {
 
     private func compact(_ limit: Int) -> some View {
         let ordered = (lead.map { [$0] } ?? []) + ProBenefit.allCases.filter { $0 != lead }
-        let shown = Array(ordered.prefix(limit))
+        let shown = expanded ? ordered : Array(ordered.prefix(limit))
         return VStack(spacing: 0) {
             ForEach(Array(shown.enumerated()), id: \.element) { i, b in
                 row(b) { deck = DeckStart(id: i) }
                 Rectangle().fill(SKColor.line).frame(height: 1).padding(.leading, 56)
             }
-            Button { Haptics.tap(); deck = DeckStart(id: 0) } label: {
-                HStack {
-                    Text("See all \(ordered.count) features · swipe through")
-                        .font(SKFont.sans(15, weight: .semibold, relativeTo: .subheadline))
-                        .foregroundStyle(SKColor.primary)
-                    Spacer(minLength: 0)
-                    Image(systemName: "chevron.right")
-                        .font(.system(size: 13, weight: .semibold))
-                        .foregroundStyle(SKColor.primary)
+            if ordered.count > limit {
+                Button {
+                    Haptics.tap()
+                    withAnimation(SKAnimation.emil(0.4)) { expanded.toggle() }
+                } label: {
+                    HStack(spacing: 6) {
+                        Text(expanded ? "Show less" : "Show more")
+                            .font(SKFont.sans(15, weight: .semibold, relativeTo: .subheadline))
+                        Image(systemName: "chevron.down")
+                            .font(.system(size: 13, weight: .semibold))
+                            .rotationEffect(.degrees(expanded ? 180 : 0))
+                    }
+                    .foregroundStyle(SKColor.primary)
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 12)
+                    .contentShape(Rectangle())
                 }
-                .padding(.vertical, 12)
-                .contentShape(Rectangle())
+                .buttonStyle(SKPressStyle())
             }
-            .buttonStyle(SKPressStyle())
         }
         .sheet(item: $deck) { d in
             FeatureDeck(benefits: ordered, method: method, page: d.id)

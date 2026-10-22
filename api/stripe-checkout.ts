@@ -8,7 +8,56 @@ import { appUrl, getServiceClient, getUserFromAuthHeader, json } from './_lib.js
 // rotate without a redeploy; the id here is a live Stripe object, not a secret.
 const FOUNDING_PROMO_CODE_ID = process.env.STRIPE_PROMO_FOUNDING || 'promo_1U6I2NRrTdDFA54jRrHxFnMs';
 
+const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+/**
+ * Website launch offer (no account needed): Skintel+ at $6.49/month for the first
+ * three months, then $8.99/month. Two ways to pay:
+ * - prepay: $19.47 today for three months (STRIPE_PRICE_LAUNCH_PREPAY, billed every
+ *   3 months); the webhook schedules the switch to the $8.99 monthly price after it.
+ * - monthly: the $8.99 monthly price with STRIPE_COUPON_LAUNCH_MONTHLY ($2.50 off for
+ *   3 months).
+ * Stripe Checkout is opened with the email the buyer typed, which Stripe shows
+ * read-only, so the webhook can attach Skintel+ to the account with that email.
+ */
+async function launchCheckout(req: VercelRequest, res: VercelResponse) {
+  if (req.method !== 'POST') return json(res, { error: 'Method not allowed' }, 405);
+  let body: Record<string, unknown>;
+  try {
+    body = (typeof req.body === 'string' ? JSON.parse(req.body) : req.body) ?? {};
+  } catch {
+    return json(res, { error: 'Invalid JSON' }, 400);
+  }
+  const email = (typeof body.email === 'string' ? body.email : '').trim().toLowerCase();
+  if (!EMAIL.test(email) || email.length > 200) return json(res, { error: 'Invalid email' }, 400);
+  const plan = body.plan === 'monthly' ? 'monthly' : 'prepay';
+  const ref = (typeof body.ref === 'string' ? body.ref : '').slice(0, 40);
+
+  const monthlyPrice = process.env.VITE_STRIPE_PRICE_PRO;
+  const prepayPrice = process.env.STRIPE_PRICE_LAUNCH_PREPAY;
+  const coupon = process.env.STRIPE_COUPON_LAUNCH_MONTHLY;
+  const priceId = plan === 'prepay' ? prepayPrice : monthlyPrice;
+  if (!priceId || (plan === 'monthly' && !coupon)) return json(res, { error: 'Offer not configured' }, 500);
+
+  const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!);
+  const meta = { tier: 'pro', guest: 'true', launch: plan, ...(ref ? { ref } : {}) };
+  const session = await stripe.checkout.sessions.create({
+    mode: 'subscription',
+    payment_method_types: ['card'],
+    line_items: [{ price: priceId, quantity: 1 }],
+    customer_email: email,
+    ...(plan === 'monthly' ? { discounts: [{ coupon: coupon! }] } : {}),
+    metadata: meta,
+    subscription_data: { metadata: meta },
+    success_url: `${appUrl()}/checkout/success?offer=launch&session_id={CHECKOUT_SESSION_ID}`,
+    cancel_url: `${appUrl()}/#offer`,
+  });
+  if (!session.url) return json(res, { error: 'Checkout failed' }, 500);
+  return json(res, { url: session.url });
+}
+
 export default async function handler(req: VercelRequest, res: VercelResponse) {
+  if (req.query.offer === 'launch') return launchCheckout(req, res);
   const isGuestFounding = req.query.offer === 'founding';
 
   // Guest founding checkout shares this endpoint so the Hobby deployment stays
