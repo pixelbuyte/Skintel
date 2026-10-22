@@ -15,8 +15,9 @@ const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
  * three months, then $8.99/month. Two ways to pay:
  * - prepay: $19.47 today for three months (STRIPE_PRICE_LAUNCH_PREPAY, billed every
  *   3 months); the webhook schedules the switch to the $8.99 monthly price after it.
- * - monthly: the $8.99 monthly price with STRIPE_COUPON_LAUNCH_MONTHLY ($2.50 off for
- *   3 months).
+ * - monthly: the $8.99 monthly price (STRIPE_PRICE_LAUNCH_MONTHLY) with
+ *   STRIPE_COUPON_LAUNCH_MONTHLY ($2.50 off for 3 months).
+ * The launch prices are separate from VITE_STRIPE_PRICE_PRO ($9.00, the web Pricing page).
  * Stripe Checkout is opened with the email the buyer typed, which Stripe shows
  * read-only, so the webhook can attach Skintel+ to the account with that email.
  */
@@ -33,7 +34,7 @@ async function launchCheckout(req: VercelRequest, res: VercelResponse) {
   const plan = body.plan === 'monthly' ? 'monthly' : 'prepay';
   const ref = (typeof body.ref === 'string' ? body.ref : '').slice(0, 40);
 
-  const monthlyPrice = process.env.VITE_STRIPE_PRICE_PRO;
+  const monthlyPrice = process.env.STRIPE_PRICE_LAUNCH_MONTHLY;
   const prepayPrice = process.env.STRIPE_PRICE_LAUNCH_PREPAY;
   const coupon = process.env.STRIPE_COUPON_LAUNCH_MONTHLY;
   const priceId = plan === 'prepay' ? prepayPrice : monthlyPrice;

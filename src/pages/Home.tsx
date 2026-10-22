@@ -184,15 +184,30 @@ const STEPS = [
 export default function Home() {
   const [showBar, setShowBar] = useState(false);
   const offer = useRef<HTMLElement>(null);
+  const hero = useRef<HTMLElement>(null);
+  const card = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     readRef();
-    const el = offer.current;
-    if (!el) return;
-    // Shown once the first screen is scrolled past, hidden while the offer itself is on screen.
-    const io = new IntersectionObserver(([e]) => setShowBar(!e.isIntersecting && window.scrollY > 500));
-    io.observe(el);
-    return () => io.disconnect();
+    // The bar shows once the first screen has scrolled away and the offer card itself is
+    // not on screen (it would only repeat what the card says).
+    const visible = { hero: true, offer: false };
+    const sync = () => setShowBar(!visible.hero && !visible.offer);
+    const watch = (el: HTMLElement | null, key: 'hero' | 'offer') => {
+      if (!el) return null;
+      const io = new IntersectionObserver(([e]) => {
+        visible[key] = e.isIntersecting;
+        sync();
+      });
+      io.observe(el);
+      return io;
+    };
+    const a = watch(hero.current, 'hero');
+    const b = watch(card.current, 'offer');
+    return () => {
+      a?.disconnect();
+      b?.disconnect();
+    };
   }, []);
 
   function jumpToOffer() {
@@ -209,7 +224,7 @@ export default function Home() {
           </button>
         </nav>
 
-        <section className="grid gap-2 pt-7 md:min-h-[calc(100vh-4rem)] md:grid-cols-[1.05fr_0.95fr] md:items-center md:pt-10">
+        <section ref={hero} className="grid gap-2 pt-7 md:min-h-[calc(100vh-4rem)] md:grid-cols-[1.05fr_0.95fr] md:items-center md:pt-10">
           <div className="min-w-0">
             <p className="font-mono text-[11px] tracking-[0.22em] text-[#A35848]">NOW ON IPHONE</p>
             <h1 className="mt-3.5 font-display text-[clamp(44px,11vw,84px)] font-normal leading-[0.98] tracking-[-0.015em]">
@@ -249,7 +264,7 @@ export default function Home() {
               </p>
               <div className="mt-7 hidden md:block"><ScanDemo /></div>
             </div>
-            <OfferCard />
+            <div ref={card}><OfferCard /></div>
           </div>
           <div className="mt-10 md:hidden"><ScanDemo /></div>
         </section>

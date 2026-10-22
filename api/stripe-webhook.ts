@@ -12,6 +12,7 @@ function tierFromPriceId(priceId: string | undefined | null): 'pro' | 'founding'
   if (priceId === process.env.VITE_STRIPE_PRICE_PRO) return 'pro';
   if (priceId === process.env.VITE_STRIPE_PRICE_PRO_YEARLY) return 'pro';
   if (priceId === process.env.STRIPE_PRICE_LAUNCH_PREPAY) return 'pro';
+  if (priceId === process.env.STRIPE_PRICE_LAUNCH_MONTHLY) return 'pro';
   return null;
 }
 
@@ -85,7 +86,7 @@ async function upsertFromSubscription(sub: Stripe.Subscription, userIdOverride?:
 
 /** Prepaid launch quarter: one 3-month period at the launch price, then $8.99 monthly. */
 async function scheduleMonthlyAfterPrepay(sub: Stripe.Subscription) {
-  const monthly = process.env.VITE_STRIPE_PRICE_PRO;
+  const monthly = process.env.STRIPE_PRICE_LAUNCH_MONTHLY;
   if (!monthly || sub.schedule) return;
   const schedule = await stripe.subscriptionSchedules.create({ from_subscription: sub.id });
   const first = schedule.phases[0];
