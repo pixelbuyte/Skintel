@@ -62,6 +62,7 @@
   body.dark .phone { box-shadow: 0 0 0 4px #6B6158 inset, 0 0 0 2px rgba(244, 237, 224, .12), 0 60px 120px rgba(0, 0, 0, .5); }
   .screen { position: relative; width: 900px; height: 1948px; border-radius: 130px; overflow: hidden; background: var(--bg); }
   .screen > img { display: block; width: 100%; height: 100%; }
+  .deco { position: absolute; z-index: 10; pointer-events: none; filter: drop-shadow(0 50px 60px rgba(26,24,20,.30)) drop-shadow(0 12px 18px rgba(26,24,20,.18)); }
   .island { position: absolute; top: 30px; left: 50%; transform: translateX(-50%); width: 270px; height: 78px; border-radius: 40px; background: #000; z-index: 5; }
   .status { position: absolute; top: 0; left: 0; right: 0; height: 120px; display: flex; align-items: center; justify-content: space-between; padding: 14px 92px 0 110px; z-index: 5; color: var(--ink); }
   .status .time { font-weight: 600; font-size: 46px; letter-spacing: -.01em; }
@@ -346,8 +347,15 @@
 <!-- ScannerHostView + FoundSheet .analyzing: camera paused behind, 360 pt cream sheet with header, progress card, bar. -->
 <template id="analyzing">
   <div class="mock" style="background:#0B0A08">
-    <img src="_clean/04-scan.png" style="position:absolute;inset:0;width:390px;height:844px">
-    <div style="position:absolute;inset:0;background:rgba(0,0,0,.28)"></div>
+    <!-- Camera feed: a blurred warm room, the bottle's barcode side filling the viewfinder. -->
+    <div style="position:absolute;inset:0;background:
+      radial-gradient(260px 220px at 70% 22%, rgba(214,180,150,.55), transparent 70%),
+      radial-gradient(300px 260px at 15% 70%, rgba(120,96,78,.6), transparent 70%),
+      linear-gradient(180deg,#3B332C,#1E1915);filter:blur(6px)"></div>
+    <img src="3d/bottle-back.png" style="position:absolute;left:-36px;top:-80px;width:455px;height:708px;filter:drop-shadow(0 30px 40px rgba(0,0,0,.45))">
+    <!-- The real scanner chrome (brackets, buttons, scan line) from the build-47 capture; screen drops its black. -->
+    <img src="_clean/04-scan.png" style="position:absolute;inset:0;width:390px;height:844px;mix-blend-mode:screen">
+    <div style="position:absolute;inset:0;background:radial-gradient(420px 520px at 50% 45%, transparent 55%, rgba(0,0,0,.3)), rgba(0,0,0,.08)"></div>
     <div style="position:absolute;left:0;right:0;bottom:0;height:360px;background:var(--cream);border-radius:38px 38px 0 0;padding:22px 22px 16px">
       <i style="position:absolute;top:6px;left:50%;transform:translateX(-50%);width:36px;height:5px;border-radius:3px;background:#CFC9C0"></i>
       <div class="col" style="gap:16px">
@@ -377,7 +385,7 @@
 <script>
   // Headlines describe what the screen shows. Mock data is example data, the same kind the app shows a real user.
   const slides = [
-    { mock: "verdict",  eyebrow: "Scan",      title: "Know what <em>suits you</em>",   sub: "Scan a product and get a verdict for<br>your skin, with the reasons spelled out." },
+    { mock: "verdict", deco: { src: "3d/bottle-front.png", style: "right:-150px;top:1820px;width:620px;transform:rotate(9deg)" }, eyebrow: "Scan",      title: "Know what <em>suits you</em>",   sub: "Scan a product and get a verdict for<br>your skin, with the reasons spelled out." },
     { mock: "triggers", eyebrow: "Triggers",  title: "Find your <em>triggers</em>",    sub: "Mark what broke you out. Skintel finds<br>the ingredient those products share." },
     { mock: "today",    eyebrow: "Routine",   title: "Your routine, <em>in order</em>", sub: "Morning and night, step by step.<br>Tick it off as you go." },
     { mock: "ask",      eyebrow: "Ask Skintel", title: "Ask about <em>your</em> shelf", sub: "Answers use your products, your routine<br>and how your skin has been." },
@@ -398,6 +406,7 @@
     img.src = `_clean/${s.shot}.png`;
     screen.prepend(img);
   }
+  if (s.deco) document.body.insertAdjacentHTML("beforeend", `<img class="deco" src="${s.deco.src}" style="${s.deco.style}">`);
   if (s.dark) document.body.classList.add("dark");
   if (s.noStatus) document.getElementById("status").remove();
 </script>
