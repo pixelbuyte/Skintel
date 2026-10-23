@@ -1,0 +1,101 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Skintel App Store slides</title>
+<!-- One slide per load: slides.html?n=1 … ?n=5. render.py screenshots each at 1290×2796. -->
+<style>
+  @font-face { font-family: "Instrument Serif"; src: url("../../ios/Skintel/Skintel/Resources/Fonts/InstrumentSerif-Regular.ttf"); }
+  @font-face { font-family: "Instrument Serif"; font-style: italic; src: url("../../ios/Skintel/Skintel/Resources/Fonts/InstrumentSerif-Italic.ttf"); }
+  @font-face { font-family: "DM Sans"; font-weight: 400; src: url("../../ios/Skintel/Skintel/Resources/Fonts/DMSans-Regular.ttf"); }
+  @font-face { font-family: "DM Sans"; font-weight: 600; src: url("../../ios/Skintel/Skintel/Resources/Fonts/DMSans-SemiBold.ttf"); }
+  @font-face { font-family: "JetBrains Mono"; src: url("../../ios/Skintel/Skintel/Resources/Fonts/JetBrainsMono-Regular.ttf"); }
+
+  :root {
+    --cream: #F4EDE0; --card: #FFFEFA; --clay: #A35848; --ink: #1A1814; --muted: #6B6760;
+  }
+  * { margin: 0; box-sizing: border-box; }
+  html, body { width: 1290px; height: 2796px; overflow: hidden; background: var(--cream); }
+  body {
+    position: relative;
+    font-family: "DM Sans", sans-serif; color: var(--ink);
+    background:
+      radial-gradient(900px 700px at 85% 92%, rgba(163, 88, 72, .22), transparent 70%),
+      radial-gradient(800px 600px at 8% 60%, rgba(214, 170, 150, .28), transparent 70%),
+      linear-gradient(180deg, #FBF7F0 0%, var(--cream) 55%, #EFE3D3 100%);
+  }
+  body.dark {
+    background:
+      radial-gradient(900px 700px at 85% 92%, rgba(163, 88, 72, .35), transparent 70%),
+      linear-gradient(180deg, #24201B 0%, var(--ink) 60%);
+    color: var(--cream);
+  }
+  .copy { position: absolute; top: 150px; left: 0; right: 0; text-align: center; padding: 0 90px; }
+  .eyebrow {
+    font-family: "JetBrains Mono", monospace; font-size: 34px; letter-spacing: .32em;
+    text-transform: uppercase; color: var(--clay); margin-bottom: 34px;
+  }
+  h1 { font-family: "Instrument Serif", serif; font-weight: 400; font-size: 150px; line-height: .98; letter-spacing: -.01em; }
+  h1 em { color: var(--clay); }
+  body.dark h1 em, body.dark .eyebrow { color: #D98A76; }
+  .sub { margin-top: 34px; font-size: 44px; line-height: 1.3; color: var(--muted); }
+  body.dark .sub { color: #B9B1A6; }
+
+  .phone {
+    position: absolute; left: 50%; top: 760px; transform: translateX(-50%);
+    width: 940px; padding: 20px; border-radius: 150px;
+    background: #1A1814;
+    box-shadow: 0 0 0 4px #3A342D inset, 0 60px 120px rgba(26, 24, 20, .28), 0 18px 40px rgba(26, 24, 20, .18);
+  }
+  body.dark .phone { box-shadow: 0 0 0 4px #6B6158 inset, 0 0 0 2px rgba(244, 237, 224, .12), 0 60px 120px rgba(0, 0, 0, .5); }
+  .screen { position: relative; width: 900px; height: 1948px; border-radius: 130px; overflow: hidden; background: var(--cream); }
+  .screen img { display: block; width: 100%; height: 100%; }
+  .island { position: absolute; top: 30px; left: 50%; transform: translateX(-50%); width: 270px; height: 78px; border-radius: 40px; background: #000; }
+  .status { position: absolute; top: 0; left: 0; right: 0; height: 120px; display: flex; align-items: center; justify-content: space-between; padding: 14px 92px 0 110px; }
+  .status .time { font-weight: 600; font-size: 46px; letter-spacing: -.01em; }
+  .status svg { display: block; }
+  .status.light { color: #fff; }
+</style>
+</head>
+<body>
+  <div class="copy">
+    <div class="eyebrow" id="eyebrow"></div>
+    <h1 id="title"></h1>
+    <p class="sub" id="sub"></p>
+  </div>
+  <div class="phone">
+    <div class="screen">
+      <img id="shot" alt="">
+      <div class="island"></div>
+      <div class="status" id="status">
+        <span class="time">9:41</span>
+        <svg width="190" height="40" viewBox="0 0 190 40" fill="currentColor">
+          <rect x="0" y="26" width="10" height="12" rx="3"/><rect x="15" y="19" width="10" height="19" rx="3"/>
+          <rect x="30" y="11" width="10" height="27" rx="3"/><rect x="45" y="3" width="10" height="35" rx="3"/>
+          <path d="M88 36l-7-7a10 10 0 0 1 14 0zM73 21a21 21 0 0 1 30 0l-4 4a15 15 0 0 0-22 0zM65 13a32 32 0 0 1 46 0l-4 4a26 26 0 0 0-38 0z"/>
+          <rect x="124" y="7" width="54" height="27" rx="8" fill="none" stroke="currentColor" stroke-width="3" opacity=".45"/>
+          <rect x="128" y="11" width="46" height="19" rx="5"/><rect x="181" y="15" width="4" height="11" rx="2" opacity=".45"/>
+        </svg>
+      </div>
+    </div>
+  </div>
+<script>
+  // Copy is calm and literal: every line describes something visible in the build-47 capture.
+  const slides = [
+    { shot: "01-ask",      eyebrow: "Ask Skintel",   title: "Ask about <em>your</em> skin",      sub: "Answers use your shelf, your routine<br>and how your skin has been." },
+    { shot: "02-today",    eyebrow: "Routine",       title: "Your shelf, <em>in order</em>",      sub: "Add what you use. Skintel orders it and<br>flags anything that shouldn’t be mixed." },
+    { shot: "03-insights", eyebrow: "Triggers",      title: "Find your <em>triggers</em>",        sub: "Mark what broke you out. Skintel finds<br>the ingredient those products share." },
+    { shot: "04-scan",     eyebrow: "Scan",          title: "Scan the <em>barcode</em>",          sub: "Or snap the ingredient list, or type<br>the name. A verdict for your skin.", dark: true, noStatus: true },
+    { shot: "05-you",      eyebrow: "Daily check-in", title: "A minute <em>a day</em>",           sub: "Check in daily. Patterns get sharper<br>after about a week." },
+  ];
+  const n = Math.min(Math.max(parseInt(new URLSearchParams(location.search).get("n") || "1", 10), 1), slides.length);
+  const s = slides[n - 1];
+  document.getElementById("eyebrow").textContent = s.eyebrow;
+  document.getElementById("title").innerHTML = s.title;
+  document.getElementById("sub").innerHTML = s.sub;
+  document.getElementById("shot").src = `_clean/${s.shot}.png`;
+  if (s.dark) document.body.classList.add("dark");
+  if (s.noStatus) document.getElementById("status").remove();
+</script>
+</body>
+</html>
