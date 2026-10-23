@@ -4,7 +4,8 @@
 Usage (from the repo root):  python3 marketing/app-store/render.py
 
 To refresh the slides, replace a capture in raw/ with a new iPhone screenshot of the same
-name and run this again. Captures are cleaned first: the real status bar (time, battery,
+name and run this again. Most slides are mocks in slides.html; raw/ supplies
+the scanner slide and the real tab bar / composer crops laid over the mocks. Captures are cleaned first: the real status bar (time, battery,
 bell) is painted out so slides.html can draw a uniform 9:41 one.
 """
 import pathlib
@@ -16,7 +17,13 @@ from PIL import Image
 
 HERE = pathlib.Path(__file__).resolve().parent
 RAW, CLEAN, OUT = HERE / "raw", HERE / "_clean", HERE / "out"
-SLIDES = ["01-ask", "02-today", "03-insights", "04-scan", "05-you"]
+SLIDES = ["01-verdict", "02-triggers", "03-today", "04-ask", "05-scan"]
+# Real UI cropped from captures for the mock screens: (output, capture, top row as a fraction).
+CROPS = [
+    ("tab-today", "02-today", 2232 / 2532),
+    ("tab-insights", "03-insights", 2232 / 2532),
+    ("composer-ask", "01-ask", 1790 / 2532),
+]
 STATUS_ROWS = 0.052  # top 5.2% of an iPhone capture holds the status bar
 CHROME_CANDIDATES = [
     "/opt/pw-browsers/chromium-1194/chrome-linux/chrome",
@@ -42,8 +49,13 @@ def main() -> None:
         sys.exit("No Chromium found; set CHROME_CANDIDATES")
     CLEAN.mkdir(exist_ok=True)
     OUT.mkdir(exist_ok=True)
-    for name in SLIDES:
+    for name in ["04-scan"]:
         clean(name)
+    for out, capture, top in CROPS:
+        im = Image.open(RAW / f"{capture}.png").convert("RGB")
+        im.crop((0, int(im.height * top), im.width, im.height)).save(CLEAN / f"{out}.png")
+    for old in OUT.glob("*.png"):
+        old.unlink()
     for i, name in enumerate(SLIDES, 1):
         target = OUT / f"{name}.png"
         subprocess.run([

@@ -5,11 +5,17 @@ checked against Apple's limits. Prices are never written here: they come from St
 
 ## Screenshots
 
-`out/01-ask.png` … `out/05-you.png`, 1290 × 2796. Upload them to the **6.9" iPhone** slot in this
-order; Apple scales them for smaller iPhones. The first three show in search results.
+`out/01-verdict.png` … `out/05-scan.png`, 1290 × 2796. Upload them to the **6.9" iPhone** slot in
+this order; Apple scales them for smaller iPhones. The first three show in search results.
 
-To refresh: take a new iPhone screenshot, save it over the matching file in `raw/`, then run
-`python3 marketing/app-store/render.py` from the repo root. Copy lives in `slides.html`.
+Slides 1–4 show the app in use with example data: a scan verdict, a Triggers result, a stocked
+routine and an Ask answer. Each one is rebuilt in `slides.html` from its SwiftUI view (VerdictView,
+TriggersView, HomeView, RecommendView), using the same fonts, sizes and colours. The tab bar and
+composer are cropped from real build-47 captures in `raw/`. Slide 5 is a real capture. Product
+names are generic on purpose: no real brands, to avoid trademark trouble in review.
+
+To refresh: edit the copy or example data in `slides.html` (or swap a capture in `raw/`), then run
+`python3 marketing/app-store/render.py` from the repo root.
 
 ## Name (30) — 7
 
@@ -101,6 +107,5 @@ Welcome to Skintel. Scan your products, log how your skin reacts, and find your 
   If Compare, Picks or the product-link import aren't in build 47, delete them from the description.
 - **Privacy policy.** `HANDOFF.md` §9 says it still names only Anthropic. Make sure it names every AI
   provider and covers check-in symptoms before the listing goes live.
-- **Screenshots show empty states.** They're honest captures of build 47 with a fresh account. A shelf
-  with 3–4 real products, a scanned verdict and a Triggers result would sell better: capture those on
-  your phone, drop them in `raw/`, and re-run the script.
+- **Mock screens must stay true to the app.** App Review (2.3.3) wants screenshots that show the app
+  in use. If one of these screens changes in a later build, update its mock in `slides.html` to match.
