@@ -61,9 +61,12 @@ def main() -> None:
         subprocess.run([
             chrome, "--headless", "--no-sandbox", "--hide-scrollbars", "--disable-gpu",
             "--allow-file-access-from-files", "--force-device-scale-factor=1",
-            "--window-size=1290,2796", "--virtual-time-budget=4000",
+            "--window-size=1290,3000", "--virtual-time-budget=4000",
             f"--screenshot={target}", f"file://{HERE / 'slides.html'}?n={i}",
         ], check=True, capture_output=True)
+        # Headless Chrome's viewport is ~90 px shorter than its window, so render tall and crop.
+        shot = Image.open(target)
+        shot.crop((0, 0, 1290, 2796)).convert("RGB").save(target)
         size = Image.open(target).size
         assert size == (1290, 2796), f"{target.name} is {size}"
         print(f"{target.relative_to(HERE)}  {size[0]}x{size[1]}")

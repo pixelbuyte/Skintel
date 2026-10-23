@@ -11,7 +11,7 @@ this order; Apple scales them for smaller iPhones. The first three show in searc
 Slides 1–4 show the app in use with example data: a scan verdict, a Triggers result, a stocked
 routine and an Ask answer. Each one is rebuilt in `slides.html` from its SwiftUI view (VerdictView,
 TriggersView, HomeView, RecommendView), using the same fonts, sizes and colours. The tab bar and
-composer are cropped from real build-47 captures in `raw/`. Slide 5 is a real capture. Product
+composer are cropped from real build-47 captures in `raw/`. Slide 5 is the scanner right after a barcode hit (FoundSheet, analyzing), over the real camera capture. Product
 names are generic on purpose: no real brands, to avoid trademark trouble in review.
 
 To refresh: edit the copy or example data in `slides.html` (or swap a capture in `raw/`), then run
