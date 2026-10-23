@@ -17,7 +17,8 @@ struct ShelfEntry: TimelineEntry, Sendable {
 /// Reads the snapshot the app writes to the App Group. The app reloads this timeline
 /// whenever the shelf changes, so the widget never polls.
 struct ShelfProvider: TimelineProvider {
-    private static let sample = ShelfWidgetSnapshot(count: 4, names: ["Gentle Cleanser", "Niacinamide Serum", "Daily SPF 50"])
+    private static let sample = ShelfWidgetSnapshot(count: 4, names: ["Gentle Cleanser", "Niacinamide Serum", "Daily SPF 50"],
+                                                    outcomes: [.good, .good, .unsure])
 
     func placeholder(in context: Context) -> ShelfEntry {
         ShelfEntry(date: Date(), content: .shelf(Self.sample))
@@ -47,7 +48,7 @@ struct ShelfWidget: Widget {
         }
         .configurationDisplayName("Shelf")
         .description("How many products are on your shelf, and the latest ones you added.")
-        .supportedFamilies([.systemSmall])
+        .supportedFamilies([.systemSmall, .systemLarge])
     }
 }
 
@@ -55,14 +56,25 @@ struct ShelfWidget: Widget {
 
 struct ShelfWidgetView: View {
     let entry: ShelfEntry
+    @Environment(\.widgetFamily) private var family
+
+    /// The small widget lists at most this many names, even though the snapshot holds more.
+    private static let smallNameCount = 3
+    private static let largeTileCount = 4
 
     var body: some View {
-        content
-            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
-            .accessibilityElement(children: .ignore)
-            .accessibilityLabel(accessibilityText)
-            .accessibilityAddTraits(.isButton)
-            .widgetURL(SkintelDeepLink.shelf.url)
+        Group {
+            if family == .systemLarge {
+                largeContent
+            } else {
+                content
+            }
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel(family == .systemLarge ? largeAccessibilityText : accessibilityText)
+        .accessibilityAddTraits(.isButton)
+        .widgetURL(SkintelDeepLink.shelf.url)
     }
 
     @ViewBuilder
@@ -111,7 +123,7 @@ struct ShelfWidgetView: View {
             }
             Spacer(minLength: 6)
             VStack(alignment: .leading, spacing: 3) {
-                ForEach(Array(snapshot.names.enumerated()), id: \.offset) { _, name in
+                ForEach(Array(snapshot.names.prefix(Self.smallNameCount).enumerated()), id: \.offset) { _, name in
                     HStack(spacing: 6) {
                         Circle()
                             .fill(WidgetColor.primary)
@@ -153,6 +165,178 @@ struct ShelfWidgetView: View {
             return names.isEmpty
                 ? "Shelf: \(snapshot.count) \(noun)."
                 : "Shelf: \(snapshot.count) \(noun), including \(names)."
+        }
+    }
+
+    // MARK: Large
+
+    private enum LargeTile {
+        case product(name: String, outcome: ShelfWidgetOutcome?)
+        /// Stands in for every product the grid has no room for.
+        case more(Int)
+        case empty
+    }
+
+    @ViewBuilder
+    private var largeContent: some View {
+        switch entry.content {
+        case .unknown:
+            largeMessage("Open Skintel to see your shelf")
+        case .shelf(let snapshot):
+            if snapshot.count == 0 {
+                largeMessage("Add your first product")
+            } else {
+                largeFilled(snapshot)
+            }
+        }
+    }
+
+    /// Always `largeTileCount` tiles, so the grid keeps its shape with one or two products.
+    /// When not every product fits (or an older snapshot lacks names), the last tile is "+N more".
+    private func largeTiles(_ snapshot: ShelfWidgetSnapshot) -> [LargeTile] {
+        let slots = Self.largeTileCount
+        let fitsAll = snapshot.count <= slots && snapshot.names.count >= snapshot.count
+        let shown = fitsAll ? min(snapshot.names.count, slots) : min(snapshot.names.count, slots - 1)
+        var tiles: [LargeTile] = (0..<shown).map { index in
+            LargeTile.product(name: snapshot.names[index], outcome: snapshot.outcome(at: index))
+        }
+        if !fitsAll {
+            tiles.append(.more(snapshot.count - shown))
+        }
+        while tiles.count < slots {
+            tiles.append(.empty)
+        }
+        return tiles
+    }
+
+    private func largeFilled(_ snapshot: ShelfWidgetSnapshot) -> some View {
+        let tiles = largeTiles(snapshot)
+        return VStack(alignment: .leading, spacing: 12) {
+            HStack(alignment: .top, spacing: 0) {
+                VStack(alignment: .leading, spacing: 0) {
+                    label
+                    HStack(alignment: .firstTextBaseline, spacing: 6) {
+                        Text("\(snapshot.count)")
+                            .font(.system(size: 34, weight: .regular, design: .serif))
+                            .foregroundStyle(WidgetColor.ink)
+                        Text(snapshot.count == 1 ? "product" : "products")
+                            .font(.system(size: 13, weight: .medium))
+                            .foregroundStyle(WidgetColor.muted)
+                    }
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.6)
+                }
+                Spacer(minLength: 8)
+                mascot(size: 56)
+            }
+            VStack(spacing: 10) {
+                ForEach(0..<2, id: \.self) { row in
+                    HStack(spacing: 10) {
+                        ForEach(0..<2, id: \.self) { column in
+                            largeTile(tiles[row * 2 + column])
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    @ViewBuilder
+    private func largeTile(_ tile: LargeTile) -> some View {
+        switch tile {
+        case .product(let name, let outcome):
+            VStack(alignment: .leading, spacing: 5) {
+                RoundedRectangle(cornerRadius: 10, style: .continuous)
+                    .fill(WidgetColor.background)
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+                Text(name)
+                    .font(.system(size: 13, weight: .semibold))
+                    .foregroundStyle(WidgetColor.ink)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.8)
+                if let outcome {
+                    outcomeTag(outcome)
+                }
+            }
+            .padding(8)
+            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+            .background(WidgetColor.card, in: RoundedRectangle(cornerRadius: 14, style: .continuous))
+        case .more(let extra):
+            Text("+\(extra) more")
+                .font(.system(size: 22, weight: .regular, design: .serif))
+                .foregroundStyle(WidgetColor.primary)
+                .lineLimit(1)
+                .minimumScaleFactor(0.7)
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+                .background(WidgetColor.card, in: RoundedRectangle(cornerRadius: 14, style: .continuous))
+        case .empty:
+            Color.clear
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+        }
+    }
+
+    private func outcomeTag(_ outcome: ShelfWidgetOutcome) -> some View {
+        Text(outcome.title)
+            .font(.system(size: 10, weight: .bold))
+            .foregroundStyle(outcome.tone)
+            .lineLimit(1)
+            .padding(.horizontal, 7)
+            .padding(.vertical, 2)
+            .background(outcome.tone.opacity(0.14), in: Capsule())
+    }
+
+    private func largeMessage(_ text: String) -> some View {
+        VStack(alignment: .leading, spacing: 0) {
+            HStack(alignment: .top, spacing: 0) {
+                label
+                Spacer(minLength: 4)
+                mascot(size: 120)
+            }
+            Spacer(minLength: 8)
+            Text(text)
+                .font(.system(size: 24, weight: .semibold))
+                .foregroundStyle(WidgetColor.ink)
+                .lineLimit(3)
+                .minimumScaleFactor(0.85)
+        }
+    }
+
+    private var largeAccessibilityText: String {
+        guard case .shelf(let snapshot) = entry.content, snapshot.count > 0 else {
+            return accessibilityText
+        }
+        let noun = snapshot.count == 1 ? "product" : "products"
+        let items: [String] = largeTiles(snapshot).compactMap { tile -> String? in
+            switch tile {
+            case .product(let name, let outcome):
+                return outcome.map { "\(name), \($0.title.lowercased())" } ?? name
+            case .more(let extra):
+                return "and \(extra) more"
+            case .empty:
+                return nil
+            }
+        }
+        return items.isEmpty
+            ? "Shelf: \(snapshot.count) \(noun)."
+            : "Shelf: \(snapshot.count) \(noun): \(items.joined(separator: "; "))."
+    }
+}
+
+private extension ShelfWidgetOutcome {
+    /// Same wording as the app's outcome labels (`Outcome.label` in SKColor.swift).
+    var title: String {
+        switch self {
+        case .good: "Worked"
+        case .unsure: "Unsure"
+        case .bad: "Broke out"
+        }
+    }
+
+    var tone: Color {
+        switch self {
+        case .good: WidgetColor.good
+        case .unsure: WidgetColor.caution
+        case .bad: WidgetColor.bad
         }
     }
 }
