@@ -1,0 +1,453 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Skintel App Store slides</title>
+<!--
+  One slide per load: slides.html?n=1 … ?n=5. render.py screenshots each at 1290×2796.
+  A slide shows either a real capture (raw/) or a "mock": the native screen rebuilt at
+  390×844 pt with example data. Mocks follow the SwiftUI views they name (fonts, sizes,
+  colours from DesignSystem/Tokens), and their tab bar / composer are cropped from real
+  build-47 captures, so only the example data is new.
+-->
+<style>
+  @font-face { font-family: "Instrument Serif"; src: url("../../ios/Skintel/Skintel/Resources/Fonts/InstrumentSerif-Regular.ttf"); }
+  @font-face { font-family: "Instrument Serif"; font-style: italic; src: url("../../ios/Skintel/Skintel/Resources/Fonts/InstrumentSerif-Italic.ttf"); }
+  @font-face { font-family: "DM Sans"; font-weight: 400; src: url("../../ios/Skintel/Skintel/Resources/Fonts/DMSans-Regular.ttf"); }
+  @font-face { font-family: "DM Sans"; font-weight: 500; src: url("../../ios/Skintel/Skintel/Resources/Fonts/DMSans-Medium.ttf"); }
+  @font-face { font-family: "DM Sans"; font-weight: 600; src: url("../../ios/Skintel/Skintel/Resources/Fonts/DMSans-SemiBold.ttf"); }
+  @font-face { font-family: "DM Sans"; font-weight: 700; src: url("../../ios/Skintel/Skintel/Resources/Fonts/DMSans-Bold.ttf"); }
+  @font-face { font-family: "JetBrains Mono"; src: url("../../ios/Skintel/Skintel/Resources/Fonts/JetBrainsMono-Regular.ttf"); }
+
+  /* SKColor */
+  :root {
+    --bg: #F4EDE0; --cream: #FFFEFA; --clay: #A35848; --ink: #1A1814; --muted: #6B6760; --line: #EAE6DF;
+    --chip: #EFEAE2; --good-bg: #EEF2DD; --good: #5C7A4F; --bad-bg: #FDEAEA; --bad: #B22B2B;
+    --caution-bg: #F5E6DC; --caution: #743C2B;
+  }
+  * { margin: 0; box-sizing: border-box; }
+  html, body { width: 1290px; height: 2796px; overflow: hidden; }
+  /* No html background: body's propagates to the whole canvas, so no band shows below it. */
+  body {
+    position: relative;
+    font-family: "DM Sans", sans-serif; color: var(--ink);
+    background:
+      radial-gradient(900px 700px at 85% 92%, rgba(163, 88, 72, .22), transparent 70%),
+      radial-gradient(800px 600px at 8% 60%, rgba(214, 170, 150, .28), transparent 70%),
+      linear-gradient(180deg, #FBF7F0 0%, var(--bg) 55%, #EFE3D3 100%);
+  }
+  body.dark {
+    background:
+      radial-gradient(900px 700px at 85% 92%, rgba(163, 88, 72, .35), transparent 70%),
+      linear-gradient(180deg, #24201B 0%, var(--ink) 60%);
+    color: var(--bg);
+  }
+  .copy { position: absolute; top: 150px; left: 0; right: 0; text-align: center; padding: 0 90px; }
+  .eyebrow {
+    font-family: "JetBrains Mono", monospace; font-size: 34px; letter-spacing: .32em;
+    text-transform: uppercase; color: var(--clay); margin-bottom: 34px;
+  }
+  h1 { font-family: "Instrument Serif", serif; font-weight: 400; font-size: 150px; line-height: .98; letter-spacing: -.01em; }
+  h1 em { color: var(--clay); }
+  body.dark h1 em, body.dark .eyebrow { color: #D98A76; }
+  .sub { margin-top: 34px; font-size: 44px; line-height: 1.3; color: var(--muted); }
+  body.dark .sub { color: #B9B1A6; }
+
+  .phone {
+    position: absolute; left: 50%; top: 760px; transform: translateX(-50%);
+    width: 940px; padding: 20px; border-radius: 150px;
+    background: #1A1814;
+    box-shadow: 0 0 0 4px #3A342D inset, 0 60px 120px rgba(26, 24, 20, .28), 0 18px 40px rgba(26, 24, 20, .18);
+  }
+  body.dark .phone { box-shadow: 0 0 0 4px #6B6158 inset, 0 0 0 2px rgba(244, 237, 224, .12), 0 60px 120px rgba(0, 0, 0, .5); }
+  .screen { position: relative; width: 900px; height: 1948px; border-radius: 130px; overflow: hidden; background: var(--bg); }
+  .screen > img { display: block; width: 100%; height: 100%; }
+  html.bare, html.bare body { width: 900px; height: 1948px; background: #0B0A08; }
+  html.bare .copy { display: none; }
+  html.bare .phone { top: 0; left: 0; transform: none; padding: 0; border-radius: 0; box-shadow: none; background: none; }
+  html.bare .screen { border-radius: 0; }
+  html.bare .island { display: none; }
+  .island { position: absolute; top: 30px; left: 50%; transform: translateX(-50%); width: 270px; height: 78px; border-radius: 40px; background: #000; z-index: 5; }
+  .status { position: absolute; top: 0; left: 0; right: 0; height: 120px; display: flex; align-items: center; justify-content: space-between; padding: 14px 92px 0 110px; z-index: 5; color: var(--ink); }
+  .status .time { font-weight: 600; font-size: 46px; letter-spacing: -.01em; }
+  .status svg { display: block; }
+
+  /* ---------- Mock screens: 390×844 pt, scaled to the 900 px screen ---------- */
+  .mock {
+    position: absolute; top: 0; left: 0; width: 390px; height: 844px; overflow: hidden;
+    transform: scale(2.307692); transform-origin: 0 0;
+    font-size: 16px; color: var(--ink);
+    /* skPageBackground */
+    background:
+      radial-gradient(420px 420px at 0 0, rgba(247, 227, 214, .55), transparent 100%),
+      radial-gradient(380px 380px at 100% 0, rgba(228, 233, 234, .5), transparent 100%),
+      var(--bg);
+  }
+  .page { padding: 59px 22px 0; display: flex; flex-direction: column; gap: 16px; }
+  .bottom { position: absolute; left: 0; right: 0; bottom: 0; width: 390px; display: block;
+            -webkit-mask-image: linear-gradient(180deg, transparent 0, #000 22px); }
+
+  .nav { height: 44px; display: flex; align-items: center; justify-content: space-between; margin: 0 -6px; }
+  .nav .t { font-weight: 600; font-size: 17px; }
+  .nav svg { width: 22px; height: 22px; stroke: var(--clay); fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+
+  .card { background: var(--cream); border: 1px solid var(--line); border-radius: 16px; padding: 16px;
+          box-shadow: 0 1px 1px rgba(26,24,20,.04), 0 1px 1.5px rgba(26,24,20,.06); }
+  .card.good { background: linear-gradient(135deg, var(--good-bg), var(--cream)); border-color: rgba(92,122,79,.22); }
+  .card.bad { background: linear-gradient(135deg, var(--bad-bg), var(--cream)); border-color: rgba(178,43,43,.25); }
+  .card.caution { background: linear-gradient(135deg, var(--caution-bg), var(--cream)); border-color: rgba(116,60,43,.25); }
+  .col { display: flex; flex-direction: column; gap: 12px; }
+  .row { display: flex; align-items: center; gap: 12px; }
+  .sp { flex: 1; }
+
+  .chip { display: inline-block; font-weight: 600; font-size: 12px; padding: 5px 11px; border-radius: 999px; background: var(--chip); color: var(--muted); }
+  .chip.good { background: var(--good-bg); color: var(--good); }
+  .chip.bad { background: var(--bad-bg); color: var(--bad); }
+  .chip.caution { background: var(--caution-bg); color: var(--caution); }
+  .mono { font-family: "JetBrains Mono", monospace; font-size: 12px; color: var(--muted); }
+  .label { font-family: "JetBrains Mono", monospace; font-size: 11px; letter-spacing: 1.6px; text-transform: uppercase; color: var(--muted); }
+  .serif { font-family: "Instrument Serif", serif; font-weight: 400; }
+  .section { font-family: "Instrument Serif", serif; font-size: 24px; line-height: 1.1; }
+  .title { font-weight: 600; font-size: 17px; }
+  .sec { font-size: 14px; color: var(--muted); line-height: 1.35; }
+  .body { font-size: 16px; line-height: 1.4; }
+
+  .mark { flex: none; position: relative; border-radius: 25%; overflow: hidden; }
+  .mark img { position: absolute; left: 0; top: 10%; width: 100%; height: 80%; object-fit: contain; filter: drop-shadow(0 1.5px 2px rgba(0,0,0,.12)); }
+
+  .btn { height: 52px; border-radius: 14px; display: grid; place-items: center; font-weight: 600; font-size: 16px; }
+  .btn.primary { background: var(--clay); color: var(--cream); box-shadow: 0 6px 16px rgba(163,88,72,.35); }
+  .btn.secondary { background: var(--cream); color: var(--ink); border: 1px solid var(--line); }
+
+  .dot { width: 8px; height: 8px; border-radius: 50%; flex: none; margin-top: 7px; }
+  .tick { flex: none; border-radius: 50%; display: grid; place-items: center; border: 1.5px solid var(--line); background: var(--cream); }
+  .tick.on { background: var(--clay); border-color: var(--clay); }
+  .tick svg { stroke: var(--cream); fill: none; stroke-width: 3; stroke-linecap: round; stroke-linejoin: round; }
+  .bar { height: 6px; border-radius: 3px; background: var(--line); overflow: hidden; }
+  .bar i { display: block; height: 100%; background: var(--clay); border-radius: 3px; }
+  .hr { height: 1px; background: var(--line); }
+</style>
+</head>
+<body>
+  <div class="copy">
+    <div class="eyebrow" id="eyebrow"></div>
+    <h1 id="title"></h1>
+    <p class="sub" id="sub"></p>
+  </div>
+  <div class="phone">
+    <div class="screen" id="screen">
+      <div class="island"></div>
+      <div class="status" id="status">
+        <span class="time">9:41</span>
+        <svg width="190" height="40" viewBox="0 0 190 40" fill="currentColor">
+          <rect x="0" y="26" width="10" height="12" rx="3"/><rect x="15" y="19" width="10" height="19" rx="3"/>
+          <rect x="30" y="11" width="10" height="27" rx="3"/><rect x="45" y="3" width="10" height="35" rx="3"/>
+          <path d="M88 36l-7-7a10 10 0 0 1 14 0zM73 21a21 21 0 0 1 30 0l-4 4a15 15 0 0 0-22 0zM65 13a32 32 0 0 1 46 0l-4 4a26 26 0 0 0-38 0z"/>
+          <rect x="124" y="7" width="54" height="27" rx="8" fill="none" stroke="currentColor" stroke-width="3" opacity=".45"/>
+          <rect x="128" y="11" width="46" height="19" rx="5"/><rect x="181" y="15" width="4" height="11" rx="2" opacity=".45"/>
+        </svg>
+      </div>
+    </div>
+  </div>
+
+<!-- VerdictView: product header, VerdictCard (ring 118, three counts), FlagList, actions. -->
+<template id="verdict">
+  <div class="mock">
+    <div class="page">
+      <div class="nav">
+        <svg viewBox="0 0 24 24"><path d="M15 5l-7 7 7 7"/></svg>
+        <span class="t">Analysis</span>
+        <svg viewBox="0 0 24 24"><path d="M12 3v12M7 8l5-5 5 5M5 13v6a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-6"/></svg>
+      </div>
+      <div class="row">
+        <div class="mark" style="width:40px;height:40px;background:#DCE5D2"><img src="ASSETS/ProductPump.imageset/ProductPump.png"></div>
+        <div>
+          <div class="title">Hydrating Gel Cleanser</div>
+          <div class="mono">21 ingredients · barcode</div>
+        </div>
+      </div>
+      <div class="card good col" style="gap:16px">
+        <div class="row"><span class="chip good">GOOD MATCH</span><span class="sp"></span><span class="mono">1 flag</span></div>
+        <div class="row" style="gap:22px">
+          <svg width="118" height="118" viewBox="0 0 118 118" style="flex:none">
+            <circle cx="59" cy="59" r="53.5" fill="none" stroke="#EAE6DF" stroke-width="11"/>
+            <circle cx="59" cy="59" r="53.5" fill="none" stroke="#5C7A4F" stroke-width="11" stroke-linecap="round"
+                    stroke-dasharray="336.15" stroke-dashoffset="47.06" transform="rotate(-90 59 59)"/>
+            <text x="59" y="66" text-anchor="middle" font-family="Instrument Serif" font-size="43.7" fill="#1A1814">86</text>
+            <text x="59" y="84" text-anchor="middle" font-family="JetBrains Mono" font-size="10" letter-spacing="1.4" fill="#6B6760">MATCH</text>
+          </svg>
+          <div style="flex:1">
+            <div class="row" style="padding:9px 0"><span class="sec">Good for you</span><span class="sp"></span><b style="font-weight:600;color:var(--good)">4</b></div>
+            <div class="hr"></div>
+            <div class="row" style="padding:9px 0"><span class="sec">Watch</span><span class="sp"></span><b style="font-weight:600;color:var(--caution)">1</b></div>
+            <div class="hr"></div>
+            <div class="row" style="padding:9px 0"><span class="sec">Red flags</span><span class="sp"></span><b style="font-weight:600">0</b></div>
+          </div>
+        </div>
+        <div style="font-size:17px;line-height:1.35">A gentle, fragrance-free gel cleanser that suits combination, breakout-prone skin. Nothing on your trigger list.</div>
+      </div>
+      <div class="section" style="margin-top:8px">Why this verdict</div>
+      <div class="col">
+        <div class="card row" style="align-items:flex-start"><span class="dot" style="background:var(--caution)"></span>
+          <div class="body"><b style="font-weight:600">Cocamidopropyl Betaine</b> — mild foaming agent; rarely, it can sting very sensitive skin.</div></div>
+        <div class="card row" style="align-items:flex-start"><span class="dot" style="background:var(--good)"></span>
+          <div class="body"><b style="font-weight:600">Niacinamide</b> — helps even tone and calm redness.</div></div>
+        <div class="card row" style="align-items:flex-start"><span class="dot" style="background:var(--good)"></span>
+          <div class="body"><b style="font-weight:600">Ceramide NP</b> — supports the skin barrier.</div></div>
+      </div>
+    </div>
+    <img class="bottom" src="_clean/tab-today.png">
+  </div>
+</template>
+
+<!-- TriggersView: page title, foundHeader with DropWarning, triggerCard (chip, mark 52, why it matters, usage bars). -->
+<template id="triggers">
+  <div class="mock">
+    <div class="page" style="gap:16px">
+      <div style="position:relative;padding-top:8px">
+        <svg style="position:absolute;left:-6px;top:14px" width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="#1A1814" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 5l-7 7 7 7"/></svg>
+        <div class="serif" style="font-size:34px;padding-left:44px;line-height:1.15">Triggers</div>
+        <div style="font-size:17px;color:var(--muted);margin-top:6px">Ingredients your breakouts share</div>
+      </div>
+      <div class="row">
+        <img src="ASSETS/DropWarning.imageset/DropWarning.png" style="width:88px;height:88px;object-fit:contain;flex:none">
+        <div>
+          <div class="section">2 possible triggers</div>
+          <div class="sec" style="margin-top:4px">Each is in 2 or more products that broke you out. A pattern to test, not proof.</div>
+        </div>
+      </div>
+      <div class="card bad col">
+        <div class="row"><span class="chip bad">TOP SUSPECT</span><span class="sp"></span><span class="mono" style="color:var(--bad)">in 3 of 3 breakouts</span></div>
+        <div class="row" style="align-items:flex-start">
+          <div class="mark" style="width:52px;height:52px;background:#EED2CC"><img src="ASSETS/ProductTube.imageset/ProductTube.png"></div>
+          <div>
+            <div style="font-weight:600;font-size:20px">Isopropyl Myristate</div>
+            <div class="sec" style="margin-top:4px">Never in anything that worked for you.</div>
+          </div>
+        </div>
+        <div class="row" style="align-items:flex-start;gap:6px">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#A35848" stroke-width="2.6" stroke-linecap="round" style="flex:none;margin-top:3px"><path d="M9 18h6M10 21h4M12 3a6 6 0 0 0-3.5 10.9c.6.5 1 1.2 1 2.1h5c0-.9.4-1.6 1-2.1A6 6 0 0 0 12 3z"/></svg>
+          <div style="font-size:14px;line-height:1.35">Why it matters: it's the likeliest link between your breakouts. Check labels for it; scans flag it too.</div>
+        </div>
+        <div class="row" style="align-items:flex-end;gap:6px;height:40px">
+          <i style="flex:1;height:40px;border-radius:4px;background:var(--bad)"></i>
+          <i style="flex:1;height:40px;border-radius:4px;background:var(--bad)"></i>
+          <i style="flex:1;height:40px;border-radius:4px;background:var(--bad)"></i>
+        </div>
+        <div style="font-weight:600;font-size:15px;color:var(--bad);min-height:30px;display:flex;align-items:center">Which products ▾</div>
+      </div>
+      <div class="card caution col">
+        <div class="row"><span class="chip caution">WATCHING</span><span class="sp"></span><span class="mono" style="color:var(--caution)">in 2 of 3 breakouts</span></div>
+        <div class="row" style="align-items:flex-start">
+          <div class="mark" style="width:52px;height:52px;background:#E3DAE8"><img src="ASSETS/ProductPump.imageset/ProductPump.png"></div>
+          <div>
+            <div style="font-weight:600;font-size:20px">Fragrance (Parfum)</div>
+            <div class="sec" style="margin-top:4px">Also in 1 product that worked — could be a purge or a dose thing.</div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <img class="bottom" src="_clean/tab-insights.png">
+  </div>
+</template>
+
+<!-- HomeView: header (date label, greeting, AM/PM chips), TodayLoopCard, routineCard. -->
+<template id="today">
+  <div class="mock">
+    <div class="page" style="gap:16px">
+      <div class="col" style="gap:8px;padding-top:12px">
+        <div class="label">FRI · OCT 23</div>
+        <div class="serif" style="font-size:34px;line-height:1.1">Good evening, Maya</div>
+        <div class="row" style="gap:8px"><span class="chip good">AM 6 of 7</span><span class="chip good">PM 5 of 7</span><span style="font-size:12px;color:var(--muted)">this week</span></div>
+      </div>
+      <div class="card col">
+        <div class="col" style="gap:8px">
+          <div class="row"><span class="section">Today</span><span class="sp"></span><span class="mono">2 of 3 done</span></div>
+          <div class="row" style="gap:6px"><i class="bar" style="flex:1;background:var(--clay)"></i><i class="bar" style="flex:1;background:var(--clay)"></i><i class="bar" style="flex:1"></i></div>
+        </div>
+        <div>
+          <div class="row" style="min-height:44px">
+            <span class="tick on" style="width:24px;height:24px"><svg width="11" height="11" viewBox="0 0 24 24"><path d="M5 12l5 5 9-10"/></svg></span>
+            <span style="font-weight:500;color:var(--muted)">Morning routine</span><span class="sp"></span><span class="sec" style="color:var(--good)">Done</span>
+          </div>
+          <div class="hr" style="margin-left:36px"></div>
+          <div class="row" style="min-height:44px">
+            <span class="tick on" style="width:24px;height:24px"><svg width="11" height="11" viewBox="0 0 24 24"><path d="M5 12l5 5 9-10"/></svg></span>
+            <span style="font-weight:500;color:var(--muted)">Skin check-in</span><span class="sp"></span><span class="sec" style="color:var(--good)">Clear</span>
+          </div>
+          <div class="hr" style="margin-left:36px"></div>
+          <div class="row" style="min-height:44px">
+            <span class="tick" style="width:24px;height:24px"></span>
+            <span style="font-weight:500">Night routine</span><span class="sp"></span><span class="sec">2 of 4</span>
+          </div>
+        </div>
+      </div>
+      <div class="card col">
+        <div class="row"><span class="section">Tonight</span><span class="sp"></span><span class="mono">2 of 4</span></div>
+        <div style="display:flex;padding:4px;background:var(--chip);border-radius:13px">
+          <div style="flex:1;height:36px;display:grid;place-items:center;font-size:15px;font-weight:500;color:var(--muted)">AM</div>
+          <div style="flex:1;height:36px;display:grid;place-items:center;font-size:15px;font-weight:600;background:var(--cream);border-radius:10px;box-shadow:0 1px 1.5px rgba(26,24,20,.08)">PM</div>
+        </div>
+        <div class="bar"><i style="width:50%"></i></div>
+        <div>
+          <div class="row" style="gap:8px;min-height:54px">
+            <span style="width:44px;display:grid;place-items:center"><span class="tick on" style="width:28px;height:28px"><svg width="13" height="13" viewBox="0 0 24 24"><path d="M5 12l5 5 9-10"/></svg></span></span>
+            <div><div class="mono" style="font-size:10.5px;letter-spacing:1px">1 · CLEANSER</div><div style="font-weight:500;color:var(--muted)">Hydrating Gel Cleanser</div></div>
+          </div>
+          <div class="hr"></div>
+          <div class="row" style="gap:8px;min-height:54px">
+            <span style="width:44px;display:grid;place-items:center"><span class="tick on" style="width:28px;height:28px"><svg width="13" height="13" viewBox="0 0 24 24"><path d="M5 12l5 5 9-10"/></svg></span></span>
+            <div><div class="mono" style="font-size:10.5px;letter-spacing:1px">2 · TONER</div><div style="font-weight:500;color:var(--muted)">Soothing Hydrating Toner</div></div>
+          </div>
+          <div class="hr"></div>
+          <div class="row" style="gap:8px;min-height:54px">
+            <span style="width:44px;display:grid;place-items:center"><span class="tick" style="width:28px;height:28px"></span></span>
+            <div><div class="mono" style="font-size:10.5px;letter-spacing:1px">3 · TREATMENT</div><div style="font-weight:500">Retinol 0.3% Night Serum</div></div>
+          </div>
+          <div class="hr"></div>
+          <div class="row" style="gap:8px;min-height:54px">
+            <span style="width:44px;display:grid;place-items:center"><span class="tick" style="width:28px;height:28px"></span></span>
+            <div><div class="mono" style="font-size:10.5px;letter-spacing:1px">4 · MOISTURIZER</div><div style="font-weight:500">Barrier Repair Cream</div></div>
+          </div>
+        </div>
+        <div class="btn primary">Mark all done</div>
+      </div>
+    </div>
+    <img class="bottom" src="_clean/tab-today.png">
+  </div>
+</template>
+
+<!-- RecommendView chat: user bubble (clay, radius 20), assistant row (avatar 28 + text). Composer cropped from the real capture. -->
+<template id="ask">
+  <div class="mock">
+    <div style="position:absolute;top:47px;left:0;right:0;height:44px;display:grid;place-items:center;font-weight:600;font-size:17px">Ask Skintel</div>
+    <div class="page" style="padding-top:112px;gap:16px">
+      <div style="display:flex;justify-content:flex-end;padding-left:48px">
+        <div style="background:var(--clay);color:var(--cream);border-radius:20px;padding:11px 16px;font-size:16px;line-height:1.35">Can I use my retinol and vitamin C serum together?</div>
+      </div>
+      <div class="row" style="align-items:flex-start">
+        <span style="flex:none;width:28px;height:28px;border-radius:50%;background:var(--clay);display:grid;place-items:center">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="#FFFEFA"><path d="M12 2l2.2 6.8L21 11l-6.8 2.2L12 20l-2.2-6.8L3 11l6.8-2.2z"/></svg>
+        </span>
+        <div style="font-size:16px;line-height:1.45;flex:1">
+          <p>Not in the same step. Your routine already splits them well: <b style="font-weight:600">Vitamin C Brightening Serum</b> in the morning, <b style="font-weight:600">Retinol 0.3% Night Serum</b> at night.</p>
+          <p style="margin-top:10px">One thing to change: on retinol nights, skip the <b style="font-weight:600">Glycolic Exfoliating Toner</b>. Two strong actives together can sting, and your check-ins logged redness last Tuesday after using both.</p>
+          <p style="margin-top:10px">Keep sunscreen every morning while you're on retinol.</p>
+        </div>
+      </div>
+      <div style="display:flex;justify-content:flex-end;padding-left:48px">
+        <div style="background:var(--clay);color:var(--cream);border-radius:20px;padding:11px 16px;font-size:16px;line-height:1.35">Which nights should I exfoliate?</div>
+      </div>
+      <div class="row" style="gap:5px;padding-left:40px">
+        <i style="width:8px;height:8px;border-radius:50%;background:var(--muted);opacity:.6"></i>
+        <i style="width:8px;height:8px;border-radius:50%;background:var(--muted);opacity:.35"></i>
+        <i style="width:8px;height:8px;border-radius:50%;background:var(--muted);opacity:.2"></i>
+      </div>
+    </div>
+    <img class="bottom" src="_clean/composer-ask.png">
+  </div>
+</template>
+
+<!-- ScannerHostView + FoundSheet .analyzing: camera paused behind, 360 pt cream sheet with header, progress card, bar. -->
+<template id="analyzing">
+  <div class="mock" style="background:#0B0A08">
+    <img src="_clean/04-scan.png" style="position:absolute;inset:0;width:390px;height:844px">
+    <div style="position:absolute;inset:0;background:rgba(0,0,0,.28)"></div>
+    <div style="position:absolute;left:0;right:0;bottom:0;height:360px;background:var(--cream);border-radius:38px 38px 0 0;padding:22px 22px 16px">
+      <i style="position:absolute;top:6px;left:50%;transform:translateX(-50%);width:36px;height:5px;border-radius:3px;background:#CFC9C0"></i>
+      <div class="col" style="gap:16px">
+        <div class="row" style="align-items:flex-start;gap:16px">
+          <div class="mark" style="width:60px;height:60px;background:#DCE5D2"><img src="ASSETS/ProductPump.imageset/ProductPump.png"></div>
+          <div>
+            <div style="font-weight:600;font-size:22px;line-height:1.2">Hydrating Gel Cleanser</div>
+            <div class="mono" style="margin-top:4px">3 606000 537400 · matched ✓</div>
+          </div>
+        </div>
+        <div class="col">
+          <div class="row" style="padding:8px 16px;background:rgba(245,230,220,.6);border:1px solid rgba(116,60,43,.2);border-radius:16px">
+            <img src="ASSETS/Mascot.imageset/Mascot.png" style="height:72px;flex:none">
+            <div>
+              <div class="title">Reading 21 ingredients…</div>
+              <div class="sec" style="margin-top:3px">Matching against 2 known triggers</div>
+            </div>
+          </div>
+          <div class="bar"><i style="width:68%"></i></div>
+        </div>
+        <div class="row"><span class="sec" style="flex:1">Auto-confirmed — no extra taps</span><span style="white-space:nowrap;font-weight:600;font-size:15px;color:var(--clay)">Wrong product?</span></div>
+      </div>
+    </div>
+  </div>
+</template>
+
+<!-- RoutineView conflicts section (scrolled to it): DropWarning 64 header, tinted conflict cards with products + fix. Used by the reels, not the store slides. -->
+<template id="conflicts">
+  <div class="mock">
+    <div class="page" style="gap:12px">
+      <div style="position:relative;padding-top:8px">
+        <svg style="position:absolute;left:-6px;top:10px" width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="#1A1814" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 5l-7 7 7 7"/></svg>
+        <div class="serif" style="font-size:34px;padding-left:44px;line-height:1.15">Routine</div>
+      </div>
+      <div style="display:flex;padding:4px;background:var(--chip);border-radius:13px">
+        <div style="flex:1;height:36px;display:grid;place-items:center;font-size:15px;font-weight:500;color:var(--muted)">AM</div>
+        <div style="flex:1;height:36px;display:grid;place-items:center;font-size:15px;font-weight:600;background:var(--cream);border-radius:10px;box-shadow:0 1px 1.5px rgba(26,24,20,.08)">PM</div>
+      </div>
+      <div class="row" style="margin-top:8px">
+        <img src="ASSETS/DropWarning.imageset/DropWarning.png" style="width:64px;height:64px;object-fit:contain;flex:none">
+        <div class="title">2 conflicts to sort out</div>
+      </div>
+      <div class="card bad row" style="align-items:flex-start">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#B22B2B" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" style="flex:none;margin-top:2px"><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0zM12 9v4M12 17h.01"/></svg>
+        <div class="col" style="gap:6px">
+          <div class="body"><b style="font-weight:600">Conflict: </b>Retinol and glycolic acid on the same night is a lot of exfoliation at once and can leave skin red and stingy.</div>
+          <div class="mono">Retinol 0.3% Night Serum + Glycolic Exfoliating Toner</div>
+          <div style="font-weight:600;font-size:15px;color:var(--bad)">Use the toner on nights you skip retinol.</div>
+        </div>
+      </div>
+      <div class="card caution row" style="align-items:flex-start">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#743C2B" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" style="flex:none;margin-top:2px"><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0zM12 9v4M12 17h.01"/></svg>
+        <div class="col" style="gap:6px">
+          <div class="body"><b style="font-weight:600">Conflict: </b>Two exfoliating acids in one routine doubles up the same job.</div>
+          <div class="mono">Glycolic Exfoliating Toner + Salicylic Clarifying Serum</div>
+          <div style="font-weight:600;font-size:15px;color:var(--caution)">Keep one acid per routine.</div>
+        </div>
+      </div>
+    </div>
+    <img class="bottom" src="_clean/tab-today.png">
+  </div>
+</template>
+
+<script>
+  // Headlines describe what the screen shows. Mock data is example data, the same kind the app shows a real user.
+  const slides = [
+    { mock: "verdict",  eyebrow: "Scan",      title: "Know what <em>suits you</em>",   sub: "Scan a product and get a verdict for<br>your skin, with the reasons spelled out." },
+    { mock: "triggers", eyebrow: "Triggers",  title: "Find your <em>triggers</em>",    sub: "Mark what broke you out. Skintel finds<br>the ingredient those products share." },
+    { mock: "today",    eyebrow: "Routine",   title: "Your routine, <em>in order</em>", sub: "Morning and night, step by step.<br>Tick it off as you go." },
+    { mock: "ask",      eyebrow: "Ask Skintel", title: "Ask about <em>your</em> shelf", sub: "Answers use your products, your routine<br>and how your skin has been." },
+    { mock: "analyzing", eyebrow: "Scan",     title: "Scan the <em>barcode</em>",     sub: "Skintel finds the product and reads<br>every ingredient for you.", dark: true, noStatus: true },
+  ];
+  const ASSETS = "../../ios/Skintel/Skintel/Resources/Assets.xcassets";
+  // ?screen=<template id> renders only the app screen at 900×1948 (no frame, no copy), for the reels.
+  const only = new URLSearchParams(location.search).get("screen");
+  if (only) {
+    slides.unshift({ mock: only, noStatus: only === "analyzing" });
+    document.documentElement.classList.add("bare");
+  }
+  const n = only ? 1 : Math.min(Math.max(parseInt(new URLSearchParams(location.search).get("n") || "1", 10), 1), slides.length);
+  const s = slides[n - 1];
+  document.getElementById("eyebrow").textContent = s.eyebrow;
+  document.getElementById("title").innerHTML = s.title;
+  document.getElementById("sub").innerHTML = s.sub;
+  const screen = document.getElementById("screen");
+  if (s.mock) {
+    const html = document.getElementById(s.mock).innerHTML.replaceAll("ASSETS", ASSETS);
+    screen.insertAdjacentHTML("afterbegin", html);
+  } else {
+    const img = document.createElement("img");
+    img.src = `_clean/${s.shot}.png`;
+    screen.prepend(img);
+  }
+  if (s.dark) document.body.classList.add("dark");
+  if (s.noStatus) document.getElementById("status").remove();
+</script>
+</body>
+</html>

@@ -1,0 +1,164 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<link rel="stylesheet" href="./style.css">
+<link rel="stylesheet" href="./app-ui.css">
+<style>
+  #cam { position: absolute; inset: 0; background: radial-gradient(300px 260px at 60% 40%, #4A4038, #1B1714 75%); }
+  #label { position: absolute; left: 40px; top: 230px; width: 310px; height: 300px; background: #F5F1EA; border-radius: 6px;
+           box-shadow: 0 20px 40px rgba(0,0,0,.4); transform-origin: 50% 50%; padding: 22px 26px; }
+  #label .inci { font-family: "JetBrains Mono", monospace; font-size: 8.5px; color: #6B6760; line-height: 1.5; }
+  #bars { display: flex; height: 92px; margin: 16px auto 4px; width: 210px; gap: 0; }
+  #bars i { display: block; height: 100%; background: #1A1814; }
+  #label .dig { font-family: "JetBrains Mono", monospace; font-size: 13px; text-align: center; letter-spacing: 3px; }
+  #flash { position: absolute; inset: 0; background: #fff; opacity: 0; z-index: 34; }
+  #verdict { position: absolute; inset: 0; z-index: 38; background: radial-gradient(420px 420px at 0 0, rgba(247,227,214,.55), transparent 100%), #F4EDE0; }
+</style>
+</head>
+<body>
+<div id="stage">
+  <div id="main">
+    <div id="cap"></div>
+    <div class="rphone" id="phone"><div class="scr"><div class="mock dark" id="m">
+      <!-- ScannerHostView: camera, brackets, scan line, glass buttons, pills -->
+      <div id="cam"></div>
+      <div id="label">
+        <div class="inci">INGREDIENTS: AQUA, GLYCERIN, COCAMIDOPROPYL BETAINE, NIACINAMIDE, CERAMIDE NP, SODIUM HYALURONATE, PANTHENOL, ALLANTOIN, CITRIC ACID…</div>
+        <div id="bars"></div>
+        <div class="dig">3 606000 537400</div>
+      </div>
+      <div style="position:absolute;inset:0;background:linear-gradient(rgba(0,0,0,.45),transparent 30%,transparent 70%,rgba(0,0,0,.55))"></div>
+      <div class="brackets" id="br"></div>
+      <div class="scanline" id="sl"></div>
+      <div class="gbtn" style="left:16px"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.6" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg></div>
+      <div class="gbtn" style="right:16px"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.2" stroke-linejoin="round"><path d="M13 2L4 14h7l-1 8 9-12h-7z"/></svg></div>
+      <div class="capsule" id="capsule">Point at the barcode on the back</div>
+      <div class="pills"><span>⌨ Type it</span><span>▤ Photo of ingredients</span></div>
+      <div id="flash"></div>
+
+      <!-- FoundSheet: lookingUp → analyzing -->
+      <div class="sheet" id="sheet"><span class="grab"></span>
+        <div class="col" style="gap:16px">
+          <div class="row" style="align-items:flex-start;gap:16px">
+            <div class="mark" style="width:60px;height:60px;background:#DCE5D2"><img src="ART/ProductPump.imageset/ProductPump.png"></div>
+            <div><div style="font-weight:600;font-size:22px;line-height:1.2" id="sname">Looking up 3606000537400</div>
+                 <div class="mono" style="margin-top:4px" id="ssub">3 606000 537400 · searching</div></div>
+          </div>
+          <div class="col">
+            <div class="row" style="padding:8px 16px;background:rgba(245,230,220,.6);border:1px solid rgba(116,60,43,.2);border-radius:16px">
+              <img src="ART/Mascot.imageset/Mascot.png" style="height:72px;flex:none">
+              <div><div class="title" id="ptitle">Checking product databases…</div><div class="sec" style="margin-top:3px" id="psub">Cache, Open Beauty Facts, then AI search</div></div>
+            </div>
+            <div class="bar"><i id="pbar" style="width:0"></i></div>
+          </div>
+          <div class="row" id="auto"><span class="sec" style="flex:1">Auto-confirmed — no extra taps</span><span style="white-space:nowrap;font-weight:600;font-size:15px;color:#A35848">Wrong product?</span></div>
+        </div>
+      </div>
+
+      <!-- VerdictView -->
+      <div id="verdict"><div class="page">
+        <div style="height:44px;display:flex;align-items:center;justify-content:space-between;margin:0 -6px">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#A35848" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 5l-7 7 7 7"/></svg>
+          <span style="font-weight:600;font-size:17px">Analysis</span>
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#A35848" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12M7 8l5-5 5 5M5 13v6a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-6"/></svg>
+        </div>
+        <div class="row"><div class="mark" style="width:40px;height:40px;background:#DCE5D2"><img src="ART/ProductPump.imageset/ProductPump.png"></div>
+          <div><div class="title">Hydrating Gel Cleanser</div><div class="mono">21 ingredients · barcode</div></div></div>
+        <div class="card good col" style="gap:16px">
+          <div class="row"><span class="chip good">GOOD MATCH</span><span class="sp"></span><span class="mono">1 flag</span></div>
+          <div class="row" style="gap:22px">
+            <svg width="118" height="118" viewBox="0 0 118 118" style="flex:none">
+              <circle cx="59" cy="59" r="53.5" fill="none" stroke="#EAE6DF" stroke-width="11"/>
+              <circle id="arc" cx="59" cy="59" r="53.5" fill="none" stroke="#5C7A4F" stroke-width="11" stroke-linecap="round" stroke-dasharray="336.15" stroke-dashoffset="336.15" transform="rotate(-90 59 59)"/>
+              <text id="num" x="59" y="66" text-anchor="middle" font-family="Instrument Serif" font-size="43.7" fill="#1A1814">0</text>
+              <text x="59" y="84" text-anchor="middle" font-family="JetBrains Mono" font-size="10" letter-spacing="1.4" fill="#6B6760">MATCH</text>
+            </svg>
+            <div style="flex:1">
+              <div class="row" style="padding:9px 0"><span class="sec">Good for you</span><span class="sp"></span><b style="font-weight:600;color:#5C7A4F">4</b></div><div class="hr"></div>
+              <div class="row" style="padding:9px 0"><span class="sec">Watch</span><span class="sp"></span><b style="font-weight:600;color:#743C2B">1</b></div><div class="hr"></div>
+              <div class="row" style="padding:9px 0"><span class="sec">Red flags</span><span class="sp"></span><b style="font-weight:600">0</b></div>
+            </div>
+          </div>
+          <div style="font-size:17px;line-height:1.35" id="summ">A gentle, fragrance-free gel cleanser that suits combination, breakout-prone skin. Nothing on your trigger list.</div>
+        </div>
+        <div class="section" style="margin-top:8px" id="why">Why this verdict</div>
+        <div class="col">
+          <div class="card row rs" style="align-items:flex-start"><span class="dot" style="background:#743C2B"></span><div class="body"><b style="font-weight:600">Cocamidopropyl Betaine</b> — mild foaming agent; rarely, it can sting very sensitive skin.</div></div>
+          <div class="card row rs" style="align-items:flex-start"><span class="dot" style="background:#5C7A4F"></span><div class="body"><b style="font-weight:600">Niacinamide</b> — helps even tone and calm redness.</div></div>
+          <div class="card row rs" style="align-items:flex-start"><span class="dot" style="background:#5C7A4F"></span><div class="body"><b style="font-weight:600">Ceramide NP</b> — supports the skin barrier.</div></div>
+        </div>
+      </div></div>
+    </div></div><div class="isl"></div></div>
+    <div class="tapdot" id="tapdot"></div>
+  </div>
+  <div id="ctaslot"></div>
+  <div id="vignette"></div>
+  <div id="grain"></div>
+</div>
+<script src="./engine.js"></script>
+<script src="./feature.js"></script>
+<script>
+const E = window.__E, $ = F.$;
+$('ctaslot').outerHTML = F.ctaHTML('and I&rsquo;ll DM you the link.<br>Scan your own shelf.');
+F.art();
+// Brackets and a decorative EAN-13 for 3606000537400.
+$('br').innerHTML = ['left:0;top:0;border-right:0;border-bottom:0;border-top-left-radius:26px', 'right:0;top:0;border-left:0;border-bottom:0;border-top-right-radius:26px',
+  'left:0;bottom:0;border-right:0;border-top:0;border-bottom-left-radius:26px', 'right:0;bottom:0;border-left:0;border-top:0;border-bottom-right-radius:26px'].map(s => `<i style="${s}"></i>`).join('');
+const L = ['0001101','0011001','0010011','0111101','0100011','0110001','0101111','0111011','0110111','0001011'], R = ['1110010','1100110','1101100','1000010','1011100','1001110','1010000','1000100','1001000','1110100'];
+const code = '3606000537400';
+const pat = '101' + [...code.slice(1, 7)].map(d => L[+d]).join('') + '01010' + [...code.slice(7)].map(d => R[+d]).join('') + '101';
+$('bars').innerHTML = [...pat].map(b => `<i style="width:${210 / 95}px;background:${b === '1' ? '#1A1814' : 'transparent'}"></i>`).join('');
+$('m').insertAdjacentHTML('beforeend', F.STATUS.replace('class="status"', 'class="status light" id="st"'));
+const DURATION = 17.5;
+const T = { hit: 2.3, sheet: 2.6, found: 4.0, verdict: 6.2, cta: 14.0 };
+
+function render(t) {
+  F.phoneIn(t, 0.15, [[T.verdict + 0.6, T.cta + 0.4, 1.3, 0]]);
+  F.captions(t, [
+    [0.0, 'Scan', 'Point it at the <em>barcode</em> on the back'],
+    [T.sheet, 'No typing', 'Finds the product <em>in seconds</em>'],
+    [T.verdict + 0.2, 'The result', 'A verdict for <em>your</em> skin'],
+    [10.0, 'Spelled out', 'And <em>why</em>, ingredient by ingredient'],
+  ]);
+  // Camera: label drifts like a hand-held shot, then holds steady when it reads.
+  const hold = E.seg(t, T.hit - 0.4, T.hit);
+  const dx = Math.sin(t * 1.7) * 8 * (1 - hold), dy = Math.cos(t * 1.3) * 6 * (1 - hold);
+  const blur = Math.max(0, 2.4 - t * 2) * (1 - hold);
+  $('label').style.transform = `translate(${dx}px, ${dy}px) rotate(${Math.sin(t) * 1.5 * (1 - hold)}deg)`;
+  $('label').style.filter = `blur(${blur}px)`;
+  const sweep = ((t * 0.9) % 1);
+  $('sl').style.top = `${300 + Math.sin(sweep * Math.PI) * 160}px`;
+  $('sl').style.opacity = t < T.hit ? 1 : 0;
+  $('br').querySelectorAll('i').forEach(i => { i.style.borderColor = t >= T.hit ? '#9BC48A' : '#fff'; });
+  $('flash').style.opacity = 0.5 * (1 - E.seg(t, T.hit, T.hit + 0.25)) * (t >= T.hit ? 1 : 0);
+  $('capsule').textContent = t < T.hit ? 'Point at the barcode on the back' : 'Looking it up…';
+  // Sheet: looking up, then matched + reading ingredients.
+  const sp = E.easeEmil(E.seg(t, T.sheet, T.sheet + 0.45));
+  $('sheet').style.transform = `translateY(${(1 - sp) * 380}px)`;
+  const found = t >= T.found;
+  $('sname').textContent = found ? 'Hydrating Gel Cleanser' : 'Looking up 3606000537400';
+  $('ssub').textContent = found ? '3 606000 537400 · matched ✓' : '3 606000 537400 · searching';
+  $('ptitle').textContent = found ? 'Reading 21 ingredients…' : 'Checking product databases…';
+  $('psub').textContent = found ? 'Matching against 2 known triggers' : 'Cache, Open Beauty Facts, then AI search';
+  $('pbar').style.width = `${E.easeOut(E.seg(t, T.sheet, T.verdict)) * 90}%`;
+  $('auto').style.visibility = found ? 'visible' : 'hidden';
+  // Verdict pushes in; the ring draws while the number counts with it (as SKScoreRing does).
+  const vp = E.easeEmil(E.seg(t, T.verdict, T.verdict + 0.45));
+  $('verdict').style.transform = `translateX(${(1 - vp) * 390}px)`;
+  $('verdict').style.visibility = vp > 0 ? 'visible' : 'hidden';
+  $('st').classList.toggle('light', vp < 0.5);
+  const r = E.easeEmil(E.seg(t, T.verdict + 0.4, T.verdict + 1.5));
+  $('arc').setAttribute('stroke-dashoffset', 336.15 * (1 - 0.86 * r));
+  $('num').textContent = Math.round(86 * r);
+  F.appear($('summ'), t, T.verdict + 1.5);
+  F.appear($('why'), t, T.verdict + 2.6);
+  document.querySelectorAll('.rs').forEach((el, i) => F.appear(el, t, T.verdict + 3.0 + i * 0.45, Infinity, 20));
+  F.cta(t, T.cta);
+}
+window.__seek = t => { render(t); return true; };
+window.__duration = DURATION;
+render(0);
+</script>
+</body>
+</html>

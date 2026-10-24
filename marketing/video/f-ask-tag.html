@@ -1,0 +1,102 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<link rel="stylesheet" href="./style.css">
+<link rel="stylesheet" href="./app-ui.css">
+</head>
+<body>
+<div id="stage">
+  <div id="main">
+    <div id="cap"></div>
+    <div class="rphone" id="phone"><div class="scr"><div class="mock" id="m">
+      <div id="welcome" style="position:absolute;left:22px;right:22px;top:118px">
+        <div class="avatar" style="width:52px;height:52px"><svg width="24" height="24" viewBox="0 0 24 24" fill="#FFFEFA"><path d="M12 2l2.2 6.8L21 11l-6.8 2.2L12 20l-2.2-6.8L3 11l6.8-2.2z"/></svg></div>
+        <div class="serif" style="font-size:52px;line-height:1.05;margin-top:22px;width:230px">What can I help with?</div>
+        <img src="ART/Mascot.imageset/Mascot.png" style="position:absolute;right:0;top:40px;height:120px">
+      </div>
+      <div class="askhead">Ask Skintel</div>
+      <div class="thread">
+        <div class="utags" id="qt"><span class="tagchip"><span class="mark" style="width:22px;height:22px;background:#D6E0EA"><img src="ART/ProductPump.imageset/ProductPump.png"></span>Glycolic Exfoliating Toner</span></div>
+        <div class="ububble" id="q1" style="margin-top:-10px">How often should I use this?</div>
+        <div class="typing" id="d1"><i></i><i></i><i></i></div>
+        <div class="arow" id="a1"><span class="avatar"></span><div class="atext" id="a1t">
+          <p>Your <b>Glycolic Exfoliating Toner</b> has glycolic acid high up its ingredient list, so it&rsquo;s a real exfoliant, not just a toner.</p>
+          <p><b>2&ndash;3 evenings a week</b> is plenty for most skin. Keep it off the nights you use your <b>Retinol 0.3% Night Serum</b>: alternate them.</p>
+          <p>If your skin feels tight or stings, drop to once a week.</p>
+        </div></div>
+      </div>
+      <div class="mention" id="mp">
+        <div class="q" id="mq">Type to search your shelf</div>
+        <div class="mrow hi" id="r0"><span class="mark" style="width:34px;height:34px;background:#DCE5D2"><img src="ART/ProductPump.imageset/ProductPump.png"></span><span class="n">Hydrating Gel Cleanser</span><span class="c">Cleanser</span></div>
+        <div class="mrow" id="r1"><span class="mark" style="width:34px;height:34px;background:#D6E0EA"><img src="ART/ProductPump.imageset/ProductPump.png"></span><span class="n">Glycolic Exfoliating Toner</span><span class="c">Toner</span></div>
+        <div class="mrow" id="r2"><span class="mark" style="width:34px;height:34px;background:#EED2CC"><img src="ART/ProductDropper.imageset/ProductDropper.png"></span><span class="n">Retinol 0.3% Night Serum</span><span class="c">Serum</span></div>
+        <div class="mrow" id="r3"><span class="mark" style="width:34px;height:34px;background:#EAD8C8"><img src="ART/ProductTube.imageset/ProductTube.png"></span><span class="n">Barrier Repair Cream</span><span class="c">Moisturizer</span></div>
+      </div>
+      <div class="composer">
+        <div class="ctags" id="ct"><span class="tagchip" style="padding-right:6px"><span class="mark" style="width:22px;height:22px;background:#D6E0EA"><img src="ART/ProductPump.imageset/ProductPump.png"></span>Glycolic Exfoliating Toner<span style="color:#6B6760;font-size:10px;width:20px;text-align:center">✕</span></span></div>
+        <div class="field" id="field"></div>
+        <div class="tools"><span class="atbtn" id="at">@</span><span class="toggle"><span class="on">☾ Luna</span><span>☼ Sol</span></span>
+          <span class="send" id="send"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#FFFEFA" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M12 19V5M5 12l7-7 7 7"/></svg></span></div>
+      </div>
+      <div class="disclaim"><span style="color:#A35848;font-weight:600">Luna</span> · Fastest for everyday questions<br>Answers can be wrong. Skintel isn&rsquo;t a doctor.</div>
+      <img class="tabbar" src="./assets/tab-ask.png">
+    </div></div><div class="isl"></div></div>
+    <div class="tapdot" id="tapdot"></div>
+  </div>
+  <div id="ctaslot"></div>
+  <div id="vignette"></div>
+  <div id="grain"></div>
+</div>
+<script src="./engine.js"></script>
+<script src="./feature.js"></script>
+<script>
+const E = window.__E, $ = F.$;
+$('m').insertAdjacentHTML('afterbegin', F.STATUS);
+document.querySelectorAll('.avatar:empty').forEach(a => a.innerHTML = F.SPARK);
+$('ctaslot').outerHTML = F.ctaHTML('and I&rsquo;ll DM you the link.<br>Tag your own products.');
+F.art();
+const DURATION = 18.5;
+const Q = 'How often should I use this?';
+const T = { at: 1.0, query: 1.7, pick: 3.0, type: 3.6, send: 5.8, answer: 7.6, cta: 15.0 };
+
+function render(t) {
+  F.phoneIn(t, 0.15, [[T.answer + 0.4, T.cta + 0.4, 1.32, 0]]);
+  F.captions(t, [
+    [0.0, 'Ask Skintel · tag a product', 'Type <em>@</em> to tag anything on your shelf'],
+    [T.answer + 0.2, 'Tag up to 3', 'It reads <em>that</em> product&rsquo;s ingredients'],
+    [11.6, 'Checked against your routine', 'Even tells you <em>which nights</em>'],
+  ]);
+  // Composer: "@", then "gly" filters the shelf list, the pick becomes a chip, then the question.
+  const picked = t >= T.pick, sent = t >= T.send;
+  const field = $('field');
+  if (t < T.at) field.innerHTML = '<span class="ph">Ask about your skin or products</span>';
+  else if (!picked) F.type(field, '@' + (t >= T.query ? 'gly' : ''), t, T.at, 30);
+  else if (!sent) {
+    if (t < T.type) field.innerHTML = '<span class="ph">Ask about this product</span><span class="caret"></span>';
+    else F.type(field, Q, t, T.type, 15);
+  } else field.innerHTML = '<span class="ph">Ask about your skin or products</span>';
+  $('at').classList.toggle('on', picked && !sent);
+  $('ct').style.display = picked && !sent ? 'flex' : 'none';
+  $('send').classList.toggle('on', !sent && t >= T.type + Q.length / 15);
+  const filtering = t >= T.query + 0.15;
+  $('mq').innerHTML = filtering ? 'Shelf products matching &ldquo;gly&rdquo;' : 'Type to search your shelf';
+  ['r0', 'r2', 'r3'].forEach(id => { $(id).style.display = filtering ? 'none' : 'flex'; });
+  $('r0').classList.toggle('hi', !filtering);
+  $('r1').classList.toggle('hi', filtering);
+  F.appear($('mp'), t, T.at + 0.1, T.pick, 20);
+  F.taps(t, [[T.at - 0.05, 43, 690], [T.pick - 0.05, 160, 560], [T.send - 0.05, 348, 690]]);
+  F.appear($('welcome'), t, -1, T.send, 0);
+  F.appear($('qt'), t, T.send + 0.05);
+  F.appear($('q1'), t, T.send + 0.1);
+  F.dots($('d1'), t, T.send + 0.4, T.answer);
+  F.appear($('a1'), t, T.answer);
+  if (t >= T.answer) E.revealWords($('a1t'), t, T.answer, { step: 0.035, dur: 0.3, rise: 6 });
+  F.cta(t, T.cta);
+}
+window.__seek = t => { render(t); return true; };
+window.__duration = DURATION;
+render(0);
+</script>
+</body>
+</html>
