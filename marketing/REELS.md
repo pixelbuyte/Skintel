@@ -1,6 +1,6 @@
-# Skintel reels — 8 formats adapted, ready to film
+# Skintel reels — 9 formats adapted, ready to film
 
-Built from the reel formats brief (8 reference reels). Each format is used as a **template**: the
+Built from the reel formats brief (9 reference reels). Each format is used as a **template**: the
 mechanic is kept, the subject becomes skincare. Every reel below has a hook, a shot list, on-screen
 text, a caption and the CTA.
 
@@ -11,6 +11,8 @@ text, a caption and the CTA.
 | `out/skintel-reel-droste.mp4` (15s) | Phone-in-phone loop → scan → "this ONE ingredient was in all 3 products that broke me out" → Comment SKINSTEL | Reel 7. Post as-is, or film your own 2-second "girl, you need to see this" opener and put it first |
 | `out/skintel-reel-fights.mp4` (26s) | "3 things in your routine that are fighting each other", 1/3 → 3/3, the app's conflict check, Comment SKINSTEL | Reel 1. Post as-is, or use parts as B-roll under your own talking clips |
 | `out/skintel-reel-cta.mp4` (7s) | The "comment SKINSTEL" sign swinging into frame + "you're already on your phone" + founding offer | Reel 8. Stick on the end of **any** video |
+| `out/plane-f1.mov` / `.webm` (+ f2, f3) | Transparent paper plane that flies in and unfolds into a cream flyer with one conflict fact + Comment SKINSTEL. Three flyers = three episodes | Reel 9. Lay over your own footage (`-preview.mp4` shows how it looks) |
+| `out/plane-f1-print.png` (+ f2, f3) | The same flyer, flat, to print and fold into a real paper plane | Reel 9 with a real plane |
 | `out/overlays/*.png` (12) | Transparent stickers: camera-UI frame, 4 POV captions, 1/3 2/3 3/3, comment sign, conflict / no-conflict chips, end bar | Drop over your own footage in CapCut or the Instagram editor |
 
 The app screens inside the videos are the build-47 screens from the App Store slides, with example
@@ -200,6 +202,30 @@ Never fake a countdown. Only say "500 spots" while the counter on skinstel.com i
 
 ---
 
+## Reel 9 — The paper-plane interruption (Trojan horse) ⭐ reach + funnel
+
+**Job:** reach and shares, with one fact and the keyword smuggled in. The promo IS the interruption,
+so it never feels like an ad until it has already landed. Works from a small account: the format
+carries it.
+
+**Hook (text, serif, 0–2s):** "Was filming my routine but this flew in through the bathroom window??"
+
+| Time | Shot (you film) | On-screen text |
+|---|---|---|
+| 0–3s | Golden hour, a normal "get ready with me": you at the vanity, posing, adjusting hair | the hook line, Instrument Serif |
+| 3–4s | You both freeze and look up at the window | — |
+| 4–7s | Camera tilts up: a paper plane glides into frame. **Easiest:** lay `plane-f1.mov` over the shot (it flies in and unfolds by itself). **Best:** print `plane-f1-print.png`, fold it, have someone throw it in | — |
+| 7–11s | Close-up of the open flyer in your hands: "Retinol + glycolic acid on the same night? That's too much at once. Comment SKINSTEL" + mascot doodle | none — the flyer is the text |
+| 11–13s | You look at camera, shrug, go back to your routine | — |
+
+**Make it a series:** same gag, a new flyer each episode (`f1`, `f2`, `f3`; add more in
+`plane.html`). One fact per flyer, nothing else; the charm is that it doesn't try to sell.
+
+**Caption (casual, like the original):**
+> the skincare plane strikes again ✈️ comment SKINSTEL and I'll DM you the link to check your own routine
+
+---
+
 ## Posting order (first two weeks)
 
 | Day | Reel | Why |
@@ -212,6 +238,7 @@ Never fake a countdown. Only say "500 spots" while the counter on skinstel.com i
 | 8 | **8** Sign rally (funnel) | founding-spot urgency |
 | 9 | **5** Phone bridge (vibe) | |
 | 11 | **2** Recreate + shelf audit (reach) | starts the signature format |
+| 12 | **9** Paper plane, episode 1 (reach + funnel) | then one plane episode a week |
 
 Then re-cut the best funnel reel with a new first line: the hook is the only thing worth A/B testing.
 
@@ -244,6 +271,7 @@ node render.mjs reel-droste 30              # → out/skintel-reel-droste.mp4
 node render.mjs reel-fights 30
 node render.mjs reel-cta 30
 node shoot-overlays.mjs                     # → out/overlays/*.png
+node render-alpha.mjs plane 1               # → out/plane-f1.mov/.webm/-preview.mp4/-print.png (also 2, 3)
 ```
 
 Set `CHROME_PATH` to a Chromium binary if Playwright didn't install its own. Copy lives in the
