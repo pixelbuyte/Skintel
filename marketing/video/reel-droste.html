@@ -1,0 +1,157 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<link rel="stylesheet" href="./style.css">
+<style>
+  /* Reel 7 format: phone-in-phone recursion hook → hard cut to the result → keyword CTA. */
+  .frame { position: absolute; left: 0; top: 0; width: 1080px; height: 1920px; transform-origin: 0 0; }
+  .frame .bgf { position: absolute; inset: 0; background:
+      radial-gradient(900px circle at 12% -6%, rgba(255,200,180,0.55), transparent 55%),
+      radial-gradient(860px circle at 88% 102%, rgba(232,198,162,0.48), transparent 55%),
+      linear-gradient(180deg, #F4ECDC 0%, #EFE4D0 100%); }
+  .frame .hook { position: absolute; left: 80px; right: 80px; top: 170px; text-align: center;
+      font-family: 'Instrument Serif', serif; font-size: 112px; line-height: 1.0; color: var(--ink); }
+  .frame .hook em { color: var(--primary); }
+  /* Phone held up to camera: screen box is where the next frame nests. */
+  .frame .ph { position: absolute; left: 230px; top: 560px; width: 620px; height: 1290px; border-radius: 96px;
+      background: #1A1814; box-shadow: 0 0 0 5px #3A342D inset, 0 50px 90px rgba(26,24,20,.30); }
+  .frame .scr { position: absolute; left: 16px; top: 16px; width: 588px; height: 1258px; border-radius: 82px;
+      overflow: hidden; background: #F1E8D7; }
+  .frame .isl { position: absolute; top: 34px; left: 50%; transform: translateX(-50%); width: 170px; height: 48px;
+      border-radius: 26px; background: #000; z-index: 3; }
+  .frame .scr > img { position: absolute; inset: 0; width: 100%; height: 100%; }
+
+  .full { position: absolute; inset: 0; display: none; }
+  .bigphone { position: absolute; left: 160px; top: 300px; width: 760px; height: 1600px; border-radius: 118px;
+      background: #1A1814; box-shadow: 0 0 0 6px #3A342D inset, 0 60px 120px rgba(26,24,20,.30); transform-origin: 50% 40%; }
+  .bigphone .scr { position: absolute; left: 20px; top: 20px; width: 720px; height: 1560px; border-radius: 100px; overflow: hidden; }
+  .bigphone .scr img { position: absolute; inset: 0; width: 100%; height: 100%; }
+  .bigphone .isl { position: absolute; top: 42px; left: 50%; transform: translateX(-50%); width: 210px; height: 60px; border-radius: 32px; background: #000; z-index: 3; }
+  .cap { position: absolute; left: 70px; right: 70px; text-align: center; z-index: 20; }
+  .cap .t { display: inline-block; background: var(--cream); color: var(--ink); border-radius: 26px; padding: 22px 34px;
+      font-size: 54px; font-weight: 700; line-height: 1.15; box-shadow: 0 18px 40px rgba(26,24,20,.18); }
+  .cap .t em { font-style: normal; color: var(--bad-fg); }
+  .ring { position: absolute; border: 7px solid var(--bad-fg); border-radius: 40px; z-index: 10; }
+
+  .cta { position: absolute; inset: 0; display: none; flex-direction: column; align-items: center; justify-content: center; text-align: center; padding: 0 90px; }
+  .cta .m { width: 300px; height: 300px; object-fit: contain; }
+  .cta .l1 { font-family: 'Instrument Serif', serif; font-size: 120px; line-height: 1; margin-top: 30px; }
+  .cta .kw { display: inline-block; margin-top: 26px; background: var(--primary); color: var(--cream); font-weight: 700;
+      font-size: 104px; letter-spacing: .04em; padding: 18px 56px 24px; border-radius: 999px; box-shadow: 0 24px 50px rgba(163,88,72,.4); }
+  .cta .l2 { font-size: 46px; color: var(--muted); margin-top: 46px; line-height: 1.3; }
+  .cta .h { font-size: 38px; color: var(--primary); margin-top: 34px; font-weight: 700; letter-spacing: .02em; }
+</style>
+</head>
+<body>
+<div id="stage">
+  <div id="zoom" style="position:absolute;inset:0;transform-origin:0 0"></div>
+
+  <div class="full" id="full">
+    <div class="bigphone" id="bp">
+      <div class="scr"><img id="shotA" src="./assets/app-analyzing.png"><img id="shotB" src="./assets/app-triggers.png"></div>
+      <div class="isl"></div>
+    </div>
+    <div class="ring" id="ring"></div>
+    <div class="cap" id="cap" style="top:96px"><span class="t" id="capt">This <em>ONE</em> ingredient was in all 3<br>products that broke me out</span></div>
+  </div>
+
+  <div class="cta" id="cta">
+    <img class="m" id="ctam" src="../../ios/Skintel/Skintel/Resources/Assets.xcassets/Mascot.imageset/Mascot.png">
+    <div class="l1" id="ctal1">Comment</div>
+    <div><span class="kw" id="ctakw">SKINSTEL</span></div>
+    <div class="l2" id="ctal2">and I&rsquo;ll DM you the link.<br>Scan your own shelf for free.</div>
+    <div class="h" id="ctah">@skins_tel</div>
+  </div>
+
+  <div id="vignette"></div>
+  <div id="grain"></div>
+</div>
+
+<script src="./engine.js"></script>
+<script>
+const E = window.__E;
+const $ = id => document.getElementById(id);
+const DURATION = 15.0;
+
+// ---- Build the recursion: each frame's phone screen holds the next frame, scaled to its width.
+const SCR = { x: 230 + 16, y: 560 + 16, w: 588, h: 1258 };
+const K = SCR.w / 1080;                          // scale between levels
+const OY = SCR.y + (SCR.h - 1920 * K) / 2;       // inner frame centred vertically in the screen
+const DEPTH = 6;
+function frameHTML(inner) {
+  return `<div class="frame"><div class="bgf"></div>
+    <div class="hook">girl, you <em>need</em><br>to see this</div>
+    <div class="ph"><div class="scr">${inner}</div><div class="isl"></div></div></div>`;
+}
+let html = `<img src="./assets/app-analyzing.png">`;
+for (let i = 0; i < DEPTH; i++) {
+  html = frameHTML(i === 0 ? html : `<div style="position:absolute;left:0;top:${OY - SCR.y}px;width:1080px;height:1920px;transform:scale(${K});transform-origin:0 0">${html}</div>`);
+}
+$('zoom').innerHTML = html;
+// Fixed point of the zoom: p = o / (1 - k), so scaling by 1/k about p maps the inner frame onto the outer one.
+const PX = SCR.x / (1 - K), PY = OY / (1 - K);
+$('zoom').style.transformOrigin = `${PX}px ${PY}px`;
+
+const Z0 = 0.9, LEVEL = 1.15, LEVELS = 3;        // zoom starts at 0.9 s, one level per 1.15 s
+const CUT = Z0 + LEVEL * LEVELS;                 // hard cut to the result
+const S = { scan: [CUT, CUT + 2.2], trig: [CUT + 2.2, 11.2], cta: [11.0, DURATION] };
+
+function render(t) {
+  // Recursion zoom: constant-speed exponential, wraps every level so it reads as infinite.
+  const zl = Math.max(0, Math.min(LEVELS - 1e-6, (t - Z0) / LEVEL));
+  const f = t < Z0 ? 0 : zl - Math.floor(zl);
+  const ease = f;                                 // linear in log-space = constant perceived speed
+  $('zoom').style.transform = `scale(${Math.pow(1 / K, ease)})`;
+  $('zoom').style.display = t < CUT ? 'block' : 'none';
+  // Hook words pop in on the first frame only.
+  const hooks = document.querySelectorAll('.hook');
+  const hp = E.easeEmil(E.seg(t, 0.0, 0.45));
+  hooks[0].style.opacity = hp; hooks[0].style.transform = `scale(${E.lerp(0.9, 1, hp)})`;
+
+  // Full-screen phone: scanning sheet, then the Triggers result with a ring + caption.
+  const full = $('full');
+  const fa = t >= CUT && t < S.cta[0] + 0.4 ? 1 - E.seg(t, S.cta[0], S.cta[0] + 0.4) : 0;
+  full.style.display = fa > 0 ? 'block' : 'none';
+  full.style.opacity = fa;
+  if (fa > 0) {
+    const pop = E.easeEmil(E.seg(t, CUT, CUT + 0.35));
+    $('bp').style.transform = `scale(${E.lerp(1.12, 1, pop) * E.kenBurns(t, CUT, S.cta[0], 1, 1.05)})`;
+    const onTrig = t >= S.trig[0];
+    $('shotB').style.opacity = onTrig ? 1 : 0;  // both preloaded: swapping src would race the screenshot
+    // Ring around the Top Suspect card (card spans pt 22..368 × ~238..452 in the 390-pt screen).
+    const r = E.easeEmil(E.seg(t, S.trig[0] + 0.5, S.trig[0] + 0.9));
+    const sc = 720 / 390, bx = 160 + 20, by = 300 + 20;
+    const ring = $('ring');
+    ring.style.opacity = onTrig ? r : 0;
+    ring.style.left = `${bx + 14 * sc}px`; ring.style.top = `${by + 232 * sc}px`;
+    ring.style.width = `${362 * sc}px`; ring.style.height = `${228 * sc}px`;
+    ring.style.transform = `scale(${E.lerp(1.15, 1, r)})`;
+    const c = E.easeEmil(E.seg(t, S.trig[0] + 0.9, S.trig[0] + 1.4));
+    $('cap').style.opacity = onTrig ? c : 0;
+    $('cap').style.transform = `translateY(${(1 - c) * 30}px)`;
+  }
+
+  // CTA card.
+  const ca = E.seg(t, S.cta[0], S.cta[0] + 0.4);
+  $('cta').style.display = ca > 0 ? 'flex' : 'none';
+  $('cta').style.opacity = E.easeInOut(ca);
+  if (ca > 0) {
+    const bob = Math.sin((t - S.cta[0]) * 3.2) * 10;
+    const m = E.easeEmil(E.seg(t, S.cta[0] + 0.1, S.cta[0] + 0.6));
+    $('ctam').style.transform = `translateY(${bob + (1 - m) * 60}px) scale(${E.lerp(0.7, 1, m)})`;
+    $('ctam').style.opacity = m;
+    E.riseIn($('ctal1'), t, S.cta[0] + 0.35, { rise: 30 });
+    const k = E.easeEmil(E.seg(t, S.cta[0] + 0.6, S.cta[0] + 1.0));
+    const pulse = 1 + Math.max(0, Math.sin((t - S.cta[0] - 1.0) * 4)) * 0.03 * (t > S.cta[0] + 1 ? 1 : 0);
+    $('ctakw').style.transform = `scale(${E.lerp(0.6, 1, k) * pulse})`; $('ctakw').style.opacity = k;
+    E.riseIn($('ctal2'), t, S.cta[0] + 1.1, { rise: 24 });
+    E.riseIn($('ctah'), t, S.cta[0] + 1.4, { rise: 20 });
+  }
+}
+window.__seek = t => { render(t); return true; };
+window.__duration = DURATION;
+render(0);
+</script>
+</body>
+</html>

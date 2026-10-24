@@ -25,6 +25,9 @@ CROPS = [
     ("composer-ask", "01-ask", 1790 / 2532),
 ]
 STATUS_ROWS = 0.052  # top 5.2% of an iPhone capture holds the status bar
+# App screens without the slide frame, for the reels in marketing/video (its assets/ is gitignored).
+REEL_SCREENS = ["verdict", "triggers", "today", "ask", "analyzing", "conflicts"]
+REEL_ASSETS = HERE.parent / "video" / "assets"
 CHROME_CANDIDATES = [
     "/opt/pw-browsers/chromium-1194/chrome-linux/chrome",
     shutil.which("chromium") or "",
@@ -70,6 +73,17 @@ def main() -> None:
         size = Image.open(target).size
         assert size == (1290, 2796), f"{target.name} is {size}"
         print(f"{target.relative_to(HERE)}  {size[0]}x{size[1]}")
+    REEL_ASSETS.mkdir(exist_ok=True)
+    for name in REEL_SCREENS:
+        target = REEL_ASSETS / f"app-{name}.png"
+        subprocess.run([
+            chrome, "--headless", "--no-sandbox", "--hide-scrollbars", "--disable-gpu",
+            "--allow-file-access-from-files", "--force-device-scale-factor=1",
+            "--window-size=900,2200", "--virtual-time-budget=4000",
+            f"--screenshot={target}", f"file://{HERE / 'slides.html'}?screen={name}",
+        ], check=True, capture_output=True)
+        Image.open(target).crop((0, 0, 900, 1948)).convert("RGB").save(target)
+        print(f"video/assets/{target.name}  900x1948")
     shutil.rmtree(CLEAN)
 
 
