@@ -25,8 +25,6 @@ CROPS = [
     ("composer-ask", "01-ask", 1790 / 2532),
 ]
 STATUS_ROWS = 0.052  # top 5.2% of an iPhone capture holds the status bar
-BOTTLE_DIR = HERE / "3d"
-HEADLESS_SHELL = "/opt/pw-browsers/chromium_headless_shell-1194/chrome-linux/headless_shell"
 CHROME_CANDIDATES = [
     "/opt/pw-browsers/chromium-1194/chrome-linux/chrome",
     shutil.which("chromium") or "",
@@ -45,29 +43,12 @@ def clean(name: str) -> None:
     im.save(CLEAN / f"{name}.png")
 
 
-def render_bottles() -> None:
-    """Re-render 3d/bottle-{front,back}.png when three.js is linked at 3d/vendor
-    (`npm i three@0.170.0`, then link vendor -> node_modules/three). Otherwise the
-    committed PNGs are used as they are."""
-    if not (BOTTLE_DIR / "vendor" / "build" / "three.module.js").exists() or not pathlib.Path(HEADLESS_SHELL).exists():
-        print("3d/vendor missing: using committed bottle PNGs")
-        return
-    for view in ("front", "back"):
-        subprocess.run([
-            HEADLESS_SHELL, "--no-sandbox", "--hide-scrollbars", "--allow-file-access-from-files",
-            "--use-angle=swiftshader", "--enable-unsafe-swiftshader", "--default-background-color=00000000",
-            "--window-size=900,1400", "--virtual-time-budget=8000",
-            f"--screenshot={BOTTLE_DIR / f'bottle-{view}.png'}", f"file://{BOTTLE_DIR / 'bottle.html'}?view={view}",
-        ], check=True, capture_output=True)
-
-
 def main() -> None:
     chrome = next((c for c in CHROME_CANDIDATES if c and pathlib.Path(c).exists()), None)
     if not chrome:
         sys.exit("No Chromium found; set CHROME_CANDIDATES")
     CLEAN.mkdir(exist_ok=True)
     OUT.mkdir(exist_ok=True)
-    render_bottles()
     for name in ["04-scan"]:
         clean(name)
     for out, capture, top in CROPS:

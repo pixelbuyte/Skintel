@@ -30,4 +30,3 @@ grant-pro.mjs
 test-checkout.mjs
 .env.production
 marketing/app-store/_clean/
-marketing/app-store/3d/vendor
