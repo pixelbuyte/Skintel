@@ -5,6 +5,14 @@ const E = window.__E;
 const $ = id => document.getElementById(id);
 const ART = "../../ios/Skintel/Skintel/Resources/Assets.xcassets";
 const mascot = `${ART}/Mascot.imageset/Mascot.png`;
+/* ?mode=body: the same demo as the body of a reaction-hook video (HOOKS.md). No captions, the
+   phone fills the frame with a slight hand-held sway, so a hook clip can be cut in front of it. */
+const BODY = new URLSearchParams(location.search).get("mode") === "body";
+if (BODY) {
+  document.documentElement.classList.add("body-mode");
+  // The tap ripple rides inside the phone, so it follows the phone's transform.
+  const dot = $("tapdot"); if (dot) $("phone").appendChild(dot);
+}
 
 /** Resolve ART/ placeholders in src attributes. */
 function art() {
@@ -15,6 +23,13 @@ function art() {
     zooms: [[start, end, scale, lift]]: grows from the phone's top edge (so it never covers the
     caption); lift (stage px) slides it up for content further down the screen. */
 function phoneIn(t, at = 0.15, zooms = []) {
+  if (BODY) {
+    const ph = $("phone");
+    const sway = `translate(${Math.sin(t * 1.3) * 6}px, ${Math.cos(t * 1.1) * 5}px) rotate(${Math.sin(t * 0.9) * 0.7}deg)`;
+    ph.style.transformOrigin = "50% 0";
+    ph.style.transform = `translateY(${(1920 - 1437 * 1.25) / 2 - 450}px) ${sway} scale(1.25)`;
+    return;
+  }
   const p = E.easeEmil(E.seg(t, at, at + 0.8));
   let s = 1, lift = 0;
   for (const [a, b, sc, y] of zooms) {
@@ -31,7 +46,7 @@ function captions(t, list) {
   let cur = -1;
   list.forEach((c, i) => { if (t >= c[0]) cur = i; });
   const cap = $("cap");
-  if (cur < 0) { cap.style.opacity = 0; return; }
+  if (cur < 0 || BODY) { cap.style.opacity = 0; return; }
   const [start, eyebrow, html] = list[cur];
   if (cap.dataset.i !== String(cur)) {
     cap.dataset.i = String(cur);
@@ -75,7 +90,8 @@ function tap(t, at, x, y) {
   const p = E.seg(t, at - 0.15, at + 0.35);
   if (p <= 0 || p >= 1) return false;
   const s = 1.659;
-  el.style.left = `${198 + 18 + x * s}px`; el.style.top = `${450 + 18 + y * s}px`;
+  const ox = BODY ? 18 : 198 + 18, oy = BODY ? 18 : 450 + 18;  // phone-local when inside the phone
+  el.style.left = `${ox + x * s}px`; el.style.top = `${oy + y * s}px`;
   el.style.opacity = p < 0.3 ? p / 0.3 : 1 - (p - 0.3) / 0.7;
   el.style.transform = `scale(${0.6 + p * 0.9})`;
   return true;

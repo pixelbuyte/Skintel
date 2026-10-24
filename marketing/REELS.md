@@ -4,6 +4,8 @@ Built from the reel formats brief (9 reference reels). Each format is used as a 
 mechanic is kept, the subject becomes skincare. Every reel below has a hook, a shot list, on-screen
 text, a caption and the CTA.
 
+**Reaction-hook ads** (the Cal AI / Fastlane "face reacts → app demo" format): see [`HOOKS.md`](HOOKS.md).
+
 **Already made for you** (in `marketing/video/`, render with `npm run …` — see the bottom):
 
 | File | What it is | Use it for |

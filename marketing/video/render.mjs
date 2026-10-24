@@ -18,6 +18,10 @@ const FPS = Number(FPS_ARG || 30);
 const SCALE = Number(SCALE_ARG || 1);
 const SUFFIX = SUFFIX_ARG || '';
 const W = 1080, H = 1920;
+// QUERY (e.g. "mode=body") is appended to the page URL; FMT=jpeg trades lossless frames for ~2× speed.
+const QUERY = process.env.QUERY ? `?${process.env.QUERY}` : '';
+const JPEG = process.env.FMT === 'jpeg';
+const EXT = JPEG ? 'jpg' : 'png';
 const frameDir = resolve(HERE, `frames_${NAME}${SUFFIX}`);
 const outDir = resolve(HERE, 'out');
 
@@ -36,7 +40,7 @@ const page = await browser.newPage({
   deviceScaleFactor: 1,
 });
 
-await page.goto('file://' + resolve(HERE, `${NAME}.html`));
+await page.goto('file://' + resolve(HERE, `${NAME}.html`) + QUERY);
 await page.evaluate(() => document.fonts.ready);
 await page.waitForTimeout(400); // let images decode
 
@@ -54,8 +58,9 @@ for (let i = 0; i < total; i++) {
   const t = i / FPS / SCALE;
   await page.evaluate(tt => window.__seek(tt), t);
   await stage.screenshot({
-    path: `${frameDir}/f_${String(i).padStart(5, '0')}.png`,
+    path: `${frameDir}/f_${String(i).padStart(5, '0')}.${EXT}`,
     animations: 'disabled',
+    ...(JPEG ? { type: 'jpeg', quality: 93 } : {}),
   });
   if (i % 60 === 0 || i === total - 1) {
     const pct = (((i + 1) / total) * 100).toFixed(0);
@@ -69,7 +74,7 @@ const mp4 = resolve(outDir, `skintel-${NAME}${SUFFIX}.mp4`);
 execFileSync('ffmpeg', [
   '-y', '-v', 'error',
   '-framerate', String(FPS),
-  '-i', `${frameDir}/f_%05d.png`,
+  '-i', `${frameDir}/f_%05d.${EXT}`,
   '-c:v', 'libx264',
   '-preset', 'slow',
   '-crf', '17',
