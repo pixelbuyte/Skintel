@@ -3,6 +3,7 @@
 // for founder-filmed reactions: the hook lines as transparent PNGs and the bodies on their own.
 //   CHROME_PATH=... node build-hooks.mjs            (all)
 //   CHROME_PATH=... node build-hooks.mjs 2 7        (only hooks 2 and 7)
+//   FRESH=1 node build-hooks.mjs 2                   (re-render hook 2's clip after editing its line)
 import { chromium } from 'playwright';
 import { execFileSync } from 'node:child_process';
 import { existsSync, mkdirSync, copyFileSync } from 'node:fs';
@@ -19,6 +20,9 @@ const PAIRS = {
   1: 'triggers', 2: 'conflicts', 3: 'scan', 4: 'scan', 5: 'triggers', 6: 'scan',
   7: 'ask-when', 8: 'triggers', 9: 'conflicts', 10: 'ask-tag', 11: 'conflicts', 12: 'scan',
 };
+// Where each body starts after the hook: the first frame after the cut must already show the app
+// doing something (conflicts: the steps are listed; Ask: the composer is about to be used).
+const START = { scan: 0.4, triggers: 0.8, conflicts: 1.6, 'ask-when': 0.8, 'ask-tag': 0.7, 'ask-routine': 0.8 };
 const only = process.argv.slice(2).map(Number).filter(Boolean);
 const hooks = Object.keys(PAIRS).map(Number).filter(h => !only.length || only.includes(h));
 const pad = n => String(n).padStart(2, '0');
@@ -39,11 +43,12 @@ for (const b of new Set(hooks.map(h => PAIRS[h]))) {
   console.log('body', b);
 }
 
-// 2. Hooks + 3. cut: hook, then the body from 0.5 s (its first beat lands right away).
+// 2. Hooks (reused unless FRESH=1, e.g. after editing a line) + 3. cut: hook, then the body.
 for (const h of hooks) {
-  const clip = render('hook', `h=${h}`, `-${pad(h)}`);
+  const made = resolve(OUT, `skintel-hook-${pad(h)}.mp4`);
+  const clip = existsSync(made) && !process.env.FRESH ? made : render('hook', `h=${h}`, `-${pad(h)}`);
   const final = resolve(OUT, `hook-${pad(h)}-${PAIRS[h]}.mp4`);
-  execFileSync('ffmpeg', ['-y', '-v', 'error', '-i', clip, '-ss', '0.5', '-i', bodies[PAIRS[h]],
+  execFileSync('ffmpeg', ['-y', '-v', 'error', '-i', clip, '-ss', String(START[PAIRS[h]] ?? 0.5), '-i', bodies[PAIRS[h]],
     '-filter_complex', '[0:v][1:v]concat=n=2:v=1:a=0[v]', '-map', '[v]',
     '-c:v', 'libx264', '-preset', 'slow', '-crf', '18', '-pix_fmt', 'yuv420p', '-movflags', '+faststart', final]);
   console.log('→', final);
