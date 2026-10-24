@@ -38,6 +38,7 @@ exported by `../app-store/render.py` into `assets/app-*.png`.
 | `reel-droste.html` | 15s | **Phone-in-phone loop.** The phone holds the scene holding the phone, three levels deep, then a hard cut to the scan and the Triggers result, then *Comment SKINSTEL*. |
 | `reel-fights.html` | 26s | **3 things fighting.** Numbered 1/3 → 3/3 product clashes, then the app's routine conflict check, then the keyword. |
 | `reel-cta.html` | 7s | **The sign.** Reusable end card: the keyword on a card, "you're already on your phone", the founding offer. |
+| `f-ask-when.html` · `f-ask-tag.html` · `f-ask-routine.html` · `f-scan.html` · `f-conflicts.html` · `f-triggers.html` | 16–20s | **Feature videos.** One feature each, with the app UI live (typing, taps, answers, the score ring) drawn from `app-ui.css` + `feature.js` at 390 pt inside the phone. `npm run render:features`. |
 | `overlays.html` | stills | Twelve transparent stickers for founder-shot footage (`node shoot-overlays.mjs`). |
 
 ### `projection.html` — the odd one out

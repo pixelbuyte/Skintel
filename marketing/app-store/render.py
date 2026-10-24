@@ -23,6 +23,7 @@ CROPS = [
     ("tab-today", "02-today", 2232 / 2532),
     ("tab-insights", "03-insights", 2232 / 2532),
     ("composer-ask", "01-ask", 1790 / 2532),
+    ("tab-ask", "01-ask", 2232 / 2532),
 ]
 STATUS_ROWS = 0.052  # top 5.2% of an iPhone capture holds the status bar
 # App screens without the slide frame, for the reels in marketing/video (its assets/ is gitignored).
@@ -74,6 +75,8 @@ def main() -> None:
         assert size == (1290, 2796), f"{target.name} is {size}"
         print(f"{target.relative_to(HERE)}  {size[0]}x{size[1]}")
     REEL_ASSETS.mkdir(exist_ok=True)
+    for out, _, _ in CROPS:  # the reels lay the real tab bars over their live-UI screens
+        shutil.copy(CLEAN / f"{out}.png", REEL_ASSETS / f"{out}.png")
     for name in REEL_SCREENS:
         target = REEL_ASSETS / f"app-{name}.png"
         subprocess.run([

@@ -226,6 +226,47 @@ carries it.
 
 ---
 
+## Feature videos — one feature each, ready to post
+
+Six videos that each show one feature working, start to finish. The app moves in them (typing,
+taps, the answer appearing, the score counting up), built from the real SwiftUI screens and wording.
+Every example is something the app really does. Each ends on the Comment SKINSTEL card.
+
+| File | Length | What happens |
+|---|---|---|
+| `out/skintel-f-ask-when.mp4` | 16s | Types "When should I use my retinol?" into Ask Skintel → answer names *her* retinol, its place in the night routine, 2–3 nights a week, skip the acid toner that night, SPF in the morning |
+| `out/skintel-f-ask-tag.mp4` | 18s | Taps **@**, types "gly", tags *Glycolic Exfoliating Toner* from the shelf, asks "How often should I use this?" → answer reads that product's ingredients, says 2–3 evenings a week and not on retinol nights |
+| `out/skintel-f-ask-routine.mp4` | 20s | Routine screen → "Get recommendations from Ask Skintel" → "What should my night routine include?" → a 4-step night routine built from her own shelf → Today with tonight's steps ticked off |
+| `out/skintel-f-scan.mp4` | 17s | Points the camera at a barcode → "Looking it up…" → matched, reading 21 ingredients → verdict: 86 Good match, the ring counts up, then why, ingredient by ingredient |
+| `out/skintel-f-conflicts.mp4` | 17s | Night routine of 5 products → "Check for conflicts" → 2 conflicts (retinol + glycolic acid same night, two acids in one routine), each with the fix |
+| `out/skintel-f-triggers.mp4` | 18s | One-tap skin check-in ("Breaking out", Day 5) → Triggers lines up her breakouts → Isopropyl Myristate in 3 of 3, bars grow one per breakout → "a pattern to test, not proof" |
+
+**Captions (paste with each):**
+
+- **Ask — when:** "ok I've been using my retinol completely wrong 😭 asked Skintel and it literally
+  knew it was in my night routine and told me how often. Comment SKINSTEL for the link 💌"
+- **Ask — tag:** "you can tag the actual product from your shelf and it reads THAT ingredient list.
+  game changer for 'how often do I use this??' Comment SKINSTEL 💌"
+- **Ask — routine:** "didn't know what goes where so I asked Skintel to build my night routine from
+  what I already own. no new products needed 🌙 Comment SKINSTEL for the link"
+- **Scan:** "scan the barcode on the back → it tells you if it suits YOUR skin and why. that's it.
+  that's the video. Comment SKINSTEL 💌"
+- **Conflicts:** "my retinol and my acid toner were fighting every single night and I had no idea.
+  Skintel checked my whole routine at once 😮‍💨 Comment SKINSTEL"
+- **Triggers:** "turns out ONE ingredient was in every product that broke me out. one tap a day and
+  Skintel found the pattern. Comment SKINSTEL and I'll send you the link 💌"
+
+**Posting:** slot one feature video between the format reels above, e.g. Day 4 scan, Day 7 Ask —
+when, Day 10 triggers, then one a week. They also work as Stories (cut the end card to 2s) and as
+the pinned "how it works" set on the profile.
+
+**Honesty notes built in:** Ask Skintel shows its real disclaimer ("Answers can be wrong. Skintel
+isn't a doctor."); the routine video shows Ask *suggesting* the steps and the person adding them
+(the app doesn't build the routine on its own); Triggers keeps "a pattern to test, not proof".
+Ask, the conflict check, Triggers and scanning are Skintel+ features, so don't caption them "free".
+
+---
+
 ## Posting order (first two weeks)
 
 | Day | Reel | Why |
@@ -272,6 +313,7 @@ node render.mjs reel-fights 30
 node render.mjs reel-cta 30
 node shoot-overlays.mjs                     # → out/overlays/*.png
 node render-alpha.mjs plane 1               # → out/plane-f1.mov/.webm/-preview.mp4/-print.png (also 2, 3)
+npm run render:features                     # → out/skintel-f-*.mp4 (the six feature videos)
 ```
 
 Set `CHROME_PATH` to a Chromium binary if Playwright didn't install its own. Copy lives in the
