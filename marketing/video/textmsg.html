@@ -4,51 +4,79 @@
 <meta charset="utf-8">
 <link rel="stylesheet" href="./style.css">
 <style>
-  /* Text-story format: your skin texts you (the contact is "my skin", avatar = the mascot), so it
-     reads as a bit, never as a real friend's testimonial. textmsg.html?s=conflicts|scan|triggers.
-     stock/build_skits.py joins it to the captioned app demo and adds message pops for the sound cut. */
+  /* Text-story format: an iMessage thread drawn to iOS 17/18 proportions (1 pt = 2.77 px, so the
+     screen is a real 390 pt-wide iPhone cropped to 9:16 like a screen recording). textmsg.html?s=<story>.
+     The contact is your skin (mascot photo), or a skit character: mom, a best friend, a class group
+     chat. stock/build_skits.py joins it to the captioned app demo and adds the sound effects. */
   @font-face { font-family: "TikTok Sans"; font-weight: 800; src: url("./fonts/TikTokSans-800.ttf"); }
-  #stage { background: #fff !important; }
+  #stage { background: #fff !important; font-family: Inter, -apple-system, 'DM Sans', sans-serif; letter-spacing: -.01em; }
   #grain, #vignette { display: none; }
-  .status { position: absolute; left: 0; right: 0; top: 0; height: 130px; display: flex; align-items: center; justify-content: space-between;
-            padding: 30px 74px 0; font-size: 44px; font-weight: 700; }
-  .status .r { display: flex; gap: 14px; align-items: center; }
-  .status .bat { width: 70px; height: 32px; border: 3px solid #000; border-radius: 10px; position: relative; padding: 3px; }
-  .status .bat i { display: block; height: 100%; width: 78%; background: #000; border-radius: 5px; }
-  .nav { position: absolute; left: 0; right: 0; top: 130px; height: 300px; text-align: center; background: rgba(247,247,247,.96);
-         border-bottom: 2px solid #E3E3E6; }
-  .nav .back { position: absolute; left: 40px; top: 70px; font-size: 90px; color: #0A84FF; font-weight: 300; line-height: 1; }
-  .nav .av { width: 150px; height: 150px; border-radius: 50%; margin: 40px auto 0; background: #F4EDE0; overflow: hidden; position: relative; }
+  /* Status bar, 54 pt. */
+  .status { position: absolute; left: 0; right: 0; top: 0; height: 150px; display: flex; align-items: center; justify-content: space-between;
+            padding: 22px 88px 0 100px; font-size: 47px; font-weight: 600; z-index: 6; }
+  .status svg { display: block; }
+  /* Frosted header: back chevron with unread count, avatar, name with chevron, FaceTime button. */
+  .nav { position: absolute; left: 0; right: 0; top: 0; height: 420px; background: rgba(246,246,246,.94); border-bottom: 1.5px solid #D8D8DC; z-index: 5; }
+  .nav .back { position: absolute; left: 30px; top: 196px; display: flex; align-items: center; gap: 6px; color: #007AFF; }
+  .nav .back svg { width: 34px; height: 58px; }
+  .nav .back span { background: #007AFF; color: #fff; font-size: 34px; font-weight: 600; border-radius: 30px; padding: 2px 18px; }
+  .nav .ft { position: absolute; right: 44px; top: 210px; width: 78px; height: 50px; }
+  .nav .av { width: 150px; height: 150px; border-radius: 50%; margin: 160px auto 0; background: #F4EDE0; overflow: hidden; position: relative; }
   .nav .av img { position: absolute; left: -12%; top: 4%; width: 124%; }
-  .nav .nm { font-size: 36px; margin-top: 14px; color: #000; }
-  .nav .av.ini { background: linear-gradient(180deg, #A9AFBB, #858B97); color: #fff; font-size: 70px; font-weight: 500; line-height: 150px; }
-  .nav .av.emo { background: #E9E9EB; font-size: 84px; line-height: 150px; }
-  .who { font-size: 30px; color: #8E8E93; margin: 18px 0 0 34px; }
-  .nav .nm b { color: #8E8E93; font-weight: 400; }
-  #feed { position: absolute; left: 0; right: 0; top: 440px; bottom: 510px; overflow: hidden; }
-  #list { position: absolute; left: 0; right: 0; top: 0; padding: 30px 40px; }
-  .m { display: flex; margin: 10px 0; }
-  .m.me { justify-content: flex-end; }
-  .b { max-width: 840px; padding: 24px 40px 26px; border-radius: 50px; font-size: 56px; line-height: 1.2; transform-origin: 0 100%; }
-  .them .b { background: #E9E9EB; color: #000; border-bottom-left-radius: 14px; }
-  .me .b { background: #0A84FF; color: #fff; border-bottom-right-radius: 14px; transform-origin: 100% 100%; }
-  .typing .b { display: flex; gap: 12px; padding: 30px 36px; }
+  .nav .av.ini { background: linear-gradient(180deg, #A5ABB6, #868C97); color: #fff; font-size: 70px; font-weight: 500; line-height: 150px; text-align: center; }
+  .nav .av.emo { background: linear-gradient(180deg, #E4E4E8, #D4D4D9); font-size: 82px; line-height: 150px; text-align: center; }
+  .nav .nm { text-align: center; font-size: 31px; margin-top: 12px; color: #000; }
+  .nav .nm b { color: #A1A1A6; font-weight: 500; }
+  #feed { position: absolute; left: 0; right: 0; top: 420px; bottom: 500px; overflow: hidden; }
+  #list { position: absolute; left: 0; right: 0; top: 0; padding: 26px 44px 20px; }
+  .stamp { text-align: center; font-size: 30px; color: #8E8E93; margin: 4px 0 26px; line-height: 1.35; }
+  .stamp b { font-weight: 600; }
+  /* Bubbles: 17 pt text, 18 pt radius, tail on the last of a run. */
+  .m { display: flex; margin-top: 6px; position: relative; }
+  .m.gap { margin-top: 26px; }
+  .me { justify-content: flex-end; }
+  .b { max-width: 750px; padding: 18px 34px 20px; border-radius: 50px; font-size: 47px; line-height: 1.3; position: relative; transform-origin: 0 100%; }
+  .them .b { background: #E9E9EB; color: #000; }
+  .me .b { background: linear-gradient(180deg, #2E9BFF, #0A7CFF); color: #fff; transform-origin: 100% 100%; }
+  .tail.them .b::before { content: ''; position: absolute; left: -14px; bottom: 0; width: 44px; height: 44px; background: #E9E9EB; border-bottom-right-radius: 32px 28px; }
+  .tail.them .b::after { content: ''; position: absolute; left: -30px; bottom: 0; width: 30px; height: 46px; background: #fff; border-bottom-right-radius: 22px; }
+  .tail.me .b::before { content: ''; position: absolute; right: -14px; bottom: 0; width: 44px; height: 44px; background: #0A7CFF; border-bottom-left-radius: 32px 28px; }
+  .tail.me .b::after { content: ''; position: absolute; right: -30px; bottom: 0; width: 30px; height: 46px; background: #fff; border-bottom-left-radius: 22px; }
+  .b span { position: relative; z-index: 1; }
+  .typing .b { display: flex; gap: 12px; padding: 30px 34px; }
   .typing i { width: 20px; height: 20px; border-radius: 50%; background: #8E8E93; display: block; }
-  .read { text-align: right; font-size: 30px; color: #8E8E93; margin: -2px 16px 8px; }
-  .input { position: absolute; left: 40px; right: 40px; bottom: 120px; height: 100px; border: 3px solid #D1D1D6; border-radius: 50px;
-           font-size: 40px; color: #B0B0B5; padding: 24px 40px; }
-  /* Hook line in TikTok's own caption style, on screen from frame one. */
-  #hook { position: absolute; left: 50px; right: 50px; top: 1430px; text-align: center; font-family: "TikTok Sans", sans-serif;
+  .who { font-size: 30px; color: #8E8E93; margin: 26px 0 4px 34px; }
+  .read { text-align: right; font-size: 30px; color: #8E8E93; margin: 8px 6px 0; font-weight: 500; }
+  /* Input bar and home indicator. */
+  .bar { position: absolute; left: 0; right: 0; bottom: 0; height: 250px; background: #fff; z-index: 5; }
+  .bar .plus { position: absolute; left: 40px; top: 30px; width: 100px; height: 100px; border-radius: 50%; background: #EDEDF0; color: #7C7C80;
+               font-size: 76px; line-height: 92px; text-align: center; font-weight: 300; }
+  .bar .field { position: absolute; left: 166px; right: 40px; top: 30px; height: 100px; border: 2.5px solid #D6D6DA; border-radius: 52px;
+                font-size: 45px; color: #B4B4B8; padding: 22px 38px; }
+  .bar .field svg { position: absolute; right: 30px; top: 24px; width: 34px; height: 52px; }
+  .bar .home { position: absolute; left: 50%; bottom: 26px; width: 372px; height: 14px; margin-left: -186px; border-radius: 7px; background: #000; }
+  /* Hook line in TikTok's caption style, on screen from frame one, clear of the chat. */
+  #hook { position: absolute; left: 50px; right: 50px; top: 1440px; text-align: center; font-family: "TikTok Sans", sans-serif; letter-spacing: 0;
           font-weight: 800; font-size: 70px; line-height: 1.1; color: #fff; z-index: 20;
           text-shadow: -4px -4px 0 #000, 4px -4px 0 #000, -4px 4px 0 #000, 4px 4px 0 #000, 0 5px 0 #000, 0 0 20px rgba(0,0,0,.4); }
 </style>
 </head>
 <body>
 <div id="stage">
-  <div class="status"><span>9:41</span><span class="r"><span>5G</span><span class="bat"><i></i></span></span></div>
-  <div class="nav"><div class="back">&#8249;</div><div class="av" id="avbox"><img id="av"></div><div class="nm"><span id="name"></span> <b>&#8250;</b></div></div>
+  <div class="status"><span>9:41</span>
+    <svg width="210" height="40" viewBox="0 0 210 40"><g fill="#000">
+      <rect x="0" y="26" width="10" height="12" rx="2.5"/><rect x="15" y="19" width="10" height="19" rx="2.5"/><rect x="30" y="11" width="10" height="27" rx="2.5"/><rect x="45" y="3" width="10" height="35" rx="2.5"/>
+      <path d="M92 13a27 27 0 0 1 37 0l-4 4a21 21 0 0 0-29 0z M98 20a18 18 0 0 1 25 0l-4 4a12 12 0 0 0-17 0z M104 27a9 9 0 0 1 13 0l-6.5 7z"/>
+      <rect x="146" y="5" width="56" height="30" rx="9" fill="none" stroke="#000" stroke-opacity=".4" stroke-width="3"/><rect x="150.5" y="9.5" width="40" height="21" rx="5"/><rect x="204.5" y="14" width="4" height="12" rx="2" fill-opacity=".45"/></g></svg>
+  </div>
+  <div class="nav">
+    <div class="back"><svg viewBox="0 0 34 58"><path d="M28 4 6 29l22 25" fill="none" stroke="#007AFF" stroke-width="7" stroke-linecap="round" stroke-linejoin="round"/></svg><span>12</span></div>
+    <svg class="ft" viewBox="0 0 78 50"><rect x="3" y="7" width="48" height="36" rx="9" fill="none" stroke="#007AFF" stroke-width="5"/><path d="M55 20l18-11v32L55 30z" fill="none" stroke="#007AFF" stroke-width="5" stroke-linejoin="round"/></svg>
+    <div class="av" id="avbox"><img id="av"></div>
+    <div class="nm"><span id="name"></span> <b>&#8250;</b></div>
+  </div>
   <div id="feed"><div id="list"></div></div>
-  <div class="input">iMessage</div>
+  <div class="bar"><div class="plus">+</div><div class="field">iMessage<svg viewBox="0 0 34 52"><rect x="9" y="2" width="16" height="30" rx="8" fill="#B4B4B8"/><path d="M3 24a14 14 0 0 0 28 0M17 38v12" fill="none" stroke="#B4B4B8" stroke-width="4" stroke-linecap="round"/></svg></div><div class="home"></div></div>
   <div id="hook"></div>
 </div>
 <script src="./engine.js"></script>
@@ -57,7 +85,7 @@ const E = window.__E, $ = id => document.getElementById(id);
 const MASCOT = '../../ios/Skintel/Skintel/Resources/Assets.xcassets/DropWarning.imageset/DropWarning.png';
 // contact: who you're texting (default: your skin, with the mascot as its photo). msgs: [who, text];
 // who is 'me', 'them', or a member's key in a group chat. Same claims as the app: conflicts, scans,
-// a pattern in check-ins. The human chats are skits (dad, a best friend, a class group chat).
+// a pattern in check-ins. The human chats are skits (mom, a best friend, a class group chat).
 const STORIES = {
   conflicts: { hook: 'POV: your skin finally texts you', msgs: [
     ['them', 'we need to talk'],
@@ -82,13 +110,13 @@ const STORIES = {
     ['me', 'WHICH ONE'],
     ['them', 'log me for a week. Skintel lines it up.'],
   ]},
-  dad: { hook: 'my dad discovering skincare at 52 😭', contact: { name: 'Dad', initials: 'D' }, msgs: [
-    ['them', 'what’s a retinol'],
-    ['them', 'your mom said not to use it with my acne pads'],
-    ['me', 'DAD she’s right'],
+  mom: { hook: 'my mom discovering skincare at 52 😭', contact: { name: 'Mom ❤️', initials: 'M' }, msgs: [
+    ['them', 'is it bad to use retinol and my peel pads the same night'],
+    ['them', 'asking for a friend 🙂'],
+    ['me', 'MOM yes'],
     ['them', 'why do bottles fight'],
     ['me', 'put your stuff in Skintel, it checks'],
-    ['them', 'it found 2 conflicts. i’m writing this down'],
+    ['them', 'it found 2 conflicts. screenshotting this for my book club'],
   ]},
   bestie: { hook: 'my best friend before every shopping trip', contact: { name: 'bestie 💅', initials: 'A' }, msgs: [
     ['them', 'shopping at 4?'],
@@ -115,24 +143,30 @@ $('name').textContent = C.name;
 if (C.mascot) $('av').src = MASCOT;
 else { $('avbox').className = 'av ' + (C.emoji ? 'emo' : 'ini'); $('avbox').textContent = C.emoji || C.initials; }
 const side = w => w === 'me' ? 'me' : 'them';
-// Timeline: the skin "types" for 0.55 s before each of its messages; every message lands 1.25 s apart.
-// A message from you is on screen at frame one; the skin's first one waits for its typing dots.
-const STEP = 1.25, TYPE = 0.55, FIRST = S.msgs[0][0] === 'me' ? 0 : 0.5;
-// Group chats label a run of messages with the sender's name, as iMessage does.
+// Timeline: every message lands 1.25 s apart. The other side shows typing dots for 0.55 s first;
+// you "type" for 0.8 s (keyboard ticks in the sound cut). Your first message is there at frame one.
+const STEP = 1.25, TYPE = 0.55, KEYS = 0.8, FIRST = S.msgs[0][0] === 'me' ? 0 : 0.5;
 const times = S.msgs.map((m, i) => FIRST + i * STEP);
 const DURATION = times[times.length - 1] + 1.1;
-window.__cues = S.msgs.map(([w], i) => [times[i], side(w)]);   // render.mjs saves these; build_skits.py puts a pop on each
-$('list').innerHTML = S.msgs.map(([w, t], i) =>
-  (C.group && w !== 'me' && (i === 0 || S.msgs[i - 1][0] !== w) ? `<div class="who" id="w${i}">${C.group[w]}</div>` : '') +
-  `<div class="m ${side(w)}" id="m${i}"><div class="b">${t}</div></div>` +
-  (w !== 'me' ? `<div class="m them typing" id="t${i}"><div class="b"><i></i><i></i><i></i></div></div>` : '')).join('') +
-  `<div class="read" id="read">Read 9:41 PM</div>`;
+// Cues for build_skits.py: a send / receive sound per message, keyboard ticks before yours.
+window.__cues = S.msgs.flatMap(([w], i) => w === 'me'
+  ? (times[i] > 0 ? [[Math.max(0, times[i] - KEYS), 'keys'], [times[i], 'send']] : [[times[i], 'send']])
+  : [[times[i], 'recv']]);
+// A run of messages from one sender sits tight; the last one gets the tail. Group chats name the sender.
+const html = S.msgs.map(([w, t], i) => {
+  const prev = S.msgs[i - 1], next = S.msgs[i + 1];
+  const newRun = !prev || prev[0] !== w, endRun = !next || next[0] !== w;
+  return (C.group && w !== 'me' && newRun ? `<div class="who" id="w${i}">${C.group[w]}</div>` : '') +
+    (w !== 'me' ? `<div class="m them tail typing ${newRun && !C.group && i ? 'gap' : ''}" id="t${i}"><div class="b"><i></i><i></i><i></i></div></div>` : '') +
+    `<div class="m ${side(w)} ${endRun ? 'tail' : ''} ${newRun && !(C.group && w !== 'me') && i ? 'gap' : ''}" id="m${i}"><div class="b"><span>${t}</span></div></div>`;
+}).join('');
+$('list').innerHTML = `<div class="stamp">iMessage<br><b>Today</b> 9:41 PM</div>` + html + `<div class="read" id="read">Delivered</div>`;
 
 function render(t) {
   S.msgs.forEach(([w], i) => {
     const at = times[i], el = $('m' + i);
     el.style.display = t >= at ? 'flex' : 'none';
-    if ($('w' + i)) $('w' + i).style.display = t >= at ? 'block' : 'none';
+    if ($('w' + i)) $('w' + i).style.display = t >= at - (w !== 'me' ? TYPE : 0) ? 'block' : 'none';
     const p = E.easeEmil(E.seg(t, at, at + 0.22));
     el.querySelector('.b').style.transform = `scale(${E.lerp(0.85, 1, p)})`;
     el.style.opacity = p;
