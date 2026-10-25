@@ -1,6 +1,6 @@
 import { chromium } from 'playwright';
 import { execFileSync } from 'node:child_process';
-import { mkdirSync, rmSync, existsSync } from 'node:fs';
+import { mkdirSync, rmSync, existsSync, writeFileSync } from 'node:fs';
 import { resolve, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -45,6 +45,9 @@ await page.evaluate(() => document.fonts.ready);
 await page.waitForTimeout(400); // let images decode
 
 const baseDuration = await page.evaluate(() => window.__duration);
+// A page can publish timed cues (window.__cues, e.g. when each text message lands) for sound effects.
+const cues = await page.evaluate(() => window.__cues || null);
+if (cues) writeFileSync(resolve(outDir, `skintel-${NAME}${SUFFIX}.cues.json`), JSON.stringify(cues));
 const duration = baseDuration * SCALE;
 const total = Math.round(duration * FPS);
 console.log(

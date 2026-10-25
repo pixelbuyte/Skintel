@@ -1,0 +1,121 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<link rel="stylesheet" href="./style.css">
+<style>
+  /* Text-story format: your skin texts you (the contact is "my skin", avatar = the mascot), so it
+     reads as a bit, never as a real friend's testimonial. textmsg.html?s=conflicts|scan|triggers.
+     stock/build_skits.py joins it to the captioned app demo and adds message pops for the sound cut. */
+  @font-face { font-family: "TikTok Sans"; font-weight: 800; src: url("./fonts/TikTokSans-800.ttf"); }
+  #stage { background: #fff !important; }
+  #grain, #vignette { display: none; }
+  .status { position: absolute; left: 0; right: 0; top: 0; height: 130px; display: flex; align-items: center; justify-content: space-between;
+            padding: 30px 74px 0; font-size: 44px; font-weight: 700; }
+  .status .r { display: flex; gap: 14px; align-items: center; }
+  .status .bat { width: 70px; height: 32px; border: 3px solid #000; border-radius: 10px; position: relative; padding: 3px; }
+  .status .bat i { display: block; height: 100%; width: 78%; background: #000; border-radius: 5px; }
+  .nav { position: absolute; left: 0; right: 0; top: 130px; height: 300px; text-align: center; background: rgba(247,247,247,.96);
+         border-bottom: 2px solid #E3E3E6; }
+  .nav .back { position: absolute; left: 40px; top: 70px; font-size: 90px; color: #0A84FF; font-weight: 300; line-height: 1; }
+  .nav .av { width: 150px; height: 150px; border-radius: 50%; margin: 40px auto 0; background: #F4EDE0; overflow: hidden; position: relative; }
+  .nav .av img { position: absolute; left: -12%; top: 4%; width: 124%; }
+  .nav .nm { font-size: 36px; margin-top: 14px; color: #000; }
+  .nav .nm b { color: #8E8E93; font-weight: 400; }
+  #feed { position: absolute; left: 0; right: 0; top: 440px; bottom: 510px; overflow: hidden; }
+  #list { position: absolute; left: 0; right: 0; top: 0; padding: 30px 40px; }
+  .m { display: flex; margin: 10px 0; }
+  .m.me { justify-content: flex-end; }
+  .b { max-width: 840px; padding: 24px 40px 26px; border-radius: 50px; font-size: 56px; line-height: 1.2; transform-origin: 0 100%; }
+  .them .b { background: #E9E9EB; color: #000; border-bottom-left-radius: 14px; }
+  .me .b { background: #0A84FF; color: #fff; border-bottom-right-radius: 14px; transform-origin: 100% 100%; }
+  .typing .b { display: flex; gap: 12px; padding: 30px 36px; }
+  .typing i { width: 20px; height: 20px; border-radius: 50%; background: #8E8E93; display: block; }
+  .read { text-align: right; font-size: 30px; color: #8E8E93; margin: -2px 16px 8px; }
+  .input { position: absolute; left: 40px; right: 40px; bottom: 120px; height: 100px; border: 3px solid #D1D1D6; border-radius: 50px;
+           font-size: 40px; color: #B0B0B5; padding: 24px 40px; }
+  /* Hook line in TikTok's own caption style, on screen from frame one. */
+  #hook { position: absolute; left: 50px; right: 50px; top: 1430px; text-align: center; font-family: "TikTok Sans", sans-serif;
+          font-weight: 800; font-size: 70px; line-height: 1.1; color: #fff; z-index: 20;
+          text-shadow: -4px -4px 0 #000, 4px -4px 0 #000, -4px 4px 0 #000, 4px 4px 0 #000, 0 5px 0 #000, 0 0 20px rgba(0,0,0,.4); }
+</style>
+</head>
+<body>
+<div id="stage">
+  <div class="status"><span>9:41</span><span class="r"><span>5G</span><span class="bat"><i></i></span></span></div>
+  <div class="nav"><div class="back">&#8249;</div><div class="av"><img id="av"></div><div class="nm">my skin 🫠 <b>&#8250;</b></div></div>
+  <div id="feed"><div id="list"></div></div>
+  <div class="input">iMessage</div>
+  <div id="hook"></div>
+</div>
+<script src="./engine.js"></script>
+<script>
+const E = window.__E, $ = id => document.getElementById(id);
+$('av').src = '../../ios/Skintel/Skintel/Resources/Assets.xcassets/DropWarning.imageset/DropWarning.png';
+// [who, text]: 'them' is the skin. Same claims as the app: conflicts, scans, a pattern in check-ins.
+const STORIES = {
+  conflicts: { hook: 'POV: your skin finally texts you', msgs: [
+    ['them', 'we need to talk'],
+    ['them', 'retinol AND an acid toner. same night. AGAIN??'],
+    ['me', 'it’s called self care 💅'],
+    ['them', 'it’s called stinging for 2 days 🙂'],
+    ['me', 'ok how was i supposed to know'],
+    ['them', 'Skintel checks your whole routine. one tap.'],
+  ]},
+  scan: { hook: 'my skin texting me before i buy ANYTHING', msgs: [
+    ['me', 'found the cutest moisturizer 😍 buying it'],
+    ['them', 'scan it first'],
+    ['me', 'it’s $38 and the bottle is SO cute'],
+    ['them', 'the last cute bottle gave me bumps for 3 weeks'],
+    ['them', 'scan. it. first.'],
+    ['me', 'fine 🙄'],
+  ]},
+  triggers: { hook: 'when your skin knows what’s breaking you out and you don’t', msgs: [
+    ['them', 'that’s the 4th breakout this month btw'],
+    ['me', 'it’s probably hormones'],
+    ['them', 'it’s the same ingredient. every. time.'],
+    ['me', 'WHICH ONE'],
+    ['them', 'log me for a week. Skintel lines it up.'],
+  ]},
+};
+const q = new URLSearchParams(location.search);
+const S = STORIES[q.get('s')] || STORIES.conflicts;
+$('hook').textContent = S.hook;
+// Timeline: the skin "types" for 0.55 s before each of its messages; every message lands 1.25 s apart.
+// A message from you is on screen at frame one; the skin's first one waits for its typing dots.
+const STEP = 1.25, TYPE = 0.55, FIRST = S.msgs[0][0] === 'me' ? 0 : 0.5;
+const times = S.msgs.map((m, i) => FIRST + i * STEP);
+const DURATION = times[times.length - 1] + 1.1;
+window.__cues = S.msgs.map(([w], i) => [times[i], w]);   // render.mjs saves these; build_skits.py puts a pop on each
+$('list').innerHTML = S.msgs.map(([w, t], i) =>
+  `<div class="m ${w}" id="m${i}"><div class="b">${t}</div></div>` +
+  (w === 'them' ? `<div class="m them typing" id="t${i}"><div class="b"><i></i><i></i><i></i></div></div>` : '')).join('') +
+  `<div class="read" id="read">Read 9:41 PM</div>`;
+
+function render(t) {
+  S.msgs.forEach(([w], i) => {
+    const at = times[i], el = $('m' + i);
+    el.style.display = t >= at ? 'flex' : 'none';
+    const p = E.easeEmil(E.seg(t, at, at + 0.22));
+    el.querySelector('.b').style.transform = `scale(${E.lerp(0.85, 1, p)})`;
+    el.style.opacity = p;
+    const ty = $('t' + i);
+    if (ty) {
+      const on = t >= at - TYPE && t < at;
+      ty.style.display = on ? 'flex' : 'none';
+      ty.querySelectorAll('i').forEach((d, k) => { d.style.opacity = 0.35 + 0.65 * Math.max(0, Math.sin((t * 7) - k * 0.9)); });
+    }
+  });
+  const last = S.msgs[S.msgs.length - 1][0];
+  $('read').style.display = last === 'me' && t >= times[times.length - 1] + 0.5 ? 'block' : 'none';
+  // Keep the newest message in view, as the phone would.
+  const list = $('list'), feed = $('feed');
+  const over = Math.max(0, list.scrollHeight - feed.clientHeight);
+  list.style.transform = `translateY(${-over}px)`;
+}
+window.__seek = t => { render(t); return true; };
+window.__duration = DURATION;
+render(q.get('still') ? DURATION : 0);
+</script>
+</body>
+</html>

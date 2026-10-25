@@ -30,6 +30,8 @@ python3 ../app-store/render.py      # exports app screens + real tab-bar crops i
 | real-looking UGC (real hand holding the phone, real B-roll) | `stock/build_stock.py` (see `stock/README.md`) |
 | a skit / talking character, "POV: your skin can talk" | `stock/build_talk.py` + `talk.html` (Kling clip of the mascot on Higgsfield) |
 | the mascot talking the whole video, POV reaction cuts, voice + silent versions | `stock/build_narrated.py` + `narr.html` (blue-screen Kling narrator, keyed) |
+| text-message story ("my skin" texts you), high school vs college glow-up | `stock/build_skits.py` + `textmsg.html` / `glowup.html` (pages publish `window.__cues`; render.mjs saves them for sound effects) |
+| a real person's reaction selfie → finished ad | `stock/build_selfie.py CLIP --hook N --demo X` |
 | stickers for the founder's own footage | `overlays.html` → `shoot-overlays.mjs`; paper plane: `plane.html` → `render-alpha.mjs` |
 
 ### Reaction-hook videos
@@ -85,6 +87,8 @@ hook body via `?mode=body`, and as a bare screen for compositing via `?mode=scre
 
 ## Rules that keep this honest (and why)
 
+- **No fake glow-ups.** Before/after photos only of a real person, their own, with their consent, and only
+  when the change really came from what Skintel showed them. Otherwise use the mascot's camera roll.
 - **No fake people.** Reference formats (Fastlane, AI UGC tools) use AI actors posing as customers.
   That's a fabricated testimonial — the FTC's fake-review rule and Meta/TikTok ad policies cover it,
   and it's off-brand for "calm, honest". The face is the teardrop mascot, or the founder / a real user

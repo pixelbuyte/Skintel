@@ -97,6 +97,31 @@ keyword. Each demo comes in four cuts:
 POV lines: "POV: you check if your skincare is fighting", "POV: you scan it before you buy it",
 "POV: you find out what's actually breaking you out".
 
+## Glow-ups, text stories and real faces (second scrape, Oct 2026)
+
+A small follow-up scrape (60 TikToks, $0.30): "skincare glow up high school vs college", "acne glow up
+pov", "acne before and after pov", "skincare text message story". Top 33 in
+[`hook-research/tiktok-formats.csv`](hook-research/tiktok-formats.csv).
+
+- **Glow-ups are short and huge:** 5–18 s. "Skin glow up of the century?" 4M, "POV: You finally beat
+  acne ✨" 1.5M, a 5-second #glowup #relatable 1.3M with a 1.9% share rate. The on-screen lines repeat:
+  "it's so over" → "we're so back", "I was so shy to the camera until…", "I wish I didn't have the acne".
+- **Every one of them is a real person's own photos.** That's the whole format, and why we don't fake
+  it: invented before/after photos attributed to an app are a deceptive efficacy claim, and AI faces
+  presented as customers are fake testimonials. Skintel also doesn't treat acne; it finds patterns.
+- **Text stories run as series** ("PART 2", "texting series"), often long; they earn follows more than reach.
+- **The Fastlane reference** (the woman: "3 years in the gym and NOW I find this??") is an AI actor. Our
+  version is the same edit with a real face (`stock/build_selfie.py`).
+
+### What we made from it
+
+| File | What |
+|---|---|
+| `text-<story>.mp4` / `-silent` | **Your skin texts you** (`textmsg.html`): an iMessage-style chat with "my skin 🫠" (mascot avatar), then the captioned app demo. Sound cut = synthesized message pops only. Stories: conflicts ("retinol AND an acid toner. same night. AGAIN??"), scan ("scan it first"), triggers ("it's the same ingredient. every. time."). Post them as a series. |
+| `glowup.mp4` / `-silent` | **POV: your skin in high school vs college** (`glowup.html`): the mascot's camera roll, flash photos with breakouts and a 12-product shelf ("it's so over"), then golden light, 4 products ("we're so back", "turns out my bad days had one ingredient in common"), then Triggers. Sound cut = shutter clicks and a chime. |
+| `glowup.html?real=<dir>` | The same edit with **your own** photos (`hs-1.jpg`…`college-3.jpg`). Only genuine photos of you, and only if the change really came from what Skintel showed you. |
+| `selfie-NN-<demo>.mp4` | **A real reaction:** `python3 stock/build_selfie.py MY_CLIP.mov --hook 1 --demo triggers` crops your 2-second reaction to 9:16, adds hook line N, then the real-hands demo and the end card. |
+
 ## The one change we make: no fake faces
 
 Fastlane's hooks use **AI actors** presented as real users ("3 years in the gym and NOW I find

@@ -1,0 +1,119 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<link rel="stylesheet" href="./style.css">
+<style>
+  /* "POV: your skin in high school vs college" glow-up, as the mascot's camera roll: flash photos
+     with breakouts and a 12-product shelf ("it's so over"), then warm light, 4 products, glowing
+     ("we're so back"), then the app that lined up the bad days (stock/build_skits.py adds the demo).
+     glowup.html?real=<dir> swaps in the founder's own photos (dir/hs-1.jpg … dir/college-3.jpg):
+     only genuine photos of yourself, and only if the change really came from what Skintel showed you. */
+  @font-face { font-family: "TikTok Sans"; font-weight: 700; src: url("./fonts/TikTokSans-700.ttf"); }
+  @font-face { font-family: "TikTok Sans"; font-weight: 800; src: url("./fonts/TikTokSans-800.ttf"); }
+  #stage { background: #1C1815 !important; }
+  #vignette { display: none; }
+  .ph { position: absolute; inset: 0; overflow: hidden; display: none; }
+  .ph .art { position: absolute; left: 50%; top: 52%; width: 860px; height: 860px; margin: -430px 0 0 -430px; }
+  .ph .art img { width: 100%; height: 100%; object-fit: contain; }
+  .ph .real { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; display: none; }
+  /* High school: harsh on-camera flash, cold room, date stamp. */
+  .hs { background: radial-gradient(70% 45% at 50% 48%, #6E625B 0%, #3A322D 55%, #1E1916 100%); }
+  .hs .art { filter: contrast(1.12) saturate(.82) brightness(1.06); }
+  .hs::after { content: ''; position: absolute; inset: 0; background: radial-gradient(42% 30% at 50% 46%, rgba(255,255,255,.22), transparent 70%); }
+  .dot { position: absolute; width: 40px; height: 40px; margin: -20px 0 0 -20px; border-radius: 50%;
+         background: radial-gradient(circle at 40% 38%, #F2B3A6 0 18%, #D9584A 40%, #A9372C 75%, rgba(169,55,44,0) 100%); }
+  /* College: warm golden-hour light, glow and sparkles. */
+  .co { background: radial-gradient(75% 50% at 50% 42%, #FFE7C9 0%, #F2C9A0 45%, #C98F6A 100%); }
+  .co .art { filter: saturate(1.08) brightness(1.04) drop-shadow(0 0 60px rgba(255,236,200,.85)); }
+  .sp { position: absolute; width: 70px; height: 70px; margin: -35px 0 0 -35px; background: #FFF8EC;
+        clip-path: polygon(50% 0, 60% 40%, 100% 50%, 60% 60%, 50% 100%, 40% 60%, 0 50%, 40% 40%); }
+  .stamp { position: absolute; right: 70px; top: 1260px; font-family: 'JetBrains Mono', monospace; font-size: 44px; font-weight: 700;
+           color: #F0663F; letter-spacing: .08em; text-shadow: 0 0 10px rgba(240,102,63,.6); }
+  /* Product shelves (generic product art, no brands). */
+  .shelf { position: absolute; left: 90px; right: 90px; top: 520px; display: grid; gap: 26px 20px; justify-items: center; }
+  .shelf img { width: 190px; height: 230px; object-fit: contain; }
+  .shelf.many { grid-template-columns: repeat(4, 1fr); }
+  .shelf.few { grid-template-columns: repeat(2, 1fr); top: 600px; gap: 60px; }
+  .shelf.few img { width: 300px; height: 360px; }
+  .shelf .board { grid-column: 1 / -1; width: 100%; height: 22px; border-radius: 6px; background: rgba(255,255,255,.18); }
+  .t { position: absolute; left: 60px; right: 60px; text-align: center; font-family: "TikTok Sans", sans-serif; color: #fff; z-index: 30; }
+  #hook { top: 150px; font-weight: 700; font-size: 66px; line-height: 1.12;
+          text-shadow: 0 0 2px rgba(0,0,0,.9), 0 2px 4px rgba(0,0,0,.75), 0 0 18px rgba(0,0,0,.35); }
+  #era { top: 330px; font-weight: 800; font-size: 96px; line-height: 1;
+         text-shadow: -5px -5px 0 #000, 5px -5px 0 #000, -5px 5px 0 #000, 5px 5px 0 #000, 0 6px 0 #000; }
+  #cap { top: 1360px; font-weight: 800; font-size: 72px; line-height: 1.1;
+         text-shadow: -4px -4px 0 #000, 4px -4px 0 #000, -4px 4px 0 #000, 4px 4px 0 #000, 0 5px 0 #000, 0 0 20px rgba(0,0,0,.4); }
+  #flash { position: absolute; inset: 0; background: #fff; opacity: 0; z-index: 40; }
+  #grain { z-index: 35; }
+</style>
+</head>
+<body>
+<div id="stage">
+  <div id="photos"></div>
+  <div class="t" id="hook">POV: your skin in high school vs college</div>
+  <div class="t" id="era"></div>
+  <div class="t" id="cap"></div>
+  <div id="flash"></div>
+  <div id="grain"></div>
+</div>
+<script src="./engine.js"></script>
+<script>
+const E = window.__E, $ = id => document.getElementById(id);
+const ART = n => `../../ios/Skintel/Skintel/Resources/Assets.xcassets/${n}.imageset/${n}.png`;
+const q = new URLSearchParams(location.search);
+const REAL = q.get('real');
+const DOTS = [[.30, .42], [.66, .38], [.40, .60], [.70, .58], [.55, .30], [.27, .55], [.60, .50]];
+const SPARKS = [[.18, .30, 1], [.82, .26, .7], [.86, .62, .9], [.14, .66, .6], [.70, .14, .5]];
+// [start, era, caption, kind, art]. Captions are the mascot's story; the app itself says
+// "a pattern to test, not proof" in the demo that follows.
+const SHOTS = [
+  [0.0, 'high school 📚', 'it’s so over', 'hs', 'DropWarning'],
+  [1.0, 'high school 📚', '12 products. zero clue what was breaking me out', 'hs-shelf', null],
+  [2.2, 'high school 📚', 'every week a new breakout', 'hs', 'DropCompare'],
+  [3.2, 'college 🎓', 'we’re so back', 'co', 'DropRoutineDone'],
+  [4.2, 'college 🎓', '4 products. that’s it.', 'co-shelf', null],
+  [5.3, 'college 🎓', 'turns out my bad days had one ingredient in common', 'co', 'DropInsights'],
+];
+const DURATION = 6.6;
+window.__cues = SHOTS.map(s => [s[0], s[3].startsWith('hs') ? 'click' : 'sparkle']);   // sound cut: shutter / chime
+const MANY = ['ProductPump', 'ProductTube', 'ProductDropper', 'ProductTubeBack'];
+let hsN = 0, coN = 0;
+$('photos').innerHTML = SHOTS.map(([, , , kind, art], i) => {
+  const hs = kind.startsWith('hs'), real = REAL ? `${REAL}/${hs ? 'hs' : 'college'}-${hs ? ++hsN : ++coN}.jpg` : '';
+  let inner = '';
+  if (kind === 'hs-shelf') inner = `<div class="shelf many">${Array.from({ length: 12 }, (_, k) => `<img src="${ART(MANY[k % 4])}">`).join('')}<div class="board"></div></div>`;
+  else if (kind === 'co-shelf') inner = `<div class="shelf few">${MANY.map(n => `<img src="${ART(n)}">`).join('')}</div>`;
+  else inner = `<div class="art"><img src="${ART(art)}">` +
+    (hs ? DOTS.map(([x, y]) => `<i class="dot" style="left:${x * 100}%;top:${y * 100}%"></i>`).join('')
+        : SPARKS.map(([x, y, s]) => `<i class="sp" style="left:${x * 100}%;top:${y * 100}%;transform:scale(${s})"></i>`).join('')) + `</div>`;
+  const stamp = `<div class="stamp">${hs ? '09 14 ’21' : '04 02 ’25'}</div>`;
+  return `<div class="ph ${hs ? 'hs' : 'co'}" id="p${i}">${inner}${stamp}<img class="real" src="${real}"></div>`;
+}).join('');
+if (REAL) document.querySelectorAll('.ph').forEach(p => {
+  p.querySelector('.real').style.display = 'block';
+  p.querySelectorAll('.art,.shelf,.stamp').forEach(e => e.style.display = 'none');
+});
+
+function render(t) {
+  let i = 0; SHOTS.forEach((s, k) => { if (t >= s[0]) i = k; });
+  SHOTS.forEach((s, k) => { $('p' + k).style.display = k === i ? 'block' : 'none'; });
+  const [start, era, cap] = SHOTS[i];
+  // Each photo lands with a small push-in, like swiping through a camera roll.
+  const p = E.easeEmil(E.seg(t, start, start + 0.3));
+  $('p' + i).style.transform = `scale(${E.lerp(1.08, 1, p)})`;
+  $('p' + i).querySelectorAll('.sp').forEach((el, k) => { el.style.opacity = 0.5 + 0.5 * Math.sin(t * 5 + k); });
+  if ($('era').textContent !== era) $('era').textContent = era;
+  if ($('cap').textContent !== cap) $('cap').textContent = cap;
+  $('cap').style.transform = `scale(${E.lerp(1.1, 1, p)})`;
+  // Camera flash on the high-school shots; a white wipe into college.
+  const isHs = SHOTS[i][3].startsWith('hs');
+  const flash = isHs ? 0.75 * (1 - E.seg(t, start, start + 0.18)) : (i === 3 ? 1 - E.seg(t, start, start + 0.35) : 0);
+  $('flash').style.opacity = t < 0.05 ? 0 : flash;
+}
+window.__seek = t => { render(t); return true; };
+window.__duration = DURATION;
+render(0.5);
+</script>
+</body>
+</html>
