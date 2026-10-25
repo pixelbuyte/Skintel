@@ -47,6 +47,14 @@
   .pic .b { padding: 0; background: none !important; border-radius: 46px; overflow: hidden; border: 2px solid #E5E5EA; }
   .pic .b::before, .pic .b::after { display: none; }
   .pic img { display: block; width: 520px; height: 640px; object-fit: cover; object-position: top; }
+  /* Link preview: an App Store link sent in the chat (iMessage's rich card). */
+  .link .b { padding: 0; background: #E9E9EB !important; width: 620px; border-radius: 46px; overflow: hidden; color: #000; }
+  .link .b::before, .link .b::after { display: none; }
+  .link .art { height: 330px; background: linear-gradient(160deg, #F4EDE0, #E9D9C8); display: flex; align-items: center; justify-content: center; }
+  .link .art img { width: 210px; height: 210px; border-radius: 48px; box-shadow: 0 10px 30px rgba(0,0,0,.18); }
+  .link .meta { padding: 22px 34px 26px; }
+  .link .t1 { font-size: 42px; font-weight: 600; line-height: 1.2; }
+  .link .t2 { font-size: 32px; color: #8E8E93; margin-top: 4px; }
   .typing .b { display: flex; gap: 12px; padding: 30px 34px; }
   .typing i { width: 20px; height: 20px; border-radius: 50%; background: #8E8E93; display: block; }
   .who { font-size: 30px; color: #8E8E93; margin: 26px 0 4px 34px; }
@@ -110,6 +118,7 @@ const STORIES = {
     ['me', 'ok how was i supposed to know'],
     ['them', 'Skinstel checks your whole routine. one tap.'],
     ['them', '@conflicts'],
+    ['them', '#link'],
   ]},
   scan: { hook: 'my skin texting me before i buy ANYTHING', msgs: [
     ['me', 'found the cutest moisturizer 😍 buying it'],
@@ -119,6 +128,8 @@ const STORIES = {
     ['them', 'scan. it. first.', 'dun'],
     ['me', '@verdict'],
     ['them', 'ok. it can stay 🙂'],
+    ['them', 'for next time:'],
+    ['them', '#link'],
   ]},
   triggers: { hook: 'when your skin knows what’s breaking you out and you don’t', msgs: [
     ['them', 'that’s the 4th breakout this month btw'],
@@ -126,7 +137,7 @@ const STORIES = {
     ['them', 'it’s the same ingredient. every. time.', 'dun'],
     ['me', 'WHICH ONE', 'boom'],
     ['them', 'log me for a week. Skinstel lines it up.'],
-    ['them', '@triggers'],
+    ['them', '#link'],
   ]},
   mom: { hook: 'my mom discovering skincare at 52 😭', contact: { name: 'Mom ❤️', initials: 'M' }, msgs: [
     ['them', 'is it bad to use retinol and my peel pads the same night'],
@@ -137,6 +148,8 @@ const STORIES = {
     ['them', 'it found 2 conflicts', 'boom'],
     ['them', '@conflicts'],
     ['them', 'screenshotting this for my book club', 'badum'],
+    ['them', 'send me the link so i can share it'],
+    ['me', '#link'],
   ]},
   mom2: { hook: 'mom I need to tell you something…', contact: { name: 'Mom ❤️', initials: 'M' }, msgs: [
     ['me', 'mom i need to tell you something'],
@@ -149,6 +162,8 @@ const STORIES = {
     ['them', 'HOW do you even know that', 'boom'],
     ['me', 'Skinstel lined up my bad days with what i used'],
     ['them', 'ok send me this app'],
+    ['me', '#link'],
+    ['them', 'downloading 😂'],
   ]},
   bestie: { hook: 'my best friend before every shopping trip', contact: { name: 'bestie 💅', initials: 'A' }, msgs: [
     ['them', 'shopping at 4?'],
@@ -159,6 +174,8 @@ const STORIES = {
     ['me', '…downloading Skinstel'],
     ['me', '@verdict'],
     ['them', '86?? ok fine it can come home', 'ding'],
+    ['them', 'send me the link rn'],
+    ['me', '#link'],
   ]},
   class: { hook: 'the group chat during finals week', contact: { name: 'bio lab 🧬', emoji: '🧬', group: { j: 'Jordan', a: 'Ava', s: 'Sam' } }, msgs: [
     ['j', 'why is everyone breaking out rn'],
@@ -168,6 +185,7 @@ const STORIES = {
     ['me', '@triggers'],
     ['s', 'wait it shows what my bad days have in common??', 'boom'],
     ['j', 'send the link 😭'],
+    ['me', '#link'],
   ]},
 };
 
@@ -179,6 +197,8 @@ $('name').textContent = C.name;
 if (C.mascot) $('av').src = MASCOT;
 else { $('avbox').className = 'av ' + (C.emoji ? 'emo' : 'ini'); $('avbox').textContent = C.emoji || C.initials; }
 const side = w => w === 'me' ? 'me' : 'them';
+const LINK = `<div class="art"><img src="../../ios/Skintel/Skintel/Resources/Assets.xcassets/AppIcon.appiconset/AppIcon-1024.png"></div>` +
+  `<div class="meta"><div class="t1">Skinstel</div><div class="t2">apps.apple.com</div></div>`;
 
 // Keyboard.
 const ROWS = ['qwertyuiop', 'asdfghjkl', 'zxcvbnm'];
@@ -196,7 +216,7 @@ const TYPE = 0.55, GAP_THEM = 1.15, GAP_ME = 0.4, CPS = 22;
 const T = []; let t = 0;
 S.msgs.forEach(([w, text], i) => {
   if (w === 'me') {
-    const typed = text[0] === '@' ? 0 : Math.min(1.8, Math.max(0.5, text.length / CPS));
+    const typed = (text[0] === '@' || text[0] === '#') ? 0 : Math.min(1.8, Math.max(0.5, text.length / CPS));
     const start = i === 0 ? 0 : t + GAP_ME;
     T.push({ start, at: start + typed + 0.15, typed });
     t = start + typed + 0.15;
@@ -206,7 +226,7 @@ S.msgs.forEach(([w, text], i) => {
     t = at;
   }
 });
-const DURATION = t + 1.2;
+const DURATION = t + 2.4;
 // Cues for build_skits.py: keyboard ticks while you type, the send / receive sounds, stings.
 window.__cues = S.msgs.flatMap(([w, , meme], i) => (w === 'me'
   ? (T[i].typed ? [[T[i].start, 'keys'], [T[i].at, 'send']] : [[T[i].at, 'send']])
@@ -217,7 +237,7 @@ const html = S.msgs.map(([w, text], i) => {
   const newRun = !prev || prev[0] !== w, endRun = !next || next[0] !== w;
   return (C.group && w !== 'me' && newRun ? `<div class="who" id="w${i}">${C.group[w]}</div>` : '') +
     (w !== 'me' ? `<div class="m them tail typing ${newRun && !C.group && i ? 'gap' : ''}" id="t${i}"><div class="b"><i></i><i></i><i></i></div></div>` : '') +
-    `<div class="m ${side(w)} ${text[0] === '@' ? 'pic' : ''} ${endRun ? 'tail' : ''} ${newRun && !(C.group && w !== 'me') && i ? 'gap' : ''}" id="m${i}"><div class="b">${text[0] === '@' ? `<img src="./assets/app-${text.slice(1)}.png">` : `<span>${text}</span>`}</div></div>`;
+    `<div class="m ${side(w)} ${text[0] === '@' ? 'pic' : ''} ${text === '#link' ? 'link' : ''} ${endRun ? 'tail' : ''} ${newRun && !(C.group && w !== 'me') && i ? 'gap' : ''}" id="m${i}"><div class="b">${text === '#link' ? LINK : text[0] === '@' ? `<img src="./assets/app-${text.slice(1)}.png">` : `<span>${text}</span>`}</div></div>`;
 }).join('');
 $('list').innerHTML = `<div class="stamp">iMessage<br><b>Today</b> 9:41 PM</div>` + html + `<div class="read" id="read">Delivered</div>`;
 
@@ -253,7 +273,9 @@ function render(t) {
   const list = $('list'), feed = $('feed');
   list.style.transform = `translateY(${-Math.max(0, list.scrollHeight - feed.clientHeight)}px)`;
   // The hook owns the first seconds, then gets out of the chat's way.
-  $('hook').style.opacity = 1 - E.seg(t, 3.0, 3.4);
+  const end = DURATION - 1.6;
+  if (t >= end) { $('hook').textContent = 'comment SKINSTEL for the link 👇'; $('hook').style.top = '1300px'; $('hook').style.opacity = E.seg(t, end, end + 0.2); }
+  else { $('hook').textContent = S.hook; $('hook').style.top = ''; $('hook').style.opacity = 1 - E.seg(t, 3.0, 3.4); }
 }
 window.__seek = t => { render(t); return true; };
 window.__duration = DURATION;
