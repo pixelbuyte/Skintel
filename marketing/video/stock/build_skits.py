@@ -29,6 +29,9 @@ SKITS = {
     'text-bestie': ('textmsg', 's=bestie', 'scan', 0.4, 11.6),
     'text-class': ('textmsg', 's=class', 'triggers', 0.8, 13.4),
     'glowup': ('glowup', '', 'triggers', 0.8, 13.4),
+    # With a voiceover (ElevenLabs, female launch-style read) over the demo; the demo is cut so the
+    # end card lands as she says "Comment Skinstel".
+    'text-mom2': ('textmsg', 's=mom2', 'triggers', 0.8, 11.6, 'vo-mom-a.mp3'),
 }
 SOUNDS = {**sfx.make(OUT / 'sfx'), **sfx.licensed(HERE / 'cache' / 'sfx')}
 # The glow-up's cues predate the sound set's names.
@@ -53,7 +56,7 @@ def demo(name, d, s, e):
 
 def build(name):
     TMP.mkdir(exist_ok=True)
-    pg, query, d, s, e = SKITS[name]
+    pg, query, d, s, e, *vo = SKITS[name]
     skit, cues = page(name, pg, query)
     body = demo(name, d, s, e)
     silent = OUT / f'{name}-silent.mp4'
@@ -70,6 +73,12 @@ def build(name):
         ms = int(round(max(0, t) * 1000))
         mix.append(f'[{i + 1}:a]aresample=48000,adelay={ms}|{ms},apad[s{i}]')
     labels = ''.join(f'[s{i}]' for i in range(len(cues)))
+    if vo:   # the voiceover starts as the demo does, on top of the effects
+        srcs += ['-i', HERE / 'cache' / vo[0]]
+        ms = int(round(skit_len * 1000))
+        mix.append(f'[{len(cues) + 1}:a]aresample=48000,volume=3.2,adelay={ms}|{ms},apad[s{len(cues)}]')
+        labels += f'[s{len(cues)}]'
+        cues = cues + [None]
     fc = ';'.join(mix) + f';{labels}amix=inputs={len(cues)}:normalize=0,volume=-4dB,alimiter=limit=0.7:level=false,aformat=channel_layouts=stereo[au]'
     run('ffmpeg', '-y', '-v', 'error', '-i', silent, *srcs, '-filter_complex', fc,
         '-map', '0:v', '-map', '[au]', '-c:v', 'copy', '-c:a', 'aac', '-b:a', '160k', '-shortest', '-movflags', '+faststart',
