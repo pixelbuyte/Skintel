@@ -31,3 +31,4 @@ test-checkout.mjs
 .env.production
 marketing/app-store/_clean/
 marketing/video/stock/cache/
+__pycache__/
