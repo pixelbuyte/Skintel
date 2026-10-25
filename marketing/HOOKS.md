@@ -165,6 +165,31 @@ pov", "acne before and after pov", "skincare text message story". Top 33 in
 | `glowup.html?real=<dir>` | The same edit with **your own** photos (`hs-1.jpg`…`college-3.jpg`). Only genuine photos of you, and only if the change really came from what Skintel showed you. |
 | `selfie-NN-<demo>.mp4` | **A real reaction:** `python3 stock/build_selfie.py MY_CLIP.mov --hook 1 --demo triggers` crops your 2-second reaction to 9:16, adds hook line N, then the real-hands demo and the end card. |
 
+## Cinematic AI ads and POVs (fourth scrape, Oct 2026)
+
+60 TikToks for "pov skincare", "pov you check your skincare", "skincare app pov" ($0.30); top 30 in
+[`hook-research/tiktok-pov-ads.csv`](hook-research/tiktok-pov-ads.csv).
+
+- **App reveals travel far from tiny accounts:** "Name of this app is BloomSkin" 4.8M plays at 8,247×
+  the account's followers (sound: MONTAGEM GREEN RENITCH), Lumy Care 2.2M at 3,259×.
+- **"Before you buy" is a proven angle:** "Know your skin type before you buy a new skincare" 1.1M.
+- **Relatable questions pull comments:** "why is it always when you get a new skincare product…" 755
+  comments on 179K plays (0.42%), about 20× the comment rate of the 10M video at the top (0.02%).
+
+### What we made from it (`stock/build_roi.py`, `roi.html`)
+
+AI B-roll from the ElevenLabs flow "Skinstel ROI ad" (Seedance 2.5 clips, Nano Banana 2 stills moved
+with a slow push and hand-held sway), unbranded products and no faces, so nobody is presented as a
+customer. A voiceover (Roxie), a ticking tension bed, sound effects, then a stretch of the app demo
+and the end card. Each ends on a comment prompt anyone can answer before asking for SKINSTEL.
+
+| File | Hook | Comment prompt |
+|---|---|---|
+| `roi-1ofthese` | 1 of these is breaking you out (a shelf, one bottle lights up red) | which one is it? guess in the comments |
+| `roi-pov-scan` | POV: you check if it'll break you out *before* you buy it | what's the last thing that broke you out? |
+| `roi-pov-conflicts` | POV: 2 of your products have been fighting every night | what's in your night routine? |
+| `roi-pov-ask` | POV: it's 1am and you still don't know what order these go in | what order do *you* do yours in? |
+
 ## The one change we make: no fake faces
 
 Fastlane's hooks use **AI actors** presented as real users ("3 years in the gym and NOW I find
