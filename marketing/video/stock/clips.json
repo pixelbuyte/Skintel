@@ -66,6 +66,24 @@
       "source": "Higgsfield (Kling 3.0 image-to-video, with sound), animated from the Skintel mascot art DropWarning",
       "license": "Generated on the founder's Higgsfield plan; brand character, no real person",
       "use": "talk", "what": "the mascot on a bathroom counter (square, 5 s) saying: I've been trying to tell you what's breaking me out for two years."
+    },
+    "narr-conflicts": {
+      "url": "https://d8j0ntlcm91z4.cloudfront.net/user_3LAGF0fRBGVHqhdxkCqlyDhzPEL/hf_20261025_021253_236d3682-b6de-453e-823f-c5a1d7763fff.mp4",
+      "source": "Higgsfield (Kling 3.0 image-to-video, with sound), animated from the Skintel mascot art DropRoutineBuilder on a flat blue screen",
+      "license": "Generated on the founder's Higgsfield plan; brand character, no real person",
+      "use": "narrator", "screen": "blue", "what": "the mascot on blue (square, 7 s), keyed out by build_narrated.py, saying: See? It found two conflicts! No toner on retinol nights. Comment Skinstel for the link!"
+    },
+    "narr-scan": {
+      "url": "https://d8j0ntlcm91z4.cloudfront.net/user_3LAGF0fRBGVHqhdxkCqlyDhzPEL/hf_20261025_021253_b604ffde-51e7-4ba8-89c3-71ca320b0f35.mp4",
+      "source": "Higgsfield (Kling 3.0 image-to-video, with sound), animated from the Skintel mascot art DropScanner on a flat blue screen",
+      "license": "Generated on the founder's Higgsfield plan; brand character, no real person",
+      "use": "narrator", "screen": "blue", "what": "the mascot on blue (square, 7 s), keyed out by build_narrated.py, saying: It says it's a good match for me. Phew! Comment Skinstel for the link!"
+    },
+    "narr-triggers": {
+      "url": "https://d8j0ntlcm91z4.cloudfront.net/user_3LAGF0fRBGVHqhdxkCqlyDhzPEL/hf_20261025_021253_175c8c0d-bfb9-430d-b488-6e203dc3f694.mp4",
+      "source": "Higgsfield (Kling 3.0 image-to-video, with sound), animated from the Skintel mascot art DropIngredients on a flat blue screen",
+      "license": "Generated on the founder's Higgsfield plan; brand character, no real person",
+      "use": "narrator", "screen": "blue", "what": "the mascot on blue (square, 7 s), keyed out by build_narrated.py, saying: See? My bad days all share one ingredient. That's the suspect! Comment Skinstel for the link!"
     }
   }
 }

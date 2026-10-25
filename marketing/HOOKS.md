@@ -77,6 +77,26 @@ captions match the words), and then it cuts to the live app on a real hand-held 
 The voice plays under the hook only; the rest is silent so a trending sound can go on in-app (keep
 the original sound at ~30% so the skin is still heard). Clips are listed in `stock/clips.json`.
 
+Higgsfield's virality predictor on `talk-conflicts.mp4` (a proxy model, not a promise): overall 49/100,
+viral potential 48, **hook 37**, **sustain 90**. Its auditory-activity curve halves at 4–5 s, exactly
+where the mascot stops talking and the silent demo starts. So the next versions keep the voice going.
+
+### The mascot talks the whole way (`stock/build_narrated.py`)
+
+The hook, then the mascot (keyed out of a blue-screen Kling clip) narrates **our own app video** from
+the bottom corner, then appears big on the end card saying "Comment Skinstel for the link!" under the
+keyword. Each demo comes in four cuts:
+
+| File | What |
+|---|---|
+| `mascot-<demo>.mp4` | talking-skin hook → narrated app video → mascot says the CTA (voice throughout, ~11–12 s) |
+| `mascot-<demo>-silent.mp4` | the same, no sound, captions carry it (for a trending sound) |
+| `pov-<demo>.mp4` | "POV: …" over a reaction shot of the mascot → narrated app video (voice) |
+| `pov-<demo>-silent.mp4` | POV reaction → the full captioned app video, no sound |
+
+POV lines: "POV: you check if your skincare is fighting", "POV: you scan it before you buy it",
+"POV: you find out what's actually breaking you out".
+
 ## The one change we make: no fake faces
 
 Fastlane's hooks use **AI actors** presented as real users ("3 years in the gym and NOW I find
@@ -122,6 +142,7 @@ skin photos. Skintel finds patterns; it doesn't treat skin.
   (`stock/build_stock.py`).
 - `talk-….mp4` — the talking-skin skits (above): the mascot speaks with its own voice, then the
   real-hands demo.
+- `mascot-….mp4`, `pov-….mp4` (+ `-silent`) — the mascot narrates the whole video; POV reaction cuts.
 
 ## How to film your own reaction (2 seconds)
 

@@ -48,3 +48,10 @@ skin (a Kling 3.0 clip from Higgsfield, with its own voice), cropped from square
 blurred fill, with "POV: your skin can finally talk" and word-timed captions from `talk.html`. Run
 `build_stock.py` first so `out/stock-tmp/*-body.mp4` exist. Steps for a new clip are in the
 `hook-video` skill.
+
+## The mascot talks the whole way
+
+`build_narrated.py` keeps the voice going: the talking-skin hook (or a muted reaction shot with a POV
+line), then a blue-screen Kling clip of the mascot, keyed out, narrating our own app render
+(`out/skintel-f-*-body.mp4`) from the corner, then big on the end card saying the CTA. It writes a
+voice and a silent cut of each. Run `build_talk.py` first (it renders the hook overlays).

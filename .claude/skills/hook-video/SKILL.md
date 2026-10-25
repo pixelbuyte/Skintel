@@ -29,6 +29,7 @@ python3 ../app-store/render.py      # exports app screens + real tab-bar crops i
 | keyword funnel / format reels | `reel-*.html`, `REELS.md` |
 | real-looking UGC (real hand holding the phone, real B-roll) | `stock/build_stock.py` (see `stock/README.md`) |
 | a skit / talking character, "POV: your skin can talk" | `stock/build_talk.py` + `talk.html` (Kling clip of the mascot on Higgsfield) |
+| the mascot talking the whole video, POV reaction cuts, voice + silent versions | `stock/build_narrated.py` + `narr.html` (blue-screen Kling narrator, keyed) |
 | stickers for the founder's own footage | `overlays.html` → `shoot-overlays.mjs`; paper plane: `plane.html` → `render-alpha.mjs` |
 
 ### Reaction-hook videos
@@ -63,6 +64,12 @@ The mascot speaks as the viewer's skin, then the real-hands demo plays. To add o
 3. Add the clip to `stock/clips.json`, a row to `TALKS` in `build_talk.py` (trim so the first word lands
    by ~0.5 s; window x centring the mascot), and the same hook/body lengths, spoken chunks and demo
    captions to `TALKS` in `talk.html`. Run `python3 stock/build_talk.py <name>`.
+
+For a narrator that sits over the app video, generate the mascot on a flat blue screen instead: put the
+pose PNG on `#0047BB` as the start image (blue, because several props are sage green), ask for a static
+camera and a plain background, and `build_narrated.py` keys it out (`chromakey` + `despill`). One 7 s
+clip covers the narration and the CTA, so both are in the same voice. Kling 3.0 costs ~2 credits per
+second with sound (14 for 7 s).
 
 Higgsfield's `virality_predictor` takes videos of 16 s or less and cost ~28 credits per video here.
 Its `reframe` (to 9:16) costs 25–63 credits per 5 s clip, so the crop is done locally instead.
