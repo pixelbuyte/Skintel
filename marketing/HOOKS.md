@@ -97,6 +97,24 @@ keyword. Each demo comes in four cuts:
 POV lines: "POV: you check if your skincare is fighting", "POV: you scan it before you buy it",
 "POV: you find out what's actually breaking you out".
 
+## Which sounds these formats use (from the scrapes' music metadata)
+
+| Format | What the top videos use |
+|---|---|
+| Text stories | **"Very Sad" by Enchan** (the sad-violin meme): 4 of the top 10 group-chat stories. "Dr Rick Trager Chase Theme" (chase meme) on a 557K one. |
+| Glow-ups / before-after | Slowed or sped-up songs: "Loving machine (slowed instrumental)" 3.7M, "let's keep pretending pt. 2 (sped up)" 781K. |
+| Skincare app videos | **"MONTAGEM GREEN RENITCH"** (Brazilian funk/phonk) on 10.8M and 4.8M; TV Girl "Hate Yourself" 2.3M; Dolly Parton "9 to 5" 1.8M. |
+| All formats | 75–88% use **original sound**: their own voice or their own edit with sound effects. |
+
+Named tracks are commercial music: add them **inside TikTok/Instagram** on the `-silent` cut (or on the
+sound cut with original sound at ~40%), never baked into the file. Suggested pairing:
+`text-*` → "Very Sad" (Enchan) or the chase theme; `glowup` → a slowed instrumental, cut on "we're so
+back"; `mascot-*` / `pov-*` → MONTAGEM-style phonk. Business accounts only get TikTok's Commercial Music
+Library; check the track is in it before posting from the Skintel account.
+
+The sound cuts' effects are licensed Mixkit SFX (`stock/sfx.py`, Mixkit Sound Effects Free License) plus
+synthesized message sounds.
+
 ## Women on camera: what's ready, what waits on credits
 
 **Real women (works now, strongest):** the founder, a friend who actually uses the app, or paid
