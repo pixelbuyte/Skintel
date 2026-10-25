@@ -1,0 +1,49 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<style>
+  /* "1 of these is breaking you out": captions over the cinematic AI B-roll (ElevenLabs Seedance:
+     a crowded shelf, a bottle pulled from a lineup, an evidence board), then the app demo and its
+     Comment SKINSTEL end card. Transparent: render-alpha.mjs roi 1. Times match the cut in
+     stock/build_roi.py (SHOTS there); the demo carries its own captions, so nothing shows over it. */
+  @font-face { font-family: "TikTok Sans"; font-weight: 800; src: url("./fonts/TikTokSans-800.ttf"); }
+  html, body { margin: 0; background: transparent !important; }
+  #stage { position: relative; width: 1080px; height: 1920px; overflow: hidden; }
+  .t { position: absolute; left: 60px; right: 60px; top: 300px; text-align: center; font-family: "TikTok Sans", sans-serif;
+       color: #fff; font-weight: 800; font-size: 88px; line-height: 1.06;
+       text-shadow: -5px -5px 0 #000, 5px -5px 0 #000, -5px 5px 0 #000, 5px 5px 0 #000, 0 6px 0 #000, 0 0 26px rgba(0,0,0,.55); }
+  .t em { font-style: normal; color: #FF5A47; }
+  html.print #stage { background: #2A2320; }
+</style>
+</head>
+<body>
+<div id="stage"><div class="t" id="cap"></div></div>
+<script src="./engine.js"></script>
+<script>
+const E = window.__E, $ = id => document.getElementById(id);
+// [start, end, text]. The spoken line is in stock/build_roi.py; on-screen text says the same thing
+// for sound-off viewers. The comment prompt invites a guess (comments), then the end card asks for SKINSTEL.
+const CAPS = [
+  [0.0, 2.28, '<em>1</em> of these is<br>breaking you out'],
+  [2.28, 4.5, 'and it’s probably not<br>the one you think 👀'],
+  [4.5, 6.6, 'your bad days have<br>something in common'],
+  [11.0, 12.4, 'which one is it?<br>guess in the comments 👇'],
+];
+const DURATION = 12.4;
+function render(t) {
+  const c = CAPS.find(([s, e]) => t >= s && t < e);
+  const el = $('cap');
+  if (!c) { el.style.opacity = 0; return; }
+  if (el.dataset.s !== String(c[0])) { el.dataset.s = String(c[0]); el.innerHTML = c[2]; }
+  const p = E.easeEmil(E.seg(t, c[0], c[0] + 0.14));
+  el.style.opacity = 1;
+  el.style.transform = `scale(${E.lerp(1.14, 1, p)})`;
+}
+window.__seek = t => { render(t); return true; };
+window.__duration = DURATION;
+if (new URLSearchParams(location.search).get('print')) document.documentElement.classList.add('print');
+render(0.5);
+</script>
+</body>
+</html>
