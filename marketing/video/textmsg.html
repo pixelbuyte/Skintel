@@ -21,6 +21,9 @@
   .nav .av { width: 150px; height: 150px; border-radius: 50%; margin: 40px auto 0; background: #F4EDE0; overflow: hidden; position: relative; }
   .nav .av img { position: absolute; left: -12%; top: 4%; width: 124%; }
   .nav .nm { font-size: 36px; margin-top: 14px; color: #000; }
+  .nav .av.ini { background: linear-gradient(180deg, #A9AFBB, #858B97); color: #fff; font-size: 70px; font-weight: 500; line-height: 150px; }
+  .nav .av.emo { background: #E9E9EB; font-size: 84px; line-height: 150px; }
+  .who { font-size: 30px; color: #8E8E93; margin: 18px 0 0 34px; }
   .nav .nm b { color: #8E8E93; font-weight: 400; }
   #feed { position: absolute; left: 0; right: 0; top: 440px; bottom: 510px; overflow: hidden; }
   #list { position: absolute; left: 0; right: 0; top: 0; padding: 30px 40px; }
@@ -43,7 +46,7 @@
 <body>
 <div id="stage">
   <div class="status"><span>9:41</span><span class="r"><span>5G</span><span class="bat"><i></i></span></span></div>
-  <div class="nav"><div class="back">&#8249;</div><div class="av"><img id="av"></div><div class="nm">my skin 🫠 <b>&#8250;</b></div></div>
+  <div class="nav"><div class="back">&#8249;</div><div class="av" id="avbox"><img id="av"></div><div class="nm"><span id="name"></span> <b>&#8250;</b></div></div>
   <div id="feed"><div id="list"></div></div>
   <div class="input">iMessage</div>
   <div id="hook"></div>
@@ -51,8 +54,10 @@
 <script src="./engine.js"></script>
 <script>
 const E = window.__E, $ = id => document.getElementById(id);
-$('av').src = '../../ios/Skintel/Skintel/Resources/Assets.xcassets/DropWarning.imageset/DropWarning.png';
-// [who, text]: 'them' is the skin. Same claims as the app: conflicts, scans, a pattern in check-ins.
+const MASCOT = '../../ios/Skintel/Skintel/Resources/Assets.xcassets/DropWarning.imageset/DropWarning.png';
+// contact: who you're texting (default: your skin, with the mascot as its photo). msgs: [who, text];
+// who is 'me', 'them', or a member's key in a group chat. Same claims as the app: conflicts, scans,
+// a pattern in check-ins. The human chats are skits (dad, a best friend, a class group chat).
 const STORIES = {
   conflicts: { hook: 'POV: your skin finally texts you', msgs: [
     ['them', 'we need to talk'],
@@ -77,25 +82,57 @@ const STORIES = {
     ['me', 'WHICH ONE'],
     ['them', 'log me for a week. Skintel lines it up.'],
   ]},
+  dad: { hook: 'my dad discovering skincare at 52 😭', contact: { name: 'Dad', initials: 'D' }, msgs: [
+    ['them', 'what’s a retinol'],
+    ['them', 'your mom said not to use it with my acne pads'],
+    ['me', 'DAD she’s right'],
+    ['them', 'why do bottles fight'],
+    ['me', 'put your stuff in Skintel, it checks'],
+    ['them', 'it found 2 conflicts. i’m writing this down'],
+  ]},
+  bestie: { hook: 'my best friend before every shopping trip', contact: { name: 'bestie 💅', initials: 'A' }, msgs: [
+    ['them', 'shopping at 4?'],
+    ['me', 'yes i need a new moisturizer 😍'],
+    ['them', 'scan it before you buy it this time'],
+    ['me', 'it was ONE bad moisturizer'],
+    ['them', 'you cried in the car for 20 min'],
+    ['me', '…downloading Skintel'],
+  ]},
+  class: { hook: 'the group chat during finals week', contact: { name: 'bio lab 🧬', emoji: '🧬', group: { j: 'Jordan', a: 'Ava', s: 'Sam' } }, msgs: [
+    ['j', 'why is everyone breaking out rn'],
+    ['a', 'finals stress 💀'],
+    ['s', 'mine’s the same 2 spots every month tho'],
+    ['me', 'log your skin in Skintel, it lines your bad days up with what you used'],
+    ['s', 'wait it shows what my bad days have in common??'],
+    ['j', 'send the link 😭'],
+  ]},
 };
 const q = new URLSearchParams(location.search);
 const S = STORIES[q.get('s')] || STORIES.conflicts;
 $('hook').textContent = S.hook;
+const C = S.contact || { name: 'my skin 🫠', mascot: true };
+$('name').textContent = C.name;
+if (C.mascot) $('av').src = MASCOT;
+else { $('avbox').className = 'av ' + (C.emoji ? 'emo' : 'ini'); $('avbox').textContent = C.emoji || C.initials; }
+const side = w => w === 'me' ? 'me' : 'them';
 // Timeline: the skin "types" for 0.55 s before each of its messages; every message lands 1.25 s apart.
 // A message from you is on screen at frame one; the skin's first one waits for its typing dots.
 const STEP = 1.25, TYPE = 0.55, FIRST = S.msgs[0][0] === 'me' ? 0 : 0.5;
+// Group chats label a run of messages with the sender's name, as iMessage does.
 const times = S.msgs.map((m, i) => FIRST + i * STEP);
 const DURATION = times[times.length - 1] + 1.1;
-window.__cues = S.msgs.map(([w], i) => [times[i], w]);   // render.mjs saves these; build_skits.py puts a pop on each
+window.__cues = S.msgs.map(([w], i) => [times[i], side(w)]);   // render.mjs saves these; build_skits.py puts a pop on each
 $('list').innerHTML = S.msgs.map(([w, t], i) =>
-  `<div class="m ${w}" id="m${i}"><div class="b">${t}</div></div>` +
-  (w === 'them' ? `<div class="m them typing" id="t${i}"><div class="b"><i></i><i></i><i></i></div></div>` : '')).join('') +
+  (C.group && w !== 'me' && (i === 0 || S.msgs[i - 1][0] !== w) ? `<div class="who" id="w${i}">${C.group[w]}</div>` : '') +
+  `<div class="m ${side(w)}" id="m${i}"><div class="b">${t}</div></div>` +
+  (w !== 'me' ? `<div class="m them typing" id="t${i}"><div class="b"><i></i><i></i><i></i></div></div>` : '')).join('') +
   `<div class="read" id="read">Read 9:41 PM</div>`;
 
 function render(t) {
   S.msgs.forEach(([w], i) => {
     const at = times[i], el = $('m' + i);
     el.style.display = t >= at ? 'flex' : 'none';
+    if ($('w' + i)) $('w' + i).style.display = t >= at ? 'block' : 'none';
     const p = E.easeEmil(E.seg(t, at, at + 0.22));
     el.querySelector('.b').style.transform = `scale(${E.lerp(0.85, 1, p)})`;
     el.style.opacity = p;
@@ -106,7 +143,7 @@ function render(t) {
       ty.querySelectorAll('i').forEach((d, k) => { d.style.opacity = 0.35 + 0.65 * Math.max(0, Math.sin((t * 7) - k * 0.9)); });
     }
   });
-  const last = S.msgs[S.msgs.length - 1][0];
+  const last = side(S.msgs[S.msgs.length - 1][0]);
   $('read').style.display = last === 'me' && t >= times[times.length - 1] + 0.5 ? 'block' : 'none';
   // Keep the newest message in view, as the phone would.
   const list = $('list'), feed = $('feed');

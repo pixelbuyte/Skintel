@@ -97,6 +97,30 @@ keyword. Each demo comes in four cuts:
 POV lines: "POV: you check if your skincare is fighting", "POV: you scan it before you buy it",
 "POV: you find out what's actually breaking you out".
 
+## Women on camera: what's ready, what waits on credits
+
+**Real women (works now, strongest):** the founder, a friend who actually uses the app, or paid
+creators who use it and disclose it (#ad, TikTok's paid-partnership toggle). Their 2-second reaction
+goes through `stock/build_selfie.py`. UGC creator marketplaces (TikTok Creator Marketplace and
+similar) supply exactly this; the brief is the hook bank above plus "show the app on your phone".
+
+**AI actor skits (when Higgsfield has credits, ~12 credits per 5 s clip):** an AI woman can *play*
+"you" in a POV skit, the way an actor does in a commercial, as long as:
+- TikTok's / Meta's AI-generated label is on;
+- she acts out a feature (finding two products that fight, scanning before buying, logging a bad day)
+  and never says it changed her skin ("this cleared my acne", "I've used it for months");
+- no before/after: an AI face going from acne to clear "because of Skintel" shows a result the app
+  doesn't produce. Skintel finds patterns; it doesn't treat skin.
+
+Ready-to-run skit prompts (Kling 3.0, 5 s, sound on, 9:16, start image = a generated woman in a
+bathroom mirror, no logos):
+1. "POV: you finally check if your skincare is fighting": she holds her phone, reads, slowly lowers
+   it, looks at the camera, mouths "two?!" Cut to the conflicts demo.
+2. "POV: you scan it before you buy it": in a store aisle she scans a plain unlabeled bottle, waits,
+   smiles in relief. Cut to the scan demo.
+3. "POV: you log your skin for a week": she taps a check-in, a week of quick cuts, she squints at the
+   phone like she cracked a case. Cut to Triggers.
+
 ## Glow-ups, text stories and real faces (second scrape, Oct 2026)
 
 A small follow-up scrape (60 TikToks, $0.30): "skincare glow up high school vs college", "acne glow up
@@ -118,6 +142,7 @@ pov", "acne before and after pov", "skincare text message story". Top 33 in
 | File | What |
 |---|---|
 | `text-<story>.mp4` / `-silent` | **Your skin texts you** (`textmsg.html`): an iMessage-style chat with "my skin 🫠" (mascot avatar), then the captioned app demo. Sound cut = synthesized message pops only. Stories: conflicts ("retinol AND an acid toner. same night. AGAIN??"), scan ("scan it first"), triggers ("it's the same ingredient. every. time."). Post them as a series. |
+| `text-dad` / `text-bestie` / `text-class` (+ `-silent`) | **Human text stories** (skits): dad discovering skincare ("why do bottles fight" → "it found 2 conflicts. i'm writing this down"), your best friend before shopping ("scan it before you buy it this time" → "you cried in the car for 20 min"), a class group chat in finals week ("wait it shows what my bad days have in common??"). Built on the third scrape: the big text stories end on a twist, and dads learning skincare is its own genre (3.8M). |
 | `glowup.mp4` / `-silent` | **POV: your skin in high school vs college** (`glowup.html`): the mascot's camera roll, flash photos with breakouts and a 12-product shelf ("it's so over"), then golden light, 4 products ("we're so back", "turns out my bad days had one ingredient in common"), then Triggers. Sound cut = shutter clicks and a chime. |
 | `glowup.html?real=<dir>` | The same edit with **your own** photos (`hs-1.jpg`…`college-3.jpg`). Only genuine photos of you, and only if the change really came from what Skintel showed you. |
 | `selfie-NN-<demo>.mp4` | **A real reaction:** `python3 stock/build_selfie.py MY_CLIP.mov --hook 1 --demo triggers` crops your 2-second reaction to 9:16, adds hook line N, then the real-hands demo and the end card. |

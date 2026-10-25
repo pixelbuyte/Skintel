@@ -4,7 +4,8 @@
     CHROME_PATH=... python3 stock/build_skits.py                 # all
     CHROME_PATH=... python3 stock/build_skits.py text-scan glowup
 
-    text-<story>.mp4 / -silent.mp4   your skin texts you (textmsg.html), then the app demo
+    text-<story>.mp4 / -silent.mp4   text stories (textmsg.html): your skin, dad, a best friend or a
+                                     class group chat texting you, then the app demo
     glowup.mp4 / -silent.mp4         high school vs college, the mascot's camera roll (glowup.html)
 
 The sound cuts carry only sound effects synthesized here (message pops, a shutter click, a chime),
@@ -22,6 +23,9 @@ SKITS = {
     'text-conflicts': ('textmsg', 's=conflicts', 'conflicts', 1.6, 11.0),
     'text-scan': ('textmsg', 's=scan', 'scan', 0.4, 11.6),
     'text-triggers': ('textmsg', 's=triggers', 'triggers', 0.8, 13.4),
+    'text-dad': ('textmsg', 's=dad', 'conflicts', 1.6, 11.0),
+    'text-bestie': ('textmsg', 's=bestie', 'scan', 0.4, 11.6),
+    'text-class': ('textmsg', 's=class', 'triggers', 0.8, 13.4),
     'glowup': ('glowup', '', 'triggers', 0.8, 13.4),
 }
 # Sound effects, synthesized (no samples, nothing to license).
