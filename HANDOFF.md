@@ -15,9 +15,11 @@ use and mark how your skin reacted (Worked / Unsure / Broke out). Skintel reads 
 **skin log** (check-ins), builds AM/PM **routines**, and has an AI chat, **Ask Skintel**, that answers from
 your shelf, routine and check-ins.
 
-- App name: **Skintel**. Paid plan: **Skintel+** (never "Pro", "Premium", "Upgrade").
-- Website/API domain: **skinstel.com** (note the extra "s" — historic; the brand is Skintel).
-  The mascot package is also spelled `SkinstelMascot` for the same reason. Don't "fix" either.
+- Official app name: **Skinstel** (as on the App Store). Use it in videos, store copy and marketing.
+  "Skintel" is the older internal spelling left in code, folders and some UI strings. Paid plan:
+  **Skintel+** in the app today (never "Pro", "Premium", "Upgrade").
+- Website/API domain: **skinstel.com**, matching the official name; the mascot package is
+  `SkinstelMascot`. Don't rename code identifiers without asking.
 - Audience: mostly women, many dealing with sensitive or changing skin (including menopause).
   Tone: calm, honest, warm, never clinical, never hype.
 

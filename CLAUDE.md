@@ -43,8 +43,10 @@ blue/black default. Tokens: `ios/Skintel/Skintel/DesignSystem/Tokens/`; details 
 ## Project
 
 Skintel: scan a skincare product, log how skin reacted, find the ingredient your bad days
-share, score new products against *your* history. Brand is **Skintel**; the live domain is
-**skinstel.com** (with an S). Product context, AI models, plans: `HANDOFF.md`.
+share, score new products against *your* history. The app's **official name is Skinstel** (App Store,
+videos, marketing, store copy: always "Skinstel"); the live domain is **skinstel.com**. "Skintel" is the
+older internal spelling still used in code, folders and some UI strings. Product context, AI models,
+plans: `HANDOFF.md`.
 System overview: `docs/ARCHITECTURE.md`.
 
 **Stack**
@@ -120,9 +122,11 @@ intentional, do not "fix" it, and do not add real secrets to any xcconfig.
 - **`tsc -b` covers `src/` and `vite.config.ts` only.** `api/` is not type-checked by `npm run build`
   (Vercel compiles it), so a broken `api/` file can pass the build.
 - **`npm run dev` talks to production**: `vite.config.ts` proxies `/api` to `https://skinstel.com`.
-- **Naming drift:** brand Skintel, domain skinstel.com, legacy "Skinstel" (the `SkinstelMascot`
-  package; a misspelt `com.skinstel.app` App ID also exists in the Apple Developer portal). The real
-  bundle id is `com.skintel.app`.
+- **Naming drift:** official app name **Skinstel** (domain skinstel.com, `SkinstelMascot` package); the
+  repo, targets, folders and many identifiers still say Skintel. Anything people see outside the code
+  (videos, App Store, marketing, social) says Skinstel; a social call to action like "comment Skintel"
+  is fine. A `com.skinstel.app` App ID also exists in the Apple Developer portal, but the real bundle id
+  is `com.skintel.app`. Don't rename code identifiers without asking.
 - **`ios/Skintel/CLAUDE.md` is stale on CI names**: it says integration `skintel_app_store_connect` and
   env group `ios_release`; `codemagic.yaml` actually uses integration `codemagic1` and group
   `skintel_ios_release`. Trust `codemagic.yaml`.
