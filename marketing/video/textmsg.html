@@ -43,6 +43,10 @@
   .tail.me .b::before { content: ''; position: absolute; right: -14px; bottom: 0; width: 44px; height: 44px; background: #0A7CFF; border-bottom-left-radius: 32px 28px; }
   .tail.me .b::after { content: ''; position: absolute; right: -30px; bottom: 0; width: 30px; height: 46px; background: #fff; border-bottom-left-radius: 22px; }
   .b span { position: relative; z-index: 1; }
+  /* Photo message: a screenshot of the app result, cropped to its top like iMessage's preview. */
+  .pic .b { padding: 0; background: none !important; border-radius: 46px; overflow: hidden; border: 2px solid #E5E5EA; }
+  .pic .b::before, .pic .b::after { display: none; }
+  .pic img { display: block; width: 560px; height: 720px; object-fit: cover; object-position: top; }
   .typing .b { display: flex; gap: 12px; padding: 30px 34px; }
   .typing i { width: 20px; height: 20px; border-radius: 50%; background: #8E8E93; display: block; }
   .who { font-size: 30px; color: #8E8E93; margin: 26px 0 4px 34px; }
@@ -94,6 +98,7 @@ const STORIES = {
     ['them', 'it’s called stinging for 2 days 🙂'],
     ['me', 'ok how was i supposed to know'],
     ['them', 'Skintel checks your whole routine. one tap.'],
+    ['them', '@conflicts'],
   ]},
   scan: { hook: 'my skin texting me before i buy ANYTHING', msgs: [
     ['me', 'found the cutest moisturizer 😍 buying it'],
@@ -101,7 +106,8 @@ const STORIES = {
     ['me', 'it’s $38 and the bottle is SO cute'],
     ['them', 'the last cute bottle gave me bumps for 3 weeks'],
     ['them', 'scan. it. first.'],
-    ['me', 'fine 🙄'],
+    ['me', '@verdict'],
+    ['them', 'ok. it can stay 🙂'],
   ]},
   triggers: { hook: 'when your skin knows what’s breaking you out and you don’t', msgs: [
     ['them', 'that’s the 4th breakout this month btw'],
@@ -109,6 +115,7 @@ const STORIES = {
     ['them', 'it’s the same ingredient. every. time.'],
     ['me', 'WHICH ONE'],
     ['them', 'log me for a week. Skintel lines it up.'],
+    ['them', '@triggers'],
   ]},
   mom: { hook: 'my mom discovering skincare at 52 😭', contact: { name: 'Mom ❤️', initials: 'M' }, msgs: [
     ['them', 'is it bad to use retinol and my peel pads the same night'],
@@ -116,21 +123,26 @@ const STORIES = {
     ['me', 'MOM yes'],
     ['them', 'why do bottles fight'],
     ['me', 'put your stuff in Skintel, it checks'],
-    ['them', 'it found 2 conflicts. screenshotting this for my book club'],
+    ['them', 'it found 2 conflicts'],
+    ['them', '@conflicts'],
+    ['them', 'screenshotting this for my book club'],
   ]},
   bestie: { hook: 'my best friend before every shopping trip', contact: { name: 'bestie 💅', initials: 'A' }, msgs: [
     ['them', 'shopping at 4?'],
-    ['me', 'yes i need a new moisturizer 😍'],
+    ['me', 'yes i need a new cleanser 😍'],
     ['them', 'scan it before you buy it this time'],
-    ['me', 'it was ONE bad moisturizer'],
+    ['me', 'it was ONE bad cleanser'],
     ['them', 'you cried in the car for 20 min'],
     ['me', '…downloading Skintel'],
+    ['me', '@verdict'],
+    ['them', '86?? ok fine it can come home'],
   ]},
   class: { hook: 'the group chat during finals week', contact: { name: 'bio lab 🧬', emoji: '🧬', group: { j: 'Jordan', a: 'Ava', s: 'Sam' } }, msgs: [
     ['j', 'why is everyone breaking out rn'],
     ['a', 'finals stress 💀'],
     ['s', 'mine’s the same 2 spots every month tho'],
     ['me', 'log your skin in Skintel, it lines your bad days up with what you used'],
+    ['me', '@triggers'],
     ['s', 'wait it shows what my bad days have in common??'],
     ['j', 'send the link 😭'],
   ]},
@@ -158,7 +170,7 @@ const html = S.msgs.map(([w, t], i) => {
   const newRun = !prev || prev[0] !== w, endRun = !next || next[0] !== w;
   return (C.group && w !== 'me' && newRun ? `<div class="who" id="w${i}">${C.group[w]}</div>` : '') +
     (w !== 'me' ? `<div class="m them tail typing ${newRun && !C.group && i ? 'gap' : ''}" id="t${i}"><div class="b"><i></i><i></i><i></i></div></div>` : '') +
-    `<div class="m ${side(w)} ${endRun ? 'tail' : ''} ${newRun && !(C.group && w !== 'me') && i ? 'gap' : ''}" id="m${i}"><div class="b"><span>${t}</span></div></div>`;
+    `<div class="m ${side(w)} ${t[0] === '@' ? 'pic' : ''} ${endRun ? 'tail' : ''} ${newRun && !(C.group && w !== 'me') && i ? 'gap' : ''}" id="m${i}"><div class="b">${t[0] === '@' ? `<img src="./assets/app-${t.slice(1)}.png">` : `<span>${t}</span>`}</div></div>`;
 }).join('');
 $('list').innerHTML = `<div class="stamp">iMessage<br><b>Today</b> 9:41 PM</div>` + html + `<div class="read" id="read">Delivered</div>`;
 
