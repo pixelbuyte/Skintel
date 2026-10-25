@@ -76,7 +76,7 @@ const SHOTS = [
   [5.3, 'college 🎓', 'turns out my bad days had one ingredient in common', 'co', 'DropInsights'],
 ];
 const DURATION = 6.6;
-window.__cues = SHOTS.map(s => [s[0], s[3].startsWith('hs') ? 'click' : 'sparkle']);   // sound cut: shutter / chime
+window.__cues = SHOTS.map(s => [s[0], s[3].startsWith('hs') ? 'click' : 'sparkle']).concat([[0.15, 'wahwah'], [3.25, 'ding'], [5.4, 'boom']]);   // sound cut: shutter / chime
 const MANY = ['ProductPump', 'ProductTube', 'ProductDropper', 'ProductTubeBack'];
 let hsN = 0, coN = 0;
 $('photos').innerHTML = SHOTS.map(([, , , kind, art], i) => {

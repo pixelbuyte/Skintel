@@ -93,9 +93,9 @@ const MASCOT = '../../ios/Skintel/Skintel/Resources/Assets.xcassets/DropWarning.
 const STORIES = {
   conflicts: { hook: 'POV: your skin finally texts you', msgs: [
     ['them', 'we need to talk'],
-    ['them', 'retinol AND an acid toner. same night. AGAIN??'],
+    ['them', 'retinol AND an acid toner. same night. AGAIN??', 'scratch'],
     ['me', 'it’s called self care 💅'],
-    ['them', 'it’s called stinging for 2 days 🙂'],
+    ['them', 'it’s called stinging for 2 days 🙂', 'boom'],
     ['me', 'ok how was i supposed to know'],
     ['them', 'Skintel checks your whole routine. one tap.'],
     ['them', '@conflicts'],
@@ -104,26 +104,26 @@ const STORIES = {
     ['me', 'found the cutest moisturizer 😍 buying it'],
     ['them', 'scan it first'],
     ['me', 'it’s $38 and the bottle is SO cute'],
-    ['them', 'the last cute bottle gave me bumps for 3 weeks'],
-    ['them', 'scan. it. first.'],
+    ['them', 'the last cute bottle gave me bumps for 3 weeks', 'wahwah'],
+    ['them', 'scan. it. first.', 'dun'],
     ['me', '@verdict'],
     ['them', 'ok. it can stay 🙂'],
   ]},
   triggers: { hook: 'when your skin knows what’s breaking you out and you don’t', msgs: [
     ['them', 'that’s the 4th breakout this month btw'],
     ['me', 'it’s probably hormones'],
-    ['them', 'it’s the same ingredient. every. time.'],
-    ['me', 'WHICH ONE'],
+    ['them', 'it’s the same ingredient. every. time.', 'dun'],
+    ['me', 'WHICH ONE', 'boom'],
     ['them', 'log me for a week. Skintel lines it up.'],
     ['them', '@triggers'],
   ]},
   mom: { hook: 'my mom discovering skincare at 52 😭', contact: { name: 'Mom ❤️', initials: 'M' }, msgs: [
     ['them', 'is it bad to use retinol and my peel pads the same night'],
     ['them', 'asking for a friend 🙂'],
-    ['me', 'MOM yes'],
+    ['me', 'MOM yes', 'scratch'],
     ['them', 'why do bottles fight'],
     ['me', 'put your stuff in Skintel, it checks'],
-    ['them', 'it found 2 conflicts'],
+    ['them', 'it found 2 conflicts', 'boom'],
     ['them', '@conflicts'],
     ['them', 'screenshotting this for my book club'],
   ]},
@@ -132,18 +132,18 @@ const STORIES = {
     ['me', 'yes i need a new cleanser 😍'],
     ['them', 'scan it before you buy it this time'],
     ['me', 'it was ONE bad cleanser'],
-    ['them', 'you cried in the car for 20 min'],
+    ['them', 'you cried in the car for 20 min', 'boom'],
     ['me', '…downloading Skintel'],
     ['me', '@verdict'],
-    ['them', '86?? ok fine it can come home'],
+    ['them', '86?? ok fine it can come home', 'ding'],
   ]},
   class: { hook: 'the group chat during finals week', contact: { name: 'bio lab 🧬', emoji: '🧬', group: { j: 'Jordan', a: 'Ava', s: 'Sam' } }, msgs: [
     ['j', 'why is everyone breaking out rn'],
-    ['a', 'finals stress 💀'],
+    ['a', 'finals stress 💀', 'wahwah'],
     ['s', 'mine’s the same 2 spots every month tho'],
     ['me', 'log your skin in Skintel, it lines your bad days up with what you used'],
     ['me', '@triggers'],
-    ['s', 'wait it shows what my bad days have in common??'],
+    ['s', 'wait it shows what my bad days have in common??', 'boom'],
     ['j', 'send the link 😭'],
   ]},
 };
@@ -161,9 +161,10 @@ const STEP = 1.25, TYPE = 0.55, KEYS = 0.8, FIRST = S.msgs[0][0] === 'me' ? 0 : 
 const times = S.msgs.map((m, i) => FIRST + i * STEP);
 const DURATION = times[times.length - 1] + 1.1;
 // Cues for build_skits.py: a send / receive sound per message, keyboard ticks before yours.
-window.__cues = S.msgs.flatMap(([w], i) => w === 'me'
+// A third element on a message is a meme-style sting on that punchline (stock/sfx.py).
+window.__cues = S.msgs.flatMap(([w, , meme], i) => (w === 'me'
   ? (times[i] > 0 ? [[Math.max(0, times[i] - KEYS), 'keys'], [times[i], 'send']] : [[times[i], 'send']])
-  : [[times[i], 'recv']]);
+  : [[times[i], 'recv']]).concat(meme ? [[times[i] + 0.12, meme]] : []));
 // A run of messages from one sender sits tight; the last one gets the tail. Group chats name the sender.
 const html = S.msgs.map(([w, t], i) => {
   const prev = S.msgs[i - 1], next = S.msgs[i + 1];
