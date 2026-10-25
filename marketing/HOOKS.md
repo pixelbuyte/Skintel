@@ -22,6 +22,61 @@ signature format is the one the calorie apps (Cal AI, BitePal) won with:
 
 All of these are marketing sources, not platform data. Treat them as patterns to test, not laws.
 
+## What's working on skincare TikTok right now (scraped, Oct 2026)
+
+We scraped 240 TikToks with Apify (`clockworks/tiktok-scraper`): the top 40 for each of six searches
+("skincare tips i wish i knew sooner", "skincare mistakes", "skincare routine order", "why am i
+breaking out skincare", "skincare ingredient checker", "skincare app"). They were ranked by
+**views per follower**: a small account getting millions of views means the hook did the work,
+not the following. The top 45, with on-screen hook, spoken opening, save and share rates, are in
+[`hook-research/tiktok-top.csv`](hook-research/tiktok-top.csv).
+
+| Pattern | Best example in the scrape | Honest Skintel version |
+|---|---|---|
+| **The quoted bad advice**, one line in quotes, then the real answer | „Just clean your skin" — 10.8M views, 19 s | „Just stop using whatever breaks you out" → the Triggers demo (which one?) |
+| **The secret someone told me** | "I'll never forget the girl who told me the secret to clear my blackheads" — 2.3M views on a 1.3K account, 6 s | Founder only, if true: "the thing that finally told me what was breaking me out" |
+| **Strong opinion, first word** | "I will literally die on this hill." — 2.4M views on 2.5K followers, 2.0% saves | "I will die on this hill: check your routine for conflicts before you blame your skin" |
+| **Wrong order ❌ / right order ✅** | "wrong skincare order ❌ / right order ✅" — 1.5M; "The Correct Order of your Night Skincare Routine" — 1.5M, 4.8% saves | Ask Skintel "when do I use my retinol?" with the person's own routine (ask-when demo) |
+| **Talking skin creature** (the skin or pore speaks, cartoon) | "(talking pore creatures)" — 907K views, **1.0% shares** (top-5 share rate in the set) | The mascot as your skin: `talk-*.mp4` (below) |
+| **Mistake/fear confession** | "what do I do" / "Guys, I'm really scared…" — 1.5M on 314 followers | Not for an ad. Leave it to real people. |
+| **"Why didn't anyone tell me this sooner"** about an app | "why didn't anyone tell me this sooner because there is a app called…" — 0.6% shares | Hook 4 ("why did nobody tell me this app existed"): the mascot says it, or someone it's true for |
+| **"Your moisturizer…" label distrust** | "Moisturizer might be breaking you out and the label will never tell you" | "your moisturizer might share an ingredient with everything that broke you out" → triggers |
+| **"just me and the app that saved my skin"** | 127K views on a 58-follower account | Founder only, never as a fake customer |
+
+What the numbers say beyond the lines themselves:
+
+- **Short wins on reach.** The biggest breakouts relative to followers were 6–19 s. The long ones
+  (60–355 s) come from big accounts. Our cuts are 15–17 s.
+- **Saves come from instructions** (routine order, step-by-step: 4–6% save rate). Skits and
+  reactions get **shares** instead. Post one of each: an Ask Skintel "order" video for saves, a
+  talking-skin skit for shares.
+- **Text on screen from frame one** in almost every top video; many have no voice at all.
+
+### Stitch these (the legitimate way to "use" someone's viral hook)
+
+TikTok's Stitch is built for this: their clip plays for the first few seconds with credit, then you
+answer. It works on any video whose creator has Stitch turned on, and it borrows their hook honestly.
+Good targets from the scrape: the "Just clean your skin" video (answer: "…but with *what*? here's how
+to find out what's breaking you out"), the "I will die on this hill" toner video, and any "wrong
+order ❌ / right order ✅" video (answer with Ask Skintel on your own routine). Stitches are filmed by
+the founder in the TikTok app; copy the URLs from the CSV.
+
+### Talking-skin videos (`marketing/video/stock/build_talk.py`)
+
+The mascot, animated from the brand art with **Kling 3.0 on Higgsfield** (image-to-video with
+generated voice, ~10 credits per 5 s), speaks as the viewer's skin. "POV: your skin can finally talk"
+is on screen from frame one, the spoken line is captioned (transcribed with faster-whisper, so the
+captions match the words), and then it cuts to the live app on a real hand-held phone:
+
+| Video | The skin says | Pays off with |
+|---|---|---|
+| `talk-conflicts.mp4` | "You put retinol AND an acid on me last night?! I'm begging you… check first." | Routine conflict check |
+| `talk-scan.mp4` | "Before you buy that… can we scan it first? Please." | Barcode scan → verdict |
+| `talk-triggers.mp4` | "I've been trying to tell you what's breaking me out for two years." | Triggers |
+
+The voice plays under the hook only; the rest is silent so a trending sound can go on in-app (keep
+the original sound at ~30% so the skin is still heard). Clips are listed in `stock/clips.json`.
+
 ## The one change we make: no fake faces
 
 Fastlane's hooks use **AI actors** presented as real users ("3 years in the gym and NOW I find
@@ -63,6 +118,10 @@ skin photos. Skintel finds patterns; it doesn't treat skin.
 - `hook-kit/text-NN.png` — each hook line as a transparent overlay in TikTok's own font (TikTok Sans,
   OFL). Lay it over **your** 2-second reaction clip in CapCut.
 - `hook-kit/body-*.mp4` — the four demo bodies without a hook, to put after your reaction clip.
+- `stock-NN-….mp4` — the same hooks over faceless stock B-roll, then the app on a real hand-held phone
+  (`stock/build_stock.py`).
+- `talk-….mp4` — the talking-skin skits (above): the mascot speaks with its own voice, then the
+  real-hands demo.
 
 ## How to film your own reaction (2 seconds)
 

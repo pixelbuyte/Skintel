@@ -48,6 +48,24 @@
       "page": "https://mixkit.co/free-stock-video/person-applying-hand-cream-45119/",
       "source": "Mixkit", "license": "Mixkit Stock Video Free License",
       "use": "broll", "what": "hands rubbing in hand cream"
+    },
+    "talk-conflicts": {
+      "url": "https://d8j0ntlcm91z4.cloudfront.net/user_3LAGF0fRBGVHqhdxkCqlyDhzPEL/hf_20261025_011110_718168bb-8d44-436d-9f3e-e0ff43c8e401.mp4",
+      "source": "Higgsfield (Kling 3.0 image-to-video, with sound), animated from the Skintel mascot art DropWarning",
+      "license": "Generated on the founder's Higgsfield plan; brand character, no real person",
+      "use": "talk", "what": "the mascot on a bathroom counter (square, 5 s) saying: You put retinol AND an acid on me last night?! I'm begging you... check first."
+    },
+    "talk-scan": {
+      "url": "https://d8j0ntlcm91z4.cloudfront.net/user_3LAGF0fRBGVHqhdxkCqlyDhzPEL/hf_20261025_011110_895c7dca-b349-43ba-8ba2-d6d5e23aebd1.mp4",
+      "source": "Higgsfield (Kling 3.0 image-to-video, with sound), animated from the Skintel mascot art DropWarning",
+      "license": "Generated on the founder's Higgsfield plan; brand character, no real person",
+      "use": "talk", "what": "the mascot on a bathroom counter (square, 5 s) saying: Before you buy that... can we scan it first? Please."
+    },
+    "talk-triggers": {
+      "url": "https://d8j0ntlcm91z4.cloudfront.net/user_3LAGF0fRBGVHqhdxkCqlyDhzPEL/hf_20261025_011111_b15fed4a-543e-4a51-95d3-60176f1f59ad.mp4",
+      "source": "Higgsfield (Kling 3.0 image-to-video, with sound), animated from the Skintel mascot art DropWarning",
+      "license": "Generated on the founder's Higgsfield plan; brand character, no real person",
+      "use": "talk", "what": "the mascot on a bathroom counter (square, 5 s) saying: I've been trying to tell you what's breaking me out for two years."
     }
   }
 }

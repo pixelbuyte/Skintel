@@ -28,6 +28,7 @@ python3 ../app-store/render.py      # exports app screens + real tab-bar crops i
 | a video of one feature | `f-*.html` (live app UI: `app-ui.css`, `feature.js`) |
 | keyword funnel / format reels | `reel-*.html`, `REELS.md` |
 | real-looking UGC (real hand holding the phone, real B-roll) | `stock/build_stock.py` (see `stock/README.md`) |
+| a skit / talking character, "POV: your skin can talk" | `stock/build_talk.py` + `talk.html` (Kling clip of the mascot on Higgsfield) |
 | stickers for the founder's own footage | `overlays.html` → `shoot-overlays.mjs`; paper plane: `plane.html` → `render-alpha.mjs` |
 
 ### Reaction-hook videos
@@ -48,6 +49,23 @@ Clips live in `stock/clips.json` with source page and licence. Only faceless cli
 forbid implying a pictured person endorses the product) and blur readable brand labels. Pexels
 search pages block scripts, so find clip ids with web search (`site:pexels.com`) and download via
 `pexels.com/download/video/<id>/`; Mixkit topic pages list ids directly.
+
+### Talking-skin skits (Higgsfield)
+
+The mascot speaks as the viewer's skin, then the real-hands demo plays. To add one:
+
+1. Generate the clip: Higgsfield `generate_video`, model `kling3_0`, 5 s, `sound: on`, the mascot PNG
+   (`Assets.xcassets/DropWarning`) as `start_image`, and the line in quotes in the prompt ("small
+   high-pitched cute cartoon voice", plain unlabelled bottles, "No on-screen text"). About 10 credits.
+   Upload local files with `media_upload`, then a curl PUT with `If-None-Match: *`, then `media_confirm`.
+2. Kling returns a square clip that opens on the start image over black. Transcribe it
+   (faster-whisper `small.en`, decode the audio with ffmpeg first) to check the words and get timings.
+3. Add the clip to `stock/clips.json`, a row to `TALKS` in `build_talk.py` (trim so the first word lands
+   by ~0.5 s; window x centring the mascot), and the same hook/body lengths, spoken chunks and demo
+   captions to `TALKS` in `talk.html`. Run `python3 stock/build_talk.py <name>`.
+
+Higgsfield's `virality_predictor` takes videos of 16 s or less and cost ~28 credits per video here.
+Its `reframe` (to 9:16) costs 25–63 credits per 5 s clip, so the crop is done locally instead.
 
 ### Feature videos
 

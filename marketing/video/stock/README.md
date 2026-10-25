@@ -40,3 +40,11 @@ pages, and `https://www.pexels.com/download/video/<id>/` downloads them. Mixkit 
 
 Add a line to `VIDEOS` in `build_stock.py`: hook number (from `hook.html`), B-roll clip and its
 start second, phone clip and crop-in zoom, demo. Check frames before sending.
+
+## Talking-skin skits
+
+`build_talk.py` uses the same demo bodies, but the hook is the Skintel mascot speaking as the viewer's
+skin (a Kling 3.0 clip from Higgsfield, with its own voice), cropped from square to 9:16 over a
+blurred fill, with "POV: your skin can finally talk" and word-timed captions from `talk.html`. Run
+`build_stock.py` first so `out/stock-tmp/*-body.mp4` exist. Steps for a new clip are in the
+`hook-video` skill.
