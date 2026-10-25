@@ -153,6 +153,37 @@ def ding():
 
 SOUNDS.update({'boom': boom, 'scratch': scratch, 'wahwah': wahwah, 'dun': dun, 'ding': ding})
 
+# Licensed sound effects from Mixkit (Mixkit Sound Effects Free License: free for commercial use,
+# no attribution). These are the real meme-style sounds; they replace the synthesized stings of the
+# same name. name: (Mixkit id, title, seconds to keep).
+MIXKIT = {
+    'boom': (2908, 'Movie trailer epic impact', 1.8),
+    'bass': (2299, 'Short bass hit', 1.0),
+    'wahwah': (744, 'Trombone disappoint', 2.2),
+    'buzzer': (948, 'Wrong answer bass buzzer', 1.2),
+    'laugh': (424, 'Crowd laugh', 2.6),
+    'badum': (2893, 'Bad joke drums', 2.0),
+    'dun': (228, 'Ominous drums appear', 2.4),
+    'ding': (952, 'Correct answer reward', 1.6),
+    'whoosh': (1492, 'Cinematic whoosh fast transition', 1.0),
+}
+
+def licensed(directory):
+    """Download the Mixkit previews once and trim them to WAVs with a short fade out."""
+    import subprocess
+    directory.mkdir(parents=True, exist_ok=True)
+    paths = {}
+    for name, (mid, _title, keep) in MIXKIT.items():
+        mp3, wav = directory / f'mixkit-{mid}.mp3', directory / f'm-{name}.wav'
+        if not mp3.exists():
+            subprocess.run(['curl', '-sSL', '-A', 'Mozilla/5.0', '-o', str(mp3),
+                            f'https://assets.mixkit.co/active_storage/sfx/{mid}/{mid}-preview.mp3'], check=True)
+        if not wav.exists():
+            subprocess.run(['ffmpeg', '-y', '-v', 'error', '-i', str(mp3), '-t', str(keep), '-af',
+                            f'afade=t=out:st={max(0, keep - 0.3)}:d=0.3', '-ar', str(SR), '-ac', '1', str(wav)], check=True)
+        paths[name] = wav
+    return paths
+
 def make(directory):
     directory.mkdir(parents=True, exist_ok=True)
     paths = {}

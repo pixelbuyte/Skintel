@@ -14,7 +14,7 @@ still go on top; the silent cuts carry nothing.
 """
 import json, os, subprocess, sys
 import sfx
-from build_stock import OUT, VIDEO, DEMO, run
+from build_stock import HERE, OUT, VIDEO, DEMO, run
 
 ENC = ['-c:v', 'libx264', '-preset', 'slow', '-crf', 18, '-pix_fmt', 'yuv420p']
 TMP = OUT / 'skits-tmp'
@@ -30,7 +30,7 @@ SKITS = {
     'text-class': ('textmsg', 's=class', 'triggers', 0.8, 13.4),
     'glowup': ('glowup', '', 'triggers', 0.8, 13.4),
 }
-SOUNDS = sfx.make(OUT / 'sfx')
+SOUNDS = {**sfx.make(OUT / 'sfx'), **sfx.licensed(HERE / 'cache' / 'sfx')}
 # The glow-up's cues predate the sound set's names.
 ALIAS = {'them': 'recv', 'me': 'send'}
 
