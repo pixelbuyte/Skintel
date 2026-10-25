@@ -70,7 +70,7 @@ def build(name):
         ms = int(round(max(0, t) * 1000))
         mix.append(f'[{i + 1}:a]aresample=48000,adelay={ms}|{ms},apad[s{i}]')
     labels = ''.join(f'[s{i}]' for i in range(len(cues)))
-    fc = ';'.join(mix) + f';{labels}amix=inputs={len(cues)}:normalize=0,alimiter=limit=0.9,aformat=channel_layouts=stereo[au]'
+    fc = ';'.join(mix) + f';{labels}amix=inputs={len(cues)}:normalize=0,volume=-4dB,alimiter=limit=0.7:level=false,aformat=channel_layouts=stereo[au]'
     run('ffmpeg', '-y', '-v', 'error', '-i', silent, *srcs, '-filter_complex', fc,
         '-map', '0:v', '-map', '[au]', '-c:v', 'copy', '-c:a', 'aac', '-b:a', '160k', '-shortest', '-movflags', '+faststart',
         OUT / f'{name}.mp4')
