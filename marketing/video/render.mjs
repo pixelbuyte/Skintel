@@ -17,7 +17,7 @@ const FPS = Number(FPS_ARG || 30);
 // the picture to a voiceover rather than speeding the voiceover up to fit the picture.
 const SCALE = Number(SCALE_ARG || 1);
 const SUFFIX = SUFFIX_ARG || '';
-const W = 1080, H = 1920;
+const W = Number(process.env.VW || 1080), H = Number(process.env.VH || 1920);  // VW/VH: ?mode=screen renders 886×1918
 // QUERY (e.g. "mode=body") is appended to the page URL; FMT=jpeg trades lossless frames for ~2× speed.
 const QUERY = process.env.QUERY ? `?${process.env.QUERY}` : '';
 const JPEG = process.env.FMT === 'jpeg';

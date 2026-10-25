@@ -27,6 +27,7 @@ python3 ../app-store/render.py      # exports app screens + real tab-bar crops i
 | "make one like this reel", hooks, UGC ad | `hook.html` + `build-hooks.mjs` (reaction hook → demo body) |
 | a video of one feature | `f-*.html` (live app UI: `app-ui.css`, `feature.js`) |
 | keyword funnel / format reels | `reel-*.html`, `REELS.md` |
+| real-looking UGC (real hand holding the phone, real B-roll) | `stock/build_stock.py` (see `stock/README.md`) |
 | stickers for the founder's own footage | `overlays.html` → `shoot-overlays.mjs`; paper plane: `plane.html` → `render-alpha.mjs` |
 
 ### Reaction-hook videos
@@ -39,13 +40,23 @@ python3 ../app-store/render.py      # exports app screens + real tab-bar crops i
 3. Look at frames before sending (below). Videos are silent on purpose: the founder adds a trending
    sound in-app, which also keeps music licensing on the platform's side.
 
+### Real-footage videos (stock)
+
+`stock/build_stock.py` makes the most convincing version: hook text over faceless stock B-roll, then
+the live app tracked onto a real hand-held phone (OpenCV, `stock/composite.py`), then the end card.
+Clips live in `stock/clips.json` with source page and licence. Only faceless clips (Pexels/Mixkit
+forbid implying a pictured person endorses the product) and blur readable brand labels. Pexels
+search pages block scripts, so find clip ids with web search (`site:pexels.com`) and download via
+`pexels.com/download/video/<id>/`; Mixkit topic pages list ids directly.
+
 ### Feature videos
 
 Copy the closest `f-*.html`. The screen is a `.mock` (390×844 pt, scaled ×1.659 into the phone);
 build it from the real SwiftUI view — grep the view for its strings, fonts (`SKFont`), colours
 (`SKColor`) and spacing (`SKSpace`) and copy them. Drive it with `F.type`, `F.appear`, `F.dots`,
 `F.taps` (pt coordinates on the screen), `F.captions` and `F.cta`. Every feature file also works as a
-hook body via `?mode=body` for free.
+hook body via `?mode=body`, and as a bare screen for compositing via `?mode=screen`
+(render with `VW=886 VH=1918`).
 
 ## Rules that keep this honest (and why)
 

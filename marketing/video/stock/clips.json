@@ -1,0 +1,53 @@
+{
+  "_rules": "Faceless clips only (Pexels/Mixkit forbid implying that a pictured person endorses the product), no readable brand labels (blur them), no medical settings. Files are downloaded into stock/cache/ (gitignored) by build_stock.py.",
+  "clips": {
+    "hands-white": {
+      "url": "https://www.pexels.com/download/video/6278955/",
+      "page": "https://www.pexels.com/video/person-holding-mobile-phone-6278955/",
+      "source": "Pexels", "license": "Pexels License (free, commercial use, no attribution)",
+      "use": "phone", "screen": "white", "what": "two hands holding a phone with a blank white screen"
+    },
+    "hand-laptop-white": {
+      "url": "https://www.pexels.com/download/video/6278834/",
+      "page": "https://www.pexels.com/video/mobile-phone-being-held-6278834/",
+      "source": "Pexels", "license": "Pexels License",
+      "use": "phone", "screen": "white", "what": "one hand holding a phone over a laptop, blank white screen"
+    },
+    "hand-green-outdoor": {
+      "url": "https://www.pexels.com/download/video/12039562/",
+      "page": "https://www.pexels.com/video/hand-holding-cellphone-with-green-screen-12039562/",
+      "source": "Pexels", "license": "Pexels License",
+      "use": "phone", "screen": "green", "what": "hand holding a green-screen phone outdoors"
+    },
+    "serum-drip": {
+      "url": "https://www.pexels.com/download/video/8131887/",
+      "page": "https://www.pexels.com/video/close-up-video-of-serum-dripping-on-person-s-palm-8131887/",
+      "source": "Pexels", "license": "Pexels License",
+      "use": "broll", "what": "serum dripping from a dropper onto a palm, pink background"
+    },
+    "shop-shelves": {
+      "url": "https://www.pexels.com/download/video/7754395/",
+      "page": "https://www.pexels.com/video/beauty-products-on-shelves-7754395/",
+      "source": "Pexels", "license": "Pexels License",
+      "use": "broll", "blur": 7, "what": "skincare products on shelves (labels readable, so blurred)"
+    },
+    "cream-jar": {
+      "url": "https://assets.mixkit.co/videos/45160/45160-720.mp4",
+      "page": "https://mixkit.co/free-stock-video/taking-moisturising-cream-from-a-jar-45160/",
+      "source": "Mixkit", "license": "Mixkit Stock Video Free License (free, commercial use, no attribution)",
+      "use": "broll", "what": "fingers taking cream from a jar"
+    },
+    "water-drop": {
+      "url": "https://assets.mixkit.co/videos/46315/46315-720.mp4",
+      "page": "https://mixkit.co/free-stock-video/slow-motion-of-a-drop-falling-46315/",
+      "source": "Mixkit", "license": "Mixkit Stock Video Free License",
+      "use": "broll", "what": "slow-motion drop falling into liquid"
+    },
+    "hand-cream": {
+      "url": "https://assets.mixkit.co/videos/45119/45119-720.mp4",
+      "page": "https://mixkit.co/free-stock-video/person-applying-hand-cream-45119/",
+      "source": "Mixkit", "license": "Mixkit Stock Video Free License",
+      "use": "broll", "what": "hands rubbing in hand cream"
+    }
+  }
+}

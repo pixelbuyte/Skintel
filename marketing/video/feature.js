@@ -7,7 +7,12 @@ const ART = "../../ios/Skintel/Skintel/Resources/Assets.xcassets";
 const mascot = `${ART}/Mascot.imageset/Mascot.png`;
 /* ?mode=body: the same demo as the body of a reaction-hook video (HOOKS.md). No captions, the
    phone fills the frame with a slight hand-held sway, so a hook clip can be cut in front of it. */
-const BODY = new URLSearchParams(location.search).get("mode") === "body";
+/* ?mode=screen: only the app screen (886×1918, no phone, no captions), to be mapped onto a real
+   phone in stock footage by stock/composite.py. */
+const MODE = new URLSearchParams(location.search).get("mode");
+const SCREEN = MODE === "screen";
+const BODY = MODE === "body" || SCREEN;
+if (SCREEN) document.documentElement.classList.add("screen-mode");
 if (BODY) {
   document.documentElement.classList.add("body-mode");
   // The tap ripple rides inside the phone, so it follows the phone's transform.
@@ -23,6 +28,12 @@ function art() {
     zooms: [[start, end, scale, lift]]: grows from the phone's top edge (so it never covers the
     caption); lift (stage px) slides it up for content further down the screen. */
 function phoneIn(t, at = 0.15, zooms = []) {
+  if (SCREEN) {
+    const ph = $("phone");
+    ph.style.transformOrigin = "0 0";
+    ph.style.transform = `scale(${886 / 647})`;
+    return;
+  }
   if (BODY) {
     const ph = $("phone");
     const sway = `translate(${Math.sin(t * 1.3) * 6}px, ${Math.cos(t * 1.1) * 5}px) rotate(${Math.sin(t * 0.9) * 0.7}deg)`;
@@ -90,7 +101,7 @@ function tap(t, at, x, y) {
   const p = E.seg(t, at - 0.15, at + 0.35);
   if (p <= 0 || p >= 1) return false;
   const s = 1.659;
-  const ox = BODY ? 18 : 198 + 18, oy = BODY ? 18 : 450 + 18;  // phone-local when inside the phone
+  const ox = SCREEN ? 0 : BODY ? 18 : 198 + 18, oy = SCREEN ? 0 : BODY ? 18 : 450 + 18;  // phone-local when inside the phone
   el.style.left = `${ox + x * s}px`; el.style.top = `${oy + y * s}px`;
   el.style.opacity = p < 0.3 ? p / 0.3 : 1 - (p - 0.3) / 0.7;
   el.style.transform = `scale(${0.6 + p * 0.9})`;
