@@ -30,7 +30,7 @@ sessions have already written to this branch.
 | D · Design | the canvas (PRO-SPEC header) | – | session_017SUzgGYtykb7DwUx6BChqp | v2 approved by the founder (Oct 26) |
 | F · Paywall + NEW + Settings | `Features/Subscription/**`, `Features/Settings/**`, `App/MainTabView.swift`, `DesignSystem/Components/SKNewBadge.swift` | A (types only) | session_017SUzgGYtykb7DwUx6BChqp | in progress |
 | E · Face Scan screens | `Features/FaceScan/**`, `project.yml` (camera string) | A, D approved | session_017SUzgGYtykb7DwUx6BChqp | in progress |
-| G · Video | `marketing/**` | E | | todo |
+| G · Video | `marketing/**` | E | session_01AkAuqDzDW3ukTT2ccywdb4 | prep (scripts, Skinstel rename, storyboard); screen footage after E |
 
 **Parallel batch 1:** C, A, B and D together. **Batch 2:** E and F together. **Then** G.
 
