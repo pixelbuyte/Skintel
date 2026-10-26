@@ -46,8 +46,32 @@ extension View {
         self.shadow(color: SKColor.primary.opacity(strength), radius: 8, y: 6)
     }
 
-    /// Page gutter used by every screen.
+    /// Page gutter used by every screen. On regular width (iPhone Duo's inner display, a large
+    /// iPhone in landscape) the page is also capped at a readable width and centred.
     func skPagePadding() -> some View {
-        self.padding(.horizontal, SKSpace.xl)
+        modifier(SKPagePadding())
     }
+}
+
+/// iPhone Duo's inner display is regular width and ignores the app's supported orientations,
+/// so without a cap every page would stretch one phone column across 951 pt.
+private struct SKPagePadding: ViewModifier {
+    @Environment(\.horizontalSizeClass) private var sizeClass
+
+    @ViewBuilder
+    func body(content: Content) -> some View {
+        if sizeClass == .regular {
+            content
+                .padding(.horizontal, SKSpace.xl)
+                .frame(maxWidth: SKLayout.readableWidth)
+                .frame(maxWidth: .infinity)
+        } else {
+            content.padding(.horizontal, SKSpace.xl)
+        }
+    }
+}
+
+enum SKLayout {
+    /// Widest a single column of content gets on a wide screen.
+    static let readableWidth: CGFloat = 640
 }
