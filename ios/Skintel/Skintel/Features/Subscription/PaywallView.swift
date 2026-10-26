@@ -104,6 +104,7 @@ struct PaywallView: View {
     /// App Store Connect and seats remain. Otherwise the plans below would contradict it.
     private var headline: String {
         let foundingOnSale = service?.product(.founding) != nil && (env.subscription.foundingSeatsRemaining ?? 1) > 0
+        if reason == .faceScan { return "Your face map is ready." }
         return foundingOnSale ? "The founding member deal." : "Everything, for your skin."
     }
 
@@ -118,6 +119,7 @@ struct PaywallView: View {
         case .culprits: "Triggers names the ingredients your “broke out” products share."
         case .assistant: "Ask Skintel answers from your shelf, routine and check-ins, and adds products you mention to your shelf."
         case .general: "Unlimited scans, Triggers from your full history, and more."
+        case .faceScan: "See what each area shows, follow it for 7 days and get a routine built from your shelf."
         }
     }
 
@@ -243,12 +245,36 @@ struct PaywallView: View {
     private var benefits: some View {
         VStack(alignment: .leading, spacing: SKSpace.sm) {
             Text(isPro ? "Everything in Skintel+ · tap to watch" : "What you get · tap to watch").skLabelStyle()
+            if reason == .faceScan && !isPro { faceScanRows }
             // Three rows, then "Show more" opens the rest in place, so nobody has to scroll
             // past six rows to reach the plans or Restore.
             ProBenefitsList(highlight: isPro ? nil : reason, method: method, limit: 3)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding(.top, SKSpace.sm)
+    }
+
+    /// The two face-scan features, led with when the paywall opens from the face scan.
+    private var faceScanRows: some View {
+        VStack(spacing: 0) {
+            faceScanRow("3D face map, zone by zone")
+            Rectangle().fill(SKColor.line).frame(height: 1).padding(.leading, 32)
+            faceScanRow("7-day check: oil, redness, what's changing")
+        }
+    }
+
+    private func faceScanRow(_ title: String) -> some View {
+        HStack(spacing: SKSpace.md) {
+            Image(systemName: "checkmark")
+                .font(.system(size: 14, weight: .bold))
+                .foregroundStyle(SKColor.primary)
+                .frame(width: 20)
+            Text(title).font(SKFont.sans(15, relativeTo: .body)).foregroundStyle(SKColor.ink)
+            Spacer(minLength: 0)
+            SKNewBadge()
+        }
+        .padding(.vertical, 10)
+        .accessibilityElement(children: .combine)
     }
 
     private func cta(_ s: SubscriptionService) -> some View {
@@ -381,7 +407,7 @@ struct FeatureDemo: View {
         case .recommend: recommendDemo
         case .routine: routineDemo
         case .assistant: askDemo
-        case .productLimit, .general: shelfDemo
+        case .productLimit, .general, .faceScan: shelfDemo
         }
     }
 
@@ -397,7 +423,7 @@ struct FeatureDemo: View {
             steps = [["Tag from your shelf", "Reading its ingredients…", "About that product", "Answered from your shelf"],
                      ["Mention a product", "Thinking…", "Not on your shelf yet", "Added to your shelf"],
                      ["Ask about a product", "Checking your shelf…", "Already on your shelf", "No duplicate added"]][scene % 3]
-        case .productLimit, .general: steps = ["Your shelf", "Adding products", "Free holds five", "Unlimited with Skintel+"]
+        case .productLimit, .general, .faceScan: steps = ["Your shelf", "Adding products", "Free holds five", "Unlimited with Skintel+"]
         }
         return steps[phase]
     }
@@ -410,7 +436,7 @@ struct FeatureDemo: View {
         case .recommend: "Three product picks that avoid what broke you out."
         case .routine: "A night routine check flags retinol and glycolic acid on the same night."
         case .assistant: "Tag a shelf product and Ask Skintel reads its ingredients; mention a new product and it offers to add it; mention one you already have and it knows it's on your shelf."
-        case .productLimit, .general: "A free shelf holds five products; Skintel+ is unlimited."
+        case .productLimit, .general, .faceScan: "A free shelf holds five products; Skintel+ is unlimited."
         }
     }
 
@@ -1004,7 +1030,7 @@ enum ProBenefit: String, CaseIterable, Identifiable {
         case .journalAnalysis, .culprits: self = .triggers
         case .compare, .recommend: self = .compare
         case .routine: self = .routine
-        case .general: return nil
+        case .general, .faceScan: return nil
         }
     }
 
@@ -1890,7 +1916,7 @@ extension ProLockedView.Feature {
         case .productLimit: self = .shelfCap
         case .routine: self = .routine
         case .recommend: self = .picks
-        case .general: return nil
+        case .general, .faceScan: return nil
         }
     }
 
