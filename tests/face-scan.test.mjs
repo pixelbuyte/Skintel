@@ -611,7 +611,7 @@ test('report: flagged summary is replaced with the report-specific neutral line'
   assert.equal(result.body.summary, 'A cosmetic summary of your seven-day check.');
 });
 
-test('free account: one locked baseline per lifetime, nothing readable, then 402', async () => {
+test('free account: one real Day 1 map per lifetime (scores, notes, summary; no regions, report or routine), then 402', async () => {
   tier = 'free'; status = 'none';
   const images = [
     { role: 'front', base64: JPEG, mimeType: 'image/jpeg' },
@@ -620,16 +620,22 @@ test('free account: one locked baseline per lifetime, nothing readable, then 402
     ...['forehead', 'nose', 'left_cheek', 'right_cheek', 'chin'].map((zone) => ({ role: 'zone', zone, base64: JPEG, mimeType: 'image/jpeg' })),
   ];
   const calm = { zone: 'left_cheek', scores: { redness: 5, shine: 10, raised_blemishes: 0, flat_marks: 0, texture: 12 }, note: 'Calm.' };
-  modelQueue.push({ content: goodRead({ zones: [goodZone('chin'), goodZone('nose'), calm] }) });
+  const chin = goodZone('chin', { note: 'A few raised blemishes along the jawline.', regions: [{ kind: 'raised_blemish', box: [0.42, 0.61, 0.08, 0.07] }] });
+  modelQueue.push({ content: goodRead({ zones: [chin, goodZone('nose'), calm], summary: 'Shine on the T-zone, a few blemishes on the chin.', routine: { am: ['Cleanser'], pm: ['Cleanser'], conflicts: [] } }) });
   const first = await post({ stage: 'baseline', cycleId: 'c1', day: 1, images });
   assert.equal(first.status, 200);
   assert.equal(first.body.locked, true);
-  assert.deepEqual(first.body.zones.map((z) => z.zone), ['chin', 'nose']);
-  for (const z of first.body.zones) {
-    assert.deepEqual(z.scores, {}); assert.deepEqual(z.regions, []); assert.equal(z.note, null);
-  }
-  assert.equal(first.body.summary, 'Your face map is ready.');
-  assert.equal(first.body.report, undefined);
+  assert.equal(first.body.quality.ok, true);
+  // Every zone the model read, calm ones too, with its real scores and note.
+  assert.deepEqual(first.body.zones, [
+    { zone: 'chin', scores: goodZone('chin').scores, note: 'A few raised blemishes along the jawline.' },
+    { zone: 'nose', scores: goodZone('nose').scores, note: 'Looks calm.' },
+    { zone: 'left_cheek', scores: calm.scores, note: 'Calm.' },
+  ]);
+  for (const z of first.body.zones) assert.equal('regions' in z, false);
+  assert.equal(first.body.summary, 'Shine on the T-zone, a few blemishes on the chin.');
+  assert.equal('report' in first.body, false);
+  assert.equal('routine' in first.body, false);
   assert.equal(first.body.disclaimer, 'A cosmetic read of a photo, not a diagnosis.');
 
   const second = await post({ stage: 'baseline', cycleId: 'c2', day: 1, images });
@@ -657,5 +663,49 @@ test('free account: an unreadable photo does not use up the free scan', async ()
   const good = await post({ stage: 'baseline', cycleId: 'c1', day: 1, images });
   assert.equal(good.status, 200);
   assert.equal(good.body.locked, true);
+  assert.equal(good.body.zones.length, 5);
+  assert.equal(good.body.summary, 'Mostly calm.');
   assert.equal((await post({ stage: 'baseline', cycleId: 'c2', day: 1, images })).status, 402);
+});
+
+test('free baseline carries into the week: after Skintel+, daily, final and report on the same cycleId all work', async () => {
+  tier = 'free'; status = 'none';
+  const zones = ['forehead', 'nose', 'left_cheek', 'right_cheek', 'chin'];
+  const views = [front, { role: 'left45', base64: JPEG, mimeType: 'image/jpeg' }, { role: 'right45', base64: JPEG, mimeType: 'image/jpeg' }];
+  const crops = zones.map((zone) => ({ role: 'zone', zone, base64: JPEG, mimeType: 'image/jpeg' }));
+  modelQueue.push({ content: goodRead() });
+  const free = await post({ stage: 'baseline', cycleId: 'week-1', day: 1, images: [...views, ...crops] });
+  assert.equal(free.status, 200);
+  assert.equal(free.body.locked, true);
+  assert.equal((await post(dailyBody({ cycleId: 'week-1', day: 2 }))).status, 402); // still free: the week is locked
+
+  tier = 'pro'; status = 'active'; // bought Skintel+; usage is per user and stage, never per cycle
+  modelQueue.push({ content: goodRead() });
+  const daily = await post(dailyBody({ cycleId: 'week-1', day: 2 }));
+  assert.equal(daily.status, 200);
+  assert.equal(daily.body.locked, undefined);
+  const day1 = crops.map((c) => ({ ...c, from: 'day1' }));
+  modelQueue.push({ content: goodRead() });
+  const final = await post({ stage: 'final', cycleId: 'week-1', day: 7, images: [...views, ...crops, ...day1] });
+  assert.equal(final.status, 200);
+  assert.equal(final.body.locked, undefined);
+  modelQueue.push({ content: goodReport() });
+  const report = await post(reportBody({ cycleId: 'week-1' }));
+  assert.equal(report.status, 200);
+  assert.equal(report.body.locked, undefined);
+  assert.equal(report.body.report.oil_pattern, 'combination');
+  assert.equal(modelCalls().length, 4);
+});
+
+test('free account: an empty model summary falls back to the neutral line, not a teaser', async () => {
+  tier = 'free'; status = 'none';
+  const images = [
+    { role: 'front', base64: JPEG, mimeType: 'image/jpeg' },
+    ...['forehead', 'nose', 'left_cheek', 'right_cheek', 'chin'].map((zone) => ({ role: 'zone', zone, base64: JPEG, mimeType: 'image/jpeg' })),
+  ];
+  modelQueue.push({ content: goodRead({ summary: '' }) });
+  const result = await post({ stage: 'baseline', cycleId: 'c1', day: 1, images });
+  assert.equal(result.status, 200);
+  assert.equal(result.body.locked, true);
+  assert.equal(result.body.summary, 'A cosmetic read of how your skin looks in this photo.');
 });

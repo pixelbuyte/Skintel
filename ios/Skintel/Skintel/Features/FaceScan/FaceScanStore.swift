@@ -21,12 +21,10 @@ final class FaceScanStore {
         /// `YYYY-MM-DD` of the cycle's first scan.
         var cycleStart: String = ""
         var answers: FaceAnswers?
-        /// The free scan's locked result, kept so reopening shows the locked map. Never a scan.
-        var lockedResult: FaceScanResult?
 
         init() {}
 
-        enum CodingKeys: String, CodingKey { case entries, cycleId, cycleStart, answers, lockedResult }
+        enum CodingKeys: String, CodingKey { case entries, cycleId, cycleStart, answers }
 
         init(from decoder: Decoder) throws {
             let c = try decoder.container(keyedBy: CodingKeys.self)
@@ -34,7 +32,6 @@ final class FaceScanStore {
             cycleId = (try? c.decodeIfPresent(String.self, forKey: .cycleId)) ?? ""
             cycleStart = (try? c.decodeIfPresent(String.self, forKey: .cycleStart)) ?? ""
             answers = try? c.decodeIfPresent(FaceAnswers.self, forKey: .answers)
-            lockedResult = try? c.decodeIfPresent(FaceScanResult.self, forKey: .lockedResult)
         }
     }
 
@@ -58,7 +55,6 @@ final class FaceScanStore {
     var entries: [FaceScanEntry] { data.entries }
     var cycleId: String { data.cycleId }
     var answers: FaceAnswers? { data.answers }
-    var lockedResult: FaceScanResult? { data.lockedResult }
     var hasCycle: Bool { !data.cycleId.isEmpty }
 
     var calibration: FaceCalibration {
@@ -95,11 +91,6 @@ final class FaceScanStore {
         deleteDay1Crops()
         data.cycleId = UUID().uuidString.lowercased()
         data.cycleStart = Streaks.dayKey(now, timeZone: timeZone)
-        persist()
-    }
-
-    func saveLocked(_ result: FaceScanResult?) {
-        data.lockedResult = result
         persist()
     }
 

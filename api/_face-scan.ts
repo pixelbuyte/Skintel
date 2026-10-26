@@ -994,19 +994,17 @@ function toResponse(out: FaceOutput | null, locks: Locks, stage: FaceStage) {
 // ---------------------------------------------------------------------------------------------
 
 /**
- * The free scan's answer: which zones have something worth a look, and nothing more. No scores,
- * regions, notes or report, so the result can't be read without Skintel+.
+ * The free scan's answer (founder, Oct 26): a real Day 1 map. Every zone with its scores and note,
+ * and the model's summary. No regions, report or routine. `locked: true` marks it as the free scan:
+ * the 7-day check is what Skintel+ pays for.
  */
 export function lockForFreeScan(body: ReturnType<typeof toResponse>) {
   const zones: ZoneResult[] = Array.isArray(body.zones) ? body.zones : [];
-  const found = zones
-    .filter((z) => Object.values(z.scores ?? {}).some((v) => typeof v === 'number' && v >= 25))
-    .map((z) => ({ zone: z.zone, scores: {}, regions: [], note: null }));
   return {
     quality: body.quality,
     locked: true,
-    zones: body.quality.ok ? found : [],
-    summary: body.quality.ok ? 'Your face map is ready.' : body.summary,
+    zones: body.quality.ok ? zones.map((z) => ({ zone: z.zone, scores: z.scores, note: z.note })) : [],
+    summary: body.summary,
     disclaimer: body.disclaimer,
   };
 }
@@ -1038,8 +1036,8 @@ export async function handleFaceScan(req: VercelRequest, res: VercelResponse) {
   const parsed = parseRequest(raw);
   if ('error' in parsed) return json(res, { error: parsed.error, ...parsed.extra }, parsed.status);
 
-  // Founder decision (Oct 26): one free scan first. A non-Pro account gets one baseline per
-  // lifetime, answered as a locked teaser (zones with findings only). Everything else is Pro.
+  // Founder decision (Oct 26): one free scan first. A non-Pro account gets one readable baseline
+  // per lifetime, answered as a real Day 1 map (`lockForFreeScan`). Every other stage is Pro.
   const freeScan = !isPro;
   if (freeScan) {
     if (parsed.stage !== 'baseline') return json(res, { error: 'Pro required' }, 402);
