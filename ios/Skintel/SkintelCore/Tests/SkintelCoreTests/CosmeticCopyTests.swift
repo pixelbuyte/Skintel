@@ -5,9 +5,15 @@ import Testing
 // Face Scan wording guard (PRO-SPEC §6).
 
 private let bannedTerms = [
+    // The original list.
     "acne vulgaris", "rosacea", "eczema", "dermatitis", "psoriasis", "melanoma", "malassezia", "fungal acne",
     "infection", "disease", "diagnose", "diagnosis", "prescription", "papule", "pustule", "comedone",
     "lesion", "cure", "treat",
+    // The server's wider pattern.
+    "treats", "treated", "treating", "cures", "cured", "curing",
+    "diagnoses", "diagnosed", "diagnosing", "diagnostic", "diagnostics", "clinical", "clinically", "prescriptions",
+    "papules", "micropapule", "micropapules", "pustules", "comedones", "microcomedone", "microcomedones", "lesions",
+    "pie", "pih", "post inflammatory", "atrophic", "infections", "infected", "diseases",
 ]
 
 @Test(arguments: bannedTerms)
@@ -18,14 +24,53 @@ func everyBannedTermIsFlagged(term: String) {
     #expect(CosmeticCopy.diagnosisWords(in: "About " + term) == [term])
 }
 
-@Test func treatmentIsAllowedButTreatIsFlagged() {
+@Test func treatmentIsAllowedButTheTreatFamilyIsFlagged() {
     #expect(!CosmeticCopy.containsDiagnosisWords("A gentle treatment for your evening routine."))
     #expect(!CosmeticCopy.containsDiagnosisWords("Treatments and Treatment"))
     #expect(CosmeticCopy.containsDiagnosisWords("This will treat your breakouts."))
     #expect(CosmeticCopy.containsDiagnosisWords("Treat"))
     #expect(CosmeticCopy.containsDiagnosisWords("treat, then moisturise"))
     #expect(CosmeticCopy.containsDiagnosisWords("Don't treat it (yet)."))
+    #expect(CosmeticCopy.containsDiagnosisWords("It treats redness."))
+    #expect(CosmeticCopy.containsDiagnosisWords("Already treated"))
+    #expect(CosmeticCopy.containsDiagnosisWords("Treating the chin"))
     #expect(CosmeticCopy.diagnosisWords(in: "Treatment, not treat") == ["treat"])
+}
+
+@Test func theServersWiderPatternIsMirrored() {
+    for text in ["Clinical grade", "clinically proven", "A diagnostic tool", "Diagnostics", "diagnosing", "It cures", "curing it",
+                 "Post-inflammatory marks", "POST INFLAMMATORY",
+                 "PIE and PIH", "Red PIE marks", "atrophic scars", "an infected spot", "Infections", "diseases of the skin",
+                 "micropapules", "microcomedones", "prescriptions"] {
+        #expect(CosmeticCopy.containsDiagnosisWords(text), "\(text) should be flagged")
+    }
+    // Whole words only: these merely contain a banned word, or sit next to one.
+    for text in ["treatment", "A secure fit", "curated picks", "accurate", "clinic hours", "pieces", "spied", "pihlaja",
+                 "postal", "inflammatory", "post", "atrophy", "diagnostician", "infectious"] {
+        #expect(!CosmeticCopy.containsDiagnosisWords(text), "\(text) should pass")
+    }
+    #expect(CosmeticCopy.diagnosisWords(in: "PIE, PIH and post-inflammatory marks") == ["pie", "pih", "post inflammatory"])
+    // "Post" and "inflammatory" apart, or split by punctuation, are not the phrase.
+    #expect(!CosmeticCopy.containsDiagnosisWords("Post. Inflammatory"))
+    #expect(!CosmeticCopy.containsDiagnosisWords("inflammatory post"))
+}
+
+@Test func scoreNumbersAreFlagged() {
+    for text in ["85%", "Your score: 85 %", "Redness is 72.5 percent", "Shine 35/100", "Shine 35 / 100", "35 /100",
+                 "a 35 out of 100 skin", "35 OUT OF 100", "0%", "Mostly calm, 12% shine on the T-zone.", "scored 7.5/100 today",
+                 "100 percent", "2 of 3 scans, redness 40%", "v2.5%"] {
+        #expect(CosmeticCopy.containsScoreNumbers(text), "\(text) should be flagged")
+    }
+    // Counts, days and plain words are not scores.
+    for text in ["", "Day 4", "2 of 3 scans", "3 nights a week", "Azelaic acid, 3 nights a week.", "SPF 30", "Retinol 0.3",
+                 "scan 5 of 7", "Mostly calm. Shine on the T-zone, a few blemishes on the chin.", "percent", "%", "out of 100",
+                 "Between 3/10 and 4", "Rated 8 out of 10", "10 / 10 would scan", "100", "1.5.", "5 per cent"] {
+        #expect(!CosmeticCopy.containsScoreNumbers(text), "\(text) should pass")
+    }
+    // Several numbers: any one that reads as a score is enough.
+    #expect(CosmeticCopy.containsScoreNumbers("3 nights a week, redness 80%"))
+    // The wording the app does use never trips it.
+    #expect(!CosmeticCopy.containsScoreNumbers(FaceScanResult.defaultDisclaimer))
 }
 
 @Test func matchingIsCaseInsensitiveAndOnWholeWords() {

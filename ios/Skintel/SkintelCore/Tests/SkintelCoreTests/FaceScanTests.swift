@@ -47,7 +47,10 @@ private let specExample = """
     { "quality": { "ok": true, "issues": [] }, "zones": [], "summary": "Week done.", "disclaimer": "d",
       "report": { "oil_pattern": "combination", "redness": "steady", "barrier": "less_steady", "marks": "fading",
                   "suggested_active": { "name": "Azelaic acid", "why": "Evens red marks.", "nights_per_week": 3 } },
-      "routine": { "am": ["Gentle cleanser", "SPF 30"], "pm": ["Cleanser", "Azelaic acid"],
+      "routine": { "am": [ { "step": "Gentle cleanser", "product": "CeraVe Hydrating", "note": "30 seconds" },
+                           { "step": "SPF 30" } ],
+                   "pm": [ { "step": "Cleanser", "product": "", "note": "" },
+                           { "step": "Azelaic acid", "product": "The Ordinary Azelaic 10%", "note": "3 nights a week" } ],
                    "conflicts": ["Retinol and AHA on the same night"] } }
     """
     let r = try decodeFace(FaceScanResult.self, json)
@@ -58,8 +61,12 @@ private let specExample = """
     #expect(report.marks == .fading)
     #expect(report.suggestedActive == FaceReport.SuggestedActive(name: "Azelaic acid", why: "Evens red marks.", nightsPerWeek: 3))
     let routine = try #require(r.routine)
-    #expect(routine.am == ["Gentle cleanser", "SPF 30"])
-    #expect(routine.pm == ["Cleanser", "Azelaic acid"])
+    #expect(routine.am == [FaceRoutine.Step(step: "Gentle cleanser", product: "CeraVe Hydrating", note: "30 seconds"),
+                           FaceRoutine.Step(step: "SPF 30")])
+    // An empty product is nil, a missing note is "".
+    #expect(routine.pm[0] == FaceRoutine.Step(step: "Cleanser"))
+    #expect(routine.pm[0].product == nil && routine.pm[0].note == "")
+    #expect(routine.pm[1].product == "The Ordinary Azelaic 10%")
     #expect(routine.conflicts == ["Retinol and AHA on the same night"])
 
     // `suggested_active: null` is a valid report.
@@ -129,15 +136,18 @@ private let specExample = """
                    { "kind": "raised_blemish", "box": [0.1, "x", 0.3, 0.4] },
                    { "kind": "raised_blemish" },
                    { "kind": "raised_blemish", "box": "0.1,0.2,0.3,0.4" },
-                   { "kind": "flat_mark", "box": [-0.2, 0.5, 1.4, 0.25] },
+                   { "kind": "red_mark", "box": [-0.2, 0.5, 1.4, 0.25] },
                    { "box": [0, 0, 0.5, 0.5] } ] }
     """
     let z = try decodeFace(FaceZoneResult.self, json)
     #expect(z.regions.count == 2)
     // Out-of-range numbers are clamped to 0...1, not rejected.
-    #expect(z.regions[0] == FaceRegion(kind: "flat_mark", box: [0, 0.5, 1, 0.25]))
+    #expect(z.regions[0] == FaceRegion(kind: "red_mark", box: [0, 0.5, 1, 0.25]))
+    #expect(z.regions[0] == FaceRegion(kind: .redMark, box: [0, 0.5, 1, 0.25]))
+    #expect(z.regions[0].kindValue == .redMark)
     // A region with no kind is still a usable highlight.
     #expect(z.regions[1].kind == "")
+    #expect(z.regions[1].kindValue == .unknown)
     #expect(z.regions[1].box == [0, 0, 0.5, 0.5])
     #expect(z.scores == [.shine: 10])
 
@@ -186,9 +196,68 @@ private let specExample = """
 
 @Test func faceRoutineDecodesWithMissingArraysAndBadElements() throws {
     let r = try decodeFace(FaceRoutine.self, #"{"am":["SPF", 3, null, "Moisturiser"]}"#)
-    #expect(r.am == ["SPF", "Moisturiser"])
+    #expect(r.am == [FaceRoutine.Step(step: "SPF"), FaceRoutine.Step(step: "Moisturiser")])
     #expect(r.pm.isEmpty && r.conflicts.isEmpty)
     #expect(try decodeFace(FaceRoutine.self, "{}") == FaceRoutine())
+}
+
+@Test func faceRoutineStepsDecodeFromStringsOrObjectsAndDropTheUnusable() throws {
+    let r = try decodeFace(FaceRoutine.self, """
+    { "pm": [ "Cleanser",
+              { "step": "Niacinamide", "product": "  ", "note": "after cleansing", "extra": 1 },
+              { "step": "Moisturiser", "product": "CeraVe PM" },
+              { "product": "no step text" },
+              { "step": "   " },
+              "",
+              { "step": 7 },
+              [] ] }
+    """)
+    #expect(r.pm.map(\.step) == ["Cleanser", "Niacinamide", "Moisturiser"])
+    #expect(r.pm[0] == FaceRoutine.Step(step: "Cleanser", product: nil, note: ""))
+    #expect(r.pm[1].product == nil)            // whitespace-only product is nil
+    #expect(r.pm[1].note == "after cleansing")
+    #expect(r.pm[2].product == "CeraVe PM" && r.pm[2].note == "")
+    #expect(FaceRoutine.Step(step: "X", product: "").product == nil)
+
+    // Steps encode as objects and read back equal.
+    let data = try JSONCoding.encoder.encode(r)
+    #expect(try JSONCoding.decode(FaceRoutine.self, from: data) == r)
+    #expect(String(decoding: data, as: UTF8.self).contains(#""step":"Cleanser""#))
+}
+
+@Test func faceZoneNoteIsNilWhenBlank() throws {
+    #expect(try decodeFace(FaceZoneResult.self, #"{"zone":"chin","note":""}"#).note == nil)
+    #expect(try decodeFace(FaceZoneResult.self, #"{"zone":"chin","note":"  \n "}"#).note == nil)
+    #expect(try decodeFace(FaceZoneResult.self, #"{"zone":"chin","note":"A few."}"#).note == "A few.")
+    #expect(try decodeFace(FaceZoneResult.self, #"{"zone":"chin"}"#).note == nil)
+    #expect(FaceZoneResult(zone: .chin, note: "").note == nil)
+}
+
+@Test func faceRegionKindsReadAsCosmeticWords() throws {
+    #expect(FaceRegion.Kind.allCases.map(\.rawValue)
+            == ["raised_blemish", "clogged_pore", "red_mark", "brown_mark", "uneven_texture", "unknown"])
+    #expect(FaceRegion.Kind.allCases.map(\.label)
+            == ["Raised blemish", "Clogged pore", "Red mark", "Brown mark", "Uneven texture", "Area"])
+    // A kind this build does not know keeps its string for storage and reads as unknown.
+    let region = try #require(FaceRegion(kind: "future_kind", box: [0, 0, 1, 1]))
+    #expect(region.kind == "future_kind")
+    #expect(region.kindValue == .unknown)
+    #expect(FaceRegion(kind: "Brown_Mark", box: [0, 0, 1, 1])?.kindValue == .brownMark)
+    let decoded = try decodeFace(FaceRegion.Kind.self, #""clogged_pore""#)
+    #expect(decoded == .cloggedPore)
+    #expect(try decodeFace(FaceRegion.Kind.self, "5") == .unknown)
+}
+
+@Test func oilPatternUsesOneVocabularyIncludingBalanced() throws {
+    #expect(FaceReport.OilPattern.allCases.map(\.rawValue) == ["oily", "dry", "combination", "normal", "unknown"])
+    #expect(FaceReport.OilPattern.normal.label == "Balanced")
+    let cases: [(wire: String, expected: FaceReport.OilPattern)] = [
+        ("dry", .dry), ("normal", .normal), ("combination", .combination), ("oily", .oily),
+        ("balanced", .normal), ("Balanced", .normal), ("greasy", .unknown),
+    ]
+    for (wire, expected) in cases {
+        #expect(try decodeFace(FaceReport.self, #"{"oil_pattern":"\#(wire)"}"#).oilPattern == expected, "\(wire)")
+    }
 }
 
 @Test func faceScanRoundTripsThroughTheSharedEncoder() throws {
@@ -200,7 +269,7 @@ private let specExample = """
       "summary": "s", "disclaimer": "d",
       "report": { "oil_pattern": "combination", "redness": "variable", "barrier": "less_steady", "marks": "more",
                   "suggested_active": { "name": "Azelaic acid", "why": "w", "nights_per_week": 2 } },
-      "routine": { "am": ["a"], "pm": ["p"], "conflicts": ["c"] } }
+      "routine": { "am": [ { "step": "Cleanser", "product": "CeraVe", "note": "n" } ], "pm": ["p"], "conflicts": ["c"] } }
     """)
     let data = try JSONCoding.encoder.encode(original)
     #expect(try JSONCoding.decode(FaceScanResult.self, from: data) == original)
@@ -216,13 +285,20 @@ private let specExample = """
     {"day":"2026-10-26","stage":"final","result":{"quality":{"ok":true},"summary":"s"}}
     """)
     #expect(ok.day == "2026-10-26" && ok.stage == .final && ok.result.quality.ok)
+    #expect(ok.cycleId == "")                  // entries stored before cycles existed
 
     // Missing/unknown stage reads as daily; a missing or unreadable result is `unreadable`.
     let odd = try decodeFace(FaceScanEntry.self, #"{"day":"2026-10-27","stage":"weekly","result":"oops"}"#)
     #expect(odd.stage == .daily)
     #expect(odd.result == .unreadable)
     let empty = try decodeFace(FaceScanEntry.self, "{}")
-    #expect(empty.day == "" && empty.stage == .daily && empty.result == .unreadable)
+    #expect(empty.day == "" && empty.stage == .daily && empty.result == .unreadable && empty.cycleId == "")
+
+    // The cycle id round-trips, and a wrong-typed one reads as "".
+    let cycle = FaceScanEntry(day: "2026-10-26", stage: .baseline, result: .unreadable, cycleId: "c-1")
+    let data = try JSONCoding.encoder.encode(cycle)
+    #expect(try JSONCoding.decode(FaceScanEntry.self, from: data) == cycle)
+    #expect(try decodeFace(FaceScanEntry.self, #"{"cycleId":42}"#).cycleId == "")
 }
 
 @Test func faceNamesCarryWireKeysAndUserFacingLabels() {

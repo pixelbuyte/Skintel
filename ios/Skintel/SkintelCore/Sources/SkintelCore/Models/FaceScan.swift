@@ -99,7 +99,35 @@ public struct FaceQuality: Codable, Sendable, Hashable {
 /// normalised `[x, y, w, h]` in the crop, each value clamped to 0...1. A vision model's boxes are
 /// approximate: draw soft highlights and counts, never precise outlines (PRO-SPEC §3).
 public struct FaceRegion: Codable, Sendable, Hashable {
-    /// Wire kind such as `raised_blemish`. Kept as a string so a new kind is not fatal.
+    /// What a highlight marks, in cosmetic words (PRO-SPEC §6). Anything the server adds later
+    /// reads as `.unknown`; the original string stays in `FaceRegion.kind`.
+    public enum Kind: String, Codable, Sendable, Hashable, CaseIterable {
+        case raisedBlemish = "raised_blemish"
+        case cloggedPore = "clogged_pore"
+        case redMark = "red_mark"
+        case brownMark = "brown_mark"
+        case unevenTexture = "uneven_texture"
+        case unknown
+
+        public init(from decoder: Decoder) throws {
+            let raw = try? decoder.singleValueContainer().decode(String.self)
+            self = raw.flatMap { Self(rawValue: $0.lowercased()) } ?? .unknown
+        }
+
+        public var label: String {
+            switch self {
+            case .raisedBlemish: "Raised blemish"
+            case .cloggedPore: "Clogged pore"
+            case .redMark: "Red mark"
+            case .brownMark: "Brown mark"
+            case .unevenTexture: "Uneven texture"
+            case .unknown: "Area"
+            }
+        }
+    }
+
+    /// Wire kind such as `raised_blemish`, kept as the string the server sent so a new kind
+    /// survives storage. Read it as an enum with `kindValue`.
     public let kind: String
     /// Exactly four numbers, each within 0...1.
     public let box: [Double]
@@ -110,6 +138,13 @@ public struct FaceRegion: Codable, Sendable, Hashable {
         self.kind = kind
         self.box = box.map { min(max($0, 0), 1) }
     }
+
+    public init?(kind: Kind, box: [Double]) {
+        self.init(kind: kind.rawValue, box: box)
+    }
+
+    /// `kind` as an enum; `.unknown` for a kind this build does not know.
+    public var kindValue: Kind { Kind(rawValue: kind.lowercased()) ?? .unknown }
 
     public var x: Double { box[0] }
     public var y: Double { box[1] }
@@ -142,12 +177,13 @@ public struct FaceZoneResult: Codable, Sendable, Hashable, Identifiable {
 
     public var id: FaceZone { zone }
 
-    /// Scores are rounded-to-range here too, so no `FaceZoneResult` can hold a value outside 0...100.
+    /// Scores are clamped here too, so no `FaceZoneResult` can hold a value outside 0...100, and a
+    /// blank `note` (empty or only whitespace) becomes nil so a screen never shows an empty line.
     public init(zone: FaceZone, scores: [FaceMetric: Int] = [:], regions: [FaceRegion] = [], note: String? = nil) {
         self.zone = zone
         self.scores = scores.mapValues { min(max($0, 0), 100) }
         self.regions = regions
-        self.note = note
+        self.note = note.flatMap { $0.allSatisfy(\.isWhitespace) ? nil : $0 }
     }
 
     /// Rounds to the nearest integer (halves away from zero) and clamps to 0...100.
@@ -193,12 +229,15 @@ public struct FaceZoneResult: Codable, Sendable, Hashable, Identifiable {
 /// The Day 7 synthesis (`stage: "report"`). Every word field falls back to `.unknown`; a report
 /// from a newer server never fails to decode.
 public struct FaceReport: Codable, Sendable, Hashable {
+    /// Where shine sits. The wire values are `dry | normal | combination | oily`, and
+    /// `FaceCalibration`'s Day 3 read returns this same type, so both screens share one vocabulary.
+    /// "balanced" also decodes, as `.normal`.
     public enum OilPattern: String, Codable, Sendable, Hashable, CaseIterable {
         case oily, dry, combination, normal, unknown
 
         public init(from decoder: Decoder) throws {
-            let raw = try? decoder.singleValueContainer().decode(String.self)
-            self = raw.flatMap { Self(rawValue: $0.lowercased()) } ?? .unknown
+            let raw = (try? decoder.singleValueContainer().decode(String.self))?.lowercased()
+            self = raw.map { $0 == "balanced" ? "normal" : $0 }.flatMap { Self(rawValue: $0) } ?? .unknown
         }
 
         public var label: String {
@@ -206,7 +245,7 @@ public struct FaceReport: Codable, Sendable, Hashable {
             case .oily: "Oily"
             case .dry: "Dry"
             case .combination: "Combination"
-            case .normal: "Normal"
+            case .normal: "Balanced"
             case .unknown: "Not clear"
             }
         }
@@ -328,11 +367,50 @@ public struct FaceReport: Codable, Sendable, Hashable {
 /// The conflict-checked routine that comes with the Day 7 report. `conflicts` lists pairs the
 /// server removed or spaced out, as plain sentences.
 public struct FaceRoutine: Codable, Sendable, Hashable {
-    public var am: [String]
-    public var pm: [String]
+    /// One routine step on the wire: `{ "step": "Cleanser", "product": "…", "note": "…" }`.
+    /// A plain string ("Cleanser") decodes too, as a step with no product and no note.
+    public struct Step: Codable, Sendable, Hashable {
+        public var step: String
+        /// A product from the person's shelf; nil when the step is generic. Never empty.
+        public var product: String?
+        public var note: String
+
+        /// A blank `product` (empty or only whitespace) becomes nil.
+        public init(step: String, product: String? = nil, note: String = "") {
+            self.step = step
+            self.product = product.flatMap { $0.allSatisfy(\.isWhitespace) ? nil : $0 }
+            self.note = note
+        }
+
+        enum CodingKeys: String, CodingKey { case step, product, note }
+
+        /// Throws when there is no usable step text (a missing, non-string or blank `step`);
+        /// `FaceRoutine` drops such steps and keeps the rest.
+        public init(from decoder: Decoder) throws {
+            let text: String
+            var product: String?
+            var note = ""
+            if let plain = try? decoder.singleValueContainer().decode(String.self) {
+                text = plain
+            } else {
+                let c = try decoder.container(keyedBy: CodingKeys.self)
+                text = try c.decode(String.self, forKey: .step)
+                product = c.lenient(String.self, forKey: .product)
+                note = c.lenient(String.self, forKey: .note) ?? ""
+            }
+            guard !text.allSatisfy(\.isWhitespace) else {
+                throw DecodingError.dataCorrupted(
+                    DecodingError.Context(codingPath: decoder.codingPath, debugDescription: "a routine step needs text"))
+            }
+            self.init(step: text, product: product, note: note)
+        }
+    }
+
+    public var am: [Step]
+    public var pm: [Step]
     public var conflicts: [String]
 
-    public init(am: [String] = [], pm: [String] = [], conflicts: [String] = []) {
+    public init(am: [Step] = [], pm: [Step] = [], conflicts: [String] = []) {
         self.am = am
         self.pm = pm
         self.conflicts = conflicts
@@ -342,8 +420,8 @@ public struct FaceRoutine: Codable, Sendable, Hashable {
 
     public init(from decoder: Decoder) throws {
         let c = try decoder.container(keyedBy: CodingKeys.self)
-        self.init(am: c.lossyArray(String.self, forKey: .am),
-                  pm: c.lossyArray(String.self, forKey: .pm),
+        self.init(am: c.lossyArray(Step.self, forKey: .am),
+                  pm: c.lossyArray(Step.self, forKey: .pm),
                   conflicts: c.lossyArray(String.self, forKey: .conflicts))
     }
 }

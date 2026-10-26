@@ -1,13 +1,13 @@
 import Foundation
 
 /// Client-side guard for Face Scan wording (PRO-SPEC §6). The product is a cosmetic read of a
-/// photo; it never names a condition or promises treatment. The server rejects banned words, so
-/// this is a second check on what the screen is about to show, not the first.
+/// photo; it never names a condition, promises treatment, or shows an invented-precision number.
+/// The server rejects the same words, so this is a second check on what the screen is about to
+/// show, not the first. The word list mirrors the server's pattern.
 ///
-/// Matching is on whole words, case-insensitive. A term also matches its plural or past form
-/// (`lesions`, `diagnosed`, `cured`), but never a longer word that merely contains it, so
-/// `secure`, `curated`, `treatment` and `treatments` all pass. `treat` is matched as a whole word
-/// only, which keeps `treatment` allowed.
+/// Matching is on whole words, case-insensitive, against an explicit list of forms (`treat`,
+/// `treats`, `treated`, `treating`, `lesions`, `diagnostic`, and so on). A longer word that only
+/// contains one never matches, so `treatment`, `secure`, `curated` and `accurate` all pass.
 ///
 /// No regular expressions and no stored non-`Sendable` state: the text is split into words and the
 /// words are looked up in a set, so behaviour is identical on Apple platforms and Linux.
@@ -15,37 +15,74 @@ public enum CosmeticCopy {
 
     // MARK: Banned words
 
-    /// One-word terms. Plural and `-d` forms are derived in `bannedWords`.
-    private static let singleWordTerms = [
-        "rosacea", "eczema", "dermatitis", "psoriasis", "melanoma", "malassezia", "infection",
-        "disease", "diagnose", "diagnosis", "prescription", "papule", "pustule", "comedone",
-        "lesion", "cure",
+    /// Every banned single-word form.
+    private static let bannedWords: Set<String> = [
+        // Conditions.
+        "rosacea", "eczema", "dermatitis", "psoriasis", "melanoma", "melanomas", "malassezia",
+        // Treatment and cure claims. "treatment" is not here and stays allowed.
+        "treat", "treats", "treated", "treating",
+        "cure", "cures", "cured", "curing",
+        // Diagnosis and clinical framing.
+        "diagnose", "diagnoses", "diagnosed", "diagnosing", "diagnosis", "diagnostic", "diagnostics",
+        "clinical", "clinically",
+        "prescription", "prescriptions",
+        // Clinical names for blemishes and marks.
+        "papule", "papules", "micropapule", "micropapules", "pustule", "pustules",
+        "comedone", "comedones", "microcomedone", "microcomedones", "lesion", "lesions",
+        "pie", "pih", "postinflammatory", "atrophic",
+        // Illness.
+        "infection", "infections", "infected", "disease", "diseases",
     ]
 
-    /// Two-word terms, matched when the words are adjacent (any whitespace or hyphen between).
-    private static let phrases = [["acne", "vulgaris"], ["fungal", "acne"]]
+    /// Multi-word terms, matched when the words are joined only by spaces or hyphens.
+    private static let phrases = [["acne", "vulgaris"], ["fungal", "acne"], ["post", "inflammatory"]]
 
     /// The one sanctioned use of a banned word: the standard disclaimer says "not a diagnosis"
     /// (`FaceScanResult.defaultDisclaimer`). Skipped as a unit, so a bare "diagnosis" still flags.
     private static let allowedPhrases = [["not", "a", "diagnosis"]]
-
-    /// Every accepted single-word form: each term, its plural, its `-d` form when it ends in `e`
-    /// (`diagnosed`, `cured`), and `treat` on its own.
-    private static let bannedWords: Set<String> = {
-        var words: Set<String> = ["treat"]
-        for term in singleWordTerms {
-            words.insert(term)
-            words.insert(term + "s")
-            if term.hasSuffix("e") { words.insert(term + "d") }
-        }
-        return words
-    }()
 
     // MARK: API
 
     /// True when `text` contains a diagnosis or treatment word.
     public static func containsDiagnosisWords(_ text: String) -> Bool {
         !diagnosisWords(in: text).isEmpty
+    }
+
+    /// True when `text` states a score as a number: a figure followed by `%`, `percent`, `/100`
+    /// (spaces allowed around the slash) or `out of 100`, such as "85%", "72.5 percent",
+    /// "35 / 100" or "35 out of 100". Scores travel as 0-100 on the wire but the screen shows
+    /// bands and trends, never the number (PRO-SPEC §6). Plain counts ("3 nights a week",
+    /// "2 of 3 scans", "Day 4") are fine.
+    public static func containsScoreNumbers(_ text: String) -> Bool {
+        let chars = Array(text.lowercased())
+        func isDigit(_ c: Character) -> Bool { c.isASCII && c.isNumber }
+        func hasPrefix(_ prefix: String, at start: Int) -> Bool {
+            let p = Array(prefix)
+            return start + p.count <= chars.count && Array(chars[start..<(start + p.count)]) == p
+        }
+        var i = 0
+        while i < chars.count {
+            // Only at the start of a run of digits, so a run is read once, whole.
+            guard isDigit(chars[i]), i == 0 || !isDigit(chars[i - 1]) else { i += 1; continue }
+            var end = i
+            while end < chars.count, isDigit(chars[end]) { end += 1 }
+            if end + 1 < chars.count, chars[end] == ".", isDigit(chars[end + 1]) {
+                end += 1
+                while end < chars.count, isDigit(chars[end]) { end += 1 }
+            }
+            var next = end
+            while next < chars.count, chars[next].isWhitespace { next += 1 }
+            if hasPrefix("%", at: next) || hasPrefix("percent", at: next) || hasPrefix("out of 100", at: next) {
+                return true
+            }
+            if hasPrefix("/", at: next) {
+                var afterSlash = next + 1
+                while afterSlash < chars.count, chars[afterSlash].isWhitespace { afterSlash += 1 }
+                if hasPrefix("100", at: afterSlash) { return true }
+            }
+            i = end
+        }
+        return false
     }
 
     /// The banned words found in `text`, lowercased, in order of first appearance, without repeats.
