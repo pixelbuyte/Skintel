@@ -6,6 +6,7 @@ import SwiftUI
 struct SignInView: View {
     @State var model: AuthViewModel
     @Environment(AppEnvironment.self) private var env
+    @Environment(\.webAuthenticationSession) private var webAuthenticationSession
     @FocusState private var focus: Field?
 
     private enum Field { case email, password }
@@ -35,6 +36,10 @@ struct SignInView: View {
                     .clipShape(RoundedRectangle(cornerRadius: SKRadius.button, style: .continuous))
                     .padding(.top, SKSpace.xl)
                     .disabled(model.isLoading)
+
+                    googleButton
+                        .padding(.top, SKSpace.md)
+                        .disabled(model.isLoading)
 
                     orDivider.padding(.vertical, SKSpace.lg)
                 }
@@ -130,6 +135,27 @@ struct SignInView: View {
         .overlay(RoundedRectangle(cornerRadius: SKRadius.card, style: .continuous).stroke(SKColor.line))
     }
 
+    /// Same height and radius as the Apple button; cream surface, ink border and text.
+    private var googleButton: some View {
+        Button {
+            Task { await model.signInWithGoogle(using: webAuthenticationSession) }
+        } label: {
+            HStack(spacing: SKSpace.sm) {
+                GoogleGMark(size: 18)
+                Text("Continue with Google")
+                    .font(SKFont.button)
+                    .foregroundStyle(SKColor.ink)
+            }
+            .frame(maxWidth: .infinity)
+            .frame(height: 52)
+            .background(SKColor.cream, in: RoundedRectangle(cornerRadius: SKRadius.button, style: .continuous))
+            .overlay(RoundedRectangle(cornerRadius: SKRadius.button, style: .continuous).stroke(SKColor.ink, lineWidth: 1))
+            .contentShape(RoundedRectangle(cornerRadius: SKRadius.button, style: .continuous))
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel("Continue with Google")
+    }
+
     private var orDivider: some View {
         HStack(spacing: SKSpace.md) {
             Rectangle().fill(SKColor.line).frame(height: 1)
@@ -187,5 +213,35 @@ struct SignInView: View {
         .buttonStyle(.plain)
         .padding(.leading, SKSpace.sm)
         .accessibilityLabel("Back")
+    }
+}
+
+/// Google "G" drawn from simple shapes (no image asset): four trimmed ring segments plus
+/// the blue crossbar. Brand colours come from `SKColor.GoogleMark`.
+private struct GoogleGMark: View {
+    var size: CGFloat
+
+    var body: some View {
+        let stroke = size * 0.22
+        // Circle trim runs clockwise from 3 o'clock; the gap sits at the top right.
+        ZStack {
+            segment(0.0, 0.125, SKColor.GoogleMark.blue, stroke)
+            segment(0.125, 0.44, SKColor.GoogleMark.green, stroke)
+            segment(0.44, 0.6, SKColor.GoogleMark.yellow, stroke)
+            segment(0.6, 0.875, SKColor.GoogleMark.red, stroke)
+            Rectangle()
+                .fill(SKColor.GoogleMark.blue)
+                .frame(width: size * 0.48, height: stroke)
+                .offset(x: size * 0.24)
+        }
+        .frame(width: size, height: size)
+        .accessibilityHidden(true)
+    }
+
+    private func segment(_ from: CGFloat, _ to: CGFloat, _ color: Color, _ stroke: CGFloat) -> some View {
+        Circle()
+            .inset(by: stroke / 2)
+            .trim(from: from, to: to)
+            .stroke(color, lineWidth: stroke)
     }
 }

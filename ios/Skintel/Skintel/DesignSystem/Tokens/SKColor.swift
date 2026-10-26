@@ -28,6 +28,15 @@ enum SKColor {
     static let clayTileBg = Color(hex: 0xEAD8C8)
     static let clayTileFg = Color(hex: 0x7A4A32)
 
+    /// Google's brand colours. Only for the "G" mark on Continue with Google — nowhere else
+    /// (the yellow in particular is outside the Skintel palette).
+    enum GoogleMark {
+        static let blue = Color(hex: 0x4285F4)
+        static let green = Color(hex: 0x34A853)
+        static let yellow = Color(hex: 0xFBBC05)
+        static let red = Color(hex: 0xEA4335)
+    }
+
     /// Scanner / camera surfaces.
     static let scannerBg = Color(hex: 0x0B0A08)
     static let scannerOverlay = Color.black.opacity(0.35)

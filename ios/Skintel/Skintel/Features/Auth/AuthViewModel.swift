@@ -1,5 +1,6 @@
 import AuthenticationServices
 import Foundation
+import SwiftUI  // WebAuthenticationSession (AuthenticationServices + SwiftUI overlay)
 import Observation
 import SkintelCore
 
@@ -115,6 +116,44 @@ final class AuthViewModel {
             }
         }
         appleNonce = nil
+    }
+
+    // MARK: Google (OAuth PKCE web flow, no Google SDK)
+
+    func signInWithGoogle(using webAuth: WebAuthenticationSession) async {
+        guard !isLoading else { return }
+        isLoading = true; error = nil; notice = nil
+        defer { isLoading = false }
+        let verifier = OAuthPKCE.verifier()
+        let url = session.oauthAuthorizeURL(provider: "google", redirectTo: OAuthPKCE.redirectURL,
+                                            codeChallenge: OAuthPKCE.challenge(for: verifier))
+        let callback: URL
+        do {
+            callback = try await webAuth.authenticate(using: url, callbackURLScheme: OAuthPKCE.callbackScheme,
+                                                      preferredBrowserSession: .shared)
+        } catch let err {
+            if (err as? ASWebAuthenticationSessionError)?.code == .canceledLogin { return }
+            error = "Google sign-in didn't complete. Try again or use your email."
+            Haptics.error()
+            return
+        }
+        switch GoTrueClient.parseOAuthCallback(callback) {
+        case .failure(let message):
+            error = message
+            Haptics.error()
+        case .code(let code):
+            do {
+                try await session.signInWithOAuth(authCode: code, codeVerifier: verifier)
+                analytics.track(.signIn(method: "google"))
+                Haptics.success()
+            } catch let err as APIError {
+                error = friendly(err)
+                Haptics.error()
+            } catch {
+                self.error = error.localizedDescription
+                Haptics.error()
+            }
+        }
     }
 
     private func friendly(_ e: APIError) -> String {
