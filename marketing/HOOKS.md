@@ -190,6 +190,19 @@ and the end card. Each ends on a comment prompt anyone can answer before asking 
 | `roi-pov-conflicts` | POV: 2 of your products have been fighting every night | what's in your night routine? |
 | `roi-pov-ask` | POV: it's 1am and you still don't know what order these go in | what order do *you* do yours in? |
 
+### Native formats beat polished ads
+
+The winners in every scrape are short (5–18 s), raw and native, often from accounts with under 1K
+followers; cinematic ads read as ads. So the volume play is (`stock/build_reveal.py`):
+
+| File | What |
+|---|---|
+| `reveal-triggers` / `-scan` / `-conflicts` | **"Name of this app is…"**: the raw iPhone screen recording of the app, sped up, TikTok's own text styles (hook in a white box, one changing line). ~8 s, silent: add the trending sound in the app. Scan and conflicts hold the name back until the end, so "what's the app??" comments come first. |
+| `carousel/slide-1…6.png` | **Photo carousel**, "skincare things nobody tells you": 3 true tips, then Skinstel (track it; check before you buy). Carousels earn saves and comments. |
+
+Post 1–3 a day, different hooks; keep what holds past 3 s and gets comments. The strongest format of
+all is still a real face: the founder, or creators who've actually used the app (`build_selfie.py`).
+
 ## The one change we make: no fake faces
 
 Fastlane's hooks use **AI actors** presented as real users ("3 years in the gym and NOW I find

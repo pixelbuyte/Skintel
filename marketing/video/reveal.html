@@ -1,0 +1,67 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<style>
+  /* "Name of this app is…" reveals: native-looking text over a raw iPhone screen recording of the app
+     (stock/build_reveal.py). The format that travels from tiny accounts (HOOKS.md: BloomSkin 4.8M
+     plays at 582 followers, Lumy Care 2.2M at 675). TikTok's own text styles: the hook in a white box
+     for the whole video, one short line lower down that changes with the screen.
+     Transparent: render-alpha.mjs reveal <name>. */
+  @font-face { font-family: "TikTok Sans"; font-weight: 700; src: url("./fonts/TikTokSans-700.ttf"); }
+  @font-face { font-family: "TikTok Sans"; font-weight: 800; src: url("./fonts/TikTokSans-800.ttf"); }
+  html, body { margin: 0; background: transparent !important; }
+  #stage { position: relative; width: 1080px; height: 1920px; overflow: hidden; font-family: "TikTok Sans", sans-serif; }
+  #hook { position: absolute; left: 70px; right: 70px; top: 230px; text-align: center; }
+  #hook span { display: inline; background: #fff; color: #111; font-weight: 800; font-size: 60px; line-height: 1.42;
+               padding: 6px 18px; border-radius: 14px; box-decoration-break: clone; -webkit-box-decoration-break: clone;
+               box-shadow: 0 3px 14px rgba(0,0,0,.35); }
+  #sub { position: absolute; left: 70px; right: 70px; top: 1330px; text-align: center; color: #fff; font-weight: 800;
+         font-size: 58px; line-height: 1.12;
+         text-shadow: -4px -4px 0 #000, 4px -4px 0 #000, -4px 4px 0 #000, 4px 4px 0 #000, 0 5px 0 #000, 0 0 18px rgba(0,0,0,.5); }
+  html.print #stage { background: #8FA3A0; }
+</style>
+</head>
+<body>
+<div id="stage"><div id="hook"></div><div id="sub"></div></div>
+<script src="./engine.js"></script>
+<script>
+const E = window.__E, $ = id => document.getElementById(id);
+// name: [duration, hook (on screen the whole time), [start, end, line]…]. Times match REVEALS in
+// stock/build_reveal.py (the recording is sped up there).
+const ADS = {
+  triggers: [8.8, 'name of this app is Skinstel&nbsp;🍀', [
+    [0.0, 2.8, 'log how your skin feels in one tap'],
+    [2.8, 6.6, 'it lines up your bad days with what you used&nbsp;🔎'],
+    [6.6, 8.8, 'comment SKINSTEL for the link&nbsp;👇'],
+  ]],
+  scan: [8.0, 'this app checks if a product has what broke YOU out… before you buy it&nbsp;😭', [
+    [0.0, 3.2, 'scan the barcode'],
+    [3.2, 6.0, 'a verdict for YOUR skin'],
+    [6.0, 8.0, 'it’s called Skinstel. comment SKINSTEL for the link&nbsp;👇'],
+  ]],
+  conflicts: [7.5, 'if you use retinol AND an acid… check your routine first&nbsp;⚠️', [
+    [0.0, 3.0, 'one tap checks your whole routine'],
+    [3.0, 5.5, 'what clashes + what to change'],
+    [5.5, 7.5, 'it’s called Skinstel. comment SKINSTEL&nbsp;👇'],
+  ]],
+};
+const q = new URLSearchParams(location.search);
+const [DURATION, HOOK, SUBS] = ADS[q.get('f')] || ADS.triggers;
+$('hook').innerHTML = `<span>${HOOK}</span>`;
+function render(t) {
+  const c = SUBS.find(([s, e]) => t >= s && t < e);
+  const el = $('sub');
+  if (!c) { el.style.opacity = 0; return; }
+  if (el.dataset.s !== String(c[0])) { el.dataset.s = String(c[0]); el.innerHTML = c[2]; }
+  const p = E.easeEmil(E.seg(t, c[0], c[0] + 0.12));
+  el.style.opacity = 1;
+  el.style.transform = `scale(${E.lerp(1.1, 1, p)})`;
+}
+window.__seek = t => { render(t); return true; };
+window.__duration = DURATION;
+if (q.get('print')) document.documentElement.classList.add('print');
+render(0.5);
+</script>
+</body>
+</html>
