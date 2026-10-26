@@ -45,13 +45,19 @@ async function exportData(req: VercelRequest, res: VercelResponse) {
   if (!user) return json(res, { error: 'Unauthorized' }, 401);
 
   const sb = getServiceClient();
-  const [{ data: products }, { data: subscription }] = await Promise.all([
+  const [{ data: products }, { data: subscription }, { data: faceScans }] = await Promise.all([
     sb
       .from('products')
       .select('*, product_ingredients(*)')
       .eq('user_id', user.id)
       .order('created_at', { ascending: false }),
     sb.from('subscriptions').select('*').eq('user_id', user.id).maybeSingle(),
+    // Results only: face photos are never stored server-side.
+    sb
+      .from('face_scans')
+      .select('cycle_id, day, stage, result, created_at')
+      .eq('user_id', user.id)
+      .order('created_at', { ascending: false }),
   ]);
 
   const body = JSON.stringify(
@@ -60,6 +66,7 @@ async function exportData(req: VercelRequest, res: VercelResponse) {
       user: { id: user.id, email: user.email },
       subscription,
       products,
+      face_scans: faceScans,
     },
     null,
     2,
@@ -96,8 +103,9 @@ async function deleteAccount(req: VercelRequest, res: VercelResponse) {
 
   try {
     await revokeAppleForDeletion(user, req.body?.appleAuthorizationCode, req.body?.appleNonce);
-    // products, ingredients, skin_journal and subscriptions all reference auth.users
-    // ON DELETE CASCADE. One hard delete avoids erasing rows before a later auth error.
+    // products, ingredients, skin_journal, subscriptions, face_scans and face_scan_usage all
+    // reference auth.users ON DELETE CASCADE. One hard delete avoids erasing rows before a
+    // later auth error.
     const { error } = await getServiceClient().auth.admin.deleteUser(user.id);
     if (error) return json(res, { error: 'Unable to delete your account. Try again.' }, 500);
     return json(res, { ok: true });

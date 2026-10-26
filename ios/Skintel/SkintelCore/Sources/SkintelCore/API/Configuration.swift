@@ -84,6 +84,7 @@ func mapError(status: Int, data: Data) -> APIError {
     case 403: return .unauthenticated
     case 404: return .notFound(msg)
     case 409: return .conflict(msg)
+    case 413: return .payloadTooLarge
     case 422: return .unprocessable(msg)
     case 429: return .rateLimited
     default: return .server(status: status, message: msg)

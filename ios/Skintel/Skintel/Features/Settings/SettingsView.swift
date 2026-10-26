@@ -390,14 +390,12 @@ struct SettingsView: View {
                 VStack(alignment: .leading, spacing: 2) {
                     Text(ent.isPro ? (founding ? "Founding member" : "Skintel+") : "Skintel Free")
                         .font(SKFont.sans(17, weight: .semibold, relativeTo: .headline))
-                    Text(membershipLine(ent: ent, founding: founding))
-                        .font(SKFont.secondary).opacity(0.85)
                 }
                 Spacer(minLength: 0)
                 Button {
                     if ent.isPro { showAccount = true } else { openPaywall(.general) }
                 } label: {
-                    Text(ent.isPro ? "Manage" : "Get Skintel+")
+                    Text(ent.isPro ? "Manage subscription" : "Get Skintel+")
                         .font(SKFont.sans(14, weight: .semibold, relativeTo: .subheadline))
                         .padding(.horizontal, 14)
                         .frame(height: 34)
@@ -413,13 +411,6 @@ struct SettingsView: View {
                         in: RoundedRectangle(cornerRadius: 18, style: .continuous))
             .skPrimaryGlow(strength: 0.25)
         }
-    }
-
-    private func membershipLine(ent: Entitlement, founding: Bool) -> String {
-        guard ent.isPro else { return "Scanning, Ask Skintel and journal analysis" }
-        guard let end = ent.periodEnd else { return "Active" }
-        let date = end.formatted(date: .abbreviated, time: .omitted)
-        return founding ? "Access until \(date)" : "Renews \(date)"
     }
 
     private var skinSummary: String {
@@ -633,6 +624,7 @@ private struct AccountDataView: View {
     @State private var exportError: String?
     @State private var showSignOut = false
     @State private var showDelete = false
+    @State private var showDeleteFaceScans = false
     @State private var deleteConfirmText = ""
     @State private var deleting = false
     @State private var deleteError: String?
@@ -672,11 +664,6 @@ private struct AccountDataView: View {
                 if let restoreMessage { SettingsInfo(text: restoreMessage, last: true) }
             }
 
-            SettingsGroup(title: env.subscription.entitlement.isPro ? "Your Skintel+ benefits" : "What Skintel+ adds",
-                          footer: "Tap one to watch it work.") {
-                ProBenefitsList(limit: 3).padding(.horizontal, SKSpace.lg).padding(.vertical, 4)
-            }
-
             SettingsGroup(title: "Your data") {
                 SettingsRow(title: "Export my data", subtitle: "Shelf, journal and scans as a file", trailing: {
                     if exporting { ProgressView().tint(SKColor.primary) }
@@ -684,6 +671,10 @@ private struct AccountDataView: View {
                     Task { await export() }
                 }
                 if let exportError { SettingsInfo(text: exportError, tone: .bad) }
+                SettingsRow(title: "Delete face scans", subtitle: "Scans, answers and Day 1 close-ups on this phone",
+                            showsChevron: false, trailing: { EmptyView() }) {
+                    showDeleteFaceScans = true
+                }
                 SettingsLinkRow(title: "Privacy policy", url: env.config.privacyURL)
                 SettingsLinkRow(title: "Terms", url: env.config.termsURL, last: true)
             }
@@ -714,6 +705,9 @@ private struct AccountDataView: View {
         .confirmationDialog("Sign out of Skintel?", isPresented: $showSignOut, titleVisibility: .visible) {
             Button("Sign out", role: .destructive) { Task { await env.session.signOut() } }
         } message: { Text("Your shelf and journal stay in your account.") }
+        .confirmationDialog("Delete your face scans?", isPresented: $showDeleteFaceScans, titleVisibility: .visible) {
+            Button("Delete face scans", role: .destructive) { FaceScanStore.shared.reset() }
+        } message: { Text("Removes every face scan, your answers and the Day 1 close-ups from this phone.") }
         .alert("Delete your account?", isPresented: $showDelete) {
             TextField("Type DELETE to confirm", text: $deleteConfirmText)
             Button("Delete everything", role: .destructive) { Task { await beginDeletion() } }

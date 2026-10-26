@@ -58,6 +58,11 @@ beforeEach(() => {
     if (url === 'https://appleid.apple.com/auth/revoke') {
       return new Response(null, { status: revokeStatus });
     }
+    if (url.startsWith('https://supabase.invalid/rest/v1/products')) return reply([]);
+    if (url.startsWith('https://supabase.invalid/rest/v1/subscriptions')) return reply([{ tier: 'pro' }]);
+    if (url.startsWith('https://supabase.invalid/rest/v1/face_scans')) {
+      return reply([{ cycle_id: 'c1', day: 1, stage: 'baseline', result: { zones: [] }, created_at: '2026-10-26T00:00:00Z' }]);
+    }
     if (url === `https://supabase.invalid/auth/v1/admin/users/${userID}`) {
       assert.equal(init.method, 'DELETE');
       return deleteStatus === 200 ? reply({ user }) : reply({ message: 'database error' }, deleteStatus);
@@ -212,4 +217,16 @@ test('ambiguous action and wrong method are rejected before any network request'
   assert.equal((await request(['delete', 'export'])).status, 400);
   assert.equal((await request('delete', undefined, 'GET')).status, 405);
   assert.equal(calls.length, 0);
+});
+
+test('export-data includes face scan results (never photos) alongside the rest', async () => {
+  const result = await request('export', null, 'GET');
+  assert.equal(result.status, 200);
+  assert.deepEqual(result.body.face_scans, [
+    { cycle_id: 'c1', day: 1, stage: 'baseline', result: { zones: [] }, created_at: '2026-10-26T00:00:00Z' },
+  ]);
+  const query = calls.find((item) => item.url.includes('/rest/v1/face_scans'));
+  const params = new URL(query.url).searchParams;
+  assert.equal(params.get('select'), 'cycle_id,day,stage,result,created_at');
+  assert.equal(params.get('user_id'), `eq.${userID}`);
 });

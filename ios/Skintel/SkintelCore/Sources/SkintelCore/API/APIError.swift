@@ -12,6 +12,9 @@ public enum APIError: Error, Sendable, Equatable {
     case conflict(String?)
     case badRequest(String?)
     case rateLimited
+    /// 413: the request body (photos) was larger than the server accepts. Retrying the same
+    /// photos cannot help, so this is not `isRetryable`.
+    case payloadTooLarge
     case server(status: Int, message: String?)
     case network(String)
     case offline
@@ -32,6 +35,7 @@ public enum APIError: Error, Sendable, Equatable {
         case .conflict(let m): m ?? "That's no longer available."
         case .badRequest(let m): m ?? "Something in the request wasn't right."
         case .rateLimited: "Too many requests. Give it a moment."
+        case .payloadTooLarge: "Those photos are too large to send. Try again."
         case .server(_, let m): m ?? "Skintel's server had a problem. Try again."
         case .network(let m): m
         case .offline: "You're offline."

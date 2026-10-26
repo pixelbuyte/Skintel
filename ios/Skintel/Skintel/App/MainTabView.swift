@@ -44,6 +44,10 @@ struct MainTabView: View {
     @State private var showCompare = false
     @State private var showAssistant = false
     @State private var showShelf = false
+    @State private var showFaceScan = false
+    /// "Ask Skinstel about this scan": close the face scan cover, then open Ask.
+    @State private var askAfterFaceScan = false
+    @AppStorage("seen.faceScan") private var seenFaceScan = false
     @State private var keyboardUp = false
     @AppStorage(AssistantPlacement.key) private var assistantPlacement = AssistantPlacement.tab
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
@@ -97,11 +101,12 @@ struct MainTabView: View {
         }
         .sheet(isPresented: $showQuick, onDismiss: runPending) {
             QuickActionsSheet(canScan: env.subscription.entitlement.canUseScanner,
+                              showsFaceScanNew: !seenFaceScan,
                               assistantInTab: assistantPlacement == AssistantPlacement.tab) { action in
                 pending = action
                 showQuick = false
             }
-            .presentationDetents([.height(500)])
+            .presentationDetents([.height(580)])
             .presentationDragIndicator(.visible)
             .presentationBackground(SKColor.cream)
         }
@@ -111,6 +116,11 @@ struct MainTabView: View {
         .sheet(isPresented: $showCompare) { CompareView().skProGates() }
         .skAskSheet(isPresented: $showAssistant)
         .sheet(isPresented: $showShelf) { ShelfTab().skProGates() }
+        .fullScreenCover(isPresented: $showFaceScan, onDismiss: {
+            if askAfterFaceScan { askAfterFaceScan = false; showAssistant = true }
+        }) {
+            FaceScanFlowView(onAsk: { askAfterFaceScan = true; showFaceScan = false }).skProGates()
+        }
         .environment(\.openPaywall, OpenPaywallAction { reason in gate(reason) })
         .onChange(of: env.pendingDeepLink, initial: true) { consumeDeepLink() }
         .onChange(of: env.subscription.loaded) { consumeDeepLink() }
@@ -130,7 +140,7 @@ struct MainTabView: View {
 
     private var isPresenting: Bool {
         presentScanner || wall != nil || plans != nil || showQuick || showCheckIn || showAddProduct
-            || showCompare || showAssistant || showShelf
+            || showCompare || showAssistant || showShelf || showFaceScan
     }
 
     private func openDeepLink(_ link: SkintelDeepLink) async {
@@ -148,6 +158,8 @@ struct MainTabView: View {
             showCompare = false
             showAssistant = false
             showShelf = false
+            showFaceScan = false
+            askAfterFaceScan = false
             try? await Task.sleep(for: .milliseconds(650))
         }
         let assistantInTab = assistantPlacement == AssistantPlacement.tab
@@ -257,12 +269,17 @@ struct MainTabView: View {
             showAssistant = true
         case .shelf:
             showShelf = true
+        case .faceScan:
+            seenFaceScan = true
+            // Everyone may start: a free account's first scan comes back locked (one per account),
+            // and the flow opens the paywall itself on a locked result or a 402.
+            showFaceScan = true
         }
     }
 }
 
 enum QuickAction: Hashable {
-    case scan, checkIn, ask, shelf, addByHand, compare
+    case scan, checkIn, ask, shelf, addByHand, compare, faceScan
 }
 
 /// What the + button opens: the things people do outside their routine. "Add a product" opens
@@ -271,6 +288,8 @@ enum QuickAction: Hashable {
 private struct QuickActionsSheet: View {
     /// Scanning and Compare share the Skintel+ entitlement (`canUseScanner` is `isPro`).
     let canScan: Bool
+    /// Show the NEW tag on the Scan your face row (hidden once it has been opened).
+    let showsFaceScanNew: Bool
     /// Ask Skintel has its own tab, so the menu offers Shelf (which lost its tab) instead.
     let assistantInTab: Bool
     let choose: (QuickAction) -> Void
@@ -279,6 +298,8 @@ private struct QuickActionsSheet: View {
         VStack(alignment: .leading, spacing: SKSpace.sm) {
             Text("Add or log").font(SKFont.section).foregroundStyle(SKColor.ink)
                 .padding(.horizontal, SKSpace.xs).padding(.top, SKSpace.lg).padding(.bottom, SKSpace.xs)
+            row(icon: "face.dashed", tint: SKColor.primary, title: "Scan your face",
+                subtitle: "3D map and a 7-day check", locked: false, isNew: showsFaceScanNew, action: .faceScan)
             row(icon: "viewfinder", tint: SKColor.primary, title: "Scan a product",
                 subtitle: "Barcode or ingredient label", locked: !canScan, action: .scan)
             row(icon: "tray.and.arrow.down", tint: SKColor.ink, title: "Add a product",
@@ -299,7 +320,7 @@ private struct QuickActionsSheet: View {
         .padding(.horizontal, SKSpace.xl)
     }
 
-    private func row(icon: String, tint: Color, title: String, subtitle: String, locked: Bool, action: QuickAction) -> some View {
+    private func row(icon: String, tint: Color, title: String, subtitle: String, locked: Bool, isNew: Bool = false, action: QuickAction) -> some View {
         Button { choose(action) } label: {
             HStack(spacing: SKSpace.md) {
                 Image(systemName: icon)
@@ -312,6 +333,7 @@ private struct QuickActionsSheet: View {
                     Text(subtitle).font(SKFont.secondary).foregroundStyle(SKColor.muted)
                 }
                 Spacer(minLength: 0)
+                if isNew { SKNewBadge() }
                 if locked { SkintelPlusBadge() }
             }
             .frame(minHeight: 60)
@@ -496,7 +518,7 @@ private struct SKGlassTabBar: View {
 // MARK: - Paywall routing available to every screen
 
 enum PaywallReason: String, Identifiable, Sendable {
-    case scanner, productLimit, compare, recommend, routine, journalAnalysis, culprits, assistant, general
+    case scanner, productLimit, compare, recommend, routine, journalAnalysis, culprits, assistant, general, faceScan
     var id: String { rawValue }
 }
 

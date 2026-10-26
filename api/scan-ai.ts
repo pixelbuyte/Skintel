@@ -1,8 +1,12 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { complete, parseJsonObject, SCAN_MODELS } from './_ai.js';
+import { handleFaceScan } from './_face-scan.js';
 import { getServiceClient, getUserFromAuthHeader, json } from './_lib.js';
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
+  // /api/face-scan is rewritten here (vercel.json) to stay within the 12-function limit.
+  if (req.query?.action === 'face') return handleFaceScan(req, res);
+
   if (req.method !== 'POST') return json(res, { error: 'Method not allowed' }, 405);
 
   const user = await getUserFromAuthHeader(req);
