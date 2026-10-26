@@ -24,6 +24,13 @@ export type AiRequest = {
   json?: boolean;
   webSearch?: boolean;
   timeoutMs?: number;
+  /** Reasoning budget for models that support it (sent to OpenRouter as `reasoning`). */
+  reasoning?: { effort: 'low' | 'medium' | 'high' };
+  /**
+   * Zero-data-retention routing: OpenRouter only uses endpoints that keep nothing and never train.
+   * It exists only on OpenRouter, so a zdr request never falls back to the direct Anthropic key.
+   */
+  zdr?: boolean;
 };
 
 export type AiResult = { text: string; model: string; usage: unknown };
@@ -96,6 +103,8 @@ async function viaOpenRouter(req: AiRequest, apiKey: string): Promise<AiResult> 
       temperature: req.temperature ?? 0,
       ...(req.json ? { response_format: { type: 'json_object' } } : {}),
       ...(req.webSearch ? { plugins: [{ id: 'web', max_results: 3 }] } : {}),
+      ...(req.reasoning ? { reasoning: req.reasoning } : {}),
+      ...(req.zdr ? { provider: { zdr: true, data_collection: 'deny' } } : {}),
     },
     req.timeoutMs ?? 45_000,
   );
@@ -134,9 +143,12 @@ export async function complete(req: AiRequest): Promise<AiResult> {
       return await viaOpenRouter(req, openRouterKey);
     } catch (e) {
       console.error('openrouter request failed', { models: req.models, message: String((e as Error)?.message ?? e) });
-      if (!anthropicKey) throw e;
+      if (!anthropicKey || req.zdr) throw e;
     }
   }
+  // The direct Anthropic path has no zero-retention routing. Face scans (zdr) send photos,
+  // and the report sends health answers, so neither may take it (PRO-SPEC §1, §2).
+  if (req.zdr) throw new AiError('Zero-retention routing is unavailable right now', 503);
   if (!anthropicKey) throw new AiError('No AI provider is configured', 503);
   return viaAnthropic(req, anthropicKey);
 }

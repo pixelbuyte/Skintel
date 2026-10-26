@@ -96,8 +96,9 @@ async function deleteAccount(req: VercelRequest, res: VercelResponse) {
 
   try {
     await revokeAppleForDeletion(user, req.body?.appleAuthorizationCode, req.body?.appleNonce);
-    // products, ingredients, skin_journal and subscriptions all reference auth.users
-    // ON DELETE CASCADE. One hard delete avoids erasing rows before a later auth error.
+    // products, ingredients, skin_journal, subscriptions, face_scans and face_scan_usage all
+    // reference auth.users ON DELETE CASCADE. One hard delete avoids erasing rows before a
+    // later auth error.
     const { error } = await getServiceClient().auth.admin.deleteUser(user.id);
     if (error) return json(res, { error: 'Unable to delete your account. Try again.' }, 500);
     return json(res, { ok: true });
