@@ -116,7 +116,7 @@ function pov(o) { return { dur: o.dur, in: o.in, mk(el) {
     await paint(el.querySelector('#q'), o.pov(u * (o.speed || 1) + (o.from || 0)), '<div class="island"></div><div class="glare"></div>');
     const c = el.querySelector('.tt'); if (c) { const d = u - .15; c.style.opacity = clamp(d / .1); c.style.transform = `scale(${.86 + .14 * spring(d / .45)})`; }
   } }; }
-function endcard(o) { return { dur: o.dur, in: o.in, mk(el) { el.innerHTML = `<div class="end"><img class="icon" src="icon.png"><div class="w">Skintel<b>.</b></div><div class="t">${o.line || 'Find the ingredient <em>breaking you out.</em>'}</div><div class="p">Free on the App Store</div><div class="s">skinstel.com</div></div>`; },
+function endcard(o) { return { dur: o.dur, in: o.in, mk(el) { el.innerHTML = `<div class="end"><img class="icon" src="icon.png"><div class="w">Skinstel<b>.</b></div><div class="t">${o.line || 'Find the ingredient <em>breaking you out.</em>'}</div><div class="p">Free on the App Store</div><div class="s">skinstel.com</div></div>`; },
   at(el, u) { [...el.firstElementChild.children].forEach((c, i) => { const d = u - i * .09; c.style.opacity = clamp(d / .2); c.style.transform = `translateY(${(1 - spring(d / .55)) * 50}px)`; }); } }; }
 
 // ---------- the two ads ----------
@@ -130,7 +130,7 @@ const ADS = {
     para({ img: 'photos/r1-frustrated.jpg', cut: 'cut/r1.png', dur: .7, in: 'whip', z: [1.1, 1.18], dx: -10, label: 'hers → <b>coconut oil</b>', ltop: 1520 }),
     photo({ img: 'photos/p5-breakout-c.jpg', dur: .9, in: 'whip', label: 'yours → <b>???</b>', ltop: 1500 }),
     type({ dur: 1.7, in: 'flash', bg: '#1A1814', color: '#F4EDE0', accent: '#E9A08C', l1: 'So why follow', l2: 'the same advice?' }),
-    phone({ dur: 4.4, in: 'zoom', pov: tagPov, from: .4, speed: 1.05, ring: [3.0, 16, 258, 361, 196], heads: [[0, 'Tag what', 'broke you out.'], [2.6, 'Skintel finds', 'what they share.']] }),
+    phone({ dur: 4.4, in: 'zoom', pov: tagPov, from: .4, speed: 1.05, ring: [3.0, 16, 258, 361, 196], heads: [[0, 'Tag what', 'broke you out.'], [2.6, 'Skinstel finds', 'what they share.']] }),
     pov({ scene: 'green', dur: 3.6, in: 'whip', pov: scanPov, from: 1.0, speed: 1.15, cap: 'then scan anything new, before it touches your face 👀' }),
     para({ img: 'photos/r3-bin.jpg', cut: 'cut/r3.png', dur: 1.8, in: 'whip', z: [1.04, 1.12], cap: 'mine was fragrance. 3 of my 4 breakout products 💀', top: 1600 }),
     endcard({ dur: 2.7, in: 'flash' }),
@@ -144,7 +144,7 @@ const ADS = {
     phone({ dur: 3.6, in: 'whip', pov: (u) => ({ layers: [{ s: 'triggers', st: { bars: ease((u - .5) / 1.1) } }] }), ring: [1.4, 16, 258, 361, 196], heads: [[0, 'Fragrance.'], [1.2, 'In 3 of my 4', 'breakout products.', 92]] }),
     pov({ scene: 'counter', dur: 3.8, in: 'whip', pov: mentionPov, from: 2.3, speed: 1.75, cap: 'now I ask it before I buy anything 👀' }),
     para({ img: 'photos/r3-bin.jpg', cut: 'cut/r3.png', dur: 1.7, in: 'whip', z: [1.04, 1.12], cap: 'that moisturizer? gone 👋', top: 1640 }),
-    endcard({ dur: 2.7, in: 'flash', line: 'Your skin\'s been telling you. <em>Skintel translates.</em>' }),
+    endcard({ dur: 2.7, in: 'flash', line: 'Your skin\'s been telling you. <em>Skinstel translates.</em>' }),
   ],
 };
 const VOMAP = { same: ['a1','a2','a3','a4','a5','a6','a7','a8','a9'], story: ['b1','b2','b3','b4','b5','b6','b7','b8'] };
