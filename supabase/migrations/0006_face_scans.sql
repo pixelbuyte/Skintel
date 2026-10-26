@@ -47,6 +47,8 @@ create table if not exists public.face_scan_usage (
   model text,
   prompt_tokens int not null default 0,
   completion_tokens int not null default 0,
+  -- false when the photo could not be read; a free account's one baseline only counts when true.
+  read_ok boolean not null default true,
   created_at timestamptz not null default now()
 );
 create index if not exists face_scan_usage_user_created_idx

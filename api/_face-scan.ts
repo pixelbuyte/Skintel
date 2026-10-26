@@ -885,7 +885,7 @@ async function reserveCall(sb: SupabaseClient, userId: string, stage: FaceStage,
 }
 
 /** Record what the request really used. One that never started a model call is given back. */
-async function settleCall(sb: SupabaseClient, id: number, stage: FaceStage, tally: Tally, ms: number) {
+async function settleCall(sb: SupabaseClient, id: number, stage: FaceStage, tally: Tally, ms: number, readOk = true) {
   console.info('face-scan', {
     stage,
     model: tally.model,
@@ -899,7 +899,7 @@ async function settleCall(sb: SupabaseClient, id: number, stage: FaceStage, tall
       ? await sb.from('face_scan_usage').delete().eq('id', id)
       : await sb
           .from('face_scan_usage')
-          .update({ model: tally.model, prompt_tokens: tally.promptTokens, completion_tokens: tally.completionTokens })
+          .update({ model: tally.model, prompt_tokens: tally.promptTokens, completion_tokens: tally.completionTokens, read_ok: readOk })
           .eq('id', id);
   if (error) console.error('face-scan usage settle failed', { message: String(error.message).slice(0, 200) });
 }
@@ -1047,7 +1047,8 @@ export async function handleFaceScan(req: VercelRequest, res: VercelResponse) {
       .from('face_scan_usage')
       .select('id', { count: 'exact', head: true })
       .eq('user_id', user.id)
-      .eq('stage', 'baseline');
+      .eq('stage', 'baseline')
+      .eq('read_ok', true);
     if (error) return json(res, { error: 'Face scan is unavailable right now. Try again soon.' }, 503);
     if ((count ?? 0) > 0) return json(res, { error: 'Pro required', freeScanUsed: true }, 402);
   }
@@ -1075,7 +1076,8 @@ export async function handleFaceScan(req: VercelRequest, res: VercelResponse) {
   const tally: Tally = { attempts: 0, promptTokens: 0, completionTokens: 0, model: PLANS[parsed.stage].models[0] };
   try {
     const out = await runStage(parsed, locks, tally, startedAt);
-    await settleCall(sb, reservation.id, parsed.stage, tally, Date.now() - startedAt);
+    // A photo that could not be read doesn't use up a free account's one scan.
+    await settleCall(sb, reservation.id, parsed.stage, tally, Date.now() - startedAt, out?.quality.ok !== false && out !== null);
     const body = toResponse(out, locks, parsed.stage);
     return json(res, freeScan ? lockForFreeScan(body) : body);
   } catch (e) {

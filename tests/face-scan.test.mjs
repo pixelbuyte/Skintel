@@ -55,8 +55,9 @@ beforeEach(() => {
       }
       if (method === 'HEAD') {
         const stage = new URL(url).searchParams.get('stage')?.replace('eq.', '');
+        const readOk = new URL(url).searchParams.get('read_ok');
         const n = stage
-          ? (stageCountOverride[stage] ?? usageRows.filter((r) => r.stage === stage).length)
+          ? (stageCountOverride[stage] ?? usageRows.filter((r) => r.stage === stage && (readOk !== 'eq.true' || r.read_ok !== false)).length)
           : (countOverride ?? usageRows.length);
         return new Response(null, { status: 200, headers: { 'content-range': `*/${n}` } });
       }
@@ -443,7 +444,7 @@ test('every call logs one usage row with model + tokens and no image data anywhe
   const result = await post(dailyBody());
   assert.equal(result.status, 200);
   assert.deepEqual(usageRows.map(({ id, ...rest }) => rest), [{
-    user_id: USER_ID, stage: 'daily', model: 'google/gemini-3.1-flash-lite', prompt_tokens: 812, completion_tokens: 96,
+    user_id: USER_ID, stage: 'daily', model: 'google/gemini-3.1-flash-lite', prompt_tokens: 812, completion_tokens: 96, read_ok: true,
   }]);
   const nonModel = calls.filter((c) => c.url !== OPENROUTER);
   assert(nonModel.every((c) => !String(c.body ?? '').includes(SENTINEL)), 'image bytes leaked to Supabase');
@@ -637,4 +638,24 @@ test('free account: one locked baseline per lifetime, nothing readable, then 402
   assert.equal(modelCalls().length, 1);
 
   for (const body of [dailyBody(), reportBody()]) assert.equal((await post(body)).status, 402);
+});
+
+test('free account: an unreadable photo does not use up the free scan', async () => {
+  tier = 'free'; status = 'none';
+  const images = [
+    { role: 'front', base64: JPEG, mimeType: 'image/jpeg' },
+    { role: 'left45', base64: JPEG, mimeType: 'image/jpeg' },
+    { role: 'right45', base64: JPEG, mimeType: 'image/jpeg' },
+    ...['forehead', 'nose', 'left_cheek', 'right_cheek', 'chin'].map((zone) => ({ role: 'zone', zone, base64: JPEG, mimeType: 'image/jpeg' })),
+  ];
+  modelQueue.push({ content: { quality: { ok: false, issues: ['too_dark'] }, zones: [], summary: 'Too dark.' } });
+  const bad = await post({ stage: 'baseline', cycleId: 'c1', day: 1, images });
+  assert.equal(bad.status, 200);
+  assert.equal(bad.body.quality.ok, false);
+  assert.deepEqual(bad.body.zones, []);
+  modelQueue.push({ content: goodRead() });
+  const good = await post({ stage: 'baseline', cycleId: 'c1', day: 1, images });
+  assert.equal(good.status, 200);
+  assert.equal(good.body.locked, true);
+  assert.equal((await post({ stage: 'baseline', cycleId: 'c2', day: 1, images })).status, 402);
 });
