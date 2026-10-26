@@ -267,7 +267,8 @@ Facts these rest on were checked on `main` at f0ca97d (Supabase queried with cou
 
 ## Kick-off prompt for the next session (copy-paste)
 
-> Work on branch `face-scan-skin-1.0` in pixelbuyte/Skintel. Read `docs/face-scan-skin-1.0/BRIEF.md` fully, then
+> Work on branch `face-scan-skin-1.0` in pixelbuyte/Skintel. Read `docs/face-scan-skin-1.0/BRIEF.md` and
+> `ADDENDUM.md` fully, then
 > `CLAUDE.md` and `ios/Skintel/CLAUDE.md`, and load the `ios-ship-playbook` skill. Post the §9 questions (incl.
 > §10.8) as one PR comment, then follow §8 in order, folding in §10 (pre-account scan behind a flag, 3D via ARKit +
 > MediaPipe canonical mesh, eval set, analytics). Swift only compiles on Codemagic `ios-ci` — cross-check every API before pushing,
