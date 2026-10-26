@@ -120,7 +120,7 @@ targets:
         # iPhone only. XcodeGen's iOS preset would otherwise emit "1,2" at target level.
         TARGETED_DEVICE_FAMILY: "1"
         # Keep in step with SkintelWidgets' MARKETING_VERSION (App Store requires a match).
-        MARKETING_VERSION: "1.0.0"
+        MARKETING_VERSION: "1.0.1"
         CURRENT_PROJECT_VERSION: "1"
         CODE_SIGN_STYLE: Automatic
         DEVELOPMENT_TEAM: $(DEVELOPMENT_TEAM)
@@ -167,7 +167,7 @@ targets:
         PRODUCT_NAME: SkintelWidgets
         TARGETED_DEVICE_FAMILY: "1"
         # Must match the app's; ios-release overrides CURRENT_PROJECT_VERSION for both.
-        MARKETING_VERSION: "1.0.0"
+        MARKETING_VERSION: "1.0.1"
         CURRENT_PROJECT_VERSION: "1"
         CODE_SIGN_STYLE: Automatic
         DEVELOPMENT_TEAM: $(DEVELOPMENT_TEAM)

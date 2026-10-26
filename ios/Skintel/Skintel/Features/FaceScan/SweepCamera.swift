@@ -126,7 +126,7 @@ final class SweepCamera: NSObject, @unchecked Sendable, AVCaptureVideoDataOutput
             let w = face.boundingBox.width
             reading.goodDistance = w > 0.28 && w < 0.8
         }
-        let captureQuality = quality.results?.first?.faceCaptureQuality ?? 0  // Float? in the Swift overlay, not NSNumber
+        let captureQuality: Float = quality.results?.first?.faceCaptureQuality ?? 0
         reading.sharp = captureQuality >= 0.3
 
         let handlerReading = onReading
