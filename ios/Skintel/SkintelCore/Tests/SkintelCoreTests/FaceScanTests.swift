@@ -309,3 +309,17 @@ private let specExample = """
     #expect(FaceScanStage.allCases.map(\.rawValue) == ["baseline", "daily", "final", "report"])
     #expect(FaceReport.Barrier.lessSteady.rawValue == "less_steady")
 }
+
+@Test func faceScanLockedDefaultsToFalseAndDecodesTheFreeScan() throws {
+    let old = try decodeFace(FaceScanResult.self, specExample)
+    #expect(old.locked == false)
+    let free = try decodeFace(FaceScanResult.self, """
+    { "quality": { "ok": true, "issues": [] }, "locked": true, "summary": "Your face map is ready.",
+      "zones": [ { "zone": "chin", "scores": {}, "regions": [], "note": null } ] }
+    """)
+    #expect(free.locked)
+    #expect(free.zones.map(\.zone) == [.chin])
+    #expect(free.zones.first?.scores.isEmpty == true)
+    let round = try JSONCoding.decode(FaceScanResult.self, from: JSONCoding.encoder.encode(free))
+    #expect(round.locked)
+}

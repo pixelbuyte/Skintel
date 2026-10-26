@@ -443,19 +443,23 @@ public struct FaceScanResult: Codable, Sendable, Hashable {
     public var disclaimer: String
     public var report: FaceReport?
     public var routine: FaceRoutine?
+    /// True for the one free scan a non-Pro account gets: `zones` lists only the areas with findings,
+    /// with no scores or notes. The app shows the locked map and the paywall.
+    public var locked: Bool
 
     public init(quality: FaceQuality, zones: [FaceZoneResult] = [], summary: String = "",
                 disclaimer: String = FaceScanResult.defaultDisclaimer,
-                report: FaceReport? = nil, routine: FaceRoutine? = nil) {
+                report: FaceReport? = nil, routine: FaceRoutine? = nil, locked: Bool = false) {
         self.quality = quality
         self.zones = zones
         self.summary = summary
         self.disclaimer = disclaimer
         self.report = report
         self.routine = routine
+        self.locked = locked
     }
 
-    enum CodingKeys: String, CodingKey { case quality, zones, summary, disclaimer, report, routine }
+    enum CodingKeys: String, CodingKey { case quality, zones, summary, disclaimer, report, routine, locked }
 
     public init(from decoder: Decoder) throws {
         let c = try decoder.container(keyedBy: CodingKeys.self)
@@ -465,7 +469,8 @@ public struct FaceScanResult: Codable, Sendable, Hashable {
                   summary: c.lenient(String.self, forKey: .summary) ?? "",
                   disclaimer: (disclaimer?.isEmpty == false ? disclaimer : nil) ?? Self.defaultDisclaimer,
                   report: c.lenient(FaceReport.self, forKey: .report),
-                  routine: c.lenient(FaceRoutine.self, forKey: .routine))
+                  routine: c.lenient(FaceRoutine.self, forKey: .routine),
+                  locked: c.lenient(Bool.self, forKey: .locked) ?? false)
     }
 
     /// The first result for `zone`, or nil when the server did not send it.

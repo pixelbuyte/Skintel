@@ -993,6 +993,24 @@ function toResponse(out: FaceOutput | null, locks: Locks, stage: FaceStage) {
 // Handler
 // ---------------------------------------------------------------------------------------------
 
+/**
+ * The free scan's answer: which zones have something worth a look, and nothing more. No scores,
+ * regions, notes or report, so the result can't be read without Skintel+.
+ */
+export function lockForFreeScan(body: ReturnType<typeof toResponse>) {
+  const zones: ZoneResult[] = Array.isArray(body.zones) ? body.zones : [];
+  const found = zones
+    .filter((z) => Object.values(z.scores ?? {}).some((v) => typeof v === 'number' && v >= 25))
+    .map((z) => ({ zone: z.zone, scores: {}, regions: [], note: null }));
+  return {
+    quality: body.quality,
+    locked: true,
+    zones: body.quality.ok ? found : [],
+    summary: body.quality.ok ? 'Your face map is ready.' : body.summary,
+    disclaimer: body.disclaimer,
+  };
+}
+
 export async function handleFaceScan(req: VercelRequest, res: VercelResponse) {
   res.setHeader('Cache-Control', 'no-store');
   if (req.method !== 'POST') return json(res, { error: 'Method not allowed' }, 405);
@@ -1008,7 +1026,6 @@ export async function handleFaceScan(req: VercelRequest, res: VercelResponse) {
     .maybeSingle();
   const active = subRow?.status === 'active' || subRow?.status === 'trialing';
   const isPro = active && (subRow?.tier === 'pro' || subRow?.tier === 'founding');
-  if (!isPro) return json(res, { error: 'Pro required' }, 402);
 
   let raw: unknown = req.body;
   if (typeof raw === 'string') {
@@ -1020,6 +1037,20 @@ export async function handleFaceScan(req: VercelRequest, res: VercelResponse) {
   }
   const parsed = parseRequest(raw);
   if ('error' in parsed) return json(res, { error: parsed.error, ...parsed.extra }, parsed.status);
+
+  // Founder decision (Oct 26): one free scan first. A non-Pro account gets one baseline per
+  // lifetime, answered as a locked teaser (zones with findings only). Everything else is Pro.
+  const freeScan = !isPro;
+  if (freeScan) {
+    if (parsed.stage !== 'baseline') return json(res, { error: 'Pro required' }, 402);
+    const { count, error } = await sb
+      .from('face_scan_usage')
+      .select('id', { count: 'exact', head: true })
+      .eq('user_id', user.id)
+      .eq('stage', 'baseline');
+    if (error) return json(res, { error: 'Face scan is unavailable right now. Try again soon.' }, 503);
+    if ((count ?? 0) > 0) return json(res, { error: 'Pro required', freeScanUsed: true }, 402);
+  }
 
   const startedAt = Date.now();
   const reservation = await reserveCall(sb, user.id, parsed.stage, PLANS[parsed.stage].models[0]);
@@ -1045,7 +1076,8 @@ export async function handleFaceScan(req: VercelRequest, res: VercelResponse) {
   try {
     const out = await runStage(parsed, locks, tally, startedAt);
     await settleCall(sb, reservation.id, parsed.stage, tally, Date.now() - startedAt);
-    return json(res, toResponse(out, locks, parsed.stage));
+    const body = toResponse(out, locks, parsed.stage);
+    return json(res, freeScan ? lockForFreeScan(body) : body);
   } catch (e) {
     await settleCall(sb, reservation.id, parsed.stage, tally, Date.now() - startedAt);
     const status = e instanceof AiError && e.status === 503 ? 503 : 502;

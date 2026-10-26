@@ -609,3 +609,32 @@ test('report: flagged summary is replaced with the report-specific neutral line'
   assert.equal(result.body.quality.ok, true);
   assert.equal(result.body.summary, 'A cosmetic summary of your seven-day check.');
 });
+
+test('free account: one locked baseline per lifetime, nothing readable, then 402', async () => {
+  tier = 'free'; status = 'none';
+  const images = [
+    { role: 'front', base64: JPEG, mimeType: 'image/jpeg' },
+    { role: 'left45', base64: JPEG, mimeType: 'image/jpeg' },
+    { role: 'right45', base64: JPEG, mimeType: 'image/jpeg' },
+    ...['forehead', 'nose', 'left_cheek', 'right_cheek', 'chin'].map((zone) => ({ role: 'zone', zone, base64: JPEG, mimeType: 'image/jpeg' })),
+  ];
+  const calm = { zone: 'left_cheek', scores: { redness: 5, shine: 10, raised_blemishes: 0, flat_marks: 0, texture: 12 }, note: 'Calm.' };
+  modelQueue.push({ content: goodRead({ zones: [goodZone('chin'), goodZone('nose'), calm] }) });
+  const first = await post({ stage: 'baseline', cycleId: 'c1', day: 1, images });
+  assert.equal(first.status, 200);
+  assert.equal(first.body.locked, true);
+  assert.deepEqual(first.body.zones.map((z) => z.zone), ['chin', 'nose']);
+  for (const z of first.body.zones) {
+    assert.deepEqual(z.scores, {}); assert.deepEqual(z.regions, []); assert.equal(z.note, null);
+  }
+  assert.equal(first.body.summary, 'Your face map is ready.');
+  assert.equal(first.body.report, undefined);
+  assert.equal(first.body.disclaimer, 'A cosmetic read of a photo, not a diagnosis.');
+
+  const second = await post({ stage: 'baseline', cycleId: 'c2', day: 1, images });
+  assert.equal(second.status, 402);
+  assert.equal(second.body.freeScanUsed, true);
+  assert.equal(modelCalls().length, 1);
+
+  for (const body of [dailyBody(), reportBody()]) assert.equal((await post(body)).status, 402);
+});
