@@ -104,6 +104,15 @@ final class SessionManager: TokenProvider {
         commit(s)
     }
 
+    /// OAuth web flow (Google): the page to open, then the code exchange once it redirects back.
+    func oauthAuthorizeURL(provider: String, redirectTo: URL, codeChallenge: String) -> URL {
+        auth.authorizeURL(provider: provider, redirectTo: redirectTo, codeChallenge: codeChallenge)
+    }
+
+    func signInWithOAuth(authCode: String, codeVerifier: String) async throws {
+        commit(try await auth.exchangeCode(authCode: authCode, codeVerifier: codeVerifier))
+    }
+
     func requestPasswordReset(email: String) async throws {
         try await auth.requestPasswordReset(email: email)
     }

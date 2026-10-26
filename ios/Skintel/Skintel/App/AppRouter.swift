@@ -60,6 +60,9 @@ struct RootView: View {
         // restoring so a cold launch lands where the widget pointed; signed-out users just
         // see the normal welcome flow, and onboarding isn't interrupted.
         .onOpenURL { url in
+            // skintel://auth-callback belongs to the Google sign-in web session, which
+            // captures it itself; never treat it as a widget link.
+            if url.host()?.lowercased() == OAuthPKCE.callbackHost { return }
             guard let link = SkintelDeepLink(url: url) else { return }
             switch route {
             case .launching, .main: env.pendingDeepLink = link

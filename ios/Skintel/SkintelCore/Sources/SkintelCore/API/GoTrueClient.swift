@@ -60,6 +60,55 @@ public struct GoTrueClient: Sendable {
         return try await token(query: ["grant_type": "id_token"], body: Body(id_token: idToken, nonce: nonce))
     }
 
+    // MARK: OAuth (PKCE web flow, e.g. Google)
+
+    /// The page to open in `ASWebAuthenticationSession`. GoTrue sends the user to the provider,
+    /// then back to `redirectTo` with `?code=…` (or `?error=…&error_description=…`).
+    /// `codeChallenge` is `base64url(SHA256(verifier))`; hashing lives in the app (CryptoKit).
+    public func authorizeURL(provider: String, redirectTo: URL, codeChallenge: String) -> URL {
+        var comps = URLComponents(url: config.authBase.appendingPathComponent("authorize"),
+                                  resolvingAgainstBaseURL: false)!
+        comps.queryItems = [
+            URLQueryItem(name: "provider", value: provider),
+            URLQueryItem(name: "redirect_to", value: redirectTo.absoluteString),
+            URLQueryItem(name: "code_challenge", value: codeChallenge),
+            URLQueryItem(name: "code_challenge_method", value: "s256"),
+        ]
+        return comps.url!
+    }
+
+    /// Trades the `code` from the OAuth callback (plus the raw verifier) for a session.
+    public func exchangeCode(authCode: String, codeVerifier: String) async throws -> Session {
+        try await tokenSession(pkceRequest(authCode: authCode, codeVerifier: codeVerifier))
+    }
+
+    public enum OAuthCallback: Sendable, Equatable {
+        case code(String)
+        case failure(String)
+    }
+
+    /// Reads the redirect GoTrue sends back: `?code=…` on success, `error_description` /
+    /// `error` (query or fragment) on failure.
+    public static func parseOAuthCallback(_ url: URL) -> OAuthCallback {
+        let comps = URLComponents(url: url, resolvingAgainstBaseURL: false)
+        var fragment = URLComponents()
+        fragment.percentEncodedQuery = comps?.percentEncodedFragment
+        let items = (comps?.queryItems ?? []) + (fragment.queryItems ?? [])
+        func value(_ name: String) -> String? {
+            items.first { $0.name == name }?.value.flatMap { $0.isEmpty ? nil : $0 }
+        }
+        if let code = value("code") { return .code(code) }
+        // GoTrue form-encodes errors, so a space may arrive as "+".
+        let message = (value("error_description") ?? value("error"))?.replacingOccurrences(of: "+", with: " ")
+        return .failure(message ?? "No authorization code returned")
+    }
+
+    func pkceRequest(authCode: String, codeVerifier: String) throws -> URLRequest {
+        struct Body: Encodable { let auth_code: String; let code_verifier: String }
+        return try tokenRequest(query: ["grant_type": "pkce"],
+                                body: Body(auth_code: authCode, code_verifier: codeVerifier))
+    }
+
     // MARK: Session lifecycle
 
     public func refresh(refreshToken: String) async throws -> Session {
@@ -122,10 +171,17 @@ public struct GoTrueClient: Sendable {
     }
 
     private func token(query: [String: String], body: some Encodable) async throws -> Session {
-        let req = try RequestBuilder.json(
+        try await tokenSession(tokenRequest(query: query, body: body))
+    }
+
+    private func tokenRequest(query: [String: String], body: some Encodable) throws -> URLRequest {
+        try RequestBuilder.json(
             RequestBuilder.url(config.authBase, path: "token", query: query),
             method: "POST", body: body, headers: baseHeaders
         )
+    }
+
+    private func tokenSession(_ req: URLRequest) async throws -> Session {
         let r = try await http.send(req)
         guard (200..<300).contains(r.status) else { throw mapError(status: r.status, data: r.data) }
         let tok = try JSONCoding.decode(TokenResponse.self, from: r.data)
