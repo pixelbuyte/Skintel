@@ -85,6 +85,7 @@ struct FaceScanFlowView: View {
             }
         }
         .onAppear(perform: begin)
+        .task { await env.subscription.confirmIfUnsure() }
         .sheet(isPresented: $wallThenClose, onDismiss: close) {
             PaywallView(reason: .faceScan)
         }
@@ -92,7 +93,7 @@ struct FaceScanFlowView: View {
             Button("Allow") { aiConsent = true; begin() }
             Button("Not now", role: .cancel) { close() }
         } message: {
-            Text("To read your skin, Skinstel sends your face photos (three angles and five close crops), your answers, your skin profile, your shelf and your Triggers to third-party AI providers through OpenRouter (Google and Anthropic), with zero data retention. Photos are read, then deleted. The 3D face is a model, not a scan of you. Day 1 close-ups stay on this phone until Day 7, then are deleted. A cosmetic read, not a diagnosis. Details are in our Privacy Policy.")
+            Text("To read your skin, Skinstel sends your face photos (three angles and five close crops), your answers, your skin profile, your shelf and your Triggers to third-party AI providers through OpenRouter (Google and Anthropic), with zero data retention. Photos are read, then deleted. The 3D face is a model, not a scan of you. Day 1 close-ups stay on this phone for your 7-day check, then are deleted (after 14 days if the week isn't finished). A cosmetic read, not a diagnosis. Details are in our Privacy Policy.")
         }
         .alert("Face scan", isPresented: Binding(get: { errorText != nil }, set: { if !$0 { errorText = nil } })) {
             Button("OK", role: .cancel) { afterError() }
@@ -140,6 +141,7 @@ struct FaceScanFlowView: View {
     }
 
     private var nextAction: String? {
+        if freeWeekTooLate { return "Start a new week" }
         if store.hasCycle && store.calibration.latestReport != nil { return "Start a new week" }
         if store.hasCycle && store.calibration.hasFinalScan && store.calibration.latestReport == nil {
             return "Write my skin report"
@@ -157,9 +159,22 @@ struct FaceScanFlowView: View {
 
     /// Without Skintel+ the map shows with the week locked, and this opens the wall. Nil for Pro,
     /// so the moment a purchase lands the same cycle shows unlocked with today's scan action.
+    /// Locked only for a confirmed Free row: while the membership is loading or its fetch failed,
+    /// a Pro member never sees the week locked (a scan call would 402 to the wall anyway).
     private var unlockWeek: (() -> Void)? {
-        guard !isPro else { return nil }
+        let sub = env.subscription
+        guard sub.loaded, sub.lastError == nil, !sub.entitlement.isPro else { return nil }
         return { wallFromLocked = true }
+    }
+
+    /// The cycle holds only the free baseline and the six scans left can no longer finish inside
+    /// the 14 days the Day 1 crops are kept: a late upgrade starts a new week instead.
+    private var freeWeekTooLate: Bool {
+        let cal = store.calibration
+        guard store.hasCycle, cal.scanCount == 1, let only = cal.scans.first,
+              only.stage == .baseline, only.result.locked else { return false }
+        let scansLeft = cal.scansToGo(for: .fullReport)
+        return store.cycleDay(now: Date()) + scansLeft - 1 > 14
     }
 
     private func begin() {
@@ -174,7 +189,7 @@ struct FaceScanFlowView: View {
     }
 
     private func beginNext() {
-        if store.hasCycle && store.calibration.latestReport != nil {
+        if freeWeekTooLate || (store.hasCycle && store.calibration.latestReport != nil) {
             // A new week: readBaseline starts a new cycle id once the sweep and quiz are done.
             screen = .sweep(.baseline)
             return

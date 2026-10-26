@@ -106,7 +106,7 @@ struct PaywallView: View {
     /// App Store Connect and seats remain. Otherwise the plans below would contradict it.
     private var headline: String {
         let foundingOnSale = service?.product(.founding) != nil && (env.subscription.foundingSeatsRemaining ?? 1) > 0
-        if reason == .faceScan { return faceMapReady ? "Want to know if it's getting better?" : "See your skin, zone by zone." }
+        if reason == .faceScan { return faceMapReady ? "Is your skin getting calmer?" : "See your skin, zone by zone." }
         return foundingOnSale ? "The founding member deal." : "Everything, for your skin."
     }
 

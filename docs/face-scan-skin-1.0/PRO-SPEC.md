@@ -39,7 +39,9 @@ Anthropic account's retention terms.
   "Journal photo: Not built"), and none gets added for this.
 - **Day 7 needs Day 1's crops.** They are kept on the device only, in the app container with
   `FileProtectionType.complete`, excluded from backup. They are sent again together with the Day 7 crops and deleted
-  when the cycle ends, the person deletes the scan, or the account is deleted.
+  when the cycle ends (after 14 days if the week isn't finished), the person deletes the scan, or the account is
+  deleted. Consent copy: "Day 1 close-ups stay on this phone for your 7-day check, then are deleted (after 14 days if
+  the week isn't finished)."
 - The face mesh never leaves the device (App Review 5.1.2(vi): facial-mapping data may not be used for marketing,
   advertising or data mining, including by third parties).
 - Copy may say "Photos are read, then deleted" only once all of the above ships.

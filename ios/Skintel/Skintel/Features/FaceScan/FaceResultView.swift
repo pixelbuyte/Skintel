@@ -268,7 +268,7 @@ struct FaceResultView: View {
                 .accessibilityHidden(true)
                 VStack(alignment: .leading, spacing: 6) {
                     Text("7-DAY CHECK").font(SKFont.label).tracking(1).foregroundStyle(SKColor.primary)
-                    Text("Want to know if it's getting better?")
+                    Text("Is your skin getting calmer?")
                         .font(SKFont.sans(17, weight: .semibold, relativeTo: .headline)).foregroundStyle(SKColor.ink)
                         .fixedSize(horizontal: false, vertical: true)
                     Text("Follow it for 7 days with Skintel+")
