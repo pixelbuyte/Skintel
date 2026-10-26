@@ -207,7 +207,7 @@ const V = {
     } },
   // 7. Mascot hook -> Ask (tap a suggestion) about tonight's order
   mascot: { hook: { seq: 'mascot/wave', frames: 151, fps: 30, cap: 'your breakouts are trying to tell you something 👀', top: 200, dur: 3.0 }, endMascot: true,
-    scene: 'green', dur: 9.0, caps: [[0, 2.2, 'ask Skintel anything about YOUR shelf 💬'], [2.2, 9.0, 'it builds tonight\'s order from what you own 🌙']],
+    scene: 'green', dur: 9.0, caps: [[0, 2.2, 'ask Skinstel anything about YOUR shelf 💬'], [2.2, 9.0, 'it builds tonight\'s order from what you own 🌙']],
     pov(u) {
       const chips = ['What order should I use my products in tonight?', 'How do I patch test?'];
       const q = chips[0];
@@ -236,7 +236,7 @@ if (sc.night) stage.insertAdjacentHTML('beforeend', `<div style="position:absolu
 $('rig').style.transformOrigin = `${sc.origin[0]}px ${sc.origin[1]}px`;
 $('pcap').style.top = sc.cap + 'px';
 // end
-$('end').innerHTML = `${v.endMascot ? '<img class="m" src="mascot/drop.png">' : '<img class="icon" src="icon.png">'}<div class="w">Skintel<b>.</b></div><div class="t">Find the ingredient <em>breaking you out.</em></div><div class="p">Free on the App Store</div>`;
+$('end').innerHTML = `${v.endMascot ? '<img class="m" src="mascot/drop.png">' : '<img class="icon" src="icon.png">'}<div class="w">Skinstel<b>.</b></div><div class="t">Find the ingredient <em>breaking you out.</em></div><div class="p">Free on the App Store</div>`;
 
 function popCap(el, dt) { el.style.opacity = clamp(dt / .12); el.style.transform = `scale(${.85 + .15 * spring((dt - .05) / .45)})`; }
 let lastCap = null;
