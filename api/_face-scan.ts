@@ -77,17 +77,18 @@ type StagePlan = {
 };
 
 const PLANS: Record<FaceStage, StagePlan> = {
-  // Day 1 is the first read a person waits on (it took ~35 s on high). Medium keeps it closer to
-  // the promised wait; the Day 7 final, which compares against Day 1, stays on high.
+  // Founder (Oct 26): no Argon. Day 1 on Argon high took ~35 s; Flash is the read for every stage
+  // with photos. Day 1 thinks at medium to keep the first wait short; Day 7, which compares
+  // against Day 1, thinks at high.
   baseline: {
-    models: ['google/gemini-4-argon', 'google/gemini-3.5-flash'],
+    models: ['google/gemini-3.5-flash', 'google/gemini-3.1-flash-lite'],
     reasoning: { effort: 'medium' },
     maxTokens: 10_000,
     timeoutMs: 50_000,
     minRetryMs: 20_000,
   },
   final: {
-    models: ['google/gemini-4-argon', 'google/gemini-3.5-flash'],
+    models: ['google/gemini-3.5-flash', 'google/gemini-3.1-flash-lite'],
     reasoning: { effort: 'high' },
     maxTokens: 10_000,
     timeoutMs: 50_000,

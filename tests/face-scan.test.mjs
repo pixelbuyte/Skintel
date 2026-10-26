@@ -272,10 +272,10 @@ test('daily: flash model, ZDR + no-store routing, temperature 0, clamped scores,
   });
 });
 
-test('baseline and final: argon (medium reasoning on Day 1, high on Day 7), flash fallback, regions clamped, malformed boxes dropped', async () => {
+test('baseline and final: flash (medium reasoning on Day 1, high on Day 7), flash-lite fallback, regions clamped, malformed boxes dropped', async () => {
   for (const stage of ['baseline', 'final']) {
     modelQueue.push({
-      model: 'google/gemini-4-argon',
+      model: 'google/gemini-3.5-flash',
       content: goodRead({
         zones: [goodZone('chin', {
           regions: [
@@ -292,7 +292,7 @@ test('baseline and final: argon (medium reasoning on Day 1, high on Day 7), flas
     const result = await post({ stage, cycleId: 'c1', day: stage === 'baseline' ? 1 : 7, images: [front] });
     assert.equal(result.status, 200);
     const body = modelCalls().at(-1);
-    assert.deepEqual(body.models, ['google/gemini-4-argon', 'google/gemini-3.5-flash']);
+    assert.deepEqual(body.models, ['google/gemini-3.5-flash', 'google/gemini-3.1-flash-lite']);
     assert.deepEqual(body.reasoning, { effort: stage === 'baseline' ? 'medium' : 'high' });
     assert.deepEqual(body.provider, { zdr: true, data_collection: 'deny' });
     assert.deepEqual(result.body.zones[0].regions, [
