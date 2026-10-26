@@ -100,6 +100,24 @@ public struct SkintelAPI: Sendable {
         return try await post(AssistantReply.self, "assistant", body: body)
     }
 
+    // MARK: Face scan
+
+    /// How long a face read may take before the request gives up. The model reads up to thirteen
+    /// photos with reasoning on; the shared client's 45 s is too tight for the final read.
+    public static let faceScanTimeout: TimeInterval = 60
+
+    /// `POST /api/face-scan` (PRO-SPEC §3). The request is checked on the device first
+    /// (`FaceScanRequest.validate()`, thrown as `.badRequest`), so an oversized upload never
+    /// leaves the phone. The HTTP status is checked before the body is decoded: 402 throws
+    /// `.proRequired`, 429 `.rateLimited`, 413 `.payloadTooLarge`. The reply is the bare
+    /// `FaceScanResult`, not wrapped in `result`. A POST, so it is never retried: each call
+    /// costs a model read.
+    public func faceScan(_ request: FaceScanRequest) async throws -> FaceScanResult {
+        if let reason = request.validate() { throw APIError.badRequest(reason) }
+        let r = try await raw("POST", "face-scan", [:], body: request, timeout: Self.faceScanTimeout)
+        return try JSONCoding.decode(FaceScanResult.self, from: r.data)
+    }
+
     // MARK: Account
 
     public func exportData() async throws -> Data {
@@ -133,10 +151,15 @@ public struct SkintelAPI: Sendable {
         ["Authorization": "Bearer \(try await tokens.validAccessToken())"]
     }
 
-    private func raw(_ method: String, _ path: String, _ query: [String: String], body: (some Encodable)?) async throws -> HTTPClient.Response {
+    /// `timeout` overrides the client's for this call only. It goes through the client rather than
+    /// the request because `HTTPClient.send` replaces a request timeout of exactly 60 with its own.
+    private func raw(_ method: String, _ path: String, _ query: [String: String], body: (some Encodable)?,
+                     timeout: TimeInterval? = nil) async throws -> HTTPClient.Response {
         let url = RequestBuilder.url(config.baseURL, path: path, query: query)
         let req = try RequestBuilder.json(url, method: method, body: body, headers: try await headers())
-        let r = try await http.send(req)
+        var client = http
+        if let timeout { client.timeout = timeout }
+        let r = try await client.send(req)
         guard (200..<300).contains(r.status) else { throw mapError(status: r.status, data: r.data) }
         return r
     }
