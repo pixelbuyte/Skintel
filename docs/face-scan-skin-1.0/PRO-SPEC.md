@@ -155,9 +155,9 @@ number (§6). Zones: `forehead, nose, left_cheek, right_cheek, chin`.
 
 ## 7. Open founder decisions (add to the PR #76 question list)
 
-1. **Paid-only vs free first scan.** The spec says post-purchase Pro only. BRIEF §10.1 suggests one free scan before
+1. ~~Paid-only vs free first scan~~: answered, **one free scan first** (founder, Oct 26): one lifetime free baseline per account, shown as the locked map + paywall. Was: The spec says post-purchase Pro only. BRIEF §10.1 suggests one free scan before
    sign-up to fix the sign-in leak. The canvas shows the locked-map paywall as a middle ground.
-2. **Under-18s.** Onboarding offers "Under 18" (`AgeRange.under18`). Allow face scan for them? If yes, hide Q5's
+2. ~~Under-18s~~: answered, **allowed** (founder, Oct 26). Proposed: 13+ only for face scan (COPPA: a child's photo is personal information under 13), hide Q5 pregnancy options and Q16 for 13–17. Waiting on the founder to confirm 13+. Was: Onboarding offers "Under 18" (`AgeRange.under18`). Allow face scan for them? If yes, hide Q5's
    pregnancy options and Q16 supplements for them.
 3. ~~Opus or Sonnet for the Day 7 report~~: answered, **Sonnet 5.5** (founder, Oct 26). No Opus escalation.
 
