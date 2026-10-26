@@ -23,10 +23,9 @@ struct FaceScanFlowView: View {
     /// The 13+ answer (COPPA), asked only when onboarding gave no age or "Under 18".
     @AppStorage("faceScan.age13Confirmed") private var age13Confirmed: Bool?
     @AppStorage("faceScan.freeUsed") private var freeUsed = false
-    @State private var lockedResult: FaceScanResult?
     /// The 402 path: the wall over a blank flow, which closes when the wall does.
     @State private var wallThenClose = false
-    /// The wall opened from the locked free-scan map.
+    /// The wall opened from the free Day 1 map's locked 7-day check.
     @State private var wallFromLocked = false
     /// The quiz was opened to collect Q5's locks before the report.
     @State private var quizThenReport = false
@@ -39,6 +38,7 @@ struct FaceScanFlowView: View {
     private enum Screen: Equatable {
         case start
         case ageGate
+        /// The free scan's real Day 1 map, with the week behind Skintel+.
         case locked
         case sweep(FaceScanStage)
         case quiz
@@ -57,8 +57,9 @@ struct FaceScanFlowView: View {
                     if yes { screen = .start; begin() }
                 }, onClose: close)
             case .locked:
-                if let lockedResult {
-                    FaceLockedView(result: lockedResult, onUnlock: { wallFromLocked = true }, onClose: close)
+                if let free = store.freeCalibration(now: Date()) {
+                    FaceResultView(calibration: free, routine: nil, nextAction: nil, onNext: {}, onAsk: nil,
+                                   onClose: close, onUnlock: { wallFromLocked = true })
                         .sheet(isPresented: $wallFromLocked, onDismiss: lockedWallClosed) {
                             PaywallView(reason: .faceScan, faceMapReady: true)
                         }
@@ -161,15 +162,15 @@ struct FaceScanFlowView: View {
         store.expireDay1Crops(now: Date())
         if needsAgeCheck && age13Confirmed != true { screen = .ageGate; return }
         if !isPro && freeUsed {
-            if let kept = store.lockedResult {
-                lockedResult = kept
+            // The kept free scan reopens as its real Day 1 map; without one, straight to the wall.
+            if store.lockedResult != nil {
                 screen = .locked
             } else {
                 wallThenClose = true
             }
             return
         }
-        if isPro, store.lockedResult != nil { store.saveLocked(nil) }
+        if isPro, store.lockedResult != nil { store.saveLocked(nil, now: Date()) }
         guard aiConsent else { showConsent = true; return }
         screen = hasBaseline ? .result : .sweep(.baseline)
     }
@@ -196,11 +197,10 @@ struct FaceScanFlowView: View {
     /// Under 18, or an unknown age that only passed the 13+ gate: no pregnancy chips, no Q16.
     private var treatAsUnder18: Bool { profile.ageRange == nil || profile.ageRange == .under18 }
 
-    /// Bought from the locked map: drop the teaser and run the full first scan.
+    /// Bought from the free map: drop it and run the full first scan, which starts the week.
     private func lockedWallClosed() {
         guard isPro else { return }
-        store.saveLocked(nil)
-        lockedResult = nil
+        store.saveLocked(nil, now: Date())
         screen = .start
         begin()
     }
@@ -311,11 +311,10 @@ struct FaceScanFlowView: View {
                 return
             }
             if result.locked {
-                // The free scan: zones found, details behind Skintel+. Kept to view, never a scan.
+                // The free scan: a real Day 1 map, the week behind Skintel+. Kept to view, never a scan.
                 Haptics.success()
                 freeUsed = true
-                store.saveLocked(result)
-                lockedResult = result
+                store.saveLocked(result, now: Date())
                 screen = .locked
                 return
             }

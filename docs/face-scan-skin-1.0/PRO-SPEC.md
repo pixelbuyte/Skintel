@@ -88,7 +88,7 @@ number (§6). Zones: `forehead, nose, left_cheek, right_cheek, chin`.
   - **Region kinds:** `raised_blemish`, `clogged_pore`, `red_mark`, `brown_mark`, `uneven_texture`.
   - **Daily caps per user (UTC):** 8 calls in total; at most baseline 2, final 2, report 2, daily 4. A call that
     reached the model counts even if it timed out.
-  - **Free scan:** a non-Pro account gets one `baseline` per lifetime, answered with `locked: true` and only the zones with findings (no scores, regions, notes or report). After that, and for every other stage, 402 `{error:"Pro required", freeScanUsed?}`.
+  - **Free scan:** a non-Pro account gets one readable `baseline` per lifetime, answered as a real Day 1 map: `locked: true`, every zone with its scores and note, and the model's summary (no regions, report or routine). `locked` means "this is the free scan; the 7-day check is locked". After that, and for every other stage, 402 `{error:"Pro required", freeScanUsed?}`.
   - **Errors:** 401, 402 `{error:"Pro required"}`, 400, 413, 429, 502/503. The app checks the status before
     decoding, and uses a 60 s timeout because the server budget is 55 s.
 - Validate server-side, clamp every score to 0–100 and drop unknown keys. On bad JSON, retry once, then return
@@ -156,7 +156,7 @@ number (§6). Zones: `forehead, nose, left_cheek, right_cheek, chin`.
 
 ## 7. Open founder decisions (add to the PR #76 question list)
 
-1. ~~Paid-only vs free first scan~~: answered, **one free scan first** (founder, Oct 26): one lifetime free baseline per account, shown as the locked map + paywall. Was: The spec says post-purchase Pro only. BRIEF §10.1 suggests one free scan before
+1. ~~Paid-only vs free first scan~~: answered, **one free scan first** (founder, Oct 26): one lifetime free baseline per account. **Free = a real Day 1 map; the week is Skintel+** (founder, Oct 26): the free scan shows the 3D map, zones and summary for real, and the 7-day check is what Skintel+ pays for. Was: shown as the locked map + paywall. Before that: The spec says post-purchase Pro only. BRIEF §10.1 suggests one free scan before
    sign-up to fix the sign-in leak. The canvas shows the locked-map paywall as a middle ground.
 2. ~~Under-18s~~: answered, **allowed** (founder, Oct 26). Proposed: 13+ only for face scan (COPPA: a child's photo is personal information under 13), hide Q5 pregnancy options and Q16 for 13–17. Confirmed by the founder: **face scan is 13+** (an age check on the intro when onboarding age is unknown or under 18). Was: Onboarding offers "Under 18" (`AgeRange.under18`). Allow face scan for them? If yes, hide Q5's
    pregnancy options and Q16 supplements for them.

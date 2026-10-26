@@ -5,6 +5,9 @@ import SkintelCore
 /// labels, tappable day buttons, concentric rings with a legend, the insight, zones, tonight's
 /// routine, the report once it exists, the history list and Ask. Levels are words and glyphs,
 /// never raw scores (PRO-SPEC §6).
+///
+/// With `onUnlock`, it is the free scan's real Day 1 map: the rings card becomes the locked
+/// 7-day check, and the routine, the scan actions and Ask stay hidden (the week is Skintel+).
 struct FaceResultView: View {
     let calibration: FaceCalibration
     let routine: FaceRoutine?
@@ -13,8 +16,12 @@ struct FaceResultView: View {
     let onNext: () -> Void
     let onAsk: (() -> Void)?
     let onClose: () -> Void
+    /// The free scan only: opens the Skintel+ wall from the locked 7-day check.
+    var onUnlock: (() -> Void)? = nil
 
     @State private var selected: Int?
+
+    private var isFree: Bool { onUnlock != nil }
 
     private var scans: [FaceScanEntry] { calibration.scans }
     private var index: Int {
@@ -28,13 +35,13 @@ struct FaceResultView: View {
             VStack(spacing: 0) {
                 hero
                 VStack(spacing: 14) {
-                    ringsCard
+                    if let onUnlock { lockedWeekCard(unlock: onUnlock) } else { ringsCard }
                     insightCard
                     zonesCard
                     if let report = calibration.latestReport?.report { reportCard(report) }
-                    if let routine, !(routine.pm.isEmpty && routine.am.isEmpty) { routineCard(routine) }
-                    if let nextAction { SKButton(title: nextAction, systemImage: "faceid") { onNext() } }
-                    if let onAsk { SKButton(title: "Ask Skinstel about this scan", kind: nextAction == nil ? .primary : .secondary) { onAsk() } }
+                    if !isFree, let routine, !(routine.pm.isEmpty && routine.am.isEmpty) { routineCard(routine) }
+                    if !isFree, let nextAction { SKButton(title: nextAction, systemImage: "faceid") { onNext() } }
+                    if !isFree, let onAsk { SKButton(title: "Ask Skinstel about this scan", kind: nextAction == nil ? .primary : .secondary) { onAsk() } }
                     historyCard
                     Text("\(FaceScanResult.defaultDisclaimer) Photos are read, then deleted.")
                         .font(SKFont.caption).foregroundStyle(SKColor.muted).multilineTextAlignment(.center)
@@ -236,6 +243,43 @@ struct FaceResultView: View {
             .accessibilityHidden(true)
         }
         .padding(SKSpace.lg)
+        .background(SKColor.cream, in: RoundedRectangle(cornerRadius: SKRadius.card, style: .continuous))
+        .skCardShadow()
+    }
+
+    // MARK: Locked week (free scan)
+
+    /// The free scan's stand-in for the rings: the four rings drawn empty around a lock, the
+    /// question the week answers, and the way into Skintel+.
+    private func lockedWeekCard(unlock: @escaping () -> Void) -> some View {
+        VStack(alignment: .leading, spacing: SKSpace.lg) {
+            HStack(spacing: SKSpace.lg) {
+                ZStack {
+                    ForEach(rings, id: \.radius) { ring in
+                        Circle().stroke(SKColor.ink.opacity(0.07), lineWidth: 10)
+                            .frame(width: ring.radius * 2, height: ring.radius * 2)
+                    }
+                    Image(systemName: "lock.fill")
+                        .font(.system(size: 18, weight: .semibold))
+                        .foregroundStyle(SKColor.primary)
+                }
+                .frame(width: 132, height: 132)
+                .accessibilityHidden(true)
+                VStack(alignment: .leading, spacing: 6) {
+                    Text("7-DAY CHECK").font(SKFont.label).tracking(1).foregroundStyle(SKColor.primary)
+                    Text("Want to know if it's getting better?")
+                        .font(SKFont.sans(17, weight: .semibold, relativeTo: .headline)).foregroundStyle(SKColor.ink)
+                        .fixedSize(horizontal: false, vertical: true)
+                    Text("Follow it for 7 days with Skintel+")
+                        .font(SKFont.secondary).foregroundStyle(SKColor.muted)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+                .accessibilityElement(children: .combine)
+            }
+            SKButton(title: "Get Skintel+", action: unlock)
+        }
+        .padding(SKSpace.lg)
+        .frame(maxWidth: .infinity, alignment: .leading)
         .background(SKColor.cream, in: RoundedRectangle(cornerRadius: SKRadius.card, style: .continuous))
         .skCardShadow()
     }

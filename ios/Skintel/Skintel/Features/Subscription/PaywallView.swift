@@ -11,7 +11,7 @@ struct PaywallView: View {
     let reason: PaywallReason
     /// From the Add a product hub: the add method tapped, so the scanner demo matches it.
     var method: ScanMethod? = nil
-    /// Face scan only: opened from the locked free-scan map, so "Your face map is ready." is true.
+    /// Face scan only: opened from the free Day 1 map, so the wall sells the 7-day check, not the map.
     var faceMapReady = false
     @Environment(AppEnvironment.self) private var env
     @Environment(\.dismiss) private var dismiss
@@ -106,7 +106,7 @@ struct PaywallView: View {
     /// App Store Connect and seats remain. Otherwise the plans below would contradict it.
     private var headline: String {
         let foundingOnSale = service?.product(.founding) != nil && (env.subscription.foundingSeatsRemaining ?? 1) > 0
-        if reason == .faceScan { return faceMapReady ? "Your face map is ready." : "See your skin, zone by zone." }
+        if reason == .faceScan { return faceMapReady ? "Want to know if it's getting better?" : "See your skin, zone by zone." }
         return foundingOnSale ? "The founding member deal." : "Everything, for your skin."
     }
 
@@ -121,7 +121,9 @@ struct PaywallView: View {
         case .culprits: "Triggers names the ingredients your “broke out” products share."
         case .assistant: "Ask Skintel answers from your shelf, routine and check-ins, and adds products you mention to your shelf."
         case .general: "Unlimited scans, Triggers from your full history, and more."
-        case .faceScan: "See what each area shows, follow it for 7 days and get a routine built from your shelf."
+        case .faceScan: faceMapReady
+            ? "Follow your face for 7 days: oil pattern, redness, what's changing, and a routine from your shelf."
+            : "See what each area shows, follow it for 7 days and get a routine built from your shelf."
         }
     }
 
