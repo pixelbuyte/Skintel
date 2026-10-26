@@ -19,7 +19,7 @@ const JPEG = `/9j/${SENTINEL}AAAA`;
 const PNG = 'iVBORw0KGgoAAAANSUhEUg==';
 const OPENROUTER = 'https://openrouter.ai/api/v1/chat/completions';
 
-let tier, status, usageRows, nextId, modelQueue, calls, logged, countOverride, stageCountOverride;
+let tier, status, scanRows, scanError, usageRows, nextId, modelQueue, calls, logged, countOverride, stageCountOverride;
 const envKeys = ['SUPABASE_URL', 'VITE_SUPABASE_URL', 'SUPABASE_SERVICE_ROLE_KEY', 'OPENROUTER_API_KEY', 'ANTHROPIC_API_KEY'];
 const savedEnv = new Map(envKeys.map((key) => [key, process.env[key]]));
 const originalFetch = globalThis.fetch;
@@ -29,7 +29,7 @@ const reply = (body, code = 200, headers = {}) => new Response(JSON.stringify(bo
 });
 
 beforeEach(() => {
-  tier = 'pro'; status = 'active'; usageRows = []; nextId = 1; modelQueue = []; calls = []; logged = []; countOverride = null; stageCountOverride = {};
+  tier = 'pro'; status = 'active'; scanRows = []; scanError = false; usageRows = []; nextId = 1; modelQueue = []; calls = []; logged = []; countOverride = null; stageCountOverride = {};
   process.env.SUPABASE_URL = process.env.VITE_SUPABASE_URL = 'https://supabase.invalid';
   process.env.SUPABASE_SERVICE_ROLE_KEY = 'test-service-role';
   process.env.OPENROUTER_API_KEY = 'test-openrouter';
@@ -46,6 +46,22 @@ beforeEach(() => {
     if (url.startsWith('https://supabase.invalid/rest/v1/subscriptions')) {
       const row = { tier, status };
       return reply(asObject ? row : [row]);
+    }
+    if (url.startsWith('https://supabase.invalid/rest/v1/face_scans')) {
+      if (scanError) return reply({ message: 'db down' }, 500);
+      if (method === 'POST') {
+        scanRows.push({ ...JSON.parse(init.body), created_at: new Date(Date.now() + scanRows.length).toISOString() });
+        return new Response(null, { status: 201 });
+      }
+      const params = new URL(url).searchParams;
+      const eq = (key) => params.get(key)?.replace('eq.', '');
+      const rows = scanRows
+        .filter((r) => r.user_id === eq('user_id') && r.cycle_id === eq('cycle_id'))
+        .filter((r) => !eq('stage') || r.stage === eq('stage'))
+        .filter((r) => !eq('day') || String(r.day) === eq('day'))
+        .sort((a, b) => b.created_at.localeCompare(a.created_at))
+        .slice(0, Number(params.get('limit') ?? 1000));
+      return reply(rows);
     }
     if (url.startsWith('https://supabase.invalid/rest/v1/face_scan_usage')) {
       if (method === 'POST') {
@@ -93,7 +109,7 @@ afterEach(() => {
   }
 });
 
-async function post(body, { method = 'POST', auth = 'Bearer ok' } = {}) {
+async function post(body, { method = 'POST', auth = 'Bearer ok', query = {} } = {}) {
   const result = { status: 200, headers: {}, body: null };
   const res = {
     status(value) { result.status = value; return this; },
@@ -101,9 +117,10 @@ async function post(body, { method = 'POST', auth = 'Bearer ok' } = {}) {
     send(value) { result.body = JSON.parse(value); return this; },
   };
   const headers = auth ? { authorization: auth } : {};
-  await handler({ query: { action: 'face' }, headers, body, method }, res);
+  await handler({ query: { action: 'face', ...query }, headers, body, method }, res);
   return result;
 }
+const latest = (query, opts = {}) => post(undefined, { method: 'GET', query, ...opts });
 const modelCalls = () => calls.filter((c) => c.url === OPENROUTER).map((c) => JSON.parse(c.body));
 
 const front = { role: 'front', base64: JPEG, mimeType: 'image/jpeg' };
@@ -133,7 +150,8 @@ const reportBody = (extra = {}) => ({
 const withLocks = (locks, answers = {}) => reportBody({ answers: { ...answers, locks } });
 
 test('auth, method and Pro are enforced before anything else', async () => {
-  assert.equal((await post(dailyBody(), { method: 'GET' })).status, 405);
+  assert.equal((await post(dailyBody(), { method: 'PUT' })).status, 405);
+  assert.equal((await latest({ cycleId: 'c1' }, { auth: '' })).status, 401);
   assert.equal((await post(dailyBody(), { auth: '' })).status, 401);
   tier = 'free';
   const result = await post(dailyBody());
@@ -254,7 +272,7 @@ test('daily: flash model, ZDR + no-store routing, temperature 0, clamped scores,
   });
 });
 
-test('baseline and final: argon with high reasoning, flash fallback, regions clamped, malformed boxes dropped', async () => {
+test('baseline and final: argon (medium reasoning on Day 1, high on Day 7), flash fallback, regions clamped, malformed boxes dropped', async () => {
   for (const stage of ['baseline', 'final']) {
     modelQueue.push({
       model: 'google/gemini-4-argon',
@@ -275,7 +293,7 @@ test('baseline and final: argon with high reasoning, flash fallback, regions cla
     assert.equal(result.status, 200);
     const body = modelCalls().at(-1);
     assert.deepEqual(body.models, ['google/gemini-4-argon', 'google/gemini-3.5-flash']);
-    assert.deepEqual(body.reasoning, { effort: 'high' });
+    assert.deepEqual(body.reasoning, { effort: stage === 'baseline' ? 'medium' : 'high' });
     assert.deepEqual(body.provider, { zdr: true, data_collection: 'deny' });
     assert.deepEqual(result.body.zones[0].regions, [
       { kind: 'raised_blemish', box: [0.42, 0.61, 0.08, 0.07] },
@@ -708,4 +726,58 @@ test('free account: an empty model summary falls back to the neutral line, not a
   assert.equal(result.status, 200);
   assert.equal(result.body.locked, true);
   assert.equal(result.body.summary, 'A cosmetic read of how your skin looks in this photo.');
+});
+
+test('a readable answer is saved (response body only) and GET returns the newest for the cycle', async () => {
+  modelQueue.push({ content: goodRead() });
+  const sent = await post({ stage: 'baseline', cycleId: 'week-9', day: 1, images: [front] });
+  assert.equal(sent.status, 200);
+  assert.equal(scanRows.length, 1);
+  assert.deepEqual(
+    { user_id: scanRows[0].user_id, cycle_id: scanRows[0].cycle_id, day: scanRows[0].day, stage: scanRows[0].stage },
+    { user_id: USER_ID, cycle_id: 'week-9', day: 1, stage: 'baseline' },
+  );
+  assert.deepEqual(scanRows[0].result, sent.body);
+  assert(!JSON.stringify(scanRows).includes(SENTINEL), 'image bytes were stored');
+
+  modelQueue.push({ content: goodRead({ summary: 'Day two.' }) });
+  await post(dailyBody({ cycleId: 'week-9', day: 2 }));
+
+  const newest = await latest({ cycleId: 'week-9' });
+  assert.equal(newest.status, 200);
+  assert.equal(newest.body.scan.stage, 'daily');
+  assert.equal(newest.body.scan.result.summary, 'Day two.');
+  const day1 = await latest({ cycleId: 'week-9', stage: 'baseline', day: '1' });
+  assert.deepEqual(day1.body.scan.result, sent.body);
+  assert.equal(day1.body.scan.cycleId, 'week-9');
+  assert.deepEqual((await latest({ cycleId: 'other' })).body, { scan: null });
+  assert.equal(modelCalls().length, 2); // GET never calls a model
+});
+
+test('GET: a free account can fetch its locked Day 1 map; bad params are 400', async () => {
+  tier = 'free'; status = 'none';
+  modelQueue.push({ content: goodRead() });
+  const sent = await post({ stage: 'baseline', cycleId: 'c1', day: 1, images: [front] });
+  assert.equal(sent.body.locked, true);
+  const got = await latest({ cycleId: 'c1', stage: 'baseline' });
+  assert.equal(got.status, 200);
+  assert.deepEqual(got.body.scan.result, sent.body);
+  assert.equal((await latest({})).status, 400);
+  assert.equal((await latest({ cycleId: 'bad id!' })).status, 400);
+  assert.equal((await latest({ cycleId: 'c1', stage: 'weekly' })).status, 400);
+  assert.equal((await latest({ cycleId: 'c1', day: '0' })).status, 400);
+});
+
+test('unreadable photos are not saved, and a failed save never fails the scan', async () => {
+  modelQueue.push({ content: { quality: { ok: false, issues: ['blurry'] }, zones: [], summary: 'Blurry.' } });
+  assert.equal((await post(dailyBody())).status, 200);
+  assert.equal(scanRows.length, 0);
+
+  scanError = true;
+  modelQueue.push({ content: goodRead() });
+  const result = await post(dailyBody());
+  assert.equal(result.status, 200);
+  assert.equal(result.body.quality.ok, true);
+  assert.equal((await latest({ cycleId: 'cycle-1' })).status, 503);
+  assert(!logged.join('').includes(SENTINEL));
 });

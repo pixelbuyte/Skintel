@@ -191,7 +191,7 @@ struct SweepView: View {
         switch model.phase {
         case .denied: return "Allow the camera for Skintel in Settings to scan your face."
         case .unavailable: return "Face scan needs a front camera."
-        case .done: return "About 10 seconds"
+        case .done: return "Usually under a minute"
         default: break
         }
         switch model.currentRole {

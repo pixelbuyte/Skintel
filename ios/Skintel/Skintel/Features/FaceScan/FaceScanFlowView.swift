@@ -108,7 +108,7 @@ struct FaceScanFlowView: View {
         VStack(spacing: SKSpace.lg) {
             FaceMeshView(mode: .scan, zoom: 0.4).frame(width: 260, height: 320)
             Text("Reading your skin").font(SKFont.serif(34, relativeTo: .largeTitle)).foregroundStyle(SKColor.bg)
-            Text("About 10 seconds").font(SKFont.secondary).foregroundStyle(SKColor.bg.opacity(0.72))
+            Text("Usually under a minute").font(SKFont.secondary).foregroundStyle(SKColor.bg.opacity(0.72))
             ProgressView().tint(SKColor.bg)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -311,27 +311,59 @@ struct FaceScanFlowView: View {
                                       history: history, profile: profileJSON, shelf: shelf, triggers: triggersJSON)
         do {
             let result = try await env.api.faceScan(request)
-            guard result.quality.ok else {
-                errorText = Self.qualityMessage(result.quality.issues)
-                return
-            }
-            // The free scan is a real baseline: recorded in this cycle with its Day 1 crops like
-            // a paid one, so after Skintel+ the week goes on at Day 2 instead of a new sweep.
-            if result.locked { freeUsed = true }
-            store.record(stage: stage, result: result, now: Date())
-            onSuccess()
-            Haptics.success()
-            screen = .result
+            accept(result, stage: stage, onSuccess: onSuccess)
         } catch APIError.proRequired {
             // The free scan is used up: straight to the wall; the flow closes with it.
             freeUsed = true
             screen = .start
             wallThenClose = true
         } catch let error as APIError {
-            errorText = error.userMessage
+            // The server keeps every readable answer. If only the reply was lost, fetch it
+            // rather than closing the flow and throwing away a finished (and counted) read.
+            if Self.mayHaveFinished(error), let kept = await recover(stage: stage, day: day) {
+                accept(kept, stage: stage, onSuccess: onSuccess)
+            } else {
+                errorText = error.userMessage
+            }
         } catch {
             errorText = "Something went wrong. Please try again."
         }
+    }
+
+    private func accept(_ result: FaceScanResult, stage: FaceScanStage, onSuccess: () -> Void) {
+        guard result.quality.ok else {
+            errorText = Self.qualityMessage(result.quality.issues)
+            return
+        }
+        // The free scan is a real baseline: recorded in this cycle with its Day 1 crops like
+        // a paid one, so after Skintel+ the week goes on at Day 2 instead of a new sweep.
+        if result.locked { freeUsed = true }
+        store.record(stage: stage, result: result, now: Date())
+        onSuccess()
+        Haptics.success()
+        screen = .result
+    }
+
+    /// Failures where the read may still have finished on the server: the reply never arrived
+    /// (timeout, dropped or lost connection), arrived garbled, or the gateway gave up waiting.
+    static func mayHaveFinished(_ error: APIError) -> Bool {
+        switch error {
+        case .network, .offline, .decoding: true
+        case .server(let status, _): status == 504
+        default: false
+        }
+    }
+
+    /// Asks for the kept read a few times: a connection that dropped early can come back before
+    /// the server is done (its whole budget is under a minute). Stays on the reading screen.
+    private func recover(stage: FaceScanStage, day: Int) async -> FaceScanResult? {
+        for attempt in 0..<6 {
+            if attempt > 0 { try? await Task.sleep(nanoseconds: 8_000_000_000) }
+            if let kept = try? await env.api.latestFaceScan(cycleId: store.cycleId, stage: stage, day: day) {
+                return kept
+            }
+        }
+        return nil
     }
 
     static func qualityMessage(_ issues: [String]) -> String {
