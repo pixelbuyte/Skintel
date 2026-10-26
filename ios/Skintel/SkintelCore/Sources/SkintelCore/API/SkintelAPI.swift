@@ -118,6 +118,22 @@ public struct SkintelAPI: Sendable {
         return try JSONCoding.decode(FaceScanResult.self, from: r.data)
     }
 
+    /// What `GET /api/face-scan` answers: the newest stored read for the cycle, or `scan: null`.
+    struct FaceScanLatest: Decodable, Sendable {
+        struct Scan: Decodable, Sendable {
+            let result: FaceScanResult
+        }
+        let scan: Scan?
+    }
+
+    /// The read the server kept for this cycle, stage and day, if it finished. Used when the
+    /// `faceScan` POST was cut off (timeout, dropped connection) so the paid read isn't lost.
+    /// A GET: it costs no model read and is safe to repeat.
+    public func latestFaceScan(cycleId: String, stage: FaceScanStage, day: Int) async throws -> FaceScanResult? {
+        let query = ["cycleId": cycleId, "stage": stage.rawValue, "day": String(day)]
+        return try await get(FaceScanLatest.self, "face-scan", query).scan?.result
+    }
+
     // MARK: Account
 
     public func exportData() async throws -> Data {

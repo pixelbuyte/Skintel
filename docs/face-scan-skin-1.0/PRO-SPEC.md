@@ -13,7 +13,7 @@ the 7-day check (drag the day).
 | Tier | Where | Model (exact OpenRouter id) | Price in / out per 1M tokens | Role |
 |---|---|---|---|---|
 | 1 Sweep + zone slicer | On device | ARKit `ARFaceAnchor` (TrueDepth) or MediaPipe canonical mesh (468 vertices, Apache-2.0) | $0 | Guide the head turn: centre 0°, left 45°, right 45°. Check light, distance and one face. Cut 5 zone crops: forehead, nose/T-zone, left cheek, right cheek, chin. |
-| 2a Baseline + final read (Day 1, Day 7) | Server | `google/gemini-4-argon`, request `reasoning: { effort: "high" }` (reasoning is mandatory on this model) | $2 / $10 | 5 crops + 3 views → per-zone findings with approximate regions (§3) |
+| 2a Baseline + final read (Day 1, Day 7) | Server | `google/gemini-3.5-flash` (founder, Oct 26: no Argon), `reasoning` medium on Day 1, high on Day 7; fallback `google/gemini-3.1-flash-lite` | Flash pricing | 5 crops + 3 views → per-zone findings with approximate regions (§3) |
 | 2b Daily read (Days 2–6) | Server | `google/gemini-3.5-flash` | $1.50 / $9 | 1 front photo → per-zone 0–100 scores, under ~2 s |
 | 3 Synthesis (Day 7) + routine | Server | `anthropic/claude-sonnet-5.5`; `anthropic/claude-opus-5.5` only on retry or escalation | $2 / $10 (Opus $4 / $20) | 7-day JSON trend, Day 1 vs Day 7 findings and answers → report + conflict-checked AM/PM routine |
 
