@@ -781,3 +781,19 @@ test('unreadable photos are not saved, and a failed save never fails the scan', 
   assert.equal((await latest({ cycleId: 'cycle-1' })).status, 503);
   assert(!logged.join('').includes(SENTINEL));
 });
+
+test('unreadable reads do not count toward the stage cap (a retake after a dim photo works)', async () => {
+  const bad = { content: { quality: { ok: false, issues: ['too_dark'] }, zones: [], summary: 'Too dark.' } };
+  const body = { stage: 'baseline', cycleId: 'c1', day: 1, images: [front] };
+  for (let i = 0; i < 3; i++) {
+    modelQueue.push(bad);
+    assert.equal((await post(body)).status, 200);
+  }
+  modelQueue.push({ content: goodRead() });
+  modelQueue.push({ content: goodRead() });
+  assert.equal((await post(body)).body.quality.ok, true);
+  assert.equal((await post(body)).body.quality.ok, true);
+  const third = await post(body); // 2 readable baselines today: the stage cap holds
+  assert.equal(third.status, 429);
+  assert.equal(third.body.stage, 'baseline');
+});

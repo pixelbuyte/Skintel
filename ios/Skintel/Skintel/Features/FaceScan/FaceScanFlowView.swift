@@ -317,6 +317,8 @@ struct FaceScanFlowView: View {
             freeUsed = true
             screen = .start
             wallThenClose = true
+        } catch APIError.rateLimited {
+            errorText = "That's today's limit for face scans. Try again tomorrow."
         } catch let error as APIError {
             // The server keeps every readable answer. If only the reply was lost, fetch it
             // rather than closing the flow and throwing away a finished (and counted) read.

@@ -834,14 +834,18 @@ function startOfUtcDay(now = new Date()): Date {
   return new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()));
 }
 
-/** Today's usage rows for the user, optionally for one stage. null = the count failed. */
+/**
+ * Today's usage rows for the user, optionally for one stage. null = the count failed.
+ * The per-stage count skips reads that came back unreadable (too dark, blurry): a retake after a
+ * bad photo must not hit the stage cap. The overall daily cap still counts every call.
+ */
 async function countToday(sb: SupabaseClient, userId: string, stage?: FaceStage): Promise<number | null> {
   let query = sb
     .from('face_scan_usage')
     .select('id', { count: 'exact', head: true })
     .eq('user_id', userId)
     .gte('created_at', startOfUtcDay().toISOString());
-  if (stage) query = query.eq('stage', stage);
+  if (stage) query = query.eq('stage', stage).eq('read_ok', true);
   const { count, error } = await query;
   if (error || count === null) {
     console.error('face-scan usage count failed', { message: String(error?.message ?? 'no count').slice(0, 200) });
