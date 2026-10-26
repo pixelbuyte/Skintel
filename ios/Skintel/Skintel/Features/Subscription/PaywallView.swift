@@ -11,6 +11,8 @@ struct PaywallView: View {
     let reason: PaywallReason
     /// From the Add a product hub: the add method tapped, so the scanner demo matches it.
     var method: ScanMethod? = nil
+    /// Face scan only: opened from the locked free-scan map, so "Your face map is ready." is true.
+    var faceMapReady = false
     @Environment(AppEnvironment.self) private var env
     @Environment(\.dismiss) private var dismiss
     @State private var service: SubscriptionService?
@@ -104,7 +106,7 @@ struct PaywallView: View {
     /// App Store Connect and seats remain. Otherwise the plans below would contradict it.
     private var headline: String {
         let foundingOnSale = service?.product(.founding) != nil && (env.subscription.foundingSeatsRemaining ?? 1) > 0
-        if reason == .faceScan { return "Your face map is ready." }
+        if reason == .faceScan { return faceMapReady ? "Your face map is ready." : "See your skin, zone by zone." }
         return foundingOnSale ? "The founding member deal." : "Everything, for your skin."
     }
 

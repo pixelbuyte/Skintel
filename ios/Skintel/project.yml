@@ -105,7 +105,7 @@ targets:
           - InstrumentSerif-Italic.ttf
           - JetBrainsMono-Regular.ttf
           - JetBrainsMono-Bold.ttf
-        NSCameraUsageDescription: Skintel uses the camera to scan product barcodes, photograph ingredient labels, and take the face photos for Face Scan. Your 3D face shape stays on this phone.
+        NSCameraUsageDescription: Skintel uses the camera to scan product barcodes, photograph ingredient labels, and take the face photos for Face Scan.
         NSPhotoLibraryUsageDescription: Skintel reads a photo you choose so it can read the ingredient label in it.
         # Public client configuration, supplied by Config/Config.xcconfig (see Config.example.xcconfig)
         SUPABASE_URL: $(SUPABASE_URL)

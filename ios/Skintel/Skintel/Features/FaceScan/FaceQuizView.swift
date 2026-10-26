@@ -312,7 +312,7 @@ struct FaceQuizView: View {
             .accessibilityLabel("Core profile complete")
             Text("Your core profile is done.").font(SKFont.serif(38, relativeTo: .largeTitle)).foregroundStyle(SKColor.ink)
                 .accessibilityAddTraits(.isHeader)
-            Text("That's enough for your face map and a starter routine. You can stop here, or answer 12 more questions to sharpen it.")
+            Text("That's enough for your face map. You can stop here, or answer \(deep.count) more questions to sharpen it.")
                 .font(SKFont.sans(15, relativeTo: .body)).foregroundStyle(SKColor.muted)
             Spacer()
             SKButton(title: "See my results now") { finish() }

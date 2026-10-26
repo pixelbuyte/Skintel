@@ -45,6 +45,8 @@ struct MainTabView: View {
     @State private var showAssistant = false
     @State private var showShelf = false
     @State private var showFaceScan = false
+    /// "Ask Skinstel about this scan": close the face scan cover, then open Ask.
+    @State private var askAfterFaceScan = false
     @AppStorage("seen.faceScan") private var seenFaceScan = false
     @State private var keyboardUp = false
     @AppStorage(AssistantPlacement.key) private var assistantPlacement = AssistantPlacement.tab
@@ -114,7 +116,11 @@ struct MainTabView: View {
         .sheet(isPresented: $showCompare) { CompareView().skProGates() }
         .skAskSheet(isPresented: $showAssistant)
         .sheet(isPresented: $showShelf) { ShelfTab().skProGates() }
-        .fullScreenCover(isPresented: $showFaceScan) { FaceScanFlowView(onAsk: { showAssistant = true }).skProGates() }
+        .fullScreenCover(isPresented: $showFaceScan, onDismiss: {
+            if askAfterFaceScan { askAfterFaceScan = false; showAssistant = true }
+        }) {
+            FaceScanFlowView(onAsk: { askAfterFaceScan = true; showFaceScan = false }).skProGates()
+        }
         .environment(\.openPaywall, OpenPaywallAction { reason in gate(reason) })
         .onChange(of: env.pendingDeepLink, initial: true) { consumeDeepLink() }
         .onChange(of: env.subscription.loaded) { consumeDeepLink() }
@@ -153,6 +159,7 @@ struct MainTabView: View {
             showAssistant = false
             showShelf = false
             showFaceScan = false
+            askAfterFaceScan = false
             try? await Task.sleep(for: .milliseconds(650))
         }
         let assistantInTab = assistantPlacement == AssistantPlacement.tab

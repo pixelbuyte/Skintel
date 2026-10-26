@@ -19,11 +19,17 @@ struct FaceScanFlowView: View {
 
     @Environment(AppEnvironment.self) private var env
     @Environment(\.dismiss) private var dismiss
-    @Environment(\.openPaywall) private var openPaywall
     @AppStorage("faceScan.aiConsent") private var aiConsent = false
     /// The 13+ answer (COPPA), asked only when onboarding gave no age or "Under 18".
     @AppStorage("faceScan.age13Confirmed") private var age13Confirmed: Bool?
+    @AppStorage("faceScan.freeUsed") private var freeUsed = false
     @State private var lockedResult: FaceScanResult?
+    /// The 402 path: the wall over a blank flow, which closes when the wall does.
+    @State private var wallThenClose = false
+    /// The wall opened from the locked free-scan map.
+    @State private var wallFromLocked = false
+    /// The quiz was opened to collect Q5's locks before the report.
+    @State private var quizThenReport = false
     @State private var store = FaceScanStore.shared
     @State private var screen: Screen = .start
     @State private var showConsent = false
@@ -52,17 +58,25 @@ struct FaceScanFlowView: View {
                 }, onClose: close)
             case .locked:
                 if let lockedResult {
-                    FaceLockedView(result: lockedResult, onUnlock: showPaywall, onClose: close)
+                    FaceLockedView(result: lockedResult, onUnlock: { wallFromLocked = true }, onClose: close)
+                        .sheet(isPresented: $wallFromLocked, onDismiss: lockedWallClosed) {
+                            PaywallView(reason: .faceScan, faceMapReady: true)
+                        }
                 }
             case .sweep(let stage):
                 SweepView(fullSweep: stage != .daily, onClose: close) { images in
                     swept(images, stage: stage)
                 }
             case .quiz:
-                FaceQuizView(under18: profile.ageRange == .under18, prefill: FaceQuestions.prefill(profile: profile, triggerNames: triggerNames),
+                FaceQuizView(under18: treatAsUnder18, prefill: FaceQuestions.prefill(profile: profile, triggerNames: triggerNames),
                              triggerHint: triggerHint, onClose: close) { answers in
                     store.saveAnswers(answers)
-                    Task { await readBaseline(answers: answers) }
+                    if quizThenReport {
+                        quizThenReport = false
+                        Task { await readReport() }
+                    } else {
+                        Task { await readBaseline(answers: answers) }
+                    }
                 }
             case .reading:
                 reading
@@ -72,11 +86,14 @@ struct FaceScanFlowView: View {
             }
         }
         .onAppear(perform: begin)
+        .sheet(isPresented: $wallThenClose, onDismiss: close) {
+            PaywallView(reason: .faceScan)
+        }
         .alert("Read your skin with AI?", isPresented: $showConsent) {
             Button("Allow") { aiConsent = true; begin() }
             Button("Not now", role: .cancel) { close() }
         } message: {
-            Text("To read your skin, Skinstel sends your face photos (three angles and five close crops), your answers, your skin profile and your Triggers to third-party AI providers through OpenRouter (Google and Anthropic), with zero data retention. Photos are read, then deleted; your 3D face shape stays on this phone. A cosmetic read, not a diagnosis. Details are in our Privacy Policy.")
+            Text("To read your skin, Skinstel sends your face photos (three angles and five close crops), your answers, your skin profile, your shelf and your Triggers to third-party AI providers through OpenRouter (Google and Anthropic), with zero data retention. Photos are read, then deleted. The 3D face is a model, not a scan of you. Day 1 close-ups stay on this phone until Day 7, then are deleted. A cosmetic read, not a diagnosis. Details are in our Privacy Policy.")
         }
         .alert("Face scan", isPresented: Binding(get: { errorText != nil }, set: { if !$0 { errorText = nil } })) {
             Button("OK", role: .cancel) { afterError() }
@@ -124,6 +141,7 @@ struct FaceScanFlowView: View {
     }
 
     private var nextAction: String? {
+        if store.hasCycle && store.calibration.latestReport != nil { return "Start a new week" }
         if store.hasCycle && store.calibration.hasFinalScan && store.calibration.latestReport == nil {
             return "Write my skin report"
         }
@@ -136,14 +154,32 @@ struct FaceScanFlowView: View {
 
     // MARK: Flow
 
+    private var isPro: Bool { env.subscription.entitlement.isPro }
+
     private func begin() {
         guard screen == .start else { return }
+        store.expireDay1Crops(now: Date())
         if needsAgeCheck && age13Confirmed != true { screen = .ageGate; return }
+        if !isPro && freeUsed {
+            if let kept = store.lockedResult {
+                lockedResult = kept
+                screen = .locked
+            } else {
+                wallThenClose = true
+            }
+            return
+        }
+        if isPro, store.lockedResult != nil { store.saveLocked(nil) }
         guard aiConsent else { showConsent = true; return }
         screen = hasBaseline ? .result : .sweep(.baseline)
     }
 
     private func beginNext() {
+        if store.hasCycle && store.calibration.latestReport != nil {
+            // A new week: readBaseline starts a new cycle id once the sweep and quiz are done.
+            screen = .sweep(.baseline)
+            return
+        }
         if store.calibration.hasFinalScan && store.calibration.latestReport == nil {
             Task { await readReport() }
             return
@@ -157,8 +193,23 @@ struct FaceScanFlowView: View {
     /// Onboarding gave no age, or "Under 18": ask the 13+ question.
     private var needsAgeCheck: Bool { profile.ageRange == nil || profile.ageRange == .under18 }
 
-    private func showPaywall() {
-        openPaywall(.faceScan)
+    /// Under 18, or an unknown age that only passed the 13+ gate: no pregnancy chips, no Q16.
+    private var treatAsUnder18: Bool { profile.ageRange == nil || profile.ageRange == .under18 }
+
+    /// Bought from the locked map: drop the teaser and run the full first scan.
+    private func lockedWallClosed() {
+        guard isPro else { return }
+        store.saveLocked(nil)
+        lockedResult = nil
+        screen = .start
+        begin()
+    }
+
+    /// The `@AppStorage` keys this flow keeps, cleared on sign-out (`AppEnvironment.resetAfterSignOut`).
+    static func resetPreferences(_ defaults: UserDefaults = .standard) {
+        for key in ["faceScan.aiConsent", "faceScan.age13Confirmed", "faceScan.freeUsed"] {
+            defaults.removeObject(forKey: key)
+        }
     }
 
     private func afterError() {
@@ -230,26 +281,42 @@ struct FaceScanFlowView: View {
             guard let data = try? JSONEncoder().encode(entry) else { return nil }
             return try? JSONDecoder().decode(JSONValue.self, from: data)
         }
-        await send(stage: .report, images: [], answers: store.answers ?? FaceAnswers(locks: []), history: history) {}
+        // Locks never fail open: no stored answers means the quiz (Q5) runs first.
+        guard let answers = store.answers else {
+            quizThenReport = true
+            screen = .quiz
+            return
+        }
+        let shelf: [JSONValue] = env.products.products.map { item in
+            var o: [String: JSONValue] = ["name": .string(item.product.productName)]
+            if let brand = item.product.brand { o["brand"] = .string(brand) }
+            if let category = item.product.category { o["category"] = .string(category) }
+            let key = item.ingredients.sorted { $0.position < $1.position }.prefix(15).map { JSONValue.string($0.inciRaw) }
+            if !key.isEmpty { o["ingredients"] = .array(Array(key)) }
+            return .object(o)
+        }
+        await send(stage: .report, images: [], answers: answers, history: history, shelf: shelf.isEmpty ? nil : shelf) {}
     }
 
     private func send(stage: FaceScanStage, images: [FaceScanImage], answers: FaceAnswers?,
-                      history: [JSONValue]? = nil, onSuccess: () -> Void) async {
+                      history: [JSONValue]? = nil, shelf: [JSONValue]? = nil, onSuccess: () -> Void) async {
         screen = .reading
         let day = min(max(store.cycleDay(now: Date()), FaceScanLimits.cycleDays.lowerBound), FaceScanLimits.cycleDays.upperBound)
         let request = FaceScanRequest(stage: stage, cycleId: store.cycleId, day: day, images: images, answers: answers,
-                                      history: history, profile: profileJSON, triggers: triggersJSON)
+                                      history: history, profile: profileJSON, shelf: shelf, triggers: triggersJSON)
         do {
             let result = try await env.api.faceScan(request)
-            if result.locked {
-                // The free scan: zones found, details behind Skintel+. Not stored as a scan.
-                Haptics.success()
-                lockedResult = result
-                screen = .locked
-                return
-            }
             guard result.quality.ok else {
                 errorText = Self.qualityMessage(result.quality.issues)
+                return
+            }
+            if result.locked {
+                // The free scan: zones found, details behind Skintel+. Kept to view, never a scan.
+                Haptics.success()
+                freeUsed = true
+                store.saveLocked(result)
+                lockedResult = result
+                screen = .locked
                 return
             }
             store.record(stage: stage, result: result, now: Date())
@@ -257,9 +324,10 @@ struct FaceScanFlowView: View {
             Haptics.success()
             screen = .result
         } catch APIError.proRequired {
-            // The free scan is used up: straight to the wall.
-            showPaywall()
-            close()
+            // The free scan is used up: straight to the wall; the flow closes with it.
+            freeUsed = true
+            screen = .start
+            wallThenClose = true
         } catch let error as APIError {
             errorText = error.userMessage
         } catch {

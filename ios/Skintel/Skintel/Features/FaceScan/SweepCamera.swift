@@ -34,9 +34,8 @@ struct SweepCapture: Sendable {
 final class SweepCamera: NSObject, @unchecked Sendable, AVCaptureVideoDataOutputSampleBufferDelegate {
     enum Target: Sendable, Equatable {
         case none
-        /// Lock the next ready frame as this role (front also cuts the zone crops). For the second
-        /// turn, `oppositeOf` is the first turn's yaw, so it must go the other way.
-        case capture(FaceScanImage.Role, oppositeOf: Double)
+        /// Lock the next ready frame as this role (front also cuts the zone crops).
+        case capture(FaceScanImage.Role)
     }
 
     private let session = AVCaptureSession()
@@ -127,7 +126,7 @@ final class SweepCamera: NSObject, @unchecked Sendable, AVCaptureVideoDataOutput
             let w = face.boundingBox.width
             reading.goodDistance = w > 0.28 && w < 0.8
         }
-        let captureQuality = quality.results?.first?.faceCaptureQuality ?? 0
+        let captureQuality = quality.results?.first?.faceCaptureQuality?.floatValue ?? 0
         reading.sharp = captureQuality >= 0.3
 
         let handlerReading = onReading
@@ -135,8 +134,8 @@ final class SweepCamera: NSObject, @unchecked Sendable, AVCaptureVideoDataOutput
 
         guard reading.ready, let face else { return }
         let current = target.withLock { $0 }
-        guard case .capture(let role, let first) = current,
-              Self.matches(role: role, yaw: reading.yaw, oppositeOf: first) else { return }
+        guard case .capture(let role) = current,
+              Self.matches(role: role, yaw: reading.yaw) else { return }
         target.withLock { $0 = .none }
 
         guard let capture = encode(pixelBuffer: pixelBuffer, face: face.boundingBox, role: role) else {
@@ -149,10 +148,16 @@ final class SweepCamera: NSObject, @unchecked Sendable, AVCaptureVideoDataOutput
     }
 
     /// Centre wants the head straight; the turns want about 30° or more (the person aims for 45°).
-    static func matches(role: FaceScanImage.Role, yaw: Double, oppositeOf first: Double) -> Bool {
+    /// The sign of Vision's yaw when the person turns to their own left, in this `.right`,
+    /// unmirrored orientation. ASSUMED +1: verify on a device, and flip to -1 if the left step
+    /// only locks when the person turns right.
+    static let leftTurnYawSign: Double = 1
+
+    static func matches(role: FaceScanImage.Role, yaw: Double) -> Bool {
         switch role {
         case .front: abs(yaw) < 0.2
-        case .left45, .right45: abs(yaw) >= 0.52 && (first == 0 || (yaw > 0) != (first > 0))
+        case .left45: yaw * leftTurnYawSign >= 0.52
+        case .right45: -yaw * leftTurnYawSign >= 0.52
         case .zone: false
         }
     }

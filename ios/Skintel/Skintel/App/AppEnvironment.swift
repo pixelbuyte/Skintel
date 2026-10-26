@@ -65,6 +65,7 @@ final class AppEnvironment {
         journal.reset()
         assistant.reset()
         FaceScanStore.shared.reset()
+        FaceScanFlowView.resetPreferences()
     }
 }
 

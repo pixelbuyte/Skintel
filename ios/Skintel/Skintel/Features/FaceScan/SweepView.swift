@@ -19,7 +19,6 @@ final class SweepModel {
     private(set) var step = 0
     private(set) var reading = SweepReading()
     private(set) var images = SweepImages()
-    private var firstTurnYaw: Double = 0
     private var camera: SweepCamera?
 
     init(fullSweep: Bool) {
@@ -46,14 +45,13 @@ final class SweepModel {
     func restart() {
         step = 0
         images = SweepImages()
-        firstTurnYaw = 0
         if phase == .done { phase = .scanning; camera?.start() }
         aim()
     }
 
     private func aim() {
         if let role = currentRole {
-            camera?.setTarget(.capture(role, oppositeOf: step >= 2 ? firstTurnYaw : 0))
+            camera?.setTarget(.capture(role))
         } else {
             camera?.setTarget(.none)
         }
@@ -63,7 +61,6 @@ final class SweepModel {
         guard capture.role == currentRole else { return }
         images.views[capture.role] = capture.view
         if capture.role == .front { images.crops = capture.crops }
-        if step == 1 { firstTurnYaw = yaw }
         Haptics.tap()
         step += 1
         if step >= roles.count {
@@ -144,7 +141,7 @@ struct SweepView: View {
 
             checks.padding(.top, 20)
             Spacer(minLength: SKSpace.lg)
-            Text("Your 3D face shape stays on this phone. Only the photos are read, then deleted.")
+            Text("The 3D face is a model, not a scan of you. Day 1 close-ups stay on this phone until Day 7, then are deleted.")
                 .font(SKFont.caption).foregroundStyle(SKColor.bg.opacity(0.6))
                 .multilineTextAlignment(.center).padding(.horizontal, 40).padding(.bottom, 30)
         }

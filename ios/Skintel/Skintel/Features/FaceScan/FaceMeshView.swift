@@ -1,17 +1,7 @@
 import SwiftUI
 import SkintelCore
 
-/// Shading constants of the approved canvas renderer (`FaceMesh.dc.html`). These are lighting
-/// ramps for the 3D surface, not UI colours: the dark end is the scanner black, the warm end is
-/// `SKColor.primary` lit, and edges and scan light are `SKColor.bg`. Components are 0...255.
-private enum MeshShade {
-    static let darkLow: SIMD3<Double> = [24, 22, 19]
-    static let darkHigh: SIMD3<Double> = [92, 84, 74]
-    static let warmLow: SIMD3<Double> = [120, 60, 48]
-    static let warmHigh: SIMD3<Double> = [222, 132, 110]
-    static let scanLight: SIMD3<Double> = [244, 237, 224]
-    static let light: SIMD3<Double> = [-0.35, 0.45, 0.82]
-}
+private typealias MeshShade = SKMeshShade
 
 /// A Canvas port of the canvas face renderer: painter-sorted flat shading, back-face culling, zone
 /// heat from a Gaussian falloff around landmarks, an additive glow and label leaders.

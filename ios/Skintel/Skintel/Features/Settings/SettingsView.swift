@@ -624,6 +624,7 @@ private struct AccountDataView: View {
     @State private var exportError: String?
     @State private var showSignOut = false
     @State private var showDelete = false
+    @State private var showDeleteFaceScans = false
     @State private var deleteConfirmText = ""
     @State private var deleting = false
     @State private var deleteError: String?
@@ -670,6 +671,10 @@ private struct AccountDataView: View {
                     Task { await export() }
                 }
                 if let exportError { SettingsInfo(text: exportError, tone: .bad) }
+                SettingsRow(title: "Delete face scans", subtitle: "Scans, answers and Day 1 close-ups on this phone",
+                            showsChevron: false, trailing: { EmptyView() }) {
+                    showDeleteFaceScans = true
+                }
                 SettingsLinkRow(title: "Privacy policy", url: env.config.privacyURL)
                 SettingsLinkRow(title: "Terms", url: env.config.termsURL, last: true)
             }
@@ -700,6 +705,9 @@ private struct AccountDataView: View {
         .confirmationDialog("Sign out of Skintel?", isPresented: $showSignOut, titleVisibility: .visible) {
             Button("Sign out", role: .destructive) { Task { await env.session.signOut() } }
         } message: { Text("Your shelf and journal stay in your account.") }
+        .confirmationDialog("Delete your face scans?", isPresented: $showDeleteFaceScans, titleVisibility: .visible) {
+            Button("Delete face scans", role: .destructive) { FaceScanStore.shared.reset() }
+        } message: { Text("Removes every face scan, your answers and the Day 1 close-ups from this phone.") }
         .alert("Delete your account?", isPresented: $showDelete) {
             TextField("Type DELETE to confirm", text: $deleteConfirmText)
             Button("Delete everything", role: .destructive) { Task { await beginDeletion() } }
