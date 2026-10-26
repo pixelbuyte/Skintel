@@ -69,6 +69,27 @@ number (§6). Zones: `forehead, nose, left_cheek, right_cheek, chin`.
 //   "routine": { "am": [...], "pm": [...], "conflicts": [...] } }
 ```
 
+- **Pinned in review (Oct 26), both lanes build to these:**
+  - **Images.**
+    - `{role, zone?, from?, base64, mimeType}`. `from: "day1"` is allowed only on `role:"zone"` in the `final` stage; the
+      server treats those crops as a reference only.
+    - Caps per stage: daily 1, baseline 8, final 13 (3 views + 5 Day 7 crops + 5 Day 1 crops), report 0.
+    - At most one image per (role, zone, from).
+  - **Size.**
+    - Base64 per view ≤ 540,000 chars, per zone crop ≤ 180,000, total ≤ 3,500,000. Over the total → 413 JSON.
+      Vercel's own body limit is 4.5 MB and fails with a non-JSON 413, so the app checks first.
+    - Encode views at 1024 px and crops at 512 px, JPEG q0.8. Step down to q0.7, then q0.6, if over the cap.
+    - Report data ≤ 60,000 chars.
+  - **Locks.** `answers.locks` is required on `report`: an array of `pregnant_or_trying`, `breastfeeding`,
+    `skin_medicine`, with `[]` for none. Missing or unknown → 400. Locks never fail open.
+  - **Routine.** `routine.am` / `routine.pm` are arrays of `{step, product?, note?}`. `conflicts` is `[string]`, and
+    the "check with your doctor" line is `conflicts[0]` when a lock applies.
+  - **`report.oil_pattern`** is `dry | normal | combination | oily`. The Day 3 pattern uses the same words.
+  - **Region kinds:** `raised_blemish`, `clogged_pore`, `red_mark`, `brown_mark`, `uneven_texture`.
+  - **Daily caps per user (UTC):** 8 calls in total; at most baseline 2, final 2, report 2, daily 4. A call that
+    reached the model counts even if it timed out.
+  - **Errors:** 401, 402 `{error:"Pro required"}`, 400, 413, 429, 502/503. The app checks the status before
+    decoding, and uses a 60 s timeout because the server budget is 55 s.
 - Validate server-side, clamp every score to 0–100 and drop unknown keys. On bad JSON, retry once, then return
   `quality.ok=false`.
 - `regions` from a vision LLM are approximate. Draw them as soft highlights and counts, never as precise outlines,
