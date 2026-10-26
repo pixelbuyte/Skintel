@@ -21,14 +21,10 @@ final class FaceScanStore {
         /// `YYYY-MM-DD` of the cycle's first scan.
         var cycleStart: String = ""
         var answers: FaceAnswers?
-        /// The free scan's result, kept so reopening shows the free Day 1 map. Never a scan.
-        var lockedResult: FaceScanResult?
-        /// `YYYY-MM-DD` the free scan was read; nil in files written before it was kept.
-        var lockedDay: String?
 
         init() {}
 
-        enum CodingKeys: String, CodingKey { case entries, cycleId, cycleStart, answers, lockedResult, lockedDay }
+        enum CodingKeys: String, CodingKey { case entries, cycleId, cycleStart, answers }
 
         init(from decoder: Decoder) throws {
             let c = try decoder.container(keyedBy: CodingKeys.self)
@@ -36,8 +32,6 @@ final class FaceScanStore {
             cycleId = (try? c.decodeIfPresent(String.self, forKey: .cycleId)) ?? ""
             cycleStart = (try? c.decodeIfPresent(String.self, forKey: .cycleStart)) ?? ""
             answers = try? c.decodeIfPresent(FaceAnswers.self, forKey: .answers)
-            lockedResult = try? c.decodeIfPresent(FaceScanResult.self, forKey: .lockedResult)
-            lockedDay = try? c.decodeIfPresent(String.self, forKey: .lockedDay)
         }
     }
 
@@ -61,19 +55,10 @@ final class FaceScanStore {
     var entries: [FaceScanEntry] { data.entries }
     var cycleId: String { data.cycleId }
     var answers: FaceAnswers? { data.answers }
-    var lockedResult: FaceScanResult? { data.lockedResult }
     var hasCycle: Bool { !data.cycleId.isEmpty }
 
     var calibration: FaceCalibration {
         FaceCalibration(entries: data.entries, cycleId: data.cycleId)
-    }
-
-    /// The free scan as a one-scan week, so it shows as a real Day 1 map; nil without one. A file
-    /// from before `lockedDay` was kept dates it to `now`, so the read still shows.
-    func freeCalibration(now: Date, timeZone: TimeZone = .autoupdatingCurrent) -> FaceCalibration? {
-        guard let result = data.lockedResult else { return nil }
-        let day = data.lockedDay ?? Streaks.dayKey(now, timeZone: timeZone)
-        return FaceCalibration(entries: [FaceScanEntry(day: day, stage: .baseline, result: result)])
     }
 
     /// Day of the cycle (1-based) for `now`, from the cycle's first scan; 1 before any scan.
@@ -106,13 +91,6 @@ final class FaceScanStore {
         deleteDay1Crops()
         data.cycleId = UUID().uuidString.lowercased()
         data.cycleStart = Streaks.dayKey(now, timeZone: timeZone)
-        persist()
-    }
-
-    /// Keeps (or with nil, drops) the free scan's result and the day it was read.
-    func saveLocked(_ result: FaceScanResult?, now: Date, timeZone: TimeZone = .autoupdatingCurrent) {
-        data.lockedResult = result
-        data.lockedDay = result == nil ? nil : Streaks.dayKey(now, timeZone: timeZone)
         persist()
     }
 

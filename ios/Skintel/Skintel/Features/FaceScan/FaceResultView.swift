@@ -6,8 +6,9 @@ import SkintelCore
 /// routine, the report once it exists, the history list and Ask. Levels are words and glyphs,
 /// never raw scores (PRO-SPEC §6).
 ///
-/// With `onUnlock`, it is the free scan's real Day 1 map: the rings card becomes the locked
-/// 7-day check, and the routine, the scan actions and Ask stay hidden (the week is Skintel+).
+/// With `onUnlock` (no Skintel+, e.g. the free scan's real Day 1 map), the week is locked: the
+/// rings card becomes the locked 7-day check, and the routine, the scan actions and Ask stay
+/// hidden. Without it, the same cycle shows unlocked.
 struct FaceResultView: View {
     let calibration: FaceCalibration
     let routine: FaceRoutine?
@@ -16,7 +17,7 @@ struct FaceResultView: View {
     let onNext: () -> Void
     let onAsk: (() -> Void)?
     let onClose: () -> Void
-    /// The free scan only: opens the Skintel+ wall from the locked 7-day check.
+    /// Not Skintel+ only: opens the Skintel+ wall from the locked 7-day check.
     var onUnlock: (() -> Void)? = nil
 
     @State private var selected: Int?

@@ -668,6 +668,35 @@ test('free account: an unreadable photo does not use up the free scan', async ()
   assert.equal((await post({ stage: 'baseline', cycleId: 'c2', day: 1, images })).status, 402);
 });
 
+test('free baseline carries into the week: after Skintel+, daily, final and report on the same cycleId all work', async () => {
+  tier = 'free'; status = 'none';
+  const zones = ['forehead', 'nose', 'left_cheek', 'right_cheek', 'chin'];
+  const views = [front, { role: 'left45', base64: JPEG, mimeType: 'image/jpeg' }, { role: 'right45', base64: JPEG, mimeType: 'image/jpeg' }];
+  const crops = zones.map((zone) => ({ role: 'zone', zone, base64: JPEG, mimeType: 'image/jpeg' }));
+  modelQueue.push({ content: goodRead() });
+  const free = await post({ stage: 'baseline', cycleId: 'week-1', day: 1, images: [...views, ...crops] });
+  assert.equal(free.status, 200);
+  assert.equal(free.body.locked, true);
+  assert.equal((await post(dailyBody({ cycleId: 'week-1', day: 2 }))).status, 402); // still free: the week is locked
+
+  tier = 'pro'; status = 'active'; // bought Skintel+; usage is per user and stage, never per cycle
+  modelQueue.push({ content: goodRead() });
+  const daily = await post(dailyBody({ cycleId: 'week-1', day: 2 }));
+  assert.equal(daily.status, 200);
+  assert.equal(daily.body.locked, undefined);
+  const day1 = crops.map((c) => ({ ...c, from: 'day1' }));
+  modelQueue.push({ content: goodRead() });
+  const final = await post({ stage: 'final', cycleId: 'week-1', day: 7, images: [...views, ...crops, ...day1] });
+  assert.equal(final.status, 200);
+  assert.equal(final.body.locked, undefined);
+  modelQueue.push({ content: goodReport() });
+  const report = await post(reportBody({ cycleId: 'week-1' }));
+  assert.equal(report.status, 200);
+  assert.equal(report.body.locked, undefined);
+  assert.equal(report.body.report.oil_pattern, 'combination');
+  assert.equal(modelCalls().length, 4);
+});
+
 test('free account: an empty model summary falls back to the neutral line, not a teaser', async () => {
   tier = 'free'; status = 'none';
   const images = [

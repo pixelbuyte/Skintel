@@ -10,6 +10,10 @@ import SkintelCore
 /// It needs `AppEnvironment` in the environment, closes itself with `dismiss`, and keeps its
 /// scans in `FaceScanStore.shared` (call `FaceScanStore.shared.reset()` on sign-out and account
 /// deletion). Entitlement is the server's: a 402 shows the Skintel+ message.
+///
+/// Without Skintel+, the one free baseline is kept exactly like a paid one (an entry in a real
+/// cycle, the Day 1 crops, the answers) and shown as a real Day 1 map with the week locked.
+/// Once the account is Pro, the same cycle goes on from Day 2.
 struct FaceScanFlowView: View {
     let onAsk: (() -> Void)?
 
@@ -25,7 +29,7 @@ struct FaceScanFlowView: View {
     @AppStorage("faceScan.freeUsed") private var freeUsed = false
     /// The 402 path: the wall over a blank flow, which closes when the wall does.
     @State private var wallThenClose = false
-    /// The wall opened from the free Day 1 map's locked 7-day check.
+    /// The wall opened from the locked 7-day check on the map (no Skintel+).
     @State private var wallFromLocked = false
     /// The quiz was opened to collect Q5's locks before the report.
     @State private var quizThenReport = false
@@ -38,8 +42,6 @@ struct FaceScanFlowView: View {
     private enum Screen: Equatable {
         case start
         case ageGate
-        /// The free scan's real Day 1 map, with the week behind Skintel+.
-        case locked
         case sweep(FaceScanStage)
         case quiz
         case reading
@@ -56,14 +58,6 @@ struct FaceScanFlowView: View {
                     age13Confirmed = yes
                     if yes { screen = .start; begin() }
                 }, onClose: close)
-            case .locked:
-                if let free = store.freeCalibration(now: Date()) {
-                    FaceResultView(calibration: free, routine: nil, nextAction: nil, onNext: {}, onAsk: nil,
-                                   onClose: close, onUnlock: { wallFromLocked = true })
-                        .sheet(isPresented: $wallFromLocked, onDismiss: lockedWallClosed) {
-                            PaywallView(reason: .faceScan, faceMapReady: true)
-                        }
-                }
             case .sweep(let stage):
                 SweepView(fullSweep: stage != .daily, onClose: close) { images in
                     swept(images, stage: stage)
@@ -83,7 +77,11 @@ struct FaceScanFlowView: View {
                 reading
             case .result:
                 FaceResultView(calibration: store.calibration, routine: store.latestRoutine,
-                               nextAction: nextAction, onNext: beginNext, onAsk: onAsk, onClose: close)
+                               nextAction: nextAction, onNext: beginNext, onAsk: onAsk, onClose: close,
+                               onUnlock: unlockWeek)
+                    .sheet(isPresented: $wallFromLocked) {
+                        PaywallView(reason: .faceScan, faceMapReady: true)
+                    }
             }
         }
         .onAppear(perform: begin)
@@ -157,20 +155,20 @@ struct FaceScanFlowView: View {
 
     private var isPro: Bool { env.subscription.entitlement.isPro }
 
+    /// Without Skintel+ the map shows with the week locked, and this opens the wall. Nil for Pro,
+    /// so the moment a purchase lands the same cycle shows unlocked with today's scan action.
+    private var unlockWeek: (() -> Void)? {
+        guard !isPro else { return nil }
+        return { wallFromLocked = true }
+    }
+
     private func begin() {
         guard screen == .start else { return }
         store.expireDay1Crops(now: Date())
         if needsAgeCheck && age13Confirmed != true { screen = .ageGate; return }
-        if !isPro && freeUsed {
-            // The kept free scan reopens as its real Day 1 map; without one, straight to the wall.
-            if store.lockedResult != nil {
-                screen = .locked
-            } else {
-                wallThenClose = true
-            }
-            return
-        }
-        if isPro, store.lockedResult != nil { store.saveLocked(nil, now: Date()) }
+        // The free scan is used and there is no map left to show (deleted): straight to the wall.
+        // With its cycle still here, it reopens below as the Day 1 map with the week locked.
+        if !isPro && freeUsed && !hasBaseline { wallThenClose = true; return }
         guard aiConsent else { showConsent = true; return }
         screen = hasBaseline ? .result : .sweep(.baseline)
     }
@@ -196,14 +194,6 @@ struct FaceScanFlowView: View {
 
     /// Under 18, or an unknown age that only passed the 13+ gate: no pregnancy chips, no Q16.
     private var treatAsUnder18: Bool { profile.ageRange == nil || profile.ageRange == .under18 }
-
-    /// Bought from the free map: drop it and run the full first scan, which starts the week.
-    private func lockedWallClosed() {
-        guard isPro else { return }
-        store.saveLocked(nil, now: Date())
-        screen = .start
-        begin()
-    }
 
     /// The `@AppStorage` keys this flow keeps, cleared on sign-out (`AppEnvironment.resetAfterSignOut`).
     static func resetPreferences(_ defaults: UserDefaults = .standard) {
@@ -310,14 +300,9 @@ struct FaceScanFlowView: View {
                 errorText = Self.qualityMessage(result.quality.issues)
                 return
             }
-            if result.locked {
-                // The free scan: a real Day 1 map, the week behind Skintel+. Kept to view, never a scan.
-                Haptics.success()
-                freeUsed = true
-                store.saveLocked(result, now: Date())
-                screen = .locked
-                return
-            }
+            // The free scan is a real baseline: recorded in this cycle with its Day 1 crops like
+            // a paid one, so after Skintel+ the week goes on at Day 2 instead of a new sweep.
+            if result.locked { freeUsed = true }
             store.record(stage: stage, result: result, now: Date())
             onSuccess()
             Haptics.success()

@@ -258,12 +258,13 @@ struct PaywallView: View {
         .padding(.top, SKSpace.sm)
     }
 
-    /// The two face-scan features, led with when the paywall opens from the face scan.
+    /// The two face-scan features, led with when the paywall opens from the face scan. The 3D
+    /// face map is free (one Day 1 map), so it is not sold here; the week is.
     private var faceScanRows: some View {
         VStack(spacing: 0) {
-            faceScanRow("3D face map, zone by zone")
+            faceScanRow("7-day check: oil pattern, redness, what's changing")
             Rectangle().fill(SKColor.line).frame(height: 1).padding(.leading, 32)
-            faceScanRow("7-day check: oil, redness, what's changing")
+            faceScanRow("Day 7 report and a routine from your shelf")
         }
     }
 
