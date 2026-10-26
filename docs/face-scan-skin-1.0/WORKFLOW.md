@@ -24,9 +24,9 @@ sessions have already written to this branch.
 
 | Lane | Owns these paths (nobody else edits them) | Depends on | Owner | Status |
 |---|---|---|---|---|
-| C · CI | `codemagic.yaml`, `ios/Skintel/Skintel.xcodeproj` | – | session_017SUzgGYtykb7DwUx6BChqp | in progress |
-| A · Core | `ios/Skintel/SkintelCore/**` | contract (PRO-SPEC §3) | session_017SUzgGYtykb7DwUx6BChqp | in progress |
-| B · API | `api/_face-scan.ts`, `api/scan-ai.ts`, `api/_ai.ts`, `api/account.ts`, `vercel.json`, `supabase/**`, `tests/face-scan.test.mjs`, `package.json` scripts | contract | session_017SUzgGYtykb7DwUx6BChqp | in progress |
+| C · CI | `codemagic.yaml`, `ios/Skintel/Skintel.xcodeproj` | – | session_017SUzgGYtykb7DwUx6BChqp | merged; waiting on `ios-ci` |
+| A · Core | `ios/Skintel/SkintelCore/**` | contract (PRO-SPEC §3) | session_017SUzgGYtykb7DwUx6BChqp | merged; waiting on `ios-ci` |
+| B · API | `api/_face-scan.ts`, `api/scan-ai.ts`, `api/_ai.ts`, `api/account.ts`, `vercel.json`, `supabase/**`, `tests/face-scan.test.mjs`, `package.json` scripts | contract | session_017SUzgGYtykb7DwUx6BChqp | merged; waiting on `ios-ci` |
 | D · Design | the canvas (PRO-SPEC header) | – | | v1 done, waiting for the founder's OK |
 | F · Paywall + NEW + Settings | `Features/Subscription/**`, `Features/Settings/**`, `App/MainTabView.swift`, `DesignSystem/Components/SKNewBadge.swift` | A (types only) | | todo |
 | E · Face Scan screens | `Features/FaceScan/**`, `project.yml` (camera string) | A, D approved | | todo |
