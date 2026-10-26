@@ -114,8 +114,7 @@ struct MainTabView: View {
         .sheet(isPresented: $showCompare) { CompareView().skProGates() }
         .skAskSheet(isPresented: $showAssistant)
         .sheet(isPresented: $showShelf) { ShelfTab().skProGates() }
-        // TODO lane E: FaceScanFlowView()
-        .fullScreenCover(isPresented: $showFaceScan) { FaceScanPlaceholder().skProGates() }
+        .fullScreenCover(isPresented: $showFaceScan) { FaceScanFlowView(onAsk: { showAssistant = true }).skProGates() }
         .environment(\.openPaywall, OpenPaywallAction { reason in gate(reason) })
         .onChange(of: env.pendingDeepLink, initial: true) { consumeDeepLink() }
         .onChange(of: env.subscription.loaded) { consumeDeepLink() }
@@ -265,23 +264,10 @@ struct MainTabView: View {
             showShelf = true
         case .faceScan:
             seenFaceScan = true
-            if env.subscription.entitlement.isPro { showFaceScan = true } else { gate(.faceScan) }
+            // Everyone may start: a free account's first scan comes back locked (one per account),
+            // and the flow opens the paywall itself on a locked result or a 402.
+            showFaceScan = true
         }
-    }
-}
-
-/// Stand-in for the face scan flow until lane E lands.
-// TODO lane E: FaceScanFlowView()
-private struct FaceScanPlaceholder: View {
-    @Environment(\.dismiss) private var dismiss
-    var body: some View {
-        VStack(spacing: SKSpace.lg) {
-            Text("Face scan").font(SKFont.pageTitle).foregroundStyle(SKColor.ink)
-            SKButton(title: "Close", kind: .secondary) { dismiss() }
-        }
-        .skPagePadding()
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .skPageBackground()
     }
 }
 

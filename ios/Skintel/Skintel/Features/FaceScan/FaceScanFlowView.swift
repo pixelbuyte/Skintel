@@ -158,8 +158,7 @@ struct FaceScanFlowView: View {
     private var needsAgeCheck: Bool { profile.ageRange == nil || profile.ageRange == .under18 }
 
     private func showPaywall() {
-        // TODO lane F: openPaywall(.faceScan) once `PaywallReason.faceScan` lands; `.general` until then.
-        openPaywall(.general)
+        openPaywall(.faceScan)
     }
 
     private func afterError() {

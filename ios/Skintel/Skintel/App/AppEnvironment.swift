@@ -64,6 +64,7 @@ final class AppEnvironment {
         routine.reset()
         journal.reset()
         assistant.reset()
+        FaceScanStore.shared.reset()
     }
 }
 
