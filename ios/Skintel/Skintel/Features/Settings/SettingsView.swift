@@ -390,14 +390,12 @@ struct SettingsView: View {
                 VStack(alignment: .leading, spacing: 2) {
                     Text(ent.isPro ? (founding ? "Founding member" : "Skintel+") : "Skintel Free")
                         .font(SKFont.sans(17, weight: .semibold, relativeTo: .headline))
-                    Text(membershipLine(ent: ent, founding: founding))
-                        .font(SKFont.secondary).opacity(0.85)
                 }
                 Spacer(minLength: 0)
                 Button {
                     if ent.isPro { showAccount = true } else { openPaywall(.general) }
                 } label: {
-                    Text(ent.isPro ? "Manage" : "Get Skintel+")
+                    Text(ent.isPro ? "Manage subscription" : "Get Skintel+")
                         .font(SKFont.sans(14, weight: .semibold, relativeTo: .subheadline))
                         .padding(.horizontal, 14)
                         .frame(height: 34)
@@ -413,13 +411,6 @@ struct SettingsView: View {
                         in: RoundedRectangle(cornerRadius: 18, style: .continuous))
             .skPrimaryGlow(strength: 0.25)
         }
-    }
-
-    private func membershipLine(ent: Entitlement, founding: Bool) -> String {
-        guard ent.isPro else { return "Scanning, Ask Skintel and journal analysis" }
-        guard let end = ent.periodEnd else { return "Active" }
-        let date = end.formatted(date: .abbreviated, time: .omitted)
-        return founding ? "Access until \(date)" : "Renews \(date)"
     }
 
     private var skinSummary: String {
@@ -670,11 +661,6 @@ private struct AccountDataView: View {
                     Task { await restore() }
                 }
                 if let restoreMessage { SettingsInfo(text: restoreMessage, last: true) }
-            }
-
-            SettingsGroup(title: env.subscription.entitlement.isPro ? "Your Skintel+ benefits" : "What Skintel+ adds",
-                          footer: "Tap one to watch it work.") {
-                ProBenefitsList(limit: 3).padding(.horizontal, SKSpace.lg).padding(.vertical, 4)
             }
 
             SettingsGroup(title: "Your data") {
