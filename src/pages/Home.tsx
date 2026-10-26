@@ -6,8 +6,8 @@ import { track } from '@vercel/analytics';
  * Minimal landing at "/". Skintel is live on the App Store, so the page has two jobs: get
  * the app, and sell the web launch offer (Skintel+ at $6.49/month for the first three
  * months, then $8.99). Traffic mostly arrives from short-video comment replies on phones,
- * so both sit on the first screen and a sticky bar (pinned to the top: Safari and in-app
- * browsers put their chrome at the bottom) brings the offer back once it scrolls away.
+ * so both sit on the first screen, and a bar pinned to the top (Safari and in-app browsers
+ * put their chrome at the bottom) is there from the first paint until the offer card shows.
  * The previous long landing lives at /classic.
  *
  * Attribution: ?ref=<tag> (or ?s=<tag>) is kept in localStorage and sent with checkout.
@@ -182,32 +182,19 @@ const STEPS = [
 ];
 
 export default function Home() {
-  const [showBar, setShowBar] = useState(false);
+  const [showBar, setShowBar] = useState(true);
   const offer = useRef<HTMLElement>(null);
-  const hero = useRef<HTMLElement>(null);
   const card = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     readRef();
-    // The bar shows once the first screen has scrolled away and the offer card itself is
-    // not on screen (it would only repeat what the card says).
-    const visible = { hero: true, offer: false };
-    const sync = () => setShowBar(!visible.hero && !visible.offer);
-    const watch = (el: HTMLElement | null, key: 'hero' | 'offer') => {
-      if (!el) return null;
-      const io = new IntersectionObserver(([e]) => {
-        visible[key] = e.isIntersecting;
-        sync();
-      });
-      io.observe(el);
-      return io;
-    };
-    const a = watch(hero.current, 'hero');
-    const b = watch(card.current, 'offer');
-    return () => {
-      a?.disconnect();
-      b?.disconnect();
-    };
+    // The bar is there from the first paint and only steps aside while the offer card itself
+    // is on screen (it would only repeat what the card says).
+    const el = card.current;
+    if (!el) return;
+    const io = new IntersectionObserver(([e]) => setShowBar(!e.isIntersecting));
+    io.observe(el);
+    return () => io.disconnect();
   }, []);
 
   function jumpToOffer() {
@@ -216,15 +203,12 @@ export default function Home() {
 
   return (
     <div className="min-h-[100dvh] overflow-x-hidden bg-[#F4EDE0] font-sans text-ink antialiased">
-      <div className="mx-auto max-w-[1120px] px-5">
-        <nav className="flex h-16 items-center justify-between">
+      <div className="mx-auto max-w-[1120px] px-5 pt-[calc(env(safe-area-inset-top)+68px)]">
+        <nav className="flex h-14 items-center">
           <Link to="/" className="font-display text-[28px] tracking-tight">Skintel</Link>
-          <button onClick={jumpToOffer} className="rounded-full border border-[#E6DED2] bg-[#FFFEFA] px-4 py-2 text-sm">
-            Launch offer
-          </button>
         </nav>
 
-        <section ref={hero} className="grid gap-2 pt-7 md:min-h-[calc(100vh-4rem)] md:grid-cols-[1.05fr_0.95fr] md:items-center md:pt-10">
+        <section className="grid gap-2 pt-7 md:min-h-[calc(100vh-8rem)] md:grid-cols-[1.05fr_0.95fr] md:items-center md:pt-10">
           <div className="min-w-0">
             <p className="font-mono text-[11px] tracking-[0.22em] text-[#A35848]">NOW ON IPHONE</p>
             <h1 className="mt-3.5 font-display text-[clamp(44px,11vw,84px)] font-normal leading-[0.98] tracking-[-0.015em]">
@@ -235,7 +219,7 @@ export default function Home() {
             </p>
             <div className="mt-6 flex flex-wrap items-center gap-3">
               <AppStoreButton />
-              <button onClick={jumpToOffer} className="rounded-full border border-[#E6DED2] bg-[#FFFEFA] px-5 py-3 text-[15px] font-semibold">
+              <button onClick={jumpToOffer} className="rounded-full bg-[#A35848] px-5 py-3 text-[15px] font-semibold text-[#FFFEFA]">
                 Skintel+ for $6.49
               </button>
             </div>
@@ -307,10 +291,12 @@ export default function Home() {
         }`}
         aria-hidden={!showBar}
       >
-        <span className="text-sm">Skintel+ <span className="text-[#E7B8A6]">$6.49/mo</span> · first 3 months</span>
-        <button onClick={jumpToOffer} tabIndex={showBar ? 0 : -1} className="rounded-full bg-[#A35848] px-[18px] py-[11px] text-sm font-semibold">
-          Get it
+        <button onClick={jumpToOffer} tabIndex={showBar ? 0 : -1} className="min-w-0 truncate text-left text-sm">
+          Launch offer <span className="text-[#E7B8A6]">$6.49/mo</span>
         </button>
+        <a href={APP_STORE_URL} tabIndex={showBar ? 0 : -1} className="shrink-0 rounded-full bg-[#A35848] px-[18px] py-[11px] text-sm font-semibold">
+          Get the app
+        </a>
       </div>
     </div>
   );

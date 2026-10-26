@@ -3,6 +3,7 @@ import * as cheerio from 'cheerio';
 import { promises as dns } from 'node:dns';
 import { isIP } from 'node:net';
 import type { VercelRequest, VercelResponse } from '@vercel/node';
+import { tidyProductNames } from './_product-names.js';
 import { getServiceClient, getUserFromAuthHeader, json } from './_lib.js';
 
 const MODEL = 'claude-haiku-5-5';
@@ -460,6 +461,7 @@ Return strict JSON only — no preamble, no markdown fences:
 {"brand": string, "productName": string, "ingredients": string}
 
 Rules:
+- brand = the brand only (e.g. "CeraVe"). productName = the short product name WITHOUT the brand and without marketing suffixes (e.g. "Foaming Facial Cleanser", not "CeraVe Foaming Facial Cleanser for Oily Skin with Hyaluronic Acid").
 - ingredients = comma-separated INCI list (full list, not summary).
 - If only a partial list is shown (e.g. "key ingredients"), return what you find.
 - If no ingredients exist on the page, return empty string for ingredients.
@@ -551,9 +553,11 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     );
   }
 
+  // Retail titles are long and the brand is often missing: split them into a brand and a short name.
+  const tidy = tidyProductNames(extracted.brand, extracted.productName, parsedUrl.hostname);
   return json(res, {
-    brand: extracted.brand,
-    productName: extracted.productName,
+    brand: tidy.brand,
+    productName: tidy.productName,
     ingredients: extracted.ingredients,
   });
 }
