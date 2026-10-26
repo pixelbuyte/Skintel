@@ -142,7 +142,10 @@ export async function complete(req: AiRequest): Promise<AiResult> {
     try {
       return await viaOpenRouter(req, openRouterKey);
     } catch (e) {
-      console.error('openrouter request failed', { models: req.models, message: String((e as Error)?.message ?? e) });
+      console.error('openrouter request failed', {
+        models: req.models,
+        message: String((e as Error)?.message ?? e).slice(0, 200),
+      });
       if (!anthropicKey || req.zdr) throw e;
     }
   }

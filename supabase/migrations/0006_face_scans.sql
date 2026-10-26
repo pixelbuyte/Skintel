@@ -9,15 +9,16 @@
 --   per-user daily cap and shows the real cost per 7-day cycle (PRO-SPEC §1).
 --
 -- Both tables reference auth.users ON DELETE CASCADE, so api/account.ts "delete" (one hard
--- delete of the auth user) removes them with everything else. Nothing to add there.
+-- delete of the auth user) removes them with everything else. api/account.ts export-data
+-- includes face_scans (results only).
 
 create table if not exists public.face_scans (
   id uuid primary key default gen_random_uuid(),
   user_id uuid not null references auth.users(id) on delete cascade,
   cycle_id text not null,
-  day text not null,
-  stage text not null,
-  result jsonb not null,
+  day smallint not null check (day between 1 and 31),
+  stage text not null check (stage in ('baseline','daily','final','report')),
+  result jsonb not null check (pg_column_size(result) <= 65536),
   created_at timestamptz not null default now()
 );
 create index if not exists face_scans_user_cycle_idx
@@ -42,7 +43,7 @@ create policy "face_scans_delete_own" on public.face_scans
 create table if not exists public.face_scan_usage (
   id bigserial primary key,
   user_id uuid not null references auth.users(id) on delete cascade,
-  stage text not null,
+  stage text not null check (stage in ('baseline','daily','final','report')),
   model text,
   prompt_tokens int not null default 0,
   completion_tokens int not null default 0,
