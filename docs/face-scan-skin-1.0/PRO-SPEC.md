@@ -159,7 +159,7 @@ number (§6). Zones: `forehead, nose, left_cheek, right_cheek, chin`.
    sign-up to fix the sign-in leak. The canvas shows the locked-map paywall as a middle ground.
 2. **Under-18s.** Onboarding offers "Under 18" (`AgeRange.under18`). Allow face scan for them? If yes, hide Q5's
    pregnancy options and Q16 supplements for them.
-3. **Opus 5.5 for every Day 7 report**, or Sonnet 5.5 by default? Opus costs about 2× for the synthesis step.
+3. ~~Opus or Sonnet for the Day 7 report~~: answered, **Sonnet 5.5** (founder, Oct 26). No Opus escalation.
 
 ## 8. Handoff prompt (corrected copy of the founder's)
 
