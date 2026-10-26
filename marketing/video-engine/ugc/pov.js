@@ -147,7 +147,7 @@ const V = {
     } },
   // 7. Mascot hook -> Ask (tap a suggestion) about tonight's order
   mascot: { hook: { seq: 'mascot/wave', frames: 151, fps: 30, cap: 'your breakouts are trying to tell you something 👀', top: 200, dur: 3.0 }, endMascot: true,
-    scene: 'green', dur: 9.0, caps: [[0, 2.2, 'ask Skintel anything about YOUR shelf 💬'], [2.2, 9.0, 'it builds tonight\'s order from what you own 🌙']],
+    scene: 'green', dur: 9.0, caps: [[0, 2.2, 'ask Skinstel anything about YOUR shelf 💬'], [2.2, 9.0, 'it builds tonight\'s order from what you own 🌙']],
     pov(u) {
       const chips = ['What order should I use my products in tonight?', 'How do I patch test?'];
       const q = chips[0];
