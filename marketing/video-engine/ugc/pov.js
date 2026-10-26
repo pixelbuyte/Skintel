@@ -1,0 +1,163 @@
+// homography: rect (0,0,w,h) -> quad [[x,y]x4] TL TR BR BL
+function homog(w, h, q) {
+  const src = [[0,0],[w,0],[w,h],[0,h]], A = [], b = [];
+  for (let i = 0; i < 4; i++) { const [x, y] = src[i], [u, v] = q[i];
+    A.push([x, y, 1, 0, 0, 0, -x*u, -y*u]); b.push(u); A.push([0, 0, 0, x, y, 1, -x*v, -y*v]); b.push(v); }
+  for (let c = 0; c < 8; c++) { let p = c; for (let r = c + 1; r < 8; r++) if (Math.abs(A[r][c]) > Math.abs(A[p][c])) p = r;
+    [A[c], A[p]] = [A[p], A[c]]; [b[c], b[p]] = [b[p], b[c]];
+    for (let r = 0; r < 8; r++) if (r !== c) { const f = A[r][c] / A[c][c]; for (let k = c; k < 8; k++) A[r][k] -= f * A[c][k]; b[r] -= f * b[c]; } }
+  const hh = b.map((v, i) => v / A[i][i]);
+  return `matrix3d(${hh[0]},${hh[3]},0,${hh[6]},${hh[1]},${hh[4]},0,${hh[7]},0,0,1,0,${hh[2]},${hh[5]},0,1)`;
+}
+const SCENES = {
+  green: { base: null, top: 'ugc/pov-keyed-island.png', W: 752, H: 1344, q: [[262,331],[484,331],[488,837],[261,837]], zoom: [1.40, 1.48], origin: [538, 841], cap: 1500 },
+  counter: { base: 'photos/f8-verdict.jpg', W: 1520, H: 2688, q: [[265,499],[1058,416],[1252,2154],[492,2238]], zoom: [1.0, 1.05], origin: [540, 900], cap: 1650 },
+  bed: { base: 'photos/f9-today.jpg', W: 1520, H: 2688, q: [[841,708],[1305,739],[1193,1802],[708,1729]], zoom: [1.32, 1.40], origin: [715, 896], cap: 1530 },
+  bednight: { base: 'photos/f9-today.jpg', W: 1520, H: 2688, q: [[841,708],[1305,739],[1193,1802],[708,1729]], zoom: [1.32, 1.40], origin: [715, 896], cap: 1530, night: true },
+};
+
+// ---------- variations ----------
+const PM = [['1 · CLEANSER','CeraVe Foaming Facial Cleanser'],['2 · TREATMENT','The Ordinary Azelaic Acid 10%'],['3 · MOISTURIZER','CeraVe PM Facial Moisturizing Lotion']];
+const AM = [['1 · CLEANSER','CeraVe Foaming Facial Cleanser'],['2 · SERUM','The Ordinary Niacinamide 10%'],['3 · SUNSCREEN','Beauty of Joseon Relief Sun']];
+const tick = (u, t0) => u >= t0 ? 1 : 0;
+const pop = (u, t0) => u >= t0 && u < t0 + .35 ? 1 + .25 * Math.sin((u - t0) / .35 * Math.PI) : 1;
+// typing helper -> {text, hi}
+function typing(full, t0, cps, u) { const n = Math.max(0, Math.min(full.length, Math.floor((u - t0) * cps))); return { text: full.slice(0, n), hi: n > 0 && n < full.length + 1 && u < t0 + full.length / cps + .1 ? full[n - 1] : null, done: n >= full.length }; }
+function answerTyping(html, t0, cps, u) { // reveal plain chars of html progressively
+  const plain = html.replace(/<[^>]+>/g, ''); const n = Math.floor((u - t0) * cps); if (n >= plain.length) return html;
+  let out = '', cnt = 0, i = 0; while (i < html.length && cnt < n) { if (html[i] === '<') { const j = html.indexOf('>', i); out += html.slice(i, j + 1); i = j + 1; } else { out += html[i]; i++; cnt++; } }
+  return out.replace(/<b>([^<]*)$/, '<b>$1</b>');
+}
+// real scan: scanning 0-1.6, lock 1.6-2.0, sheet 2.0+, product found 2.9, verdict slides up at 3.6
+function scanFlow(u, L) {
+  const sheet = u >= 2.0 ? (u >= 2.9 ? 2 : 1) : null;
+  L.push({ s: 'scanreal', st: { th: u, lock: clamp((u - 1.6) / .4), sheet, sheetK: (u - 2.0) / .4 } });
+  if (u >= 3.6) L.push({ s: 'verdict', st: { ring: ease((u - 4.1) / 1.0) }, tf: `translateY(${(1 - ease((u - 3.6) / .45)) * 100}%)` });
+}
+const slideUp = (k) => `translateY(${(1 - ease(k)) * 100}%)`;
+const slideIn = (k) => `translateX(${(1 - ease(k)) * 100}%)`;
+
+const V = {
+  // 1. Ask why
+  askwhy: { hook: { img: 'photos/r1-frustrated.jpg', cap: 'I asked an app WHY I keep breaking out… 😳', top: 190, dur: 2.6 },
+    scene: 'green', dur: 9.6, caps: [[0, 3.9, 'asked it why my cheeks keep breaking out 👀'], [3.9, 9.6, 'it checked my products AND my skin logs 🤯']],
+    pov(u) {
+      const q = 'Why do I keep breaking out on my cheeks?';
+      const ans = 'Looking at your shelf and check-ins: your rough days started 4–6 days after you added <b>Coconut body oil</b>, and <b>Fragrance (Parfum)</b> is in 3 of your 4 breakout products.<br><br>Try pausing the body oil for 2 weeks and keep logging. It\'s a pattern to test, not proof.';
+      const st = { th: u, chips: ['What order should I use my products in?', 'How do I patch test?'] };
+      let touch = null;
+      if (u >= .5 && u < .75) touch = [150, 690];
+      if (u >= .7 && u < 3.1) { const ty = typing(q, .9, 19, u); Object.assign(st, { kb: true, input: ty.text, hi: ty.hi }); }
+      if (u >= 3.0 && u < 3.2) touch = [357, 540];
+      if (u >= 3.1) { st.q = q; st.kb = false; st.input = ''; }
+      if (u >= 3.2 && u < 3.9) { st.thinking = true; }
+      if (u >= 3.9) st.answer = answerTyping(ans, 3.9, 62, u);
+      return { layers: [{ s: 'ask', st }], touch };
+    } },
+  // 2. @ tag a product in Ask
+  mention: { hook: { img: 'photos/h1-hook.jpg', cap: 'wait… you can ask it about YOUR products??', top: 1330, dur: 2.6 },
+    scene: 'counter', dur: 9.8, caps: [[0, 4.2, 'you can @ your own products and ask 👀'], [4.2, 9.8, 'it knew that one had my trigger in it 😳']],
+    pov(u) {
+      const shelf = [['CeraVe Foaming Facial Cleanser','ProductPump.png','#D6E0EA'],['Anua Heartleaf 77% Toner','ProductDropper.png','#E3EAD7'],['Rose Cloud Moisturizer','ProductTube.png','#EED2CC']];
+      const tag = '<b style="color:var(--p);font-weight:600">@Rose Cloud Moisturizer</b>';
+      const ans = '<b>Rose Cloud Moisturizer</b> lists <b>Fragrance (Parfum)</b>, your top suspect: it was in 3 of your 4 breakout products.<br><br>I\'d pause it for 2 weeks. Your <b>CeraVe PM lotion</b> is already on your shelf and has no fragrance.';
+      const st = { th: u }; let touch = null;
+      if (u >= .3 && u < .55) touch = [150, 690];
+      if (u >= .5 && u < 4.0) {
+        st.kb = true;
+        if (u < 1.25) { const ty = typing('Is ', .6, 8, u); st.input = ty.text; st.hi = ty.hi; }
+        else if (u < 1.75) { st.input = 'Is @'; st.hi = u < 1.4 ? '@' : null; st.mention = shelf; }
+        else if (u < 2.35) { const ty = typing('Ro', 1.8, 6, u); st.input = 'Is @' + ty.text; st.hi = ty.hi; st.mention = shelf.filter(s => s[0].toLowerCase().startsWith(('ro').slice(0, Math.max(1, ty.text.length)).toLowerCase()) || ty.text === ''); }
+        else if (u < 2.6) { st.input = 'Is @Ro'; st.mention = [shelf[2]]; st.mHot = 0; touch = [150, 425]; }
+        else { const ty = typing(' OK for my skin?', 2.7, 14, u); st.input = 'Is ' + tag + ty.text; st.hi = ty.hi; }
+      }
+      if (u >= 3.85 && u < 4.05) touch = [357, 540];
+      if (u >= 4.0) { st.q = 'Is <b style="font-weight:600">@Rose Cloud Moisturizer</b> OK for my skin?'; st.kb = false; st.input = ''; }
+      if (u >= 4.05 && u < 4.7) st.thinking = true;
+      if (u >= 4.7) st.answer = answerTyping(ans, 4.7, 62, u);
+      return { layers: [{ s: 'ask', st }], touch };
+    } },
+  // 3. Night routine from a reminder
+  night: { hook: { img: 'photos/p5-breakout-c.jpg', cap: 'I was supposed to be doing THIS every night?? 🌙', top: 200, dur: 2.6 },
+    scene: 'bednight', dur: 9.0, caps: [[0, 2.6, 'it reminds me when it\'s time 🌙'], [2.6, 9.0, 'and tells me exactly what to use, in order 🫶']],
+    pov(u) {
+      let touch = null;
+      if (u < 2.4) {
+        if (u >= 2.0 && u < 2.3) touch = [196, 595];
+        return { layers: [{ s: 'lock', st: { time: '10:42', notif: u < .4 ? null : (u - .4) / .5, title: 'Night routine', body: 'Time for your PM routine.', press: u >= 2.05 && u < 2.3 } }], touch };
+      }
+      const times = [3.6, 4.6, 5.6];
+      const steps = PM.map((p, i) => [p[0], p[1], tick(u, times[i]), pop(u, times[i])]);
+      times.forEach(t0 => { if (u >= t0 - .2 && u < t0 + .1) touch = [60, 329 + 56 * times.indexOf(t0)]; });
+      const k = (u - 2.4) / .45;
+      return { layers: [{ s: 'lock', st: { time: '10:42' } }, { s: 'today', st: { slot: 'pm', steps, time: '10:42', pm: u >= 5.7 ? '5 of 7' : '4 of 7' }, tf: `scale(${.6 + .4 * ease(k)})`, op: ease(k * 1.4) }], touch };
+    } },
+  // 4. Scan -> verdict -> Save to shelf -> tag -> shelf
+  save: { hook: { img: 'photos/r2-phone.jpg', cap: 'I don\'t put anything on my face without doing this first 👀', top: 190, dur: 2.6 },
+    scene: 'green', dur: 10.8, caps: [[0, 5.9, 'scan it → see if it\'s OK for YOUR skin 👀'], [5.9, 10.8, 'save it + tag how your skin reacted ✅']],
+    pov(u) {
+      let touch = null; const L = [];
+      scanFlow(u, L);
+      if (u >= 5.6) L[L.length - 1].st.press = u >= 5.75 && u < 5.95;
+      if (u >= 5.7 && u < 5.95) touch = [196, 785];
+      if (u >= 5.95) L.push({ s: 'form', st: { react: u >= 7.2 ? 'Worked' : null, press: u >= 8.1 && u < 8.3 }, tf: slideIn((u - 5.95) / .4) });
+      if (u >= 7.05 && u < 7.3) touch = [76, 393];
+      if (u >= 8.0 && u < 8.25) touch = [196, 796];
+      if (u >= 8.3) { const items = [['CeraVe Foaming Facial Cleanser','ProductPump.png','#D6E0EA','Worked'], ...SHELF.slice(1)];
+        L.push({ s: 'shelf', st: { items, fresh: 0, freshK: (u - 8.5) / .4, toast: ease((u - 8.5) / .3) }, tf: slideIn((u - 8.3) / .4) }); }
+      return { layers: L, touch };
+    } },
+  // 8. Hook -> real scan -> verdict -> Triggers (rebuilt skintel-ugc-scan)
+  scan: { hook: { img: 'photos/h1-hook.jpg', cap: '3 years of breakouts and NOW I find this??', top: 1330, dur: 2.6 },
+    scene: 'green', dur: 9.0, caps: [[0, 3.6, 'scan it → see if it\'s OK for YOUR skin 👀'], [3.6, 6.2, 'it checks every ingredient for MY skin 🔍'], [6.2, 9.0, 'then it found the ONE ingredient my breakouts share 🤯']],
+    pov(u) {
+      let touch = null; const L = [];
+      scanFlow(u, L);
+      if (u >= 5.9 && u < 6.15) touch = [271, 790];
+      if (u >= 6.2) L.push({ s: 'triggers', st: { bars: ease((u - 6.8) / 1.2) }, tf: slideIn((u - 6.2) / .4) });
+      return { layers: L, touch };
+    } },
+  // 5. Tag a breakout -> Triggers
+  tag: { hook: { seq: 'react/shock', frames: 91, cap: 'I tagged every product that broke me out and…', top: 150, dur: 3.1 },
+    scene: 'counter', dur: 8.4, caps: [[0, 3.0, 'tag what broke you out 🏷️'], [3.0, 8.4, 'it finds what those products have in common 🤯']],
+    pov(u) {
+      let touch = null; const L = [];
+      const items = SHELF.map((p, i) => i === 2 && u >= 2.3 ? [...p.slice(0, 3), 'Broke out'] : p);
+      const sheetOn = u >= .9 && u < 2.3;
+      L.push({ s: 'shelf', st: { items, hot: u >= .6 && u < 1.0 ? 2 : null, sheet: sheetOn ? (u >= 1.7 ? 'Broke out' : null) : null, sheetK: sheetOn ? clamp(Math.min((u - .9) / .35, (2.3 - u) / .25)) : 0 } });
+      if (u >= .55 && u < .8) touch = [196, 322];
+      if (u >= 1.6 && u < 1.85) touch = [317, 750];
+      if (u >= 2.75 && u < 3.0) touch = [271, 790];
+      if (u >= 3.0) L.push({ s: 'triggers', st: { bars: ease((u - 3.6) / 1.2) }, tf: `translateY(${(1 - ease((u - 3.0) / .35)) * 4}%)`, op: ease((u - 3.0) / .3) });
+      return { layers: L, touch };
+    } },
+  // 6. Morning one-tap check-in -> pattern
+  morning: { hook: { img: 'photos/n15-touchface.jpg', cap: 'the 2-second thing I do every morning that explained my breakouts', top: 1380, dur: 2.8 },
+    scene: 'bed', dur: 8.6, caps: [[0, 3.9, '1 tap every morning: how did my skin wake up? 🪞'], [3.9, 8.6, '2 weeks of taps later it showed me this 👀']],
+    pov(u) {
+      let touch = null; const L = [];
+      const times = [2.2, 2.9, 3.6];
+      const steps = AM.map((p, i) => [p[0], p[1], i === 0 ? 1 : tick(u, times[i]), pop(u, times[i])]);
+      L.push({ s: 'today', st: { slot: 'am', steps, log: u >= 1.0 ? 3 : null, streak: u >= 1.0 ? '7-day streak' : '6-day streak', time: '8:12' } });
+      if (u >= .8 && u < 1.05) touch = [100, 704];
+      [2.9, 3.6].forEach((t0, i) => { if (u >= t0 - .2 && u < t0 + .1) touch = [60, 385 + 56 * i]; });
+      if (u >= 4.0 && u < 4.25) touch = [271, 790];
+      if (u >= 4.25) L.push({ s: 'triggers', st: { bars: ease((u - 4.9) / 1.2) }, tf: `translateY(${(1 - ease((u - 4.25) / .35)) * 4}%)`, op: ease((u - 4.25) / .3) });
+      return { layers: L, touch };
+    } },
+  // 7. Mascot hook -> Ask (tap a suggestion) about tonight's order
+  mascot: { hook: { seq: 'mascot/wave', frames: 151, fps: 30, cap: 'your breakouts are trying to tell you something 👀', top: 200, dur: 3.0 }, endMascot: true,
+    scene: 'green', dur: 9.0, caps: [[0, 2.2, 'ask Skintel anything about YOUR shelf 💬'], [2.2, 9.0, 'it builds tonight\'s order from what you own 🌙']],
+    pov(u) {
+      const chips = ['What order should I use my products in tonight?', 'How do I patch test?'];
+      const q = chips[0];
+      const ans = 'Tonight, from your shelf:<br><b>1.</b> CeraVe Foaming Facial Cleanser<br><b>2.</b> The Ordinary Azelaic Acid 10%<br><b>3.</b> CeraVe PM Facial Moisturizing Lotion<br><br>Leave out <b>Rose Cloud Moisturizer</b> for now: it has <b>Fragrance (Parfum)</b>, your top suspect.';
+      const st = { th: u, chips }; let touch = null;
+      if (u >= .8 && u < 1.1) { touch = [140, 629]; st.chipHot = 0; }
+      if (u >= 1.1) st.q = q;
+      if (u >= 1.2 && u < 2.0) st.thinking = true;
+      if (u >= 2.0) st.answer = answerTyping(ans, 2.0, 60, u);
+      return { layers: [{ s: 'ask', st }], touch };
+    } },
+};
+

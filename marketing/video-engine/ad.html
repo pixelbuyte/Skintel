@@ -1,0 +1,177 @@
+<!doctype html><html><head><meta charset="utf-8">
+<link href="https://fonts.googleapis.com/css2?family=TikTok+Sans:wght@600;700;800&family=Instrument+Serif:ital@0;1&family=DM+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
+<script src="ugc/app.js"></script>
+<script src="ugc/vo.js"></script>
+<style>
+*{margin:0;box-sizing:border-box}
+html,body{width:1080px;height:1920px;overflow:hidden;background:#000}
+#stage{position:absolute;inset:0;overflow:hidden}
+.seg{position:absolute;inset:0;overflow:hidden;display:none;will-change:transform}
+.lay{position:absolute;left:0;top:0;transform-origin:50% 50%}
+.tt{position:absolute;left:64px;right:64px;text-align:center;font:700 60px/1.6 'TikTok Sans',sans-serif;color:#111;z-index:20}
+.tt span{background:#fff;padding:10px 26px;border-radius:20px;-webkit-box-decoration-break:clone;box-decoration-break:clone}
+.lbl2{position:absolute;left:0;right:0;text-align:center;z-index:20}
+.lbl2 span{display:inline-block;font:700 64px/1 'TikTok Sans';color:#fff;padding:22px 34px;border-radius:26px;background:rgba(26,24,20,.55);backdrop-filter:blur(10px)}
+.lbl2 b{color:#F3B6A4}
+.kcard{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:0 80px}
+.kw{display:inline-block;margin:0 .12em}
+.serif{font-family:'Instrument Serif',serif;font-weight:400}
+.dev{position:absolute;left:50%;width:452px;height:912px;margin-left:-226px;border-radius:78px;padding:9px;
+  background:linear-gradient(135deg,#2b2b2d,#77777c 18%,#3a3a3d 35%,#1f1f21 60%,#6e6e73 82%,#2a2a2c);
+  box-shadow:0 60px 120px rgba(40,24,14,.45),0 18px 40px rgba(40,24,14,.25);transform-style:preserve-3d}
+.dev .bz{position:absolute;inset:9px;border-radius:70px;background:#050505;padding:20px 20px}
+.dev .sc{position:absolute;left:20px;top:20px;width:393px;height:852px;border-radius:54px;overflow:hidden;background:#F4EDE0}
+.dev .isl{position:absolute;top:11px;left:50%;width:120px;height:35px;margin-left:-60px;background:#000;border-radius:20px;z-index:95}
+.dev .gl{position:absolute;inset:0;border-radius:54px;z-index:96;pointer-events:none}
+.dev .btn1,.dev .btn2,.dev .btn3{position:absolute;width:5px;border-radius:3px;background:#3a3a3c}
+.quad{position:absolute;left:0;top:0;width:393px;height:852px;transform-origin:0 0;overflow:hidden;border-radius:44px;filter:contrast(.96) saturate(.96)}
+.island{position:absolute;top:11px;left:50%;width:120px;height:35px;margin-left:-60px;background:#000;border-radius:20px;z-index:95}
+.glare{position:absolute;inset:0;background:linear-gradient(115deg,rgba(255,255,255,.10),rgba(255,255,255,0) 40%);z-index:80;pointer-events:none}
+#grade{position:absolute;inset:0;z-index:200;pointer-events:none;background:radial-gradient(120% 85% at 50% 45%,rgba(0,0,0,0) 55%,rgba(20,10,5,.38) 100%)}
+#warm{position:absolute;inset:0;z-index:199;pointer-events:none;background:rgba(255,190,140,.05);mix-blend-mode:soft-light}
+#grain{position:absolute;inset:-60px;z-index:201;pointer-events:none;opacity:.10;mix-blend-mode:overlay;
+  background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='240' height='240'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2' stitchTiles='stitch'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>")}
+#flash{position:absolute;inset:0;background:#fff;z-index:210;opacity:0;pointer-events:none}
+.end{position:absolute;inset:0;background:radial-gradient(110% 70% at 80% 10%,#FBF7F0,#F4EDE0 52%,#ECE0CE);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:30px}
+.end .icon{width:240px;height:240px;border-radius:54px;box-shadow:0 30px 70px rgba(70,42,28,.28)}
+.end .w{font:400 168px/1 'Instrument Serif',serif;color:#1A1814}.end .w b{color:#A35848;font-weight:400}
+.end .t{font:400 66px/1.05 'Instrument Serif',serif;text-align:center;max-width:880px;color:#1A1814}.end .t em{color:#A35848}
+.end .p{background:#1A1814;color:#F4EDE0;border-radius:999px;padding:28px 50px;font:600 42px 'DM Sans';display:flex;gap:14px;align-items:center}
+.end .s{font:500 30px 'DM Sans';color:#6B6760;letter-spacing:.5px}
+</style></head><body>
+<div id="stage"></div><div id="warm"></div><div id="grade"></div><div id="grain"></div><div id="flash"></div>
+<script>
+document.head.insertAdjacentHTML('beforeend', `<style>${APP_CSS}</style>`);
+const $ = id => document.getElementById(id);
+const clamp = x => Math.max(0, Math.min(1, x));
+const spring = x => { x = clamp(x); return 1 - Math.exp(-7 * x) * Math.cos(10 * x); };
+const ease = x => { x = clamp(x); return 1 - Math.pow(1 - x, 3); };
+const easeIO = x => { x = clamp(x); return x < .5 ? 4 * x * x * x : 1 - Math.pow(-2 * x + 2, 3) / 2; };
+const shake = (t, k) => `translate(${(Math.sin(t*1.9)*7+Math.sin(t*4.3)*3)*k}px,${(Math.cos(t*1.4)*6+Math.sin(t*3.7)*3)*k}px) rotate(${Math.sin(t*1.1)*0.4*k}deg)`;
+</script>
+<script src="ugc/pov.js"></script>
+<script>
+// ---------- screen painter (shared with phone + POV) ----------
+async function paint(el, r, extra = '') {
+  el.innerHTML = r.layers.map((l, li) => `<div class="scr" style="z-index:${li + 1};isolation:isolate;transform:${l.tf || 'none'};opacity:${l.op == null ? 1 : l.op}">${SCREENS[l.s](l.st)}<div class="home"></div></div>`).join('')
+    + (r.flash ? `<div style="position:absolute;inset:0;background:#fff;opacity:${r.flash};z-index:70"></div>` : '')
+    + (r.touch ? `<div class="scr" style="background:none;z-index:90"><div class="touch" style="left:${r.touch[0]}px;top:${r.touch[1]}px"></div></div>` : '') + extra;
+  await Promise.all([...el.querySelectorAll('img')].map(i => i.decode().catch(() => {})));
+}
+const words = (txt, k, cls = '') => txt.split(' ').map((w, i) => { const q = spring(k * 1.0 - i * .09); return `<span class="kw ${cls}" style="opacity:${clamp((k - i * .09) * 5)};transform:translateY(${(1 - q) * 60}px);filter:blur(${(1 - clamp((k - i * .09) * 4)) * 8}px)">${w}</span>`; }).join(' ');
+
+// ---------- segment builders ----------
+// para: depth parallax from a photo + its cutout
+function para(o) { return { dur: o.dur, in: o.in, mk(el) {
+    el.innerHTML = `<img class="lay" id="b" src="${o.img}"><img class="lay" id="f" src="${o.cut}">${o.cap ? `<div class="tt" style="top:${o.top}px"><span>${o.cap}</span></div>` : ''}${o.label ? `<div class="lbl2" style="top:${o.ltop || 1500}px"><span>${o.label}</span></div>` : ''}${o.html || ''}`;
+    const W = o.W || 752, H = o.H || 1344, s = Math.max(1080 / W, 1920 / H);
+    for (const id of ['b', 'f']) { const im = el.querySelector('#' + id); im.style.width = W * s + 'px'; im.style.height = H * s + 'px'; im.style.left = (1080 - W * s) / 2 + 'px'; im.style.top = (1920 - H * s) / 2 + 'px'; }
+  }, at(el, u) {
+    const k = easeIO(u / o.dur), z = o.z || [1.04, 1.12], dx = o.dx || 0;
+    el.querySelector('#b').style.transform = `translate(${-dx * .4 * k}px,0) scale(${z[0] + (z[1] - z[0]) * k * .55})`;
+    el.querySelector('#b').style.filter = `blur(${o.bblur == null ? 1.2 : o.bblur}px) brightness(.97)`;
+    el.querySelector('#f').style.transform = `translate(${dx * k}px,${-8 * k}px) scale(${z[0] + (z[1] - z[0]) * k})`;
+    const c = el.querySelector('.tt, .lbl2'); if (c) { const d = u - (o.capAt || .08); c.style.opacity = clamp(d / .1); c.style.transform = `scale(${.86 + .14 * spring(d / .45)})`; }
+  } }; }
+// still photo with punch zoom (no cutout)
+function photo(o) { return { dur: o.dur, in: o.in, mk(el) { el.innerHTML = `<img class="lay" src="${o.img}" style="width:1080px;height:1920px;object-fit:cover">${o.label ? `<div class="lbl2" style="top:${o.ltop || 1500}px"><span>${o.label}</span></div>` : ''}`; },
+  at(el, u) { el.querySelector('img').style.transform = `${shake(u, .7)} scale(${1.18 - .1 * ease(u / o.dur)})`; const c = el.querySelector('.lbl2'); if (c) { const d = u - .06; c.style.opacity = clamp(d / .1); c.style.transform = `scale(${.86 + .14 * spring(d / .45)})`; } } }; }
+// real motion clip from frames
+function clip(o) { return { dur: o.dur, in: o.in, mk(el) { el.innerHTML = `<img class="lay" style="width:1080px;height:1920px;object-fit:cover">${o.cap ? `<div class="tt" style="top:${o.top}px"><span>${o.cap}</span></div>` : ''}`; },
+  async at(el, u) { const im = el.querySelector('img'); const f = Math.min(o.frames, Math.floor(u * (o.fps || 30) * (o.speed || 1)) + 1); const src = `${o.seq}/f${String(f).padStart(4, '0')}.jpg`;
+    if (!im.src.endsWith(src)) { im.src = src; await im.decode().catch(() => {}); } im.style.transform = `scale(${1.02 + .05 * ease(u / o.dur)})`;
+    const c = el.querySelector('.tt'); if (c) { const d = u - .1; c.style.opacity = clamp(d / .1); c.style.transform = `scale(${.86 + .14 * spring(d / .45)})`; } } }; }
+// kinetic type card
+function type(o) { return { dur: o.dur, in: o.in, mk(el) { el.innerHTML = `<div class="kcard" style="background:${o.bg}"><div id="l1"></div><div id="l2"></div><div id="l3"></div></div>`; },
+  at(el, u) { const c = o.color, a = o.accent;
+    el.querySelector('#l1').innerHTML = `<div class="serif" style="font-size:${o.s1 || 130}px;line-height:1.02;color:${c}">${words(o.l1, u / .5)}</div>`;
+    el.querySelector('#l2').innerHTML = o.l2 ? `<div class="serif" style="font-size:${o.s2 || 130}px;line-height:1.02;color:${a};font-style:italic;margin-top:10px">${words(o.l2, (u - (o.d2 || .45)) / .5)}</div>` : '';
+    el.querySelector('#l3').innerHTML = o.l3 ? `<div style="font:600 46px 'DM Sans';color:${c};opacity:.75;margin-top:46px">${words(o.l3, (u - (o.d3 || .9)) / .5)}</div>` : '';
+    el.firstElementChild.style.transform = `scale(${1 + .03 * u / o.dur})`; } }; }
+// floating premium iPhone with live app screens + headline
+function phone(o) { return { dur: o.dur, in: o.in, mk(el) {
+    el.innerHTML = `<div style="position:absolute;inset:0;background:${o.bg || 'radial-gradient(90% 60% at 20% 15%,#FBF3EA,#F1E6D6 55%,#E7D6C1)'}"></div>
+      <div style="position:absolute;left:-200px;top:900px;width:900px;height:900px;border-radius:50%;background:radial-gradient(circle,rgba(163,88,72,.22),rgba(163,88,72,0) 65%)"></div>
+      <div id="hd" style="position:absolute;left:70px;right:70px;top:150px;text-align:center"></div>
+      <div id="wrap" style="position:absolute;left:0;right:0;top:560px;height:1400px;perspective:2200px"><div class="dev" id="dv"><i class="btn1" style="left:-4px;top:200px;height:60px"></i><i class="btn2" style="left:-4px;top:290px;height:100px"></i><i class="btn3" style="right:-4px;top:260px;height:140px"></i><div class="bz"></div><div class="sc" id="sc"></div><div class="isl" style="top:40px"></div></div></div>`;
+  }, async at(el, u) {
+    const ry = (o.ry || [-16, -6]), rx = o.rx || 7, k = easeIO(u / o.dur);
+    const dv = el.querySelector('#dv'); dv.style.transform = `translateY(${(1 - ease(u / .5)) * 260 + Math.sin(u * 1.3) * 8}px) rotateY(${ry[0] + (ry[1] - ry[0]) * k}deg) rotateX(${rx}deg) scale(${1.32 + .04 * k})`;
+    const sw = (u * 260) % 1400 - 300;
+    const r = o.pov(u * (o.speed || 1) + (o.from || 0));
+    const ring = o.ring && u > o.ring[0] ? `<svg style="position:absolute;inset:0;z-index:85" viewBox="0 0 393 852"><rect x="${o.ring[1]}" y="${o.ring[2]}" width="${o.ring[3]}" height="${o.ring[4]}" rx="22" fill="none" stroke="#E0563F" stroke-width="4" stroke-dasharray="1100" stroke-dashoffset="${1100 * (1 - ease((u - o.ring[0]) / .6))}"/></svg>` : '';
+    await paint(el.querySelector('#sc'), r, ring + `<div style="position:absolute;inset:0;z-index:96;background:linear-gradient(115deg,rgba(255,255,255,0) ${sw / 14}%,rgba(255,255,255,.16) ${sw / 14 + 6}%,rgba(255,255,255,0) ${sw / 14 + 14}%)"></div>`);
+    const h = o.heads.filter(x => u >= x[0]).pop();
+    el.querySelector('#hd').innerHTML = h ? `<div class="serif" style="font-size:${h[3] || 96}px;line-height:1.04;color:#1A1814">${words(h[1], (u - h[0]) / .45)}</div>${h[2] ? `<div class="serif" style="font-size:${h[3] || 96}px;line-height:1.04;color:#A35848;font-style:italic">${words(h[2], (u - h[0] - .3) / .45)}</div>` : ''}` : '';
+  } }; }
+// POV hand-held phone (same engine as the feature videos)
+function pov(o) { return { dur: o.dur, in: o.in, mk(el) {
+    const sc = SCENES[o.scene]; el._sc = sc;
+    const s = Math.max(1080 / sc.W, 1920 / sc.H), ox = (1080 - sc.W * s) / 2, oy = (1920 - sc.H * s) / 2;
+    el.innerHTML = `<div id="rig" style="position:absolute;inset:0;transform-origin:${sc.origin[0]}px ${sc.origin[1]}px"><div id="stg" style="position:absolute;left:0;top:0;width:${sc.W}px;height:${sc.H}px;transform-origin:0 0;transform:translate(${ox}px,${oy}px) scale(${s})">
+      ${sc.base ? `<img src="${sc.base}" style="position:absolute;width:${sc.W}px;height:${sc.H}px;${sc.night ? 'filter:brightness(.5) saturate(.8) sepia(.25)' : ''}">` : ''}<div class="quad" id="q" style="transform:${homog(393, 852, sc.q)}"></div>
+      ${sc.top ? `<img src="${sc.top}" style="position:absolute;width:${sc.W}px;height:${sc.H}px">` : ''}</div></div>${o.cap ? `<div class="tt" style="top:${o.top || sc.cap}px"><span>${o.cap}</span></div>` : ''}`;
+  }, async at(el, u) { const sc = el._sc;
+    el.querySelector('#rig').style.transform = `${shake(u, .8)} scale(${sc.zoom[0] + (sc.zoom[1] - sc.zoom[0]) * ease(u / o.dur)})`;
+    await paint(el.querySelector('#q'), o.pov(u * (o.speed || 1) + (o.from || 0)), '<div class="island"></div><div class="glare"></div>');
+    const c = el.querySelector('.tt'); if (c) { const d = u - .15; c.style.opacity = clamp(d / .1); c.style.transform = `scale(${.86 + .14 * spring(d / .45)})`; }
+  } }; }
+function endcard(o) { return { dur: o.dur, in: o.in, mk(el) { el.innerHTML = `<div class="end"><img class="icon" src="icon.png"><div class="w">Skintel<b>.</b></div><div class="t">${o.line || 'Find the ingredient <em>breaking you out.</em>'}</div><div class="p">Free on the App Store</div><div class="s">skinstel.com</div></div>`; },
+  at(el, u) { [...el.firstElementChild.children].forEach((c, i) => { const d = u - i * .09; c.style.opacity = clamp(d / .2); c.style.transform = `translateY(${(1 - spring(d / .55)) * 50}px)`; }); } }; }
+
+// ---------- the two ads ----------
+const tagPov = V.tag.pov, mentionPov = V.mention.pov, morningPov = V.morning.pov;
+const scanPov = (u) => { const L = []; scanFlow(u, L); return { layers: L }; };
+const ADS = {
+  // A — proven line "Not every breakout is the same" (12.5M + 5.5M on IG)
+  same: [
+    para({ img: 'photos/h1-hook.jpg', cut: 'cut/h1.png', dur: 2.3, z: [1.03, 1.13], dx: 10, cap: 'Not every breakout is the same.', top: 1340 }),
+    para({ img: 'photos/n15-touchface.jpg', cut: 'cut/n15.png', W: 1152, H: 2048, dur: .7, in: 'whip', z: [1.12, 1.2], label: 'hers → <b>fragrance</b>', ltop: 1520 }),
+    para({ img: 'photos/r1-frustrated.jpg', cut: 'cut/r1.png', dur: .7, in: 'whip', z: [1.1, 1.18], dx: -10, label: 'hers → <b>coconut oil</b>', ltop: 1520 }),
+    photo({ img: 'photos/p5-breakout-c.jpg', dur: .9, in: 'whip', label: 'yours → <b>???</b>', ltop: 1500 }),
+    type({ dur: 1.7, in: 'flash', bg: '#1A1814', color: '#F4EDE0', accent: '#E9A08C', l1: 'So why follow', l2: 'the same advice?' }),
+    phone({ dur: 4.4, in: 'zoom', pov: tagPov, from: .4, speed: 1.05, ring: [3.0, 16, 258, 361, 196], heads: [[0, 'Tag what', 'broke you out.'], [2.6, 'Skintel finds', 'what they share.']] }),
+    pov({ scene: 'green', dur: 3.6, in: 'whip', pov: scanPov, from: 1.0, speed: 1.15, cap: 'then scan anything new, before it touches your face 👀' }),
+    para({ img: 'photos/r3-bin.jpg', cut: 'cut/r3.png', dur: 1.8, in: 'whip', z: [1.04, 1.12], cap: 'mine was fragrance. 3 of my 4 breakout products 💀', top: 1600 }),
+    endcard({ dur: 2.7, in: 'flash' }),
+  ],
+  // B — proven line "I kept getting breakouts. Then I realized what it is." (8.0M) as a story
+  story: [
+    clip({ seq: 'react/shock', frames: 91, dur: 2.9, cap: 'I broke out on the same cheek for 2 months straight 😳', top: 150 }),
+    para({ img: 'photos/r1-frustrated.jpg', cut: 'cut/r1.png', dur: 1.6, in: 'whip', z: [1.05, 1.15], cap: '3 new products. 3 breakouts.', top: 190 }),
+    type({ dur: 1.7, in: 'flash', bg: '#F4EDE0', color: '#1A1814', accent: '#A35848', l1: 'It wasn\'t my skin.', l2: 'It was one ingredient.', s1: 116, s2: 116 }),
+    pov({ scene: 'bed', dur: 2.6, in: 'zoom', pov: morningPov, from: .4, speed: 1.1, cap: 'so I logged my skin. 1 tap a day 🪞' }),
+    phone({ dur: 3.6, in: 'whip', pov: (u) => ({ layers: [{ s: 'triggers', st: { bars: ease((u - .5) / 1.1) } }] }), ring: [1.4, 16, 258, 361, 196], heads: [[0, 'Fragrance.'], [1.2, 'In 3 of my 4', 'breakout products.', 92]] }),
+    pov({ scene: 'counter', dur: 3.8, in: 'whip', pov: mentionPov, from: 2.3, speed: 1.75, cap: 'now I ask it before I buy anything 👀' }),
+    para({ img: 'photos/r3-bin.jpg', cut: 'cut/r3.png', dur: 1.7, in: 'whip', z: [1.04, 1.12], cap: 'that moisturizer? gone 👋', top: 1640 }),
+    endcard({ dur: 2.7, in: 'flash', line: 'Your skin\'s been telling you. <em>Skintel translates.</em>' }),
+  ],
+};
+const VOMAP = { same: ['a1','a2','a3','a4','a5','a6','a7','a8','a9'], story: ['b1','b2','b3','b4','b5','b6','b7','b8'] };
+const P = new URLSearchParams(location.search); const AD = P.get('ad') || 'same'; const segs = ADS[AD];
+segs.forEach((s, i) => { s.vo = VOMAP[AD][i]; const d = (window.VO || {})[s.vo]; if (d) s.dur = Math.max(s.dur, d + (d < 1.4 ? .2 : .38)); });
+let acc = 0; segs.forEach(s => { s.a = acc; acc += s.dur; s.b = acc; }); window.DUR = acc;
+const stage = $('stage');
+segs.forEach(s => { s.el = document.createElement('div'); s.el.className = 'seg'; s.mk(s.el); stage.appendChild(s.el); });
+// sound events derived from the edit
+const FX = [];
+segs.forEach((s, i) => { if (s.in === 'whip') FX.push([s.a - .12, 'whoosh', .8]); if (s.in === 'flash') FX.push([s.a, 'hit', .9]); if (s.in === 'zoom') FX.push([s.a - .05, 'whoosh', .6]); if (i) FX.push([s.a + .1, 'pop', .5]); });
+FX.push([0.0, 'hit', .55]);
+FX.push([0.05, 'pop', .5]); FX.push([segs[segs.length - 1].a, 'chime', .7]); FX.push([segs[segs.length - 1].a, 'riser', .45]);
+window.EVENTS = { dur: acc, bpm: 100, fx: FX, duck: segs.filter(s => s.in === 'flash').map(s => [s.a, s.a + .5]), vo: segs.filter(s => s.vo).map(s => [s.a + .08, `vo/${s.vo}.wav`, 1.0, (window.VO || {})[s.vo] || 0]) };
+
+window.render = async (t) => {
+  for (const s of segs) {
+    const on = (t >= s.a && t < s.b) || (s === segs[segs.length - 1] && t >= s.a);
+    s.el.style.display = on ? 'block' : 'none'; if (!on) continue;
+    const u = t - s.a; await s.at(s.el, u);
+    let tf = 'none', fl = 'none';
+    if (s.in === 'whip' && u < .2) { const k = ease(u / .2); tf = `translateX(${(1 - k) * 38}%) skewX(${(1 - k) * -8}deg)`; fl = `blur(${(1 - k) * 26}px)`; }
+    if (s.in === 'zoom' && u < .3) { const k = ease(u / .3); tf = `scale(${1.35 - .35 * k})`; fl = `blur(${(1 - k) * 18}px)`; }
+    s.el.style.transform = tf; s.el.style.filter = fl;
+    $('flash').style.opacity = s.in === 'flash' && u < .16 ? 1 - u / .16 : 0;
+  }
+  $('grain').style.transform = `translate(${(Math.floor(t * 30) * 37) % 60 - 30}px,${(Math.floor(t * 30) * 53) % 60 - 30}px)`;
+};
+window.ready = Promise.all([document.fonts.ready, ...[...document.images].map(i => i.decode().catch(() => {}))]);
+</script></body></html>
