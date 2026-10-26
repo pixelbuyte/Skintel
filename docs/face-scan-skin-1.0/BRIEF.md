@@ -181,16 +181,95 @@ skills above report no FAIL, PR description lists every founder decision taken b
 
 1. Free tier: first scan free, then Skintel+? Or scans free and only 3D/history paid?
 2. Settings: remove only the "What Skintel+ adds" group, or the plan card too (keeping Manage/Restore)?
-3. Name: PR #74 says the app's official name is **Skinstel** — rename user-facing strings in this feature, or keep Skintel?
+3. ~~Name~~ — answered: `CLAUDE.md` now says the official name is **Skinstel** for everything people see; code
+   identifiers stay `Skintel`. New user-facing strings in this feature say Skinstel.
 4. 3-angle capture in v1, or front-only?
 5. OK to spend ElevenLabs credits on the launch videos?
+
+---
+
+## 10. Additions (marketing session, Oct 26) — read before §8
+
+Facts these rest on were checked on `main` at f0ca97d (Supabase queried with counts only).
+
+### 10.1 Make Face Scan the first thing a new user does
+- **The funnel is leaking at the sign-in wall.** App Store: 3 downloads Oct 22–24. Supabase: **no new account since
+  Oct 21**, and the auth logs for Oct 22–25 show **zero** sign-in or sign-up attempts (Apple sign-in works: 3 accounts
+  came through it, the latest Oct 21). The app routes signed-out users straight to `AuthFlow`
+  (`App/AppRouter.swift:16`) — WelcomeView pages, then the account form.
+- So: put **"Scan your face — free"** on the welcome flow and let a signed-out user run **one** scan and see the full
+  result (2D or 3D) before any account. Then "Save this scan and track your zones → Continue with Apple". The scan
+  JSON + photo wait locally and attach to the account after sign-in.
+- The server route must accept that one pre-account scan: per-device token (App Attest if feasible, else
+  `identifierForVendor` + a server-side counter) and a hard rate limit, so the free scan can't be farmed.
+- App Review 5.1.1(v) favours letting people use features that don't need an account — this helps review, not hurts.
+- Add this as founder question §9.6; build it behind a flag so it can ship either way.
+
+### 10.2 The 3D result — how to make it feel first-of-its-kind
+- **TrueDepth (iPhone X and later with Face ID):** `ARFaceGeometry` from the capture frame, rendered in SceneKit
+  (`ARSCNFaceGeometry` needs an AR session; for the result screen copy vertices/indices/UVs into a plain
+  `SCNGeometry` so it renders without the camera). Texture: the captured frame projected through the face UVs, or the
+  clay "sculpture" material with zone heat on top — prototype both; the sculpture look avoids showing a raw selfie
+  mesh and reads more premium.
+- **Everyone else:** MediaPipe's **canonical face model** — a 468-vertex mesh with UVs,
+  `google-ai-edge/mediapipe` → `mediapipe/modules/face_geometry/data/canonical_face_model.obj` (Apache-2.0, verified
+  present). Bundle the .obj as a resource (no MediaPipe SDK needed), fit it roughly to Vision's 2D landmarks (scale,
+  rotate, translate), map zone colours onto its UV regions. It's a stylised face, not theirs — label it "your zones",
+  not "your face".
+- **Reveal moment:** mesh fades in as a wireframe, zones light up one at a time with a soft haptic per zone, then
+  settles into a slow turn. Under 2 s; Reduce Motion ⇒ instant.
+- **Shareable card:** the 3D zone render (sculpture style, never the selfie) as an image for Stories — the growth loop.
+- Zone polygons: define each zone once as a vertex-index set on the canonical mesh; ARKit's mesh has a different
+  topology, so keep a small mapping table (nearest canonical vertex per ARKit vertex, computed once offline and
+  bundled). Write it in `SkintelCore` with tests.
+
+### 10.3 Accuracy and fairness (vision LLMs are uneven — test it)
+- Build a small eval set **from consented photos only** (founder + testers who agree in writing), across skin tones,
+  lighting and angles. Score the model's zone output against a human label for each. Track: retake rate, zone
+  agreement, run-to-run consistency (same photo twice ⇒ near-same JSON).
+- Lower temperature, fixed schema, server-side clamping of every score; `photo_ok:false` beats a confident wrong answer.
+- Check that redness/dark-spot reads don't skew on darker skin tones; if they do, drop that field for v1 rather than
+  ship a biased number.
+- No single "skin score" or "skin age" number in v1 — they invite comparison claims we can't back. Zone levels +
+  trends are honest and still feel like progress.
+
+### 10.4 Cost and abuse
+- Log model + tokens per scan (no image data) so the founder sees cost per scan. Cap image size on the server too.
+- Rate limits: free ⇒ 1 scan lifetime (per account and per device); Skintel+ ⇒ a sane daily cap (e.g. 5/day).
+
+### 10.5 Measure it
+- New `AnalyticsEvent` cases (`Core/Analytics/Analytics.swift`): scan started, capture passed checks, retake reason,
+  result shown (2D/3D), paywall shown from faceScan, sign-in after pre-account scan. That's the funnel the founder
+  can't see today.
+
+### 10.6 Small things that are easy to miss
+- `NSCameraUsageDescription` (`ios/Skintel/project.yml:108`) only mentions barcodes — add the face scan, and
+  `NSFaceIDUsageDescription` is **not** needed (ARKit face tracking isn't Face ID). Check whether ARKit face tracking
+  needs any plist/capability entry and add the App Store Connect privacy-label note for the founder.
+- ARKit/Vision are not imported anywhere yet — new frameworks: confirm XcodeGen links them (system frameworks are
+  implicit with `import`, but verify on `ios-ci`).
+- "What's new" text for the App Store release notes and a refreshed screenshot set with the 3D map
+  (`marketing/app-store/` has the slide renderer).
+
+### 10.7 Launch videos — what actually performs (from this session's scrapes)
+- Native, raw, short beats polished: app reveals got 4.8M (582 followers) and 2.2M (675 followers). Make the
+  face-scan launch as **"name of this app is Skinstel"**-style screen recordings of the real 3D reveal
+  (`marketing/video/stock/build_reveal.py`, `reveal.html` — reuse them) and a carousel (`carousel.html`).
+- Every post has sound (voice + effects, or a trending song added in-app). Silent posts sat at the ~100-view floor.
+- Real faces beat AI faces: founder or paid creators who actually used the scan (label #ad). No AI person presented as
+  a user; no before/after skin claims.
+
+### 10.8 More founder questions (add to §9)
+6. Let a signed-out user do one free scan before making an account (§10.1)?
+7. 3D look: real photo texture, or the clay "sculpture" with heat zones (recommended)?
 
 ---
 
 ## Kick-off prompt for the next session (copy-paste)
 
 > Work on branch `face-scan-skin-1.0` in pixelbuyte/Skintel. Read `docs/face-scan-skin-1.0/BRIEF.md` fully, then
-> `CLAUDE.md` and `ios/Skintel/CLAUDE.md`, and load the `ios-ship-playbook` skill. Post the §9 questions as one PR
-> comment, then follow §8 in order. Swift only compiles on Codemagic `ios-ci` — cross-check every API before pushing,
+> `CLAUDE.md` and `ios/Skintel/CLAUDE.md`, and load the `ios-ship-playbook` skill. Post the §9 questions (incl.
+> §10.8) as one PR comment, then follow §8 in order, folding in §10 (pre-account scan behind a flag, 3D via ARKit +
+> MediaPipe canonical mesh, eval set, analytics). Swift only compiles on Codemagic `ios-ci` — cross-check every API before pushing,
 > `swiftc -parse` touched files, `swift test` in SkintelCore. No new `api/*.ts` endpoints (12-function limit).
 > Never start `ios-release`. Report each step: changed, verified, left.
