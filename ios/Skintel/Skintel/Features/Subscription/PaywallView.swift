@@ -1603,7 +1603,7 @@ enum UpgradeWallStyle: String, CaseIterable, Identifiable {
 /// shows nothing of the member's own data. Style A (the default, and always on the App
 /// Store): a branded scene (the feature's drop in an arched window), the feature's name,
 /// three things it does, then Get Skintel+ (the plans, which show every feature) or a way
-/// back. Style B (test builds only, see `UpgradeWallStyle`): the feature's demo with sample
+/// back. Style B (unused since the Settings picker was removed): the feature's demo with sample
 /// data over the top, and a panel with its name and the same two buttons.
 /// `openPaywall` presents it full-screen; a Skintel+ tab shows it as its root while
 /// `MainTabView` hides the tab bar.
@@ -1623,20 +1623,12 @@ struct ProLockedView: View {
     @Environment(AppEnvironment.self) private var env
     @Environment(\.dismiss) private var dismiss
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
-    @AppStorage(UpgradeWallStyle.key) private var chosenStyle: UpgradeWallStyle = .arch
     @State private var showPlans = false
     @State private var shown = false
     @State private var floating = false
 
-    /// Only a test build honours the Settings choice; the App Store always gets the arch.
-    private var style: UpgradeWallStyle {
-        env.subscriptionService.isTestBuild ? chosenStyle : .arch
-    }
-
     var body: some View {
-        Group {
-            if style == .demo { demoLayout } else { archLayout }
-        }
+        archLayout
         .sheet(isPresented: $showPlans, onDismiss: {
             if env.subscription.entitlement.isPro { unlocked() }
         }) {
@@ -1652,7 +1644,6 @@ struct ProLockedView: View {
             try? await Task.sleep(for: .seconds(0.8))
             withAnimation(.easeInOut(duration: 2.6).repeatForever(autoreverses: true)) { floating = true }
         }
-        .task { await env.subscriptionService.checkBuildEnvironment() }
     }
 
     /// Style A: the arch, the feature's name and what it does, buttons pinned below.
