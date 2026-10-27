@@ -443,8 +443,9 @@ public struct FaceScanResult: Codable, Sendable, Hashable {
     public var disclaimer: String
     public var report: FaceReport?
     public var routine: FaceRoutine?
-    /// True for the one free scan a non-Pro account gets: `zones` lists only the areas with findings,
-    /// with no scores or notes. The app shows the locked map and the paywall.
+    /// True for the one free scan a non-Pro account gets: a real Day 1 map (every zone with its
+    /// scores and note, and the summary) with no regions, report or routine. The 7-day check is
+    /// what Skintel+ pays for, so the app shows this map with the week locked.
     public var locked: Bool
 
     public init(quality: FaceQuality, zones: [FaceZoneResult] = [], summary: String = "",

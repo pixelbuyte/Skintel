@@ -314,12 +314,17 @@ private let specExample = """
     let old = try decodeFace(FaceScanResult.self, specExample)
     #expect(old.locked == false)
     let free = try decodeFace(FaceScanResult.self, """
-    { "quality": { "ok": true, "issues": [] }, "locked": true, "summary": "Your face map is ready.",
-      "zones": [ { "zone": "chin", "scores": {}, "regions": [], "note": null } ] }
+    { "quality": { "ok": true, "issues": [] }, "locked": true, "summary": "Shine on the T-zone, a few blemishes on the chin.",
+      "zones": [ { "zone": "chin", "scores": { "redness": 30, "raised_blemishes": 41 }, "note": "A few raised blemishes along the jawline." },
+                 { "zone": "nose", "scores": { "shine": 62 }, "note": "Shine on the T-zone." } ] }
     """)
     #expect(free.locked)
-    #expect(free.zones.map(\.zone) == [.chin])
-    #expect(free.zones.first?.scores.isEmpty == true)
+    #expect(free.zones.map(\.zone) == [.chin, .nose])
+    #expect(free.zones.first?.scores == [.redness: 30, .raisedBlemishes: 41])
+    #expect(free.zones.first?.note == "A few raised blemishes along the jawline.")
+    #expect(free.zones.allSatisfy { $0.regions.isEmpty })
+    #expect(free.summary == "Shine on the T-zone, a few blemishes on the chin.")
+    #expect(free.report == nil && free.routine == nil)
     let round = try JSONCoding.decode(FaceScanResult.self, from: JSONCoding.encoder.encode(free))
     #expect(round.locked)
 }
