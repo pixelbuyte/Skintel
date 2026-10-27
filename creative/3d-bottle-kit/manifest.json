@@ -1,0 +1,38 @@
+[
+  {
+    "id": "ordinary-niacinamide",
+    "brand": "The Ordinary.",
+    "type": "reference",
+    "model": "models/ordinary-niacinamide.gltf",
+    "barcode": "SKINTEL-DEMO-01",
+    "barcodeType": "CODE_128",
+    "retailBarcode": false
+  },
+  {
+    "id": "cerave-cleanser",
+    "brand": "CeraVe",
+    "type": "reference",
+    "model": "models/cerave-cleanser.gltf",
+    "barcode": "SKINTEL-DEMO-02",
+    "barcodeType": "CODE_128",
+    "retailBarcode": false
+  },
+  {
+    "id": "skintel-jade",
+    "brand": "SKINTEL",
+    "type": "original",
+    "model": "models/skintel-jade.gltf",
+    "barcode": "SKINTEL-DEMO-03",
+    "barcodeType": "CODE_128",
+    "retailBarcode": false
+  },
+  {
+    "id": "skintel-terracotta",
+    "brand": "SKINTEL",
+    "type": "original",
+    "model": "models/skintel-terracotta.gltf",
+    "barcode": "SKINTEL-DEMO-04",
+    "barcodeType": "CODE_128",
+    "retailBarcode": false
+  }
+]
