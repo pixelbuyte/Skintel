@@ -73,7 +73,11 @@ struct FaceScanFlowView: View {
                     if yes { screen = .start; begin() }
                 }, onClose: close)
             case .sweep(let stage):
-                SweepView(fullSweep: stage != .daily, retakeIssues: retakeIssues, onClose: close) { images in
+                SweepView(fullSweep: stage != .daily, retakeIssues: retakeIssues,
+                          showsPrivacyNote: stage == .baseline, onClose: {
+                    // "Not now" on a retake goes back to the map when there is one.
+                    if retakeIssues != nil && hasBaseline { retakeIssues = nil; screen = .result } else { close() }
+                }) { images in
                     swept(images, stage: stage)
                 }
             case .quiz:
@@ -108,18 +112,20 @@ struct FaceScanFlowView: View {
                              onAllow: { aiConsent = true; showConsent = false },
                              onNotNow: { showConsent = false })
         }
-        // The sweep and the read keep the screen awake: a read can take 40 seconds, and a locked
-        // phone drops the request.
-        .onChange(of: screen, initial: true) { _, now in
-            UIApplication.shared.isIdleTimerDisabled = Self.keepsAwake(now)
-        }
+        // A read in flight keeps the screen awake: it can take up to a minute, and a locked phone
+        // drops the request. The sweep sets its own (SweepView); a failure card lets it sleep.
+        .onChange(of: screen, initial: true) { updateIdleTimer() }
+        .onChange(of: errorText) { updateIdleTimer() }
         .onDisappear { UIApplication.shared.isIdleTimerDisabled = false }
     }
 
-    private static func keepsAwake(_ screen: Screen) -> Bool {
-        switch screen {
-        case .sweep, .reading: true
-        default: false
+    private func updateIdleTimer() {
+        if screen == .reading {
+            UIApplication.shared.isIdleTimerDisabled = errorText == nil
+        } else if case .sweep = screen {
+            // SweepView owns it while it is on screen.
+        } else {
+            UIApplication.shared.isIdleTimerDisabled = false
         }
     }
 
@@ -136,7 +142,7 @@ struct FaceScanFlowView: View {
                 FaceMeshView(mode: .scan, zoom: 0.4).frame(width: 240, height: 290)
                 Text("Reading your skin").font(SKFont.serif(34, relativeTo: .largeTitle)).foregroundStyle(SKColor.bg)
                     .accessibilityAddTraits(.isHeader)
-                Text("This takes up to 40 seconds").font(SKFont.secondary).foregroundStyle(SKColor.bg.opacity(0.72))
+                Text("This can take up to a minute").font(SKFont.secondary).foregroundStyle(SKColor.bg.opacity(0.72))
                 if errorText == nil {
                     TimelineView(.periodic(from: readingStarted, by: 1)) { context in
                         readingSteps(elapsed: context.date.timeIntervalSince(readingStarted))
@@ -312,7 +318,8 @@ struct FaceScanFlowView: View {
 
     /// Re-sends exactly what failed: the same photos and answers, no new sweep.
     private func retry() {
-        guard let attempt = lastAttempt else { return }
+        // A double tap: the first one already cleared the card and re-sent.
+        guard errorText != nil, let attempt = lastAttempt else { return }
         errorText = nil
         switch attempt {
         case .baseline(let answers): Task { await readBaseline(answers: answers, newCycle: false) }
@@ -519,7 +526,7 @@ private struct FaceConsentSheet: View {
                 Text("Read your skin with AI?").font(SKFont.section).foregroundStyle(SKColor.ink)
                     .accessibilityAddTraits(.isHeader)
                 VStack(alignment: .leading, spacing: SKSpace.md) {
-                    bullet("Your photos go to our AI partners and aren't kept")
+                    bullet("Your photos, answers, skin profile, shelf and Triggers go to AI providers (Google and Anthropic, through OpenRouter), with zero data retention.")
                     bullet("Your Day 1 photo stays on this phone until your week ends")
                     bullet("A cosmetic read, not a diagnosis")
                 }

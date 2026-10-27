@@ -45,7 +45,8 @@ final class SweepModel {
         )
         self.camera = camera
         phase = .scanning
-        camera.start()
+        // Behind the retake card the camera stays off until Retake.
+        if !holding { camera.start() }
         aim()
     }
 
@@ -61,6 +62,7 @@ final class SweepModel {
     /// Retake: drop the hold and start the sweep from the first angle.
     func resume() {
         holding = false
+        camera?.start()
         restart()
     }
 
@@ -172,23 +174,28 @@ enum SweepRetakeAdvice {
 /// The scanner (canvas screen 3), over the live front camera: the person sees their own face,
 /// mirrored, inside an oval guide with the angle progress ring. A small 3D face in the corner
 /// turns to the angle wanted; live checks say what to fix; the screen glows cream as a ring
-/// light. An angle locks once every check holds for `SweepCamera.holdSeconds`, or with the
-/// shutter. With `retakeIssues`, it opens on the "Let's retake that" card instead.
+/// light. An angle locks once every check holds for `SweepCamera.framesToLock` analysed frames
+/// (about 0.6 s), or with the shutter. With `retakeIssues`, it opens on the "Let's retake that" card instead.
 struct SweepView: View {
     let fullSweep: Bool
     let retakeIssues: [String]?
+    /// The Day 1 privacy caption, on the baseline sweep only.
+    let showsPrivacyNote: Bool
     let onClose: () -> Void
     let onDone: (SweepImages) -> Void
 
     @State private var model: SweepModel
     @State private var showRetake: Bool
     @State private var light = SweepScreenLight()
+    /// Whether this view turned the idle timer off, so leaving never clears the flow's own.
+    @State private var ownsIdleTimer = false
     @Environment(\.scenePhase) private var scenePhase
 
-    init(fullSweep: Bool, retakeIssues: [String]? = nil, onClose: @escaping () -> Void,
-         onDone: @escaping (SweepImages) -> Void) {
+    init(fullSweep: Bool, retakeIssues: [String]? = nil, showsPrivacyNote: Bool = false,
+         onClose: @escaping () -> Void, onDone: @escaping (SweepImages) -> Void) {
         self.fullSweep = fullSweep
         self.retakeIssues = retakeIssues
+        self.showsPrivacyNote = showsPrivacyNote
         self.onClose = onClose
         self.onDone = onDone
         _model = State(initialValue: SweepModel(fullSweep: fullSweep, holding: retakeIssues != nil))
@@ -221,9 +228,12 @@ struct SweepView: View {
         }
         .foregroundStyle(SKColor.bg)
         .task { await model.start() }
+        .onAppear { updateLight() }
         .onDisappear {
             model.stop()
             light.restore()
+            if ownsIdleTimer { UIApplication.shared.isIdleTimerDisabled = false }
+            ownsIdleTimer = false
         }
         .onChange(of: lightOn) { updateLight() }
         .onChange(of: scenePhase) { updateLight() }
@@ -232,8 +242,13 @@ struct SweepView: View {
         }
     }
 
+    /// The ring light and the idle timer follow the sweep: on while an angle is being looked for
+    /// in the foreground, off behind the retake card, after the sweep and in the background.
     private func updateLight() {
-        if lightOn && scenePhase == .active { light.raise() } else { light.restore() }
+        let on = lightOn && scenePhase == .active
+        if on { light.raise() } else { light.restore() }
+        UIApplication.shared.isIdleTimerDisabled = on
+        ownsIdleTimer = on
     }
 
     private func close() {
@@ -291,10 +306,13 @@ struct SweepView: View {
             }
             if model.phase == .scanning { checks.padding(.horizontal, SKSpace.lg) }
             if model.phase == .scanning { shutter.padding(.top, SKSpace.lg) }
-            Text("Your Day 1 photo and close-ups stay on this phone until your week ends, then are deleted.")
-                .font(SKFont.caption).foregroundStyle(SKColor.bg.opacity(0.7))
-                .multilineTextAlignment(.center).padding(.horizontal, 40)
-                .padding(.top, SKSpace.md).padding(.bottom, SKSpace.lg)
+            if showsPrivacyNote {
+                Text("Your Day 1 photo and close-ups stay on this phone until your week ends, then are deleted.")
+                    .font(SKFont.caption).foregroundStyle(SKColor.bg.opacity(0.7))
+                    .multilineTextAlignment(.center).padding(.horizontal, 40)
+                    .padding(.top, SKSpace.md)
+            }
+            Spacer().frame(height: SKSpace.lg)
         }
     }
 

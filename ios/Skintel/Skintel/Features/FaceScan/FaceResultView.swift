@@ -22,7 +22,8 @@ struct FaceResultView: View {
     let onClose: () -> Void
     /// Not Skintel+ only: opens the Skintel+ wall from the locked 7-day check.
     var onUnlock: (() -> Void)? = nil
-    /// The Day 1 front photo (JPEG, on this phone only). With it the hero opens on "You".
+    /// The Day 1 front photo (JPEG, on this phone only). With it the hero opens on "You". It is
+    /// deleted with the Day 1 crops when the report is written, so the report map opens on 3D.
     var photo: Data? = nil
 
     @State private var selected: Int?
