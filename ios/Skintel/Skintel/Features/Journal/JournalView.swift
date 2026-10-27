@@ -13,6 +13,8 @@ struct JournalView: View {
     @State private var pendingDelete: JournalEntry?
     @State private var path: [AppDestination] = []
 
+    private var todayKey: String { ISO8601.dayString(Date()) }
+
     var body: some View {
         NavigationStack(path: $path) {
             ScrollView {
