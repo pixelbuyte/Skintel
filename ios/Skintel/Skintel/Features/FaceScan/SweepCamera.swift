@@ -44,6 +44,8 @@ final class SweepCamera: NSObject, @unchecked Sendable, AVCaptureVideoDataOutput
         case none
         /// Lock the next ready frame as this role (front also cuts the zone crops).
         case capture(FaceScanImage.Role)
+        /// The manual shutter: lock the next frame that has a face, whatever the checks say.
+        case forced(FaceScanImage.Role)
     }
 
     private let session = AVCaptureSession()
@@ -57,9 +59,9 @@ final class SweepCamera: NSObject, @unchecked Sendable, AVCaptureVideoDataOutput
     /// Queue-only state: where the face was last frame, and how many ready frames in a row.
     private var lastFace: (center: CGPoint, yaw: Double)?
     private var readyStreak = 0
-    /// Analysed frames (about 10 a second) that must all pass before an angle locks: about half a
-    /// second held still, so one lucky frame mid-turn never becomes the photo.
-    static let framesToLock = 5
+    /// Analysed frames (about 10 a second) that must all pass before an angle locks: about 0.6 s
+    /// held still, so one lucky frame mid-turn never becomes the photo.
+    static let framesToLock = 6
 
     /// Image orientation for the front camera held upright, unmirrored (the person's right cheek
     /// is on the image's left, as another person would see them).
@@ -87,6 +89,10 @@ final class SweepCamera: NSObject, @unchecked Sendable, AVCaptureVideoDataOutput
     func setTarget(_ value: Target) {
         target.withLock { $0 = value }
     }
+
+    /// The session, for an `AVCaptureVideoPreviewLayer` set up on the main actor. The session is
+    /// still only configured, started and stopped on the camera queue.
+    var captureSession: AVCaptureSession { session }
 
     func start() {
         queue.async { [self] in
@@ -157,13 +163,23 @@ final class SweepCamera: NSObject, @unchecked Sendable, AVCaptureVideoDataOutput
         Task { @MainActor in handlerReading(snapshot) }
 
         let current = target.withLock { $0 }
-        guard reading.ready, let face, case .capture(let role) = current,
-              Self.matches(role: role, yaw: reading.yaw) else {
+        guard let face else { readyStreak = 0; return }
+        let role: FaceScanImage.Role
+        switch current {
+        case .none:
             readyStreak = 0
             return
+        case .forced(let forcedRole):
+            role = forcedRole
+        case .capture(let wanted):
+            guard reading.ready, Self.matches(role: wanted, yaw: reading.yaw) else {
+                readyStreak = 0
+                return
+            }
+            readyStreak += 1
+            guard readyStreak >= Self.framesToLock else { return }
+            role = wanted
         }
-        readyStreak += 1
-        guard readyStreak >= Self.framesToLock else { return }
         readyStreak = 0
         target.withLock { $0 = .none }
 

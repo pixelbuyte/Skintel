@@ -1,5 +1,6 @@
-import SwiftUI
 import SkintelCore
+import SwiftUI
+import UIKit
 
 /// Face Scan Pro, start to finish (PRO-SPEC §4–5): consent, the sweep, the questions, the read,
 /// and the 7-day map. The one entry point lane F wires in:
@@ -37,7 +38,20 @@ struct FaceScanFlowView: View {
     @State private var screen: Screen = .start
     @State private var showConsent = false
     @State private var pendingImages: SweepImages?
+    /// A read that didn't go through: shown in the flow over the reading screen, never an alert.
     @State private var errorText: String?
+    /// What "Try again" re-sends (the same images and answers); nil when retrying can't help.
+    @State private var lastAttempt: Attempt?
+    /// The server couldn't read the photos: the sweep reopens on the "Let's retake that" card.
+    @State private var retakeIssues: [String]?
+    /// When the current read was sent, for the timed steps on the reading screen.
+    @State private var readingStarted = Date()
+
+    private enum Attempt {
+        case baseline(FaceAnswers)
+        case scan(FaceScanStage, SweepImages)
+        case report
+    }
 
     private enum Screen: Equatable {
         case start
@@ -59,7 +73,7 @@ struct FaceScanFlowView: View {
                     if yes { screen = .start; begin() }
                 }, onClose: close)
             case .sweep(let stage):
-                SweepView(fullSweep: stage != .daily, onClose: close) { images in
+                SweepView(fullSweep: stage != .daily, retakeIssues: retakeIssues, onClose: close) { images in
                     swept(images, stage: stage)
                 }
             case .quiz:
@@ -78,7 +92,7 @@ struct FaceScanFlowView: View {
             case .result:
                 FaceResultView(calibration: store.calibration, routine: store.latestRoutine,
                                nextAction: nextAction, onNext: beginNext, onAsk: onAsk, onClose: close,
-                               onUnlock: unlockWeek)
+                               onUnlock: unlockWeek, photo: store.day1Front)
                     .sheet(isPresented: $wallFromLocked) {
                         PaywallView(reason: .faceScan, faceMapReady: true)
                     }
@@ -89,31 +103,102 @@ struct FaceScanFlowView: View {
         .sheet(isPresented: $wallThenClose, onDismiss: close) {
             PaywallView(reason: .faceScan)
         }
-        .alert("Read your skin with AI?", isPresented: $showConsent) {
-            Button("Allow") { aiConsent = true; begin() }
-            Button("Not now", role: .cancel) { close() }
-        } message: {
-            Text("To read your skin, Skinstel sends your face photos (three angles and five close crops), your answers, your skin profile, your shelf and your Triggers to third-party AI providers through OpenRouter (Google and Anthropic), with zero data retention. Photos are read, then deleted. The 3D face is a model, not a scan of you. Day 1 close-ups stay on this phone for your 7-day check, then are deleted (after 14 days if the week isn't finished). A cosmetic read, not a diagnosis. Details are in our Privacy Policy.")
+        .sheet(isPresented: $showConsent, onDismiss: afterConsent) {
+            FaceConsentSheet(privacyURL: env.config.privacyURL,
+                             onAllow: { aiConsent = true; showConsent = false },
+                             onNotNow: { showConsent = false })
         }
-        .alert("Face scan", isPresented: Binding(get: { errorText != nil }, set: { if !$0 { errorText = nil } })) {
-            Button("OK", role: .cancel) { afterError() }
-        } message: {
-            Text(errorText ?? "")
+        // The sweep and the read keep the screen awake: a read can take 40 seconds, and a locked
+        // phone drops the request.
+        .onChange(of: screen, initial: true) { _, now in
+            UIApplication.shared.isIdleTimerDisabled = Self.keepsAwake(now)
         }
+        .onDisappear { UIApplication.shared.isIdleTimerDisabled = false }
+    }
+
+    private static func keepsAwake(_ screen: Screen) -> Bool {
+        switch screen {
+        case .sweep, .reading: true
+        default: false
+        }
+    }
+
+    /// The consent sheet closed: Allow goes on, anything else (Not now, a swipe) closes the flow.
+    private func afterConsent() {
+        if aiConsent { begin() } else { close() }
     }
 
     // MARK: Screens
 
     private var reading: some View {
-        VStack(spacing: SKSpace.lg) {
-            FaceMeshView(mode: .scan, zoom: 0.4).frame(width: 260, height: 320)
-            Text("Reading your skin").font(SKFont.serif(34, relativeTo: .largeTitle)).foregroundStyle(SKColor.bg)
-            Text("Usually under a minute").font(SKFont.secondary).foregroundStyle(SKColor.bg.opacity(0.72))
-            ProgressView().tint(SKColor.bg)
+        ZStack {
+            VStack(spacing: SKSpace.lg) {
+                FaceMeshView(mode: .scan, zoom: 0.4).frame(width: 240, height: 290)
+                Text("Reading your skin").font(SKFont.serif(34, relativeTo: .largeTitle)).foregroundStyle(SKColor.bg)
+                    .accessibilityAddTraits(.isHeader)
+                Text("This takes up to 40 seconds").font(SKFont.secondary).foregroundStyle(SKColor.bg.opacity(0.72))
+                if errorText == nil {
+                    TimelineView(.periodic(from: readingStarted, by: 1)) { context in
+                        readingSteps(elapsed: context.date.timeIntervalSince(readingStarted))
+                    }
+                    .padding(.top, SKSpace.sm)
+                }
+            }
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+            .accessibilityElement(children: .combine)
+            if let errorText {
+                SKColor.scannerOverlay.ignoresSafeArea()
+                failureCard(errorText)
+                    .skPagePadding()
+                    .transition(.move(edge: .bottom).combined(with: .opacity))
+            }
         }
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
         .background(SKColor.scannerBg.ignoresSafeArea())
-        .accessibilityElement(children: .combine)
+    }
+
+    /// Three steps on timers. The last one stays in progress until the answer arrives: the
+    /// screen never claims the read is done before it is.
+    private func readingSteps(elapsed: TimeInterval) -> some View {
+        let steps = ["Sending your photos", "Reading each area", "Writing your map"]
+        let current = elapsed < 6 ? 0 : elapsed < 22 ? 1 : 2
+        return VStack(alignment: .leading, spacing: SKSpace.md) {
+            ForEach(Array(steps.enumerated()), id: \.offset) { i, step in
+                HStack(spacing: SKSpace.md) {
+                    ZStack {
+                        if i < current {
+                            Image(systemName: "checkmark").font(.system(size: 11, weight: .bold)).foregroundStyle(SKColor.goodBg)
+                        } else if i == current {
+                            ProgressView().controlSize(.small).tint(SKColor.bg)
+                        } else {
+                            Circle().stroke(SKColor.bg.opacity(0.3), lineWidth: 1.5).frame(width: 12, height: 12)
+                        }
+                    }
+                    .frame(width: 20, height: 20)
+                    Text(step).font(SKFont.secondary)
+                        .foregroundStyle(i <= current ? SKColor.bg : SKColor.bg.opacity(0.5))
+                }
+            }
+        }
+        .animation(SKAnimation.ios(0.3), value: current)
+    }
+
+    private func failureCard(_ message: String) -> some View {
+        VStack(alignment: .leading, spacing: SKSpace.md) {
+            Text("That didn't go through").font(SKFont.section).foregroundStyle(SKColor.ink)
+                .accessibilityAddTraits(.isHeader)
+            Text(message).font(SKFont.secondary).foregroundStyle(SKColor.muted)
+                .fixedSize(horizontal: false, vertical: true)
+            if lastAttempt != nil {
+                Text("Your photos are still here, so there's nothing to retake.")
+                    .font(SKFont.caption).foregroundStyle(SKColor.muted)
+                SKButton(title: "Try again", systemImage: "arrow.clockwise") { retry() }
+                    .padding(.top, SKSpace.xs)
+            }
+            SKButton(title: "Not now", kind: lastAttempt == nil ? .primary : .ghost) { notNow() }
+        }
+        .padding(SKSpace.xl)
+        .background(SKColor.cream, in: RoundedRectangle(cornerRadius: SKRadius.sheet, style: .continuous))
+        .skCardShadow()
     }
 
     // MARK: Context
@@ -217,17 +302,39 @@ struct FaceScanFlowView: View {
         }
     }
 
-    private func afterError() {
-        screen = hasBaseline ? .result : .start
-        if screen == .start { close() }
+    /// "Not now" on the failure card, the only way a failed read leaves: back to the map when
+    /// there is one, otherwise the flow closes. Nothing closes on its own.
+    private func notNow() {
+        errorText = nil
+        lastAttempt = nil
+        if hasBaseline { screen = .result } else { close() }
+    }
+
+    /// Re-sends exactly what failed: the same photos and answers, no new sweep.
+    private func retry() {
+        guard let attempt = lastAttempt else { return }
+        errorText = nil
+        switch attempt {
+        case .baseline(let answers): Task { await readBaseline(answers: answers, newCycle: false) }
+        case .scan(let stage, let images): Task { await read(stage: stage, images: images) }
+        case .report: Task { await readReport() }
+        }
     }
 
     private func swept(_ images: SweepImages, stage: FaceScanStage) {
         switch stage {
         case .baseline:
             pendingImages = images
-            screen = .quiz
+            // A retake after a quality miss keeps this attempt's cycle and answers: no second quiz.
+            if retakeIssues != nil, let answers = store.answers {
+                retakeIssues = nil
+                Task { await readBaseline(answers: answers, newCycle: false) }
+            } else {
+                retakeIssues = nil
+                screen = .quiz
+            }
         case .daily, .final:
+            retakeIssues = nil
             Task { await read(stage: stage, images: images) }
         case .report:
             break
@@ -263,13 +370,16 @@ struct FaceScanFlowView: View {
         return names.isEmpty ? nil : names.map { .string($0) }
     }
 
-    private func readBaseline(answers: FaceAnswers) async {
+    /// `newCycle` is false for a retry or a retake, so the read the server may have kept stays
+    /// in the same cycle (and recoverable).
+    private func readBaseline(answers: FaceAnswers, newCycle: Bool = true) async {
         guard let images = pendingImages else { screen = .sweep(.baseline); return }
-        store.startCycle(now: Date())
+        if newCycle || !store.hasCycle { store.startCycle(now: Date()) }
+        lastAttempt = .baseline(answers)
         await send(stage: .baseline, images: sweepImages(images), answers: answers) {
-            store.saveDay1Crops(images.crops)
+            store.saveDay1Crops(images.crops, front: images.views[.front])
+            pendingImages = nil
         }
-        pendingImages = nil
     }
 
     private func read(stage: FaceScanStage, images: SweepImages) async {
@@ -277,6 +387,7 @@ struct FaceScanFlowView: View {
         let list = stage == .daily
             ? images.views[.front].map { [FaceScanImage(role: .front, base64: $0.base64EncodedString())] } ?? []
             : sweepImages(images, day1: day1)
+        lastAttempt = .scan(stage, images)
         await send(stage: stage, images: list, answers: store.answers) {}
         if stage == .final, store.calibration.hasFinalScan { await readReport() }
     }
@@ -300,11 +411,14 @@ struct FaceScanFlowView: View {
             if !key.isEmpty { o["ingredients"] = .array(Array(key)) }
             return .object(o)
         }
+        lastAttempt = .report
         await send(stage: .report, images: [], answers: answers, history: history, shelf: shelf.isEmpty ? nil : shelf) {}
     }
 
     private func send(stage: FaceScanStage, images: [FaceScanImage], answers: FaceAnswers?,
                       history: [JSONValue]? = nil, shelf: [JSONValue]? = nil, onSuccess: () -> Void) async {
+        errorText = nil
+        readingStarted = Date()
         screen = .reading
         let day = min(max(store.cycleDay(now: Date()), FaceScanLimits.cycleDays.lowerBound), FaceScanLimits.cycleDays.upperBound)
         let request = FaceScanRequest(stage: stage, cycleId: store.cycleId, day: day, images: images, answers: answers,
@@ -318,6 +432,7 @@ struct FaceScanFlowView: View {
             screen = .start
             wallThenClose = true
         } catch APIError.rateLimited {
+            lastAttempt = nil
             errorText = "That's today's limit for face scans. Try again tomorrow."
         } catch let error as APIError {
             // The server keeps every readable answer. If only the reply was lost, fetch it
@@ -334,7 +449,13 @@ struct FaceScanFlowView: View {
 
     private func accept(_ result: FaceScanResult, stage: FaceScanStage, onSuccess: () -> Void) {
         guard result.quality.ok else {
-            errorText = Self.qualityMessage(result.quality.issues)
+            // Retake inside the flow, over the live camera; a report has no photos to retake.
+            if stage == .report {
+                errorText = Self.qualityMessage(result.quality.issues)
+            } else {
+                retakeIssues = result.quality.issues
+                screen = .sweep(stage)
+            }
             return
         }
         // The free scan is a real baseline: recorded in this cycle with its Day 1 crops like
@@ -342,6 +463,7 @@ struct FaceScanFlowView: View {
         if result.locked { freeUsed = true }
         store.record(stage: stage, result: result, now: Date())
         onSuccess()
+        lastAttempt = nil
         Haptics.success()
         screen = .result
     }
@@ -379,5 +501,60 @@ struct FaceScanFlowView: View {
         let words = issues.compactMap { reasons[$0] }
         guard !words.isEmpty else { return "We couldn't read that photo. Please try again in even light." }
         return "We couldn't read that photo: \(words.joined(separator: ", ")). Please try again."
+    }
+}
+
+/// The short AI consent (replaces the long alert). The full list of what is sent stays one tap
+/// away in "What's sent", and in the privacy policy. Stored in the same `faceScan.aiConsent` flag.
+private struct FaceConsentSheet: View {
+    let privacyURL: URL
+    let onAllow: () -> Void
+    let onNotNow: () -> Void
+
+    @State private var showSent = false
+
+    var body: some View {
+        ScrollView {
+            VStack(alignment: .leading, spacing: SKSpace.lg) {
+                Text("Read your skin with AI?").font(SKFont.section).foregroundStyle(SKColor.ink)
+                    .accessibilityAddTraits(.isHeader)
+                VStack(alignment: .leading, spacing: SKSpace.md) {
+                    bullet("Your photos go to our AI partners and aren't kept")
+                    bullet("Your Day 1 photo stays on this phone until your week ends")
+                    bullet("A cosmetic read, not a diagnosis")
+                }
+                DisclosureGroup(isExpanded: $showSent) {
+                    Text("Your face photos (three angles and five close crops), your answers, your skin profile, your shelf and your Triggers go to AI providers through OpenRouter (Google and Anthropic), with zero data retention. Photos are read, then deleted. Day 1 photos stay on this phone for your 7-day check, then are deleted (after 14 days if the week isn't finished). The 3D face is a model, not a scan of you.")
+                        .font(SKFont.caption).foregroundStyle(SKColor.muted)
+                        .fixedSize(horizontal: false, vertical: true)
+                        .padding(.top, SKSpace.sm)
+                } label: {
+                    Text("What's sent").font(SKFont.sans(14, weight: .semibold, relativeTo: .subheadline))
+                        .foregroundStyle(SKColor.ink)
+                }
+                .tint(SKColor.muted)
+                Link("Privacy details", destination: privacyURL)
+                    .font(SKFont.secondary).foregroundStyle(SKColor.primary)
+                VStack(spacing: SKSpace.xs) {
+                    SKButton(title: "Allow") { onAllow() }
+                    SKButton(title: "Not now", kind: .ghost) { onNotNow() }
+                }
+                .padding(.top, SKSpace.xs)
+            }
+            .padding(.horizontal, SKSpace.xl)
+            .padding(.top, SKSpace.xxl)
+            .padding(.bottom, SKSpace.lg)
+        }
+        .presentationDetents([.height(500), .large])
+        .presentationDragIndicator(.visible)
+        .presentationBackground(SKColor.cream)
+    }
+
+    private func bullet(_ text: String) -> some View {
+        HStack(alignment: .firstTextBaseline, spacing: SKSpace.sm) {
+            Circle().fill(SKColor.primary).frame(width: 6, height: 6).accessibilityHidden(true)
+            Text(text).font(SKFont.body).foregroundStyle(SKColor.ink)
+                .fixedSize(horizontal: false, vertical: true)
+        }
     }
 }

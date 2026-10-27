@@ -1,5 +1,8 @@
-import SwiftUI
+import ImageIO
 import SkintelCore
+import SwiftUI
+import UIKit
+import Vision
 
 /// The 3D map with the 7-day check (canvas screen 5): a dark hero with the face, zone glow and
 /// labels, tappable day buttons, concentric rings with a legend, the insight, zones, tonight's
@@ -19,8 +22,14 @@ struct FaceResultView: View {
     let onClose: () -> Void
     /// Not Skintel+ only: opens the Skintel+ wall from the locked 7-day check.
     var onUnlock: (() -> Void)? = nil
+    /// The Day 1 front photo (JPEG, on this phone only). With it the hero opens on "You".
+    var photo: Data? = nil
 
     @State private var selected: Int?
+    /// The hero toggle; nil until the person picks, so it follows whether a photo exists.
+    @State private var show3D: Bool?
+
+    private var showsPhoto: Bool { photo != nil && !(show3D ?? false) }
 
     private var isFree: Bool { onUnlock != nil }
 
@@ -78,10 +87,25 @@ struct FaceResultView: View {
             .padding(.horizontal, SKSpace.xl)
             .padding(.top, 14)
 
-            FaceMeshView(mode: .result, levels: FaceZoneLevels(result: entry?.result), labels: labels, zoom: 0.31)
-                .frame(height: 330)
-                .frame(maxWidth: SKLayout.readableWidth)
-                .frame(maxWidth: .infinity)
+            if photo != nil {
+                heroToggle
+                    .padding(.horizontal, SKSpace.xl)
+                    .padding(.top, SKSpace.md)
+            }
+
+            Group {
+                if showsPhoto, let photo {
+                    FacePhotoMap(photo: photo, levels: FaceZoneLevels(result: entry?.result), labels: labels)
+                        .clipShape(RoundedRectangle(cornerRadius: SKRadius.card, style: .continuous))
+                        .padding(.horizontal, SKSpace.md)
+                        .padding(.vertical, SKSpace.sm)
+                } else {
+                    FaceMeshView(mode: .result, levels: FaceZoneLevels(result: entry?.result), labels: labels, zoom: 0.31)
+                }
+            }
+            .frame(height: 330)
+            .frame(maxWidth: SKLayout.readableWidth)
+            .frame(maxWidth: .infinity)
 
             VStack(spacing: 10) {
                 ZStack {
@@ -106,6 +130,34 @@ struct FaceResultView: View {
         .padding(.bottom, 22)
         .foregroundStyle(SKColor.bg)
         .background(SKColor.scannerBg, in: UnevenRoundedRectangle(bottomLeadingRadius: SKRadius.sheet, bottomTrailingRadius: SKRadius.sheet))
+    }
+
+    /// "You · 3D": their own Day 1 photo with the zone glow, or the 3D model.
+    private var heroToggle: some View {
+        HStack(spacing: 0) {
+            toggleButton("You", on: showsPhoto) { show3D = false }
+            toggleButton("3D", on: !showsPhoto) { show3D = true }
+        }
+        .padding(3)
+        .background(SKColor.bg.opacity(0.12), in: Capsule())
+        .accessibilityElement(children: .contain)
+        .accessibilityLabel("Map view")
+    }
+
+    private func toggleButton(_ title: String, on: Bool, action: @escaping () -> Void) -> some View {
+        Button {
+            withAnimation(SKAnimation.ios(0.3)) { action() }
+            Haptics.selection()
+        } label: {
+            Text(title)
+                .font(SKFont.sans(13, weight: .semibold, relativeTo: .footnote))
+                .foregroundStyle(on ? SKColor.scannerBg : SKColor.bg.opacity(0.8))
+                .frame(minWidth: 64, minHeight: 32)
+                .background(on ? SKColor.bg : Color.clear, in: Capsule())
+                .contentShape(Capsule())
+        }
+        .buttonStyle(.plain)
+        .accessibilityAddTraits(on ? [.isSelected] : [])
     }
 
     private func dayButton(_ n: Int) -> some View {
@@ -420,6 +472,150 @@ struct FaceResultView: View {
         case .daily: "Daily photo"
         case .final: "Final sweep"
         case .report: "Report"
+        }
+    }
+}
+
+/// Where the face and its zone centres sit in the Day 1 photo, in Vision's normalised image
+/// space (0...1, origin bottom-left).
+struct FacePhotoLayout: Sendable, Equatable {
+    var face: CGRect
+    var centres: [FaceZone: CGPoint]
+
+    /// Zone centres in the face box's unit space when Vision finds no landmarks: the centres of
+    /// the crop rectangles the sweep cuts (`SweepCamera.zoneRects`). The photo is unmirrored, so
+    /// the person's right cheek is on the image's left.
+    static let fallbackCentres: [FaceZone: CGPoint] = [
+        .forehead: CGPoint(x: 0.5, y: 0.97), .nose: CGPoint(x: 0.5, y: 0.52),
+        .rightCheek: CGPoint(x: 0.21, y: 0.41), .leftCheek: CGPoint(x: 0.79, y: 0.41),
+        .chin: CGPoint(x: 0.5, y: 0.07),
+    ]
+
+    /// Runs face landmarks once on the photo. Off the main actor; nil when no face is found.
+    static func locate(_ jpeg: Data) -> FacePhotoLayout? {
+        guard let source = CGImageSourceCreateWithData(jpeg as CFData, nil),
+              let image = CGImageSourceCreateImageAtIndex(source, 0, nil) else { return nil }
+        let request = VNDetectFaceLandmarksRequest()
+        let handler = VNImageRequestHandler(cgImage: image, orientation: .up, options: [:])
+        try? handler.perform([request])
+        guard let face = (request.results ?? []).max(by: { $0.boundingBox.width < $1.boundingBox.width }) else { return nil }
+        let box = face.boundingBox
+        let unit = unitCentres(face.landmarks)
+        var centres: [FaceZone: CGPoint] = [:]
+        for (zone, p) in unit {
+            centres[zone] = CGPoint(x: box.minX + p.x * box.width, y: box.minY + p.y * box.height)
+        }
+        return FacePhotoLayout(face: box, centres: centres)
+    }
+
+    /// Zone centres in face-box unit space from the landmarks, falling back per zone.
+    private static func unitCentres(_ landmarks: VNFaceLandmarks2D?) -> [FaceZone: CGPoint] {
+        var out = fallbackCentres
+        guard let landmarks else { return out }
+        func centroid(_ region: VNFaceLandmarkRegion2D?) -> CGPoint? {
+            guard let points = region?.normalizedPoints, !points.isEmpty else { return nil }
+            let sum = points.reduce(CGPoint.zero) { CGPoint(x: $0.x + $1.x, y: $0.y + $1.y) }
+            return CGPoint(x: sum.x / CGFloat(points.count), y: sum.y / CGFloat(points.count))
+        }
+        let eyes = [centroid(landmarks.leftEye), centroid(landmarks.rightEye)].compactMap { $0 }.sorted { $0.x < $1.x }
+        let brows = [centroid(landmarks.leftEyebrow), centroid(landmarks.rightEyebrow)].compactMap { $0 }
+        let nose = centroid(landmarks.nose)
+        let mouth = centroid(landmarks.outerLips)
+        if let nose { out[.nose] = nose }
+        if eyes.count == 2 {
+            let midX = (eyes[0].x + eyes[1].x) / 2
+            let eyeY = (eyes[0].y + eyes[1].y) / 2
+            let browY = brows.isEmpty ? eyeY + 0.1 : brows.map(\.y).reduce(0, +) / CGFloat(brows.count)
+            out[.forehead] = CGPoint(x: midX, y: min(browY + 0.16, 1.05))
+            let cheekY = nose.map { $0.y - 0.04 } ?? eyeY - 0.2
+            // Image-left is the person's right cheek (unmirrored photo).
+            out[.rightCheek] = CGPoint(x: eyes[0].x - 0.03, y: cheekY)
+            out[.leftCheek] = CGPoint(x: eyes[1].x + 0.03, y: cheekY)
+        }
+        if let mouth { out[.chin] = CGPoint(x: mouth.x, y: max(mouth.y - 0.16, -0.04)) }
+        return out
+    }
+}
+
+/// The person's own Day 1 photo with the zone glow and labels drawn on it ("You" on the map).
+/// Same level-to-intensity mapping and words as the 3D map; the photo never leaves the phone.
+struct FacePhotoMap: View {
+    let photo: Data
+    var levels = FaceZoneLevels(levels: [:])
+    var labels: [FaceMeshLabel] = []
+
+    @State private var image: UIImage?
+    @State private var layout: FacePhotoLayout?
+
+    var body: some View {
+        Canvas { context, size in
+            guard let image else { return }
+            draw(image, in: &context, size: size)
+        }
+        .background(SKColor.scannerBg)
+        .task(id: photo) {
+            image = UIImage(data: photo)
+            let data = photo
+            layout = await Task.detached(priority: .userInitiated) { FacePhotoLayout.locate(data) }.value
+        }
+        .accessibilityElement()
+        .accessibilityLabel("Your Day 1 photo with zones highlighted")
+        .accessibilityAddTraits(.isImage)
+    }
+
+    private func draw(_ image: UIImage, in context: inout GraphicsContext, size: CGSize) {
+        let w = size.width, h = size.height
+        let iw = image.size.width, ih = image.size.height
+        guard w > 0, h > 0, iw > 0, ih > 0 else { return }
+        let face = layout?.face ?? CGRect(x: 0.25, y: 0.3, width: 0.5, height: 0.4)
+        let centres = layout?.centres ?? FacePhotoLayout.fallbackCentres.mapValues {
+            CGPoint(x: face.minX + $0.x * face.width, y: face.minY + $0.y * face.height)
+        }
+
+        // Fill the frame, zoomed so the face takes a bit over half the height, kept centred.
+        let fill = max(w / iw, h / ih)
+        let s = max(fill, min(0.56 * h / max(face.height * ih, 1), fill * 3))
+        let cx = face.midX * iw, cy = (1 - face.midY) * ih
+        let x0 = min(0, max(w - iw * s, w / 2 - cx * s))
+        let y0 = min(0, max(h - ih * s, h * 0.5 - cy * s))
+        func point(_ p: CGPoint) -> CGPoint { CGPoint(x: x0 + p.x * iw * s, y: y0 + (1 - p.y) * ih * s) }
+
+        context.draw(Image(uiImage: image), in: CGRect(x: x0, y: y0, width: iw * s, height: ih * s))
+        context.fill(Path(CGRect(origin: .zero, size: size)), with: .color(SKColor.scannerBg.opacity(0.18)))
+
+        let faceW = face.width * iw * s
+        for zone in FaceZone.allCases {
+            let l = Double(levels.level(zone)) / 2
+            guard l > 0, let c = centres[zone] else { continue }
+            let centre = point(c)
+            let rad = faceW * (zone == .forehead ? 0.42 : 0.27)
+            let gradient = Gradient(colors: [SKColor.primary.opacity(0.55 * l), SKColor.primary.opacity(0)])
+            context.fill(Path(ellipseIn: CGRect(x: centre.x - rad, y: centre.y - rad, width: rad * 2, height: rad * 2)),
+                         with: .radialGradient(gradient, center: centre, startRadius: 0, endRadius: rad))
+        }
+
+        var text = context
+        text.addFilter(.shadow(color: SKColor.scannerBg.opacity(0.85), radius: 3))
+        for label in labels {
+            guard let c = centres[label.zone] else { continue }
+            let anchorPoint = point(c)
+            let ax = anchorPoint.x, ay = anchorPoint.y
+            let leading = label.side == .leading
+            let lx = leading ? 16.0 : w - 16
+            let ly = h * label.y
+            let ex = leading ? min(ax - 14, lx + 96) : max(ax + 14, lx - 96)
+            var leader = Path()
+            leader.move(to: CGPoint(x: ax, y: ay))
+            leader.addLine(to: CGPoint(x: ex, y: ly))
+            leader.addLine(to: CGPoint(x: leading ? lx + 82 : lx - 82, y: ly))
+            text.stroke(leader, with: .color(SKColor.bg.opacity(0.7)), lineWidth: 0.8)
+            text.fill(Path(ellipseIn: CGRect(x: ax - 2.6, y: ay - 2.6, width: 5.2, height: 5.2)), with: .color(SKColor.bg))
+            let anchor: UnitPoint = leading ? .leading : .trailing
+            text.draw(Text(label.title).font(SKFont.label).foregroundStyle(SKColor.bg),
+                      at: CGPoint(x: lx, y: ly - 9), anchor: anchor)
+            text.draw(Text(label.value).font(SKFont.label)
+                        .foregroundStyle(label.hot ? FaceScanColor.hot : SKColor.bg.opacity(0.85)),
+                      at: CGPoint(x: lx, y: ly + 7), anchor: anchor)
         }
     }
 }
