@@ -1,25 +1,17 @@
 import SwiftUI
 import SkintelCore
 
-/// Design §14 with the product's real four states. "Used today" chips come from the
-/// routine and are written into the entry's notes ("Used: …") so the journal AI sees
-/// what was applied — the journal API has no separate usage field.
+/// Design §14. Today's entry is the check-in (`CheckInSheet`): three taps, no typing, and
+/// the routine is logged for you as a "Used: …" line so the journal AI sees what was applied.
+/// This page shows the result and opens the check-in to add or change it.
 struct JournalView: View {
     @Environment(AppEnvironment.self) private var env
     @Environment(\.openPaywall) private var openPaywall
     @Environment(\.dismiss) private var dismiss
 
-    @State private var condition: JournalCondition?
-    @State private var notes = ""
-    @State private var includeRoutine = true
-    @State private var saving = false
-    @State private var error: String?
-    @State private var primed = false
+    @State private var showCheckIn = false
     @State private var pendingDelete: JournalEntry?
     @State private var path: [AppDestination] = []
-    @FocusState private var notesFocused: Bool
-
-    private var todayKey: String { ISO8601.dayString(Date()) }
 
     var body: some View {
         NavigationStack(path: $path) {
@@ -49,23 +41,16 @@ struct JournalView: View {
                 .skPagePadding()
                 .padding(.bottom, SKSpace.xxl)
             }
-            .scrollDismissesKeyboard(.interactively)
             .refreshable { await env.journal.load() }
             .skPageBackground()
             .toolbar(.hidden, for: .navigationBar)
-            .toolbar {
-                ToolbarItem(placement: .keyboard) { HStack { Spacer(); Button("Done") { notesFocused = false }.font(SKFont.bodyMedium) } }
-            }
             .navigationDestination(for: AppDestination.self) { d in
                 if case .culprits = d { TriggersView() }
             }
         }
         .tint(SKColor.primary)
-        .task {
-            await env.journal.load()
-            prime()
-        }
-        .onChange(of: env.journal.state.value?.count) { _, _ in prime() }
+        .sheet(isPresented: $showCheckIn) { CheckInSheet() }
+        .task { await env.journal.load() }
         .confirmationDialog("Delete this entry?", isPresented: Binding(get: { pendingDelete != nil }, set: { if !$0 { pendingDelete = nil } }), titleVisibility: .visible) {
             Button("Delete", role: .destructive) {
                 guard let e = pendingDelete else { return }
@@ -74,102 +59,36 @@ struct JournalView: View {
         }
     }
 
-    private func prime() {
-        guard !primed, let t = env.journal.today else { return }
-        primed = true
-        condition = t.condition
-        notes = t.notes ?? ""
-        includeRoutine = false
-    }
-
     // MARK: Today
 
+    /// No form: a one-tap check-in, or today's result with a way to change it.
     private var entryCard: some View {
         SKCard {
-            VStack(alignment: .leading, spacing: SKSpace.lg) {
-                Text(env.journal.today == nil ? "How's your skin today?" : "Today's entry")
-                    .font(SKFont.sans(19, weight: .semibold, relativeTo: .title3)).foregroundStyle(SKColor.ink)
-
-                HStack(spacing: SKSpace.sm) {
-                    ForEach(JournalCondition.allCases, id: \.self) { c in
-                        Button {
-                            condition = c; Haptics.selection()
-                        } label: {
-                            VStack(spacing: 6) {
-                                Text(c.emoji).font(.system(size: 24))
-                                Text(c.label).font(SKFont.sans(13, weight: .semibold, relativeTo: .caption)).lineLimit(1).minimumScaleFactor(0.8)
-                            }
-                            .foregroundStyle(condition == c ? c.tone.fg : SKColor.muted)
-                            .frame(maxWidth: .infinity)
-                            .frame(height: 84)
-                            .background(condition == c ? c.tone.bg : SKColor.cream, in: RoundedRectangle(cornerRadius: SKRadius.card, style: .continuous))
-                            .overlay(RoundedRectangle(cornerRadius: SKRadius.card, style: .continuous)
-                                .stroke(condition == c ? c.tone.fg : SKColor.line, lineWidth: condition == c ? 1.5 : 1))
-                        }
-                        .buttonStyle(SKPressStyle())
-                        .accessibilityLabel(c.label)
-                        .accessibilityAddTraits(condition == c ? [.isButton, .isSelected] : .isButton)
+            if let today = env.journal.today {
+                HStack(spacing: SKSpace.md) {
+                    Text(today.condition.emoji).font(.system(size: 30))
+                    VStack(alignment: .leading, spacing: 3) {
+                        Text("Today: \(today.condition.label)")
+                            .font(SKFont.sans(17, weight: .semibold, relativeTo: .headline)).foregroundStyle(SKColor.ink)
+                        let symptoms = CheckInSheet.lineValues(today.notes, prefix: CheckInSheet.symptomPrefix)
+                        Text(symptoms.isEmpty ? "Logged. Your routine is in it too." : symptoms.joined(separator: " · "))
+                            .font(SKFont.secondary).foregroundStyle(SKColor.muted).lineLimit(2)
                     }
+                    Spacer(minLength: 0)
+                    Button("Edit") { showCheckIn = true }
+                        .font(SKFont.sans(15, weight: .semibold, relativeTo: .subheadline))
+                        .foregroundStyle(SKColor.primary)
                 }
-
-                SKTextEditor(placeholder: "Skin felt calm all day. New toner didn't sting…", text: $notes, minHeight: 96)
-                    .focused($notesFocused)
-
-                routineChips
-
-                if let error { SKInlineError(message: error) }
-
-                SKButton(title: env.journal.today == nil ? "Save today's entry" : "Update today's entry", isLoading: saving) { Task { await save() } }
-                    .disabled(condition == nil)
+                .accessibilityElement(children: .combine)
+            } else {
+                VStack(alignment: .leading, spacing: SKSpace.md) {
+                    Text("How's your skin today?")
+                        .font(SKFont.sans(19, weight: .semibold, relativeTo: .title3)).foregroundStyle(SKColor.ink)
+                    Text("Three quick taps, no typing. Your routine is logged for you.")
+                        .font(SKFont.secondary).foregroundStyle(SKColor.muted)
+                    SKButton(title: "Check in") { showCheckIn = true }
+                }
             }
-        }
-    }
-
-    @ViewBuilder
-    private var routineChips: some View {
-        let slot = RoutineStore.currentSlot()
-        let names = (env.routine.ids(.am) + env.routine.ids(.pm)).compactMap { env.products.product(id: $0)?.product.productName }
-        if !names.isEmpty {
-            VStack(alignment: .leading, spacing: SKSpace.sm) {
-                HStack {
-                    SKFieldLabel("Used today")
-                    Spacer()
-                    Toggle("Include routine", isOn: $includeRoutine).labelsHidden().tint(SKColor.goodFg)
-                        .accessibilityLabel("Log today's routine in this entry")
-                }
-                FlowLayout(spacing: 6) {
-                    ForEach(Array(names.prefix(5).enumerated()), id: \.offset) { _, n in SKChip(shortName(n)) }
-                    if names.count > 5 { SKChip("+\(names.count - 5) from \(slot.rawValue)") }
-                }
-                .opacity(includeRoutine ? 1 : 0.45)
-            }
-        }
-    }
-
-    private func shortName(_ s: String) -> String {
-        let w = s.split(separator: " ")
-        return w.count > 2 ? w.prefix(2).joined(separator: " ") : s
-    }
-
-    private func save() async {
-        guard let condition else { return }
-        saving = true; error = nil
-        defer { saving = false }
-        var text = notes.trimmingCharacters(in: .whitespacesAndNewlines)
-        let used = (env.routine.ids(.am) + env.routine.ids(.pm)).compactMap { env.products.product(id: $0)?.product.productName }
-        if includeRoutine, !used.isEmpty, !text.contains("Used:") {
-            text += (text.isEmpty ? "" : "\n") + "Used: " + used.joined(separator: ", ")
-        }
-        do {
-            try await env.journal.save(day: todayKey, condition: condition, notes: text.isEmpty ? nil : String(text.prefix(2000)))
-            env.analytics.track(.journalSaved)
-            Haptics.success()
-            notesFocused = false
-            includeRoutine = false
-            notes = text
-        } catch {
-            self.error = (error as? APIError)?.userMessage ?? error.localizedDescription
-            Haptics.error()
         }
     }
 
@@ -310,6 +229,8 @@ struct CheckInSheet: View {
     static let symptomPrefix = "Symptoms: "
     static let yesterdayPrefix = "Yesterday: "
     static let todayPrefix = "Today: "
+    /// Today's routine, added on save so nobody has to list what they used.
+    static let usedPrefix = "Used: "
     private static let morningFactors = ["New product", "Late night", "Stress", "Workout", "Lots of sun", "Heavy makeup"]
     private static let nightFactors = ["Sun", "Sweat", "Makeup", "Stress", "Picked at it", "Tried something new"]
 
@@ -581,6 +502,8 @@ struct CheckInSheet: View {
                 factors = Set(Self.lineValues(line, prefix: factorPrefix))
             } else if line.hasPrefix(Self.yesterdayPrefix) || line.hasPrefix(Self.todayPrefix) {
                 carried.append(line)
+            } else if line.hasPrefix(Self.usedPrefix) {
+                continue // rebuilt from the routine on save
             } else {
                 rest.append(line)
             }
@@ -606,6 +529,8 @@ struct CheckInSheet: View {
             // Marks the night check-in as done even when nothing stood out.
             lines.append(factorPrefix + "Nothing notable")
         }
+        let used = (env.routine.ids(.am) + env.routine.ids(.pm)).compactMap { env.products.product(id: $0)?.product.productName }
+        if !used.isEmpty { lines.append(Self.usedPrefix + used.joined(separator: ", ")) }
         let text = lines.joined(separator: "\n")
         do {
             try await env.journal.save(day: ISO8601.dayString(Date()), condition: condition, notes: text.isEmpty ? nil : String(text.prefix(2000)))
