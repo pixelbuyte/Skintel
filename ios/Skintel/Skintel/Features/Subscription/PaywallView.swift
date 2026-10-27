@@ -11,7 +11,7 @@ struct PaywallView: View {
     let reason: PaywallReason
     /// From the Add a product hub: the add method tapped, so the scanner demo matches it.
     var method: ScanMethod? = nil
-    /// Face scan only: opened from the free Day 1 map, so the wall sells the 7-day check, not the map.
+    /// Face scan only: opened from the locked free-scan map, so "Your face map is ready." is true.
     var faceMapReady = false
     @Environment(AppEnvironment.self) private var env
     @Environment(\.dismiss) private var dismiss
@@ -106,7 +106,7 @@ struct PaywallView: View {
     /// App Store Connect and seats remain. Otherwise the plans below would contradict it.
     private var headline: String {
         let foundingOnSale = service?.product(.founding) != nil && (env.subscription.foundingSeatsRemaining ?? 1) > 0
-        if reason == .faceScan { return faceMapReady ? "Is your skin getting calmer?" : "See your skin, zone by zone." }
+        if reason == .faceScan { return faceMapReady ? "Your face map is ready." : "See your skin, zone by zone." }
         return foundingOnSale ? "The founding member deal." : "Everything, for your skin."
     }
 
@@ -121,9 +121,7 @@ struct PaywallView: View {
         case .culprits: "Triggers names the ingredients your “broke out” products share."
         case .assistant: "Ask Skintel answers from your shelf, routine and check-ins, and adds products you mention to your shelf."
         case .general: "Unlimited scans, Triggers from your full history, and more."
-        case .faceScan: faceMapReady
-            ? "Follow your face for 7 days: oil pattern, redness, what's changing, and a routine from your shelf."
-            : "See what each area shows, follow it for 7 days and get a routine built from your shelf."
+        case .faceScan: "See what each area shows, follow it for 7 days and get a routine built from your shelf."
         }
     }
 
@@ -258,13 +256,12 @@ struct PaywallView: View {
         .padding(.top, SKSpace.sm)
     }
 
-    /// The two face-scan features, led with when the paywall opens from the face scan. The 3D
-    /// face map is free (one Day 1 map), so it is not sold here; the week is.
+    /// The two face-scan features, led with when the paywall opens from the face scan.
     private var faceScanRows: some View {
         VStack(spacing: 0) {
-            faceScanRow("7-day check: oil pattern, redness, what's changing")
+            faceScanRow("3D face map, zone by zone")
             Rectangle().fill(SKColor.line).frame(height: 1).padding(.leading, 32)
-            faceScanRow("Day 7 report and a routine from your shelf")
+            faceScanRow("7-day check: oil, redness, what's changing")
         }
     }
 
