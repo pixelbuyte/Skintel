@@ -8,6 +8,7 @@
     "build": "tsc -b && vite build",
     "test:account": "node --test tests/account-deletion.test.mjs",
     "test:face": "node --test tests/face-scan.test.mjs",
+    "test:assistant-face": "node --test tests/assistant-face.test.mjs",
     "lint": "eslint .",
     "preview": "vite preview",
     "ios:build": "npm run build && cap sync ios",
