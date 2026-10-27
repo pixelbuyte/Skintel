@@ -271,8 +271,8 @@ struct MainTabView: View {
             showShelf = true
         case .faceScan:
             seenFaceScan = true
-            // Everyone may start: a free account's first scan is a real Day 1 map (one per account);
-            // the flow opens the wall from its locked 7-day check, or on a 402.
+            // Everyone may start: a free account's first scan comes back locked (one per account),
+            // and the flow opens the paywall itself on a locked result or a 402.
             showFaceScan = true
         }
     }

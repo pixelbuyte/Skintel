@@ -13,19 +13,11 @@ struct SweepReading: Sendable, Equatable {
     /// only relies on its size and on the two turns having opposite signs.
     var yaw: Double = 0
     var evenLight = false
-    /// Face box width as a share of the frame (0 with no face): drives "closer" / "back a little".
-    var faceWidth: Double = 0
+    var goodDistance = false
     var sharp = false
-    /// The face barely moved since the last analysed frame (no motion blur).
-    var steady = false
-
-    static let distanceRange = 0.32...0.72
 
     var oneFace: Bool { faceCount == 1 }
-    var goodDistance: Bool { Self.distanceRange.contains(faceWidth) }
-    var tooFar: Bool { oneFace && faceWidth < Self.distanceRange.lowerBound }
-    var tooClose: Bool { oneFace && faceWidth > Self.distanceRange.upperBound }
-    var ready: Bool { oneFace && evenLight && goodDistance && sharp && steady }
+    var ready: Bool { oneFace && evenLight && goodDistance && sharp }
 }
 
 /// The encoded images of one locked angle.
@@ -54,12 +46,6 @@ final class SweepCamera: NSObject, @unchecked Sendable, AVCaptureVideoDataOutput
     private let onCapture: @MainActor @Sendable (SweepCapture, Double) -> Void
     private var frameIndex = 0
     private var configured = false
-    /// Queue-only state: where the face was last frame, and how many ready frames in a row.
-    private var lastFace: (center: CGPoint, yaw: Double)?
-    private var readyStreak = 0
-    /// Analysed frames (about 10 a second) that must all pass before an angle locks: about half a
-    /// second held still, so one lucky frame mid-turn never becomes the photo.
-    static let framesToLock = 5
 
     /// Image orientation for the front camera held upright, unmirrored (the person's right cheek
     /// is on the image's left, as another person would see them).
@@ -133,38 +119,23 @@ final class SweepCamera: NSObject, @unchecked Sendable, AVCaptureVideoDataOutput
         let faces = rects.results ?? []
         var reading = SweepReading()
         reading.faceCount = faces.count
-        // The server turned down frames that passed 0.22 as "too dim"; 0.3 asks for real light.
-        reading.evenLight = Self.meanLuma(pixelBuffer).map { $0 > 0.3 && $0 < 0.9 } ?? false
+        reading.evenLight = Self.meanLuma(pixelBuffer).map { $0 > 0.22 && $0 < 0.9 } ?? false
         let face = faces.first
         if let face {
             reading.yaw = face.yaw?.doubleValue ?? 0
-            reading.faceWidth = Double(face.boundingBox.width)
-            let center = CGPoint(x: face.boundingBox.midX, y: face.boundingBox.midY)
-            if let last = lastFace {
-                reading.steady = hypot(center.x - last.center.x, center.y - last.center.y) < 0.02
-                    && abs(reading.yaw - last.yaw) < 0.08
-            }
-            lastFace = (center, reading.yaw)
-        } else {
-            lastFace = nil
+            let w = face.boundingBox.width
+            reading.goodDistance = w > 0.28 && w < 0.8
         }
         let captureQuality: Float = quality.results?.first?.faceCaptureQuality ?? 0
-        reading.sharp = captureQuality >= 0.45
+        reading.sharp = captureQuality >= 0.3
 
-        // A `let` copy: capturing the `var` itself is a data race to Swift 6's region checker.
         let handlerReading = onReading
-        let snapshot = reading
-        Task { @MainActor in handlerReading(snapshot) }
+        Task { @MainActor in handlerReading(reading) }
 
+        guard reading.ready, let face else { return }
         let current = target.withLock { $0 }
-        guard reading.ready, let face, case .capture(let role) = current,
-              Self.matches(role: role, yaw: reading.yaw) else {
-            readyStreak = 0
-            return
-        }
-        readyStreak += 1
-        guard readyStreak >= Self.framesToLock else { return }
-        readyStreak = 0
+        guard case .capture(let role) = current,
+              Self.matches(role: role, yaw: reading.yaw) else { return }
         target.withLock { $0 = .none }
 
         guard let capture = encode(pixelBuffer: pixelBuffer, face: face.boundingBox, role: role) else {

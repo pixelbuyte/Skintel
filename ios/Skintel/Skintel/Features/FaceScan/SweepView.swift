@@ -191,29 +191,14 @@ struct SweepView: View {
         switch model.phase {
         case .denied: return "Allow the camera for Skintel in Settings to scan your face."
         case .unavailable: return "Face scan needs a front camera."
-        case .done: return "Usually under a minute"
+        case .done: return "About 10 seconds"
         default: break
         }
-        if let hint { return hint }
         switch model.currentRole {
         case .left45: return "Keep your phone where it is"
         case .right45: return "Almost there"
         default: return "Phone at eye level, about 35 cm away"
         }
-    }
-
-    /// What's stopping the angle from locking, live, in the order to fix it. Nil once the camera
-    /// sees nothing wrong, so the turn instruction shows.
-    private var hint: String? {
-        guard model.phase == .scanning else { return nil }
-        let r = model.reading
-        if r.faceCount == 0 { return "Fit your face in the oval" }
-        if r.faceCount > 1 { return "Only one face in view, please" }
-        if !r.evenLight { return "Too dark. Face a window or a bright light" }
-        if r.tooFar { return "Move a little closer" }
-        if r.tooClose { return "Move the phone back a little" }
-        if !r.sharp || !r.steady { return "Hold still" }
-        return nil
     }
 
     private func chip(index: Int, role: FaceScanImage.Role) -> some View {
@@ -235,9 +220,9 @@ struct SweepView: View {
 
     private var checks: some View {
         HStack(spacing: SKSpace.lg) {
-            check("Bright light", model.reading.evenLight)
-            check("Right distance", model.reading.goodDistance)
-            check("Sharp", model.reading.sharp && model.reading.steady)
+            check("Even light", model.reading.evenLight)
+            check("35 cm away", model.reading.goodDistance)
+            check("One face", model.reading.oneFace)
         }
         .font(SKFont.sans(13, relativeTo: .footnote))
         .foregroundStyle(SKColor.bg.opacity(0.8))

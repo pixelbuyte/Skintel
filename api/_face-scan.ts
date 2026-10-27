@@ -12,9 +12,7 @@ import { getServiceClient, getUserFromAuthHeader, json } from './_lib.js';
  *    fallback for zdr requests, so photos and answers only ever go through OpenRouter ZDR routing.
  *  - Image bytes live only in the request body and the model request. They are never written to
  *    a database, a file or a log, and the request body is never logged.
- *  - What is stored: one `face_scan_usage` row per request (stage, model, token counts), and each
- *    readable answer in `face_scans` (the response body only: scores, notes, summary). A phone that
- *    timed out or closed the screen mid-read gets the answer back with GET (`latestScan`).
+ *  - What is stored: one `face_scan_usage` row per request (stage, model, token counts).
  *
  * Request:  { stage, cycleId, day, images, answers?, history?, profile?, shelf?, triggers? }
  *  - Images: daily 1, baseline up to 8, final up to 13 (zone crops may carry `from: "day1"`),
@@ -22,8 +20,6 @@ import { getServiceClient, getUserFromAuthHeader, json } from './_lib.js';
  *  - The report stage alone reads answers (`answers.locks` is required), history, profile, shelf
  *    and triggers; the photo stages ignore them.
  * Response: PRO-SPEC §3 shape, validated and clamped here. Never the model's raw text.
- *
- * GET ?cycleId=…[&stage=…][&day=…]: the newest stored answer for that cycle, `{ scan: null }` if none.
  */
 
 export type FaceStage = 'baseline' | 'daily' | 'final' | 'report';
@@ -68,7 +64,7 @@ export const FACE_DISCLAIMER = 'A cosmetic read of a photo, not a diagnosis.';
 type StagePlan = {
   /** Ordered OpenRouter fallback list (PRO-SPEC §1). */
   models: readonly string[];
-  reasoning?: { effort: 'medium' | 'high' };
+  reasoning?: { effort: 'high' };
   /** Includes reasoning tokens on models that think. */
   maxTokens: number;
   timeoutMs: number;
@@ -77,18 +73,15 @@ type StagePlan = {
 };
 
 const PLANS: Record<FaceStage, StagePlan> = {
-  // Founder (Oct 26): no Argon. Day 1 on Argon high took ~35 s; Flash is the read for every stage
-  // with photos. Day 1 thinks at medium to keep the first wait short; Day 7, which compares
-  // against Day 1, thinks at high.
   baseline: {
-    models: ['google/gemini-3.5-flash', 'google/gemini-3.1-flash-lite'],
-    reasoning: { effort: 'medium' },
+    models: ['google/gemini-4-argon', 'google/gemini-3.5-flash'],
+    reasoning: { effort: 'high' },
     maxTokens: 10_000,
     timeoutMs: 50_000,
     minRetryMs: 20_000,
   },
   final: {
-    models: ['google/gemini-3.5-flash', 'google/gemini-3.1-flash-lite'],
+    models: ['google/gemini-4-argon', 'google/gemini-3.5-flash'],
     reasoning: { effort: 'high' },
     maxTokens: 10_000,
     timeoutMs: 50_000,
@@ -834,18 +827,14 @@ function startOfUtcDay(now = new Date()): Date {
   return new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()));
 }
 
-/**
- * Today's usage rows for the user, optionally for one stage. null = the count failed.
- * The per-stage count skips reads that came back unreadable (too dark, blurry): a retake after a
- * bad photo must not hit the stage cap. The overall daily cap still counts every call.
- */
+/** Today's usage rows for the user, optionally for one stage. null = the count failed. */
 async function countToday(sb: SupabaseClient, userId: string, stage?: FaceStage): Promise<number | null> {
   let query = sb
     .from('face_scan_usage')
     .select('id', { count: 'exact', head: true })
     .eq('user_id', userId)
     .gte('created_at', startOfUtcDay().toISOString());
-  if (stage) query = query.eq('stage', stage).eq('read_ok', true);
+  if (stage) query = query.eq('stage', stage);
   const { count, error } = await query;
   if (error || count === null) {
     console.error('face-scan usage count failed', { message: String(error?.message ?? 'no count').slice(0, 200) });
@@ -1005,72 +994,31 @@ function toResponse(out: FaceOutput | null, locks: Locks, stage: FaceStage) {
 // ---------------------------------------------------------------------------------------------
 
 /**
- * The free scan's answer (founder, Oct 26): a real Day 1 map. Every zone with its scores and note,
- * and the model's summary. No regions, report or routine. `locked: true` marks it as the free scan:
- * the 7-day check is what Skintel+ pays for.
+ * The free scan's answer: which zones have something worth a look, and nothing more. No scores,
+ * regions, notes or report, so the result can't be read without Skintel+.
  */
 export function lockForFreeScan(body: ReturnType<typeof toResponse>) {
   const zones: ZoneResult[] = Array.isArray(body.zones) ? body.zones : [];
+  const found = zones
+    .filter((z) => Object.values(z.scores ?? {}).some((v) => typeof v === 'number' && v >= 25))
+    .map((z) => ({ zone: z.zone, scores: {}, regions: [], note: null }));
   return {
     quality: body.quality,
     locked: true,
-    zones: body.quality.ok ? zones.map((z) => ({ zone: z.zone, scores: z.scores, note: z.note })) : [],
-    summary: body.summary,
+    zones: body.quality.ok ? found : [],
+    summary: body.quality.ok ? 'Your face map is ready.' : body.summary,
     disclaimer: body.disclaimer,
   };
 }
 
-/**
- * Keeps a readable answer so a phone that lost the response (timeout, dropped connection, screen
- * closed) can fetch it instead of paying for another read. Best effort: a failed write never fails
- * the scan. Only the response body is stored, never images or the request.
- */
-async function saveScan(sb: SupabaseClient, userId: string, req: FaceRequest, body: Record<string, unknown>) {
-  const { error } = await sb
-    .from('face_scans')
-    .insert({ user_id: userId, cycle_id: req.cycleId, day: req.day, stage: req.stage, result: body });
-  if (error) console.error('face-scan save failed', { stage: req.stage, message: String(error.message).slice(0, 200) });
-}
-
-/** GET: the newest stored answer for one of the person's cycles. Free and Pro alike. */
-async function latestScan(req: VercelRequest, res: VercelResponse, sb: SupabaseClient, userId: string) {
-  const one = (v: unknown) => (Array.isArray(v) ? v[0] : v);
-  const cycleId = typeof one(req.query?.cycleId) === 'string' ? String(one(req.query?.cycleId)).trim() : '';
-  if (!/^[A-Za-z0-9._:-]{1,64}$/.test(cycleId)) return json(res, { error: 'cycleId is required' }, 400);
-  const rawStage = one(req.query?.stage);
-  const stage = rawStage === undefined ? null : oneOf(STAGES, rawStage);
-  if (rawStage !== undefined && !stage) return json(res, { error: `stage must be one of ${STAGES.join(', ')}` }, 400);
-  const rawDay = one(req.query?.day);
-  const day = rawDay === undefined ? null : toNumber(rawDay);
-  if (rawDay !== undefined && (day === null || !Number.isInteger(day) || day < 1 || day > MAX_DAY)) {
-    return json(res, { error: `day must be a whole number from 1 to ${MAX_DAY}` }, 400);
-  }
-
-  let query = sb
-    .from('face_scans')
-    .select('cycle_id, day, stage, result, created_at')
-    .eq('user_id', userId)
-    .eq('cycle_id', cycleId);
-  if (stage) query = query.eq('stage', stage);
-  if (day !== null) query = query.eq('day', day);
-  const { data, error } = await query.order('created_at', { ascending: false }).limit(1);
-  if (error) return json(res, { error: 'Face scan is unavailable right now. Try again soon.' }, 503);
-  const row = data?.[0];
-  if (!row) return json(res, { scan: null });
-  return json(res, {
-    scan: { cycleId: row.cycle_id, day: row.day, stage: row.stage, createdAt: row.created_at, result: row.result },
-  });
-}
-
 export async function handleFaceScan(req: VercelRequest, res: VercelResponse) {
   res.setHeader('Cache-Control', 'no-store');
-  if (req.method !== 'POST' && req.method !== 'GET') return json(res, { error: 'Method not allowed' }, 405);
+  if (req.method !== 'POST') return json(res, { error: 'Method not allowed' }, 405);
 
   const user = await getUserFromAuthHeader(req);
   if (!user) return json(res, { error: 'Unauthorized' }, 401);
 
   const sb = getServiceClient();
-  if (req.method === 'GET') return latestScan(req, res, sb, user.id);
   const { data: subRow } = await sb
     .from('subscriptions')
     .select('tier, status')
@@ -1090,8 +1038,8 @@ export async function handleFaceScan(req: VercelRequest, res: VercelResponse) {
   const parsed = parseRequest(raw);
   if ('error' in parsed) return json(res, { error: parsed.error, ...parsed.extra }, parsed.status);
 
-  // Founder decision (Oct 26): one free scan first. A non-Pro account gets one readable baseline
-  // per lifetime, answered as a real Day 1 map (`lockForFreeScan`). Every other stage is Pro.
+  // Founder decision (Oct 26): one free scan first. A non-Pro account gets one baseline per
+  // lifetime, answered as a locked teaser (zones with findings only). Everything else is Pro.
   const freeScan = !isPro;
   if (freeScan) {
     if (parsed.stage !== 'baseline') return json(res, { error: 'Pro required' }, 402);
@@ -1131,9 +1079,7 @@ export async function handleFaceScan(req: VercelRequest, res: VercelResponse) {
     // A photo that could not be read doesn't use up a free account's one scan.
     await settleCall(sb, reservation.id, parsed.stage, tally, Date.now() - startedAt, out?.quality.ok !== false && out !== null);
     const body = toResponse(out, locks, parsed.stage);
-    const answer = freeScan ? lockForFreeScan(body) : body;
-    if (answer.quality.ok) await saveScan(sb, user.id, parsed, answer);
-    return json(res, answer);
+    return json(res, freeScan ? lockForFreeScan(body) : body);
   } catch (e) {
     await settleCall(sb, reservation.id, parsed.stage, tally, Date.now() - startedAt);
     const status = e instanceof AiError && e.status === 503 ? 503 : 502;

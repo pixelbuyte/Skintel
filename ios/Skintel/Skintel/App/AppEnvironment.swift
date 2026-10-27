@@ -44,9 +44,6 @@ final class AppEnvironment {
 
     /// Everything a signed-in user's screens need, loaded together after sign-in.
     func warmUp() async {
-        // Day 1 face crops past day 14 are deleted on launch too, not only when the face scan
-        // opens, so a week nobody comes back to (a free scan that never upgrades) still lets go.
-        FaceScanStore.shared.expireDay1Crops(now: Date())
         // Ready before any Skintel+ wall opens, so a test build shows its chosen wall style
         // straight away. Runs alongside; nothing below waits on it.
         Task { await subscriptionService.checkBuildEnvironment() }
