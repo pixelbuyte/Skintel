@@ -331,13 +331,23 @@ struct AssistantView: View {
     @State private var paywall: PaywallReason?
     @State private var addingProduct: SuggestedProduct?
     @State private var tagged: [Product] = []
+    /// The person's newest face scan is tagged in the composer.
+    @State private var faceTagged = false
     @AppStorage(AskModel.key) private var askModel: AskModel = .luna
     /// Set once the user agrees to Ask Skintel sending their data to third-party AI (5.1.2(i)).
     @AppStorage("ask.aiConsent") private var aiConsent = false
+    /// Set when that agreement was to the copy that lists the face scan, so someone who agreed
+    /// before face scans existed is asked once more before a tagged scan is sent.
+    @AppStorage("ask.faceConsent") private var faceConsent = false
     @State private var showAIConsent = false
     @FocusState private var inputFocused: Bool
 
     private static let upsellText = "Typing your own questions is part of Skintel+. The suggested questions stay free."
+    /// The tag name a face-scan question carries in `AssistantMessage.tags`.
+    static let faceTag = "Face scan"
+
+    /// A face scan is stored on this phone, so it can be tagged.
+    private var hasFaceScans: Bool { !FaceScanStore.shared.entries.isEmpty }
 
     private var isPro: Bool { env.subscription.entitlement.isPro }
 
@@ -407,10 +417,10 @@ struct AssistantView: View {
         }
         .sheet(item: $paywall) { PaywallView(reason: $0) }
         .alert("Send your question to AI?", isPresented: $showAIConsent) {
-            Button("Allow") { aiConsent = true; sendDraft() }
+            Button("Allow") { aiConsent = true; faceConsent = true; sendDraft() }
             Button("Not now", role: .cancel) {}
         } message: {
-            Text("To answer, Ask Skintel sends your question, your shelf and routine, and your check-in notes to third-party AI providers through OpenRouter (including Google, OpenAI and Anthropic). We use them only to write your answer, never for ads. You can read the details in our Privacy Policy.")
+            Text("To answer, Ask Skintel sends your question, your shelf and routine, and your check-in notes to third-party AI providers through OpenRouter (including Google, OpenAI and Anthropic). If you tag your face scan: its written results and your goals (never your photos). We use them only to write your answer, never for ads. You can read the details in our Privacy Policy.")
         }
         .sheet(item: $addingProduct) { p in
             NavigationStack {
@@ -422,7 +432,18 @@ struct AssistantView: View {
             if messages.isEmpty, tagged.isEmpty, !initialTagged.isEmpty {
                 tagged = Array(initialTagged.prefix(MentionPanel.limit))
             }
+            takePendingAsk()
         }
+        .onChange(of: env.pendingAsk) { _, _ in takePendingAsk() }
+    }
+
+    /// A question handed over from elsewhere ("Ask Skinstel about this scan"): it goes in the
+    /// composer, not sent, with the Face scan tag, and the hand-off is cleared so it's used once.
+    private func takePendingAsk() {
+        guard let ask = env.pendingAsk else { return }
+        env.pendingAsk = nil
+        draft = ask.question
+        if ask.faceScan && hasFaceScans { faceTagged = true }
     }
 
     // MARK: Empty state
@@ -484,7 +505,7 @@ struct AssistantView: View {
     /// What follows a trailing "@" in the draft (empty right after typing it), or nil when
     /// the draft isn't mid-mention.
     private var mentionQuery: String? {
-        guard !shelfProducts.isEmpty, let at = draft.lastIndex(of: "@") else { return nil }
+        guard !shelfProducts.isEmpty || hasFaceScans, let at = draft.lastIndex(of: "@") else { return nil }
         let before = draft[..<at]
         guard before.isEmpty || before.last?.isWhitespace == true else { return nil }
         let rest = draft[draft.index(after: at)...]
@@ -511,6 +532,20 @@ struct AssistantView: View {
             }
         }
         inputFocused = true
+    }
+
+    /// Tags (or untags) the newest face scan and removes the "@query" from the draft.
+    private func pickFaceMention() {
+        Haptics.selection()
+        if let at = draft.lastIndex(of: "@") { draft = String(draft[..<at]) }
+        withAnimation(SKAnimation.ios(0.25)) { faceTagged.toggle() }
+        inputFocused = true
+    }
+
+    private var composerPlaceholder: String {
+        if !tagged.isEmpty { return "Ask about \(tagged.count == 1 ? "this product" : "these products")" }
+        if faceTagged { return "Ask about your face scan" }
+        return "Ask about your skin or products"
     }
 
     private var canSend: Bool {
@@ -540,15 +575,24 @@ struct AssistantView: View {
                     .padding(.horizontal, SKSpace.lg)
                 }
             }
-            if let q = mentionQuery, !MentionPanel.matches(shelfProducts, q).isEmpty || !q.contains(" ") {
-                MentionPanel(products: shelfProducts, query: q, tagged: tagged) { pickMention($0) }
+            if let q = mentionQuery,
+               !MentionPanel.matches(shelfProducts, q).isEmpty || (hasFaceScans && MentionPanel.faceMatches(q)) || !q.contains(" ") {
+                MentionPanel(products: shelfProducts, query: q, tagged: tagged,
+                             faceTagged: hasFaceScans ? faceTagged : nil,
+                             pick: { pickMention($0) },
+                             pickFace: { pickFaceMention() })
                     .padding(.horizontal, SKSpace.lg)
                     .transition(.move(edge: .bottom).combined(with: .opacity))
             }
             VStack(alignment: .leading, spacing: 6) {
-                if !tagged.isEmpty {
+                if !tagged.isEmpty || faceTagged {
                     ScrollView(.horizontal, showsIndicators: false) {
                         HStack(spacing: 6) {
+                            if faceTagged {
+                                ProductTagChip(name: Self.faceTag, systemImage: "face.dashed", onRemove: {
+                                    withAnimation(SKAnimation.ios(0.25)) { faceTagged = false }
+                                })
+                            }
                             ForEach(tagged) { p in
                                 ProductTagChip(name: p.productName, category: p.category) {
                                     withAnimation(SKAnimation.ios(0.25)) { tagged.removeAll { $0.id == p.id } }
@@ -559,7 +603,7 @@ struct AssistantView: View {
                     }
                     .padding(.top, 12)
                 }
-                TextField(tagged.isEmpty ? "Ask about your skin or products" : "Ask about \(tagged.count == 1 ? "this product" : "these products")", text: $draft)
+                TextField(composerPlaceholder, text: $draft)
                     .font(SKFont.body)
                     .foregroundStyle(SKColor.ink)
                     .focused($inputFocused)
@@ -571,13 +615,13 @@ struct AssistantView: View {
                     Button(action: startMention) {
                         Image(systemName: "at")
                             .font(.system(size: 15, weight: .semibold))
-                            .foregroundStyle(tagged.isEmpty ? SKColor.ink : SKColor.primary)
+                            .foregroundStyle(tagged.isEmpty && !faceTagged ? SKColor.ink : SKColor.primary)
                             .frame(width: 34, height: 34)
-                            .background(tagged.isEmpty ? SKColor.neutralChip : SKColor.blush, in: Circle())
+                            .background(tagged.isEmpty && !faceTagged ? SKColor.neutralChip : SKColor.blush, in: Circle())
                     }
                     .buttonStyle(.plain)
-                    .disabled(env.products.products.isEmpty)
-                    .accessibilityLabel("Tag products from your shelf")
+                    .disabled(env.products.products.isEmpty && !hasFaceScans)
+                    .accessibilityLabel(hasFaceScans ? "Tag your face scan or shelf products" : "Tag products from your shelf")
                     AskModelToggle(selection: $askModel)
                     Spacer(minLength: 0)
                     Button(action: sendDraft) {
@@ -640,13 +684,18 @@ struct AssistantView: View {
     private func sendDraft() {
         let question = draft.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !question.isEmpty, !isAnswering else { return }
+        // Once a face scan is in a chat, follow-ups keep it: the server adds it per question.
+        let face = faceTagged || messages.contains { $0.role == .user && $0.tags?.contains(Self.faceTag) == true }
         // Only Skintel+ questions leave the device, so only they need the disclosure first.
-        if isPro && !aiConsent { showAIConsent = true; return }
+        if isPro && (!aiConsent || (face && !faceConsent)) { showAIConsent = true; return }
         draft = ""
         Haptics.tap()
         let tags = tagged
         tagged = []
-        messages.append(AssistantMessage(role: .user, text: question, tags: tags.isEmpty ? nil : tags.map(\.productName)))
+        var tagNames = tags.map(\.productName)
+        if faceTagged { tagNames.insert(Self.faceTag, at: 0) }
+        faceTagged = false
+        messages.append(AssistantMessage(role: .user, text: question, tags: tagNames.isEmpty ? nil : tagNames))
         guard isPro else {
             deliver(Self.upsellText, role: .upsell)
             return
@@ -660,11 +709,12 @@ struct AssistantView: View {
         let pm = names(.pm)
         let api = env.api
         let model = askModel.rawValue
+        let goals = face ? FaceGoal.goals(in: FaceScanStore.shared.answers).map(\.label) : []
         isAnswering = true
         Task {
             do {
                 let reply = try await api.askAssistant(messages: turns, amRoutine: am, pmRoutine: pm, model: model,
-                                                       tagged: tags.map(\.id))
+                                                       tagged: tags.map(\.id), face: face, goals: goals)
                 deliver(reply.reply, role: .assistant, alreadyWaited: true, suggestions: reply.products)
             } catch let e as APIError {
                 if e.requiresPaywall {
@@ -734,6 +784,7 @@ struct AssistantView: View {
         messages = []
         draft = ""
         tagged = []
+        faceTagged = false
     }
 
     private func open(_ conversation: AssistantConversation) {
@@ -890,7 +941,9 @@ private struct AssistantBubble: View {
                 if let tags = message.tags, !tags.isEmpty {
                     HStack(spacing: 6) {
                         Spacer(minLength: 48)
-                        ForEach(tags, id: \.self) { ProductTagChip(name: $0) }
+                        ForEach(tags, id: \.self) { name in
+                            ProductTagChip(name: name, systemImage: name == AssistantView.faceTag ? "face.dashed" : nil)
+                        }
                     }
                 }
                 HStack {
@@ -1011,15 +1064,26 @@ private struct TypingDots: View {
     }
 }
 
-/// A shelf product tagged into a question: bottle or photo, name, and (in the composer) a remove button.
+/// A shelf product tagged into a question: bottle or photo, name, and (in the composer) a remove
+/// button. With `systemImage` (the Face scan tag) the symbol stands in for the bottle.
 private struct ProductTagChip: View {
     let name: String
     var category: String? = nil
+    var systemImage: String? = nil
     var onRemove: (() -> Void)? = nil
 
     var body: some View {
         HStack(spacing: 6) {
-            SKProductMark(name: name, size: 22, category: category)
+            if let systemImage {
+                Image(systemName: systemImage)
+                    .font(.system(size: 11, weight: .semibold))
+                    .foregroundStyle(SKColor.primary)
+                    .frame(width: 22, height: 22)
+                    .background(SKColor.blush, in: Circle())
+                    .accessibilityHidden(true)
+            } else {
+                SKProductMark(name: name, size: 22, category: category)
+            }
             Text(name)
                 .font(SKFont.sans(13, weight: .semibold, relativeTo: .caption))
                 .foregroundStyle(SKColor.ink)
@@ -1043,13 +1107,17 @@ private struct ProductTagChip: View {
     }
 }
 
-/// ChatGPT-style mention list above the composer: shelf products matching what follows
-/// "@". Up to three can be tagged; the server reads their ingredient lists.
+/// ChatGPT-style mention list above the composer: the newest face scan on top (once there is
+/// one), then shelf products matching what follows "@". Up to three products can be tagged; the
+/// server reads their ingredient lists, and the face scan's written results.
 private struct MentionPanel: View {
     let products: [Product]
     let query: String
     let tagged: [Product]
+    /// Nil hides the Face scan row (no scan yet); otherwise whether it is tagged.
+    let faceTagged: Bool?
     let pick: (Product) -> Void
+    let pickFace: () -> Void
 
     static let limit = 3
 
@@ -1059,17 +1127,25 @@ private struct MentionPanel: View {
         return products.filter { "\($0.brand ?? "") \($0.productName)".lowercased().contains(q) }
     }
 
+    /// The Face scan row shows for "@", and while what's typed could still be "face scan".
+    static func faceMatches(_ query: String) -> Bool {
+        let q = query.trimmingCharacters(in: .whitespaces).lowercased()
+        return q.isEmpty || "face scan".contains(q) || q.contains("face")
+    }
+
     var body: some View {
         let found = Self.matches(products, query)
+        let showsFace = faceTagged != nil && Self.faceMatches(query)
         VStack(alignment: .leading, spacing: 0) {
-            Text(query.isEmpty ? "Type to search your shelf" : "Shelf products matching \u{201C}\(query)\u{201D}")
+            Text(query.isEmpty ? (faceTagged != nil ? "Tag your face scan or a shelf product" : "Type to search your shelf")
+                               : "Shelf products matching \u{201C}\(query)\u{201D}")
                 .font(SKFont.secondary)
                 .foregroundStyle(SKColor.muted)
                 .lineLimit(1)
                 .padding(.horizontal, 18)
                 .padding(.top, 14)
                 .padding(.bottom, 6)
-            if found.isEmpty {
+            if found.isEmpty && !showsFace {
                 Text("Nothing on your shelf matches.")
                     .font(SKFont.secondary)
                     .foregroundStyle(SKColor.muted)
@@ -1078,8 +1154,9 @@ private struct MentionPanel: View {
             } else {
                 ScrollView {
                     VStack(spacing: 2) {
+                        if showsFace { faceRow(highlighted: true) }
                         ForEach(found.indices, id: \.self) { i in
-                            row(found[i], highlighted: i == 0)
+                            row(found[i], highlighted: i == 0 && !showsFace)
                         }
                     }
                     .padding(.horizontal, 6)
@@ -1087,13 +1164,42 @@ private struct MentionPanel: View {
                 }
                 .scrollBounceBehavior(.basedOnSize)
                 .frame(maxHeight: 250)
-                .fixedSize(horizontal: false, vertical: found.count <= 4)
+                .fixedSize(horizontal: false, vertical: found.count + (showsFace ? 1 : 0) <= 4)
             }
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .skGlass(in: RoundedRectangle(cornerRadius: 24, style: .continuous), interactive: false, fallback: SKColor.cream)
         .overlay(RoundedRectangle(cornerRadius: 24, style: .continuous).stroke(SKColor.line))
         .shadow(color: .black.opacity(0.08), radius: 16, y: 6)
+    }
+
+    private func faceRow(highlighted: Bool) -> some View {
+        let on = faceTagged == true
+        return Button { pickFace() } label: {
+            HStack(spacing: SKSpace.md) {
+                Image(systemName: "face.dashed")
+                    .font(.system(size: 15, weight: .semibold))
+                    .foregroundStyle(SKColor.primary)
+                    .frame(width: 34, height: 34)
+                    .background(SKColor.blush, in: Circle())
+                Text(AssistantView.faceTag)
+                    .font(SKFont.sans(16, weight: .medium, relativeTo: .body))
+                    .foregroundStyle(SKColor.ink)
+                    .lineLimit(1)
+                Spacer(minLength: SKSpace.sm)
+                Text(on ? "Tagged" : "Your newest scan")
+                    .font(SKFont.secondary)
+                    .foregroundStyle(on ? SKColor.primary : SKColor.muted)
+                    .lineLimit(1)
+            }
+            .padding(.horizontal, 12)
+            .frame(height: 52)
+            .background(highlighted ? SKColor.neutralChip.opacity(0.7) : .clear, in: RoundedRectangle(cornerRadius: 18, style: .continuous))
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(SKPressStyle())
+        .accessibilityLabel(on ? "Face scan, tagged" : "Face scan")
+        .accessibilityHint(on ? "Removes the tag" : "Adds your newest face scan to your question")
     }
 
     private func row(_ p: Product, highlighted: Bool) -> some View {

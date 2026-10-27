@@ -5,9 +5,9 @@ import UserNotifications
 import SkintelCore
 import SkinstelMascot
 
-/// You: a profile the person shapes up top, then settings in layers. Everyday choices live
-/// one tap down in Personalization; account, data and the destructive actions live in
-/// Account & data instead of on the first screen.
+/// You: a profile the person shapes up top, their membership, face scans and skin profile. The
+/// gear opens Settings, one tap down, with everyday choices (Personalization) and account, data
+/// and the destructive actions (Account & data) a layer further in.
 struct SettingsView: View {
     /// True when hosted as the You tab: no back button, no room reserved for one.
     var isRoot = false
@@ -17,53 +17,29 @@ struct SettingsView: View {
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     @AppStorage(SKAvatarLook.key) private var avatarLook = 0
-    @AppStorage(AskModel.key) private var askModel: AskModel = .luna
-    @AppStorage(AssistantPlacement.key) private var assistantPlacement = AssistantPlacement.tab
-    @AppStorage(Haptics.preferenceKey) private var hapticsOn = true
-    @AppStorage(RoutineReminders.amOnKey) private var amOn = false
-    @AppStorage(RoutineReminders.pmOnKey) private var pmOn = false
-    @AppStorage(RoutineReminders.checkInOnKey) private var checkInOn = false
     @State private var showEditProfile = false
-    @State private var showPersonalization = false
+    @State private var showSettings = false
     @State private var showAccount = false
 
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: SKSpace.xl) {
-                Text(isRoot ? "You" : "Settings").font(SKFont.pageTitle).foregroundStyle(SKColor.ink).padding(.leading, isRoot ? 0 : 44).padding(.top, SKSpace.md)
+                HStack(alignment: .center, spacing: SKSpace.md) {
+                    Text(isRoot ? "You" : "Settings").font(SKFont.pageTitle).foregroundStyle(SKColor.ink)
+                        .padding(.leading, isRoot ? 0 : 44)
+                    Spacer(minLength: 0)
+                    settingsButton
+                }
+                .padding(.top, SKSpace.md)
 
                 profileHero
                 stats
-
-                SettingsGroup(title: "Personalize") {
-                    SettingsRow(icon: "drop", title: "Skin profile", subtitle: skinSummary) { showEditProfile = true }
-                    SettingsRow(icon: "sparkles", title: "Ask Skintel",
-                                subtitle: "\(askModel.name) · \(assistantPlacement == AssistantPlacement.tab ? "in the tab bar" : "top of Today")") {
-                        showPersonalization = true
-                    }
-                    SettingsRow(icon: "bell", title: "Reminders", subtitle: reminderSummary) { showPersonalization = true }
-                    SettingsRow(icon: "slider.horizontal.3", title: "Feel", subtitle: hapticsOn ? "Haptics on" : "Haptics off", last: true) {
-                        showPersonalization = true
-                    }
-                }
-
                 membershipCard
+                YourFaceScansCard()
 
-                HStack(spacing: SKSpace.md) {
-                    SKDrop("DropPrivacy", size: 56)
-                    Text("Your shelf, journal and check-ins belong to your account. Delete them any time in Account & data.")
-                        .font(SKFont.caption).foregroundStyle(SKColor.muted)
+                SettingsGroup {
+                    SettingsRow(icon: "drop", title: "Skin profile", subtitle: skinSummary, last: true) { showEditProfile = true }
                 }
-                .padding(.horizontal, 4)
-
-                SettingsGroup(title: "Account") {
-                    SettingsRow(title: "Account & data", subtitle: env.session.user?.email) { showAccount = true }
-                    SettingsLinkRow(title: "Privacy policy", url: env.config.privacyURL)
-                    SettingsLinkRow(title: "Terms", url: env.config.termsURL, last: true)
-                }
-
-                Text("Skintel \(Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "") · Not medical advice. Patterns, not prescriptions.")
-                    .font(SKFont.caption).foregroundStyle(SKColor.muted).frame(maxWidth: .infinity).multilineTextAlignment(.center)
             }
             .skPagePadding()
             .padding(.bottom, SKSpace.xxl)
@@ -71,13 +47,29 @@ struct SettingsView: View {
         .skPageBackground()
         .toolbar(.hidden, for: .navigationBar)
         .overlay(alignment: .topLeading) { if !isRoot { BackButton().padding(.top, 2) } }
-        .navigationDestination(isPresented: $showPersonalization) { PersonalizationView() }
+        .skSwipeBack()
+        .navigationDestination(isPresented: $showSettings) { AppSettingsView() }
         .navigationDestination(isPresented: $showAccount) { AccountDataView() }
         .sheet(isPresented: $showEditProfile) { EditProfileSheet() }
         .task {
             await env.subscription.load()
             await env.journal.load()
         }
+    }
+
+    /// Settings, top right: Ask, reminders, feel, face scan data, account, legal and the version.
+    private var settingsButton: some View {
+        Button { showSettings = true } label: {
+            Image(systemName: "gearshape")
+                .font(.system(size: 18, weight: .semibold))
+                .foregroundStyle(SKColor.ink)
+                .frame(width: 44, height: 44)
+                .background(SKColor.cream, in: Circle())
+                .overlay(Circle().stroke(SKColor.line))
+                .contentShape(Circle())
+        }
+        .buttonStyle(SKPressStyle(scale: 0.92))
+        .accessibilityLabel("Settings")
     }
 
     // MARK: Profile
@@ -399,11 +391,6 @@ struct SettingsView: View {
         return p.concerns.isEmpty ? t.label : "\(t.label) · \(p.concerns.count) concern\(p.concerns.count == 1 ? "" : "s")"
     }
 
-    private var reminderSummary: String {
-        let on = [amOn ? "AM" : nil, pmOn ? "PM" : nil, checkInOn ? "check-in" : nil].compactMap { $0 }
-        return on.isEmpty ? "Off" : on.joined(separator: " · ")
-    }
-
     private func profileLine(_ p: SkinProfile) -> String {
         var parts: [String] = []
         if let t = p.skinType { parts.append("\(t.label) skin") }
@@ -416,6 +403,121 @@ struct SettingsView: View {
         withAnimation(reduceMotion ? nil : Animation.spring(duration: 0.35, bounce: 0.3)) {
             avatarLook = SKGeneratedAvatar.shuffled(from: avatarLook)
         }
+    }
+}
+
+// MARK: - Your face scans
+
+/// You's face scan card: the newest map and where the week stands, then the scans on this phone,
+/// newest first. Every row opens the face scan (on its map) through `MainTabView`'s cover.
+private struct YourFaceScansCard: View {
+    @Environment(AppEnvironment.self) private var env
+    @Environment(\.openFaceScan) private var openFaceScan
+
+    private static let shown = 5
+
+    var body: some View {
+        let summary = FaceScanSummary(env: env)
+        let past = summary.recent(limit: Self.shown)
+        SettingsGroup(title: "Your face scans") {
+            Button { openFaceScan() } label: { header(summary) }
+                .buttonStyle(.plain)
+                .accessibilityHint(summary.hasScans ? "Opens your face scan" : "Starts a face scan")
+            if !past.isEmpty { SettingsDivider() }
+            ForEach(Array(past.enumerated()), id: \.offset) { index, entry in
+                SettingsRow(title: FaceScanSummary.stageLabel(entry.stage), subtitle: FaceScanSummary.dayLabel(entry.day),
+                            last: index == past.count - 1) {
+                    openFaceScan()
+                }
+            }
+        }
+    }
+
+    private func header(_ summary: FaceScanSummary) -> some View {
+        HStack(spacing: SKSpace.md) {
+            FaceScanThumb(result: summary.newest?.result, size: 64)
+            VStack(alignment: .leading, spacing: 2) {
+                HStack(spacing: SKSpace.sm) {
+                    Text(summary.hasScans ? summary.dayLine : "Scan your face")
+                        .font(SKFont.sans(17, weight: .semibold, relativeTo: .headline))
+                        .foregroundStyle(SKColor.ink)
+                    if !summary.hasScans { SKNewBadge() }
+                }
+                Text(summary.hasScans ? summary.nextStep : "A 15-second head turn, then a map of your face")
+                    .font(SKFont.secondary)
+                    .foregroundStyle(summary.hasScans ? SKColor.primary : SKColor.muted)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+            Spacer(minLength: SKSpace.sm)
+            Image(systemName: "chevron.right").font(.system(size: 13, weight: .semibold)).foregroundStyle(SKColor.muted)
+        }
+        .padding(.horizontal, SKSpace.lg).padding(.vertical, 12)
+        .contentShape(Rectangle())
+    }
+}
+
+// MARK: - Settings
+
+/// Pushed from You's gear: everyday choices, face scan data, account and legal, and the version.
+/// Each row opens the page that already owns it; nothing here is a second copy of a setting.
+private struct AppSettingsView: View {
+    @Environment(AppEnvironment.self) private var env
+    @AppStorage(AskModel.key) private var askModel: AskModel = .luna
+    @AppStorage(AssistantPlacement.key) private var assistantPlacement = AssistantPlacement.tab
+    @AppStorage(Haptics.preferenceKey) private var hapticsOn = true
+    @AppStorage(RoutineReminders.amOnKey) private var amOn = false
+    @AppStorage(RoutineReminders.pmOnKey) private var pmOn = false
+    @AppStorage(RoutineReminders.checkInOnKey) private var checkInOn = false
+    @State private var showPersonalization = false
+    @State private var showAccount = false
+    @State private var showDeleteFaceScans = false
+
+    var body: some View {
+        SettingsPage(title: "Settings") {
+            SettingsGroup(title: "Personalize") {
+                SettingsRow(icon: "sparkles", title: "Ask Skinstel",
+                            subtitle: "\(askModel.name) · \(assistantPlacement == AssistantPlacement.tab ? "in the tab bar" : "top of Today")") {
+                    showPersonalization = true
+                }
+                SettingsRow(icon: "bell", title: "Reminders", subtitle: reminderSummary) { showPersonalization = true }
+                SettingsRow(icon: "slider.horizontal.3", title: "Feel", subtitle: hapticsOn ? "Haptics on" : "Haptics off", last: true) {
+                    showPersonalization = true
+                }
+            }
+
+            SettingsGroup(title: "Face scan data", footer: "Face scans, your answers and the Day 1 close-ups are kept on this phone.") {
+                SettingsRow(title: "Delete face scans", subtitle: "Scans, answers and Day 1 close-ups on this phone",
+                            showsChevron: false, last: true, trailing: { EmptyView() }) {
+                    showDeleteFaceScans = true
+                }
+            }
+
+            HStack(spacing: SKSpace.md) {
+                SKDrop("DropPrivacy", size: 56)
+                Text("Your shelf, journal and check-ins belong to your account. Delete them any time in Account & data.")
+                    .font(SKFont.caption).foregroundStyle(SKColor.muted)
+            }
+            .padding(.horizontal, 4)
+
+            SettingsGroup(title: "Account") {
+                SettingsRow(title: "Account & data", subtitle: env.session.user?.email) { showAccount = true }
+                SettingsLinkRow(title: "Privacy policy", url: env.config.privacyURL)
+                SettingsLinkRow(title: "Terms", url: env.config.termsURL, last: true)
+            }
+
+            Text("Skinstel \(Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "") · Not medical advice. Patterns, not prescriptions.")
+                .font(SKFont.caption).foregroundStyle(SKColor.muted).frame(maxWidth: .infinity).multilineTextAlignment(.center)
+        }
+        .navigationDestination(isPresented: $showPersonalization) { PersonalizationView() }
+        .navigationDestination(isPresented: $showAccount) { AccountDataView() }
+        .confirmationDialog("Delete your face scans?", isPresented: $showDeleteFaceScans, titleVisibility: .visible) {
+            Button("Delete face scans", role: .destructive) { FaceScanStore.shared.reset() }
+        } message: { Text("Removes every face scan, your answers and the Day 1 close-ups from this phone.") }
+    }
+
+    private var reminderSummary: String {
+        let on = [amOn ? "AM" : nil, pmOn ? "PM" : nil, checkInOn ? "check-in" : nil].compactMap { $0 }
+        return on.isEmpty ? "Off" : on.joined(separator: " · ")
     }
 }
 
@@ -604,7 +706,6 @@ private struct AccountDataView: View {
     @State private var exportError: String?
     @State private var showSignOut = false
     @State private var showDelete = false
-    @State private var showDeleteFaceScans = false
     @State private var deleteConfirmText = ""
     @State private var deleting = false
     @State private var deleteError: String?
@@ -651,10 +752,6 @@ private struct AccountDataView: View {
                     Task { await export() }
                 }
                 if let exportError { SettingsInfo(text: exportError, tone: .bad) }
-                SettingsRow(title: "Delete face scans", subtitle: "Scans, answers and Day 1 close-ups on this phone",
-                            showsChevron: false, trailing: { EmptyView() }) {
-                    showDeleteFaceScans = true
-                }
                 SettingsLinkRow(title: "Privacy policy", url: env.config.privacyURL)
                 SettingsLinkRow(title: "Terms", url: env.config.termsURL, last: true)
             }
@@ -685,9 +782,6 @@ private struct AccountDataView: View {
         .confirmationDialog("Sign out of Skintel?", isPresented: $showSignOut, titleVisibility: .visible) {
             Button("Sign out", role: .destructive) { Task { await env.session.signOut() } }
         } message: { Text("Your shelf and journal stay in your account.") }
-        .confirmationDialog("Delete your face scans?", isPresented: $showDeleteFaceScans, titleVisibility: .visible) {
-            Button("Delete face scans", role: .destructive) { FaceScanStore.shared.reset() }
-        } message: { Text("Removes every face scan, your answers and the Day 1 close-ups from this phone.") }
         .alert("Delete your account?", isPresented: $showDelete) {
             TextField("Type DELETE to confirm", text: $deleteConfirmText)
             Button("Delete everything", role: .destructive) { Task { await beginDeletion() } }
@@ -836,6 +930,7 @@ private struct SettingsPage<Content: View>: View {
         .skPageBackground()
         .toolbar(.hidden, for: .navigationBar)
         .overlay(alignment: .topLeading) { BackButton().padding(.top, 2) }
+        .skSwipeBack()
     }
 }
 
