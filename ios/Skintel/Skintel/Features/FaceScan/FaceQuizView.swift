@@ -18,6 +18,17 @@ struct FaceQuestion: Identifiable, Sendable {
     var rows: [Row]
     /// Q19 is a note only; it never blocks.
     var noteOnly = false
+    /// Q5 only: its locks never fail open, so it has no Skip and no "Not sure", and Next waits
+    /// for an answer.
+    var required = false
+    /// One line on why a required question is asked.
+    var why: String?
+}
+
+/// A pick from "Anything you want to know?": the chip's words and the question it puts in Ask.
+struct FaceKnow: Sendable, Hashable {
+    let label: String
+    let prompt: String
 }
 
 enum FaceQuestions {
@@ -27,11 +38,33 @@ enum FaceQuestions {
         "Prescription skin medicine": .skinMedicine,
     ]
 
-    /// Q1–Q7. Under-18s don't see the pregnancy options (PRO-SPEC §7.2, the safe default).
+    /// Every question but Q5 offers it (and Skip, in the view).
+    static let notSure = "Not sure"
+
+    /// The chip key of "Anything you want to know?" in `FaceAnswers.chips`.
+    static let knowKey = "know"
+
+    static let knowOptions: [FaceKnow] = [
+        FaceKnow(label: "Is my routine working?", prompt: "Is my routine working, going by my face scan?"),
+        FaceKnow(label: "What should I add?", prompt: "What should I add to my routine, going by my face scan?"),
+        FaceKnow(label: "What should I stop?", prompt: "What should I stop using, going by my face scan?"),
+    ]
+
+    /// The "Anything you want to know?" picks in `answers`, in the question's order.
+    static func know(in answers: FaceAnswers?) -> [FaceKnow] {
+        let picked = Set(answers?.chips?[knowKey] ?? [])
+        return knowOptions.filter { picked.contains($0.label) }
+    }
+
+    /// The goals question first, then Q1–Q7, then "Anything you want to know?". Under-18s don't
+    /// see the pregnancy options (PRO-SPEC §7.2, the safe default). Q7 asks only for the step
+    /// limit now: the goals question replaced its goal row.
     static func core(under18: Bool, triggerHint: String?) -> [FaceQuestion] {
         let locks = under18 ? ["Prescription skin medicine", "None of these"]
                             : ["Pregnant or trying", "Breastfeeding", "Prescription skin medicine", "None of these"]
-        return [
+        let list: [FaceQuestion] = [
+            FaceQuestion(id: FaceGoal.chipKey, title: "What do you want to improve?", hint: "Pick all that apply.",
+                         rows: [.init(key: FaceGoal.chipKey, options: FaceGoal.allCases.map(\.label), multi: true)]),
             FaceQuestion(id: "q1", title: "30 minutes after washing, with nothing on, your skin feels…",
                          rows: [.init(key: "q1", options: ["Tight", "Comfortable", "Shiny on the T-zone", "Shiny all over"])]),
             FaceQuestion(id: "q2", title: "Do products sting or burn when you put them on?",
@@ -43,14 +76,18 @@ enum FaceQuestions {
                          rows: [.init(key: "q4", options: ["Pink or red", "Brown", "No mark", "Not sure"])]),
             FaceQuestion(id: "q5", title: "Anything we should be careful with?",
                          hint: "We leave out ingredients that are not a good fit. Check with your doctor too.",
-                         rows: [.init(key: "q5", options: locks, multi: true, exclusive: ["None of these"])]),
+                         rows: [.init(key: "q5", options: locks, multi: true, exclusive: ["None of these"])],
+                         required: true, why: "We ask so suggestions stay safe for you."),
             FaceQuestion(id: "q6", title: "Ingredients that have bothered you before", hint: triggerHint,
                          rows: [.init(key: "q6", options: ["Fragrance", "Essential oils", "Drying alcohol", "Coconut oil", "Not sure"],
                                       multi: true, exclusive: ["Not sure"])]),
-            FaceQuestion(id: "q7", title: "Your main goal, and how many steps you will really do",
-                         rows: [.init(key: "q7_goal", label: "Goal", options: ["Fewer breakouts", "Calmer redness", "Less shine", "More even tone"]),
-                                .init(key: "q7_steps", label: "Steps", options: ["3", "4 to 5", "6 or more"])]),
+            FaceQuestion(id: "q7", title: "How many routine steps will you really do?",
+                         rows: [.init(key: "q7_steps", options: ["3", "4 to 5", "6 or more"])]),
+            FaceQuestion(id: knowKey, title: "Anything you want to know?",
+                         hint: "Pick any. Each one becomes a question you can ask Skinstel after your map.",
+                         rows: [.init(key: knowKey, options: knowOptions.map(\.label), multi: true)]),
         ]
+        return list.map(withNotSure)
     }
 
     /// Q8–Q19, opt-in. Q16 (supplements) is left out for under-18s.
@@ -86,8 +123,27 @@ enum FaceQuestions {
                          hint: "Optional. A routine, a product, a pattern you've noticed.", rows: [], noteOnly: true),
         ]
         if under18 { list.removeAll { $0.id == "q16" } }
-        return list
+        return list.map(withNotSure)
     }
+
+    /// Adds "Not sure" to every row of a question that may be skipped (all but Q5 and the note);
+    /// on a multi-pick row it clears the other picks.
+    private static func withNotSure(_ question: FaceQuestion) -> FaceQuestion {
+        guard !question.required, !question.noteOnly else { return question }
+        var q = question
+        q.rows = q.rows.map { row in
+            var row = row
+            if !row.options.contains(notSure) { row.options.append(notSure) }
+            if row.multi { row.exclusive.insert(notSure) }
+            return row
+        }
+        return q
+    }
+
+    /// The questions the skin profile answers outright: they are skipped (shown as "From your
+    /// profile: … · Edit") when the prefill answers every row. Q6 stays: Triggers are clues, not
+    /// the whole answer, and Q5 is never prefilled.
+    static let profileAnswered: Set<String> = [FaceGoal.chipKey, "q1", "q2"]
 
     /// What the app already knows, so the person confirms instead of re-answering (PRO-SPEC §4.2).
     static func prefill(profile: SkinProfile, triggerNames: [String]) -> [String: Set<String>] {
@@ -100,14 +156,35 @@ enum FaceQuestions {
         case .sensitive?, nil: break
         }
         if profile.skinType == .sensitive { out["q2"] = ["Sometimes"] }
-        let goal: String? = profile.concerns.contains(.breakouts) ? "Fewer breakouts"
-            : profile.concerns.contains(.redness) ? "Calmer redness"
-            : profile.concerns.contains(.oiliness) ? "Less shine"
-            : profile.concerns.contains(.darkSpots) ? "More even tone" : nil
-        if let goal { out["q7_goal"] = [goal] }
+        let wanted = goals(from: profile.concerns)
+        if !wanted.isEmpty { out[FaceGoal.chipKey] = Set(wanted.map(\.label)) }
         let picked = triggerPicks(triggerNames)
         if !picked.isEmpty { out["q6"] = Set(picked) }
         return out
+    }
+
+    /// The goals that onboarding's concerns already name, in the goals question's order.
+    static func goals(from concerns: [SkinConcern]) -> [FaceGoal] {
+        FaceGoal.allCases.filter { goal in
+            switch goal {
+            case .fewerBreakouts: return concerns.contains(.breakouts)
+            case .calmerRedness: return concerns.contains(.redness)
+            case .lessShine: return concerns.contains(.oiliness)
+            case .fadeMarks: return concerns.contains(.darkSpots)
+            case .smootherTexture: return concerns.contains(.texture)
+            case .smallerPores, .moreGlow, .simplerRoutine, .justCurious: return false
+            }
+        }
+    }
+
+    /// "Combination skin, fewer breakouts": what the profile answered, for the line on the first
+    /// question. Nil when the profile holds neither a skin type nor a concern with a goal.
+    static func profileLine(profile: SkinProfile) -> String? {
+        var parts: [String] = []
+        if let type = profile.skinType { parts.append("\(type.label) skin") }
+        let wanted = goals(from: profile.concerns)
+        if !wanted.isEmpty { parts.append(wanted.map { $0.label.lowercased() }.joined(separator: ", ")) }
+        return parts.isEmpty ? nil : parts.joined(separator: ", ")
     }
 
     /// Q6 options that match an ingredient in Triggers.
@@ -124,31 +201,62 @@ enum FaceQuestions {
     }
 }
 
-/// Q1–Q7, the checkpoint, and the opt-in deep dive (canvas screen 4).
+/// The goals question, Q1–Q7 and "Anything you want to know?", the checkpoint, and the opt-in deep
+/// dive (canvas screen 4). Questions the skin profile already answers are skipped behind a "From
+/// your profile" line with Edit. Every question but Q5 can be skipped or answered "Not sure".
+/// While the photos are read in the background, a small pill says so, then that the map is ready.
 struct FaceQuizView: View {
+    /// The background read of the sweep's photos while the person answers.
+    enum ReadStatus: Equatable { case reading, ready }
+
     let under18: Bool
     let prefill: [String: Set<String>]
     let triggerHint: String?
+    /// What the skipped questions were answered with ("Combination skin, fewer breakouts").
+    var profileLine: String? = nil
+    /// Nil hides the pill (no read running, or one that failed: that shows after the questions).
+    var readStatus: ReadStatus? = nil
     let onClose: () -> Void
     let onFinish: (FaceAnswers) -> Void
 
     private enum Stage: Equatable { case core(Int), checkpoint, deep(Int) }
 
     @State private var stage: Stage = .core(0)
-    @State private var picks: [String: Set<String>] = [:]
+    /// Picks per chip key, in the order picked (goals keep it: the first goal leads in Ask).
+    @State private var picks: [String: [String]] = [:]
     @State private var notes: [String: String] = [:]
     @State private var noteOpen = false
     @State private var didPrefill = false
+    /// Edit on the profile line: the skipped questions come back.
+    @State private var showPrefilled = false
 
-    private var core: [FaceQuestion] { FaceQuestions.core(under18: under18, triggerHint: triggerHint) }
+    private var allCore: [FaceQuestion] { FaceQuestions.core(under18: under18, triggerHint: triggerHint) }
     private var deep: [FaceQuestion] { FaceQuestions.deep(under18: under18) }
+
+    /// Profile-answered questions the prefill fully covers, until Edit.
+    private var skipped: Set<String> {
+        guard !showPrefilled else { return [] }
+        let covered = allCore.filter { q in
+            FaceQuestions.profileAnswered.contains(q.id) && q.rows.allSatisfy { !(prefill[$0.key] ?? []).isEmpty }
+        }
+        return Set(covered.map(\.id))
+    }
+
+    private var core: [FaceQuestion] {
+        let skip = skipped
+        return allCore.filter { !skip.contains($0.id) }
+    }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
             header
             switch stage {
-            case .core(let i): questionPage(core[i], isDeep: false, isLast: false)
-            case .deep(let i): questionPage(deep[i], isDeep: true, isLast: i == deep.count - 1)
+            case .core(let i):
+                let list = core
+                if list.indices.contains(i) { questionPage(list[i], isDeep: false, isLast: false, isFirst: i == 0) }
+            case .deep(let i):
+                let list = deep
+                if list.indices.contains(i) { questionPage(list[i], isDeep: true, isLast: i == list.count - 1, isFirst: false) }
             case .checkpoint: checkpoint
             }
         }
@@ -156,14 +264,27 @@ struct FaceQuizView: View {
         .onAppear {
             guard !didPrefill else { return }
             didPrefill = true
-            picks = prefill
+            picks = orderedPrefill()
         }
     }
 
     // MARK: Header
 
+    private var current: FaceQuestion? {
+        switch stage {
+        case .core(let i): core.indices.contains(i) ? core[i] : nil
+        case .deep(let i): deep.indices.contains(i) ? deep[i] : nil
+        case .checkpoint: nil
+        }
+    }
+
+    private var canSkip: Bool {
+        guard let q = current else { return false }
+        return !q.required && !q.noteOnly
+    }
+
     private var header: some View {
-        VStack(spacing: SKSpace.sm) {
+        VStack(alignment: .leading, spacing: SKSpace.sm) {
             HStack {
                 Button(action: back) {
                     Image(systemName: "chevron.left").font(.system(size: 18, weight: .semibold))
@@ -173,7 +294,15 @@ struct FaceQuizView: View {
                 Spacer()
                 Text(kicker).font(SKFont.mono(12)).tracking(1.5).foregroundStyle(SKColor.ink)
                 Spacer()
-                Color.clear.frame(width: 44, height: 44)
+                if canSkip {
+                    Button("Skip") { skip() }
+                        .font(SKFont.sans(15, weight: .semibold, relativeTo: .subheadline))
+                        .foregroundStyle(SKColor.primary)
+                        .frame(minWidth: 44, minHeight: 44)
+                        .accessibilityHint("Moves on without an answer")
+                } else {
+                    Color.clear.frame(width: 44, height: 44)
+                }
             }
             .padding(.horizontal, SKSpace.sm)
             HStack(spacing: SKSpace.xs) {
@@ -183,15 +312,40 @@ struct FaceQuizView: View {
             }
             .skPagePadding()
             .accessibilityHidden(true)
+            if let readStatus {
+                readPill(readStatus)
+                    .skPagePadding()
+                    .padding(.top, SKSpace.xs)
+            }
         }
         .padding(.top, SKSpace.md)
+        .animation(SKAnimation.ios(0.3), value: readStatus)
+    }
+
+    /// "Reading your photos while you answer…", then "Your map is ready".
+    private func readPill(_ status: ReadStatus) -> some View {
+        HStack(spacing: SKSpace.sm) {
+            if status == .ready {
+                Image(systemName: "checkmark.circle.fill").font(.system(size: 13, weight: .semibold))
+                    .foregroundStyle(SKColor.goodFg)
+            } else {
+                ProgressView().controlSize(.mini).tint(SKColor.clayTileFg)
+            }
+            Text(status == .ready ? "Your map is ready" : "Reading your photos while you answer…")
+                .font(SKFont.sans(13, weight: .medium, relativeTo: .footnote))
+                .foregroundStyle(status == .ready ? SKColor.ink : SKColor.clayTileFg)
+        }
+        .padding(.horizontal, SKSpace.md)
+        .padding(.vertical, 6)
+        .background(status == .ready ? SKColor.goodBg : SKColor.clayTileBg, in: Capsule())
+        .accessibilityElement(children: .combine)
     }
 
     private var kicker: String {
         switch stage {
-        case .core(let i): "QUESTION \(i + 1) OF 7"
-        case .checkpoint: "CORE PROFILE · 7 OF 7"
-        case .deep(let i): "DEEP DIVE · \(i + 8) OF \(7 + deep.count)"
+        case .core(let i): "QUESTION \(i + 1) OF \(core.count)"
+        case .checkpoint: "CORE PROFILE · DONE"
+        case .deep(let i): "DEEP DIVE · \(i + 1) OF \(deep.count)"
         }
     }
 
@@ -210,14 +364,22 @@ struct FaceQuizView: View {
 
     // MARK: Question
 
-    private func questionPage(_ q: FaceQuestion, isDeep: Bool, isLast: Bool) -> some View {
+    private func questionPage(_ q: FaceQuestion, isDeep: Bool, isLast: Bool, isFirst: Bool) -> some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 18) {
+                if isFirst && !skipped.isEmpty, let profileLine { profileNote(profileLine) }
                 Text(q.title).font(SKFont.pageTitle).foregroundStyle(SKColor.ink)
                     .fixedSize(horizontal: false, vertical: true)
                     .accessibilityAddTraits(.isHeader)
                 if let hint = q.hint {
                     Text(hint).font(SKFont.secondary).foregroundStyle(SKColor.muted)
+                }
+                if let why = q.why {
+                    HStack(alignment: .firstTextBaseline, spacing: SKSpace.sm) {
+                        Image(systemName: "lock.shield").foregroundStyle(SKColor.clayTileFg).accessibilityHidden(true)
+                        Text(why).font(SKFont.sans(14, weight: .medium, relativeTo: .subheadline)).foregroundStyle(SKColor.clayTileFg)
+                    }
+                    .accessibilityElement(children: .combine)
                 }
                 ForEach(q.rows, id: \.key) { row in
                     VStack(alignment: .leading, spacing: 10) {
@@ -253,6 +415,29 @@ struct FaceQuizView: View {
             .padding(.vertical, SKSpace.md)
             .background(SKColor.bg)
         }
+    }
+
+    /// "From your profile: Combination skin · Edit": the skipped questions, one tap from changing.
+    private func profileNote(_ line: String) -> some View {
+        HStack(alignment: .center, spacing: SKSpace.sm) {
+            Image(systemName: "person.crop.circle").foregroundStyle(SKColor.clayTileFg).accessibilityHidden(true)
+            Text("From your profile: \(line)")
+                .font(SKFont.secondary).foregroundStyle(SKColor.ink)
+                .fixedSize(horizontal: false, vertical: true)
+                .frame(maxWidth: .infinity, alignment: .leading)
+            Button("Edit") {
+                noteOpen = false
+                showPrefilled = true
+                stage = .core(0)
+            }
+            .font(SKFont.sans(14, weight: .semibold, relativeTo: .subheadline))
+            .foregroundStyle(SKColor.primary)
+            .frame(minWidth: 44, minHeight: 44)
+            .accessibilityLabel("Edit what your profile answered")
+        }
+        .padding(.horizontal, SKSpace.md)
+        .background(SKColor.cream, in: RoundedRectangle(cornerRadius: SKRadius.tile, style: .continuous))
+        .overlay(RoundedRectangle(cornerRadius: SKRadius.tile, style: .continuous).stroke(SKColor.line, lineWidth: 1))
     }
 
     private func optionChip(_ option: String, row: FaceQuestion.Row) -> some View {
@@ -342,20 +527,40 @@ struct FaceQuizView: View {
         q.noteOnly || q.rows.allSatisfy { !(picks[$0.key] ?? []).isEmpty }
     }
 
+    /// The prefill as ordered picks, in each row's option order.
+    private func orderedPrefill() -> [String: [String]] {
+        let rows = (allCore + deep).flatMap(\.rows)
+        var out: [String: [String]] = [:]
+        for (key, values) in prefill where !values.isEmpty {
+            let options = rows.first { $0.key == key }?.options ?? []
+            let known = options.filter { values.contains($0) }
+            out[key] = known + values.filter { !options.contains($0) }.sorted()
+        }
+        return out
+    }
+
     private func toggle(_ option: String, row: FaceQuestion.Row) {
         Haptics.selection()
         var current = picks[row.key] ?? []
         if !row.multi {
             current = [option]
-        } else if current.contains(option) {
-            current.remove(option)
+        } else if let at = current.firstIndex(of: option) {
+            current.remove(at: at)
         } else if row.exclusive.contains(option) {
             current = [option]
         } else {
-            current.subtract(row.exclusive)
-            current.insert(option)
+            current.removeAll { row.exclusive.contains($0) }
+            current.append(option)
         }
         picks[row.key] = current
+    }
+
+    /// Moves on with no answer for this question (never offered on Q5).
+    private func skip() {
+        guard let q = current, !q.required else { return }
+        Haptics.selection()
+        for row in q.rows { picks[row.key] = nil }
+        next()
     }
 
     private func next() {
@@ -371,18 +576,18 @@ struct FaceQuizView: View {
         noteOpen = false
         switch stage {
         case .core(let i): if i == 0 { onClose() } else { stage = .core(i - 1) }
-        case .checkpoint: stage = .core(core.count - 1)
+        case .checkpoint: stage = .core(max(core.count - 1, 0))
         case .deep(let i): stage = i == 0 ? .checkpoint : .deep(i - 1)
         }
     }
 
     private func finish() {
-        let chosen = picks[ "q5"] ?? []
+        let chosen = picks["q5"] ?? []
         let locks = FaceLock.allCases.filter { lock in
             chosen.contains { FaceQuestions.lockOptions[$0] == lock }
         }
         var chips: [String: [String]] = [:]
-        for (key, value) in picks where !value.isEmpty { chips[key] = value.sorted() }
+        for (key, value) in picks where !value.isEmpty { chips[key] = value }
         let cleanNotes = notes.filter { !$0.value.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty }
         onFinish(FaceAnswers(locks: locks, chips: chips, notes: cleanNotes.isEmpty ? nil : cleanNotes))
     }

@@ -24,6 +24,8 @@ final class SweepModel {
     /// True while the retake card is up: the camera runs (the person sees themselves) but no
     /// angle locks until they tap Retake.
     private(set) var holding: Bool
+    /// The session is running: the preview's connection exists and can be mirrored.
+    private(set) var running = false
     private var camera: SweepCamera?
 
     init(fullSweep: Bool, holding: Bool = false) {
@@ -46,8 +48,12 @@ final class SweepModel {
         self.camera = camera
         phase = .scanning
         // Behind the retake card the camera stays off until Retake.
-        if !holding { camera.start() }
+        if !holding { startCamera() }
         aim()
+    }
+
+    private func startCamera() {
+        camera?.start(onRunning: { [weak self] in self?.running = true })
     }
 
     func stop() { camera?.stop() }
@@ -55,14 +61,14 @@ final class SweepModel {
     func restart() {
         step = 0
         images = SweepImages()
-        if phase == .done { phase = .scanning; camera?.start() }
+        if phase == .done { phase = .scanning; startCamera() }
         aim()
     }
 
     /// Retake: drop the hold and start the sweep from the first angle.
     func resume() {
         holding = false
-        camera?.start()
+        startCamera()
         restart()
     }
 
@@ -127,20 +133,35 @@ final class SweepScreenLight {
 }
 
 /// The live front camera on the sweep's own session. The layer is the view's backing layer,
-/// so it always fills the view; the front camera's preview is mirrored by default.
+/// so it always fills the view.
 struct SweepPreview: UIViewRepresentable {
     let session: AVCaptureSession
+    /// True once the session runs. Changing it calls `updateUIView`, which mirrors the
+    /// connection that only exists from then on.
+    var running = false
 
     func makeUIView(context: Context) -> PreviewView {
         let view = PreviewView()
-        view.backgroundColor = .black
+        view.backgroundColor = .clear
         view.previewLayer.videoGravity = .resizeAspectFill
         view.previewLayer.session = session
+        Self.mirror(view.previewLayer)
         return view
     }
 
     func updateUIView(_ uiView: PreviewView, context: Context) {
         if uiView.previewLayer.session !== session { uiView.previewLayer.session = session }
+        Self.mirror(uiView.previewLayer)
+    }
+
+    /// Selfie convention: the person's right cheek on the screen's right. The front camera's
+    /// preview mirrors itself only while `automaticallyAdjustsVideoMirroring` is on; this pins it
+    /// (setting `isVideoMirrored` with the automatic flag on throws, so the flag goes off first).
+    /// Only the preview flips: the video output, and so every photo sent or kept, stays unmirrored.
+    private static func mirror(_ layer: AVCaptureVideoPreviewLayer) {
+        guard let connection = layer.connection, connection.isVideoMirroringSupported else { return }
+        if connection.automaticallyAdjustsVideoMirroring { connection.automaticallyAdjustsVideoMirroring = false }
+        if !connection.isVideoMirrored { connection.isVideoMirrored = true }
     }
 
     final class PreviewView: UIView {
@@ -171,11 +192,13 @@ enum SweepRetakeAdvice {
     }
 }
 
-/// The scanner (canvas screen 3), over the live front camera: the person sees their own face,
-/// mirrored, inside an oval guide with the angle progress ring. A small 3D face in the corner
-/// turns to the angle wanted; live checks say what to fix; the screen glows cream as a ring
-/// light. An angle locks once every check holds for `SweepCamera.framesToLock` analysed frames
-/// (about 0.6 s), or with the shutter. With `retakeIssues`, it opens on the "Let's retake that" card instead.
+/// The scanner (canvas screen 3) in the light chemist look: the live front camera, mirrored like a
+/// selfie, inside a rounded portal on porcelain, with the oval guide and the angle progress ring
+/// over it. With the screen at full brightness the light ground and the soft white glow around
+/// the portal are the ring light. A small 3D face beside the instructions turns to the angle
+/// wanted; live checks say what to fix. An angle locks once every check holds for
+/// `SweepCamera.framesToLock` analysed frames (about 0.6 s), or with the shutter. With
+/// `retakeIssues`, it opens on the "Let's retake that" card instead.
 struct SweepView: View {
     let fullSweep: Bool
     let retakeIssues: [String]?
@@ -210,23 +233,16 @@ struct SweepView: View {
 
     var body: some View {
         ZStack {
-            SKColor.scannerBg.ignoresSafeArea()
-            if live, let session = model.session {
-                SweepPreview(session: session)
-                    .ignoresSafeArea()
-                    .accessibilityHidden(true)
-            }
-            scrims
-            if lightOn { ringLight }
+            FaceScanBackdrop().ignoresSafeArea()
             content
             if showRetake {
-                SKColor.scannerOverlay.ignoresSafeArea()
+                SKColor.ink.opacity(0.2).ignoresSafeArea()
                 retakeCard
                     .skPagePadding()
                     .transition(.move(edge: .bottom).combined(with: .opacity))
             }
         }
-        .foregroundStyle(SKColor.bg)
+        .foregroundStyle(SKColor.ink)
         .task { await model.start() }
         .onAppear { updateLight() }
         .onDisappear {
@@ -266,11 +282,11 @@ struct SweepView: View {
                 }
                 .accessibilityLabel("Close")
                 Spacer()
-                Text(kicker).font(SKFont.mono(12)).tracking(1.5)
+                Text(kicker).font(SKFont.mono(12)).tracking(1.5).foregroundStyle(SKColor.clayTileFg)
                 Spacer()
                 Button { model.restart() } label: {
                     Image(systemName: "arrow.counterclockwise").font(.system(size: 17, weight: .semibold))
-                        .foregroundStyle(SKColor.bg.opacity(0.8)).frame(width: 44, height: 44)
+                        .frame(width: 44, height: 44)
                 }
                 .accessibilityLabel("Start the sweep again")
                 .disabled(model.holding)
@@ -280,20 +296,22 @@ struct SweepView: View {
 
             HStack(alignment: .top, spacing: SKSpace.md) {
                 VStack(alignment: .leading, spacing: SKSpace.xs) {
-                    Text(title).font(SKFont.serif(32, relativeTo: .largeTitle))
+                    Text(title).font(SKFont.serif(32, relativeTo: .largeTitle)).foregroundStyle(SKColor.ink)
                         .accessibilityAddTraits(.isHeader)
-                    Text(subtitle).font(SKFont.sans(15, relativeTo: .subheadline)).foregroundStyle(SKColor.bg.opacity(0.85))
+                    Text(subtitle).font(SKFont.sans(15, weight: .medium, relativeTo: .subheadline))
+                        .foregroundStyle(SKColor.ink)
+                        .fixedSize(horizontal: false, vertical: true)
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
                 .animation(SKAnimation.ios(0.3), value: title)
                 if live { meshGuide }
             }
-            .shadow(color: SKColor.scannerBg.opacity(0.5), radius: 6)
             .padding(.horizontal, SKSpace.xl)
             .padding(.top, SKSpace.sm)
 
             Spacer(minLength: SKSpace.md)
-            ovalGuide
+            portal
+                .padding(.horizontal, SKSpace.xl)
             Spacer(minLength: SKSpace.md)
 
             if model.roles.count > 1 {
@@ -308,7 +326,7 @@ struct SweepView: View {
             if model.phase == .scanning { shutter.padding(.top, SKSpace.lg) }
             if showsPrivacyNote {
                 Text("Your Day 1 photo and close-ups stay on this phone until your week ends, then are deleted.")
-                    .font(SKFont.caption).foregroundStyle(SKColor.bg.opacity(0.7))
+                    .font(SKFont.caption).foregroundStyle(SKColor.muted)
                     .multilineTextAlignment(.center).padding(.horizontal, 40)
                     .padding(.top, SKSpace.md)
             }
@@ -316,59 +334,60 @@ struct SweepView: View {
         }
     }
 
-    /// Dark gradients at the top and bottom so the words read over any background.
-    private var scrims: some View {
-        VStack(spacing: 0) {
-            LinearGradient(colors: [SKColor.scannerBg.opacity(0.75), SKColor.scannerBg.opacity(0)],
-                           startPoint: .top, endPoint: .bottom)
-                .frame(height: 220)
-            Spacer(minLength: 0)
-            LinearGradient(colors: [SKColor.scannerBg.opacity(0), SKColor.scannerBg.opacity(0.8)],
-                           startPoint: .top, endPoint: .bottom)
-                .frame(height: 300)
+    /// The camera in a rounded portal: mirrored like a selfie, with the oval guide on top. Around
+    /// it, a soft white glow that brightens while an angle is being looked for (the ring light).
+    private var portal: some View {
+        let shape = RoundedRectangle(cornerRadius: SKRadius.sheet * 2, style: .continuous)
+        return ZStack {
+            SKColor.rose.opacity(0.5)
+            if live, let session = model.session {
+                SweepPreview(session: session, running: model.running)
+                    .accessibilityHidden(true)
+            } else if model.phase == .denied || model.phase == .unavailable {
+                Image(systemName: "camera").font(.system(size: 30, weight: .regular))
+                    .foregroundStyle(SKColor.clayTileFg)
+                    .accessibilityHidden(true)
+            }
+            ovalGuide
+                .padding(.horizontal, SKSpace.xl)
+                .padding(.vertical, SKSpace.xl + SKSpace.xs)
         }
-        .ignoresSafeArea()
-        .allowsHitTesting(false)
-        .accessibilityHidden(true)
-    }
-
-    /// A soft cream border: with the screen at full brightness it lights the face.
-    private var ringLight: some View {
-        ZStack {
-            RoundedRectangle(cornerRadius: SKRadius.sheet, style: .continuous)
-                .strokeBorder(SKColor.cream, lineWidth: 34)
-                .blur(radius: 14)
-            RoundedRectangle(cornerRadius: SKRadius.sheet, style: .continuous)
-                .strokeBorder(SKColor.cream, lineWidth: 14)
+        .clipShape(shape)
+        .overlay(shape.stroke(SKColor.line, lineWidth: 1))
+        .background {
+            ZStack {
+                shape.stroke(SKColor.cream, lineWidth: 34).blur(radius: 16)
+                shape.stroke(SKColor.cream, lineWidth: 10)
+            }
+            .opacity(lightOn ? 1 : 0.55)
+            .animation(SKAnimation.ios(0.4), value: lightOn)
         }
-        .ignoresSafeArea()
-        .allowsHitTesting(false)
-        .accessibilityHidden(true)
+        .aspectRatio(0.78, contentMode: .fit)
+        .frame(maxWidth: 300, maxHeight: 390)
     }
 
     private var ovalGuide: some View {
         ZStack {
-            Ellipse().stroke(SKColor.bg.opacity(0.35), lineWidth: 5)
+            Ellipse().stroke(SKColor.cream.opacity(0.75), lineWidth: 4)
             Ellipse().trim(from: 0, to: progress)
                 .stroke(SKColor.primary, style: StrokeStyle(lineWidth: 6, lineCap: .round))
                 .rotationEffect(.degrees(-90))
                 .animation(SKAnimation.ios(0.4), value: progress)
             if model.phase == .scanning && model.reading.ready && !model.holding {
-                Ellipse().stroke(SKColor.goodBg.opacity(0.9), lineWidth: 2).padding(8)
+                Ellipse().stroke(SKColor.goodBg, lineWidth: 2).padding(8)
             }
         }
-        .frame(width: 250, height: 330)
         .accessibilityElement(children: .ignore)
         .accessibilityLabel("Scan progress")
         .accessibilityValue("\(min(model.step, model.roles.count)) of \(model.roles.count) angles")
     }
 
-    /// The "you are here" guide: the 3D face turned to the angle wanted now.
+    /// The "you are here" guide: the 3D face turned to the angle wanted now, mirrored like the camera.
     private var meshGuide: some View {
         FaceMeshView(mode: .scan, zoom: 0.4, targetYaw: targetYaw)
             .frame(width: 96, height: 96)
-            .background(SKColor.scannerBg.opacity(0.72), in: RoundedRectangle(cornerRadius: SKRadius.card, style: .continuous))
-            .overlay(RoundedRectangle(cornerRadius: SKRadius.card, style: .continuous).stroke(SKColor.bg.opacity(0.25), lineWidth: 1))
+            .background(SKColor.cream, in: RoundedRectangle(cornerRadius: SKRadius.card, style: .continuous))
+            .overlay(RoundedRectangle(cornerRadius: SKRadius.card, style: .continuous).stroke(SKColor.line, lineWidth: 1))
             .allowsHitTesting(false)
             .accessibilityHidden(true)
     }
@@ -379,8 +398,8 @@ struct SweepView: View {
             model.shutter()
         } label: {
             ZStack {
-                Circle().stroke(SKColor.bg, lineWidth: 3).frame(width: 66, height: 66)
-                Circle().fill(SKColor.bg).frame(width: 54, height: 54)
+                Circle().stroke(SKColor.ink, lineWidth: 3).frame(width: 66, height: 66)
+                Circle().fill(SKColor.primary).frame(width: 54, height: 54)
             }
             .frame(width: 70, height: 70)
             .contentShape(Circle())
@@ -422,6 +441,7 @@ struct SweepView: View {
         }
         .padding(SKSpace.xl)
         .background(SKColor.cream, in: RoundedRectangle(cornerRadius: SKRadius.sheet, style: .continuous))
+        .overlay(RoundedRectangle(cornerRadius: SKRadius.sheet, style: .continuous).stroke(SKColor.line, lineWidth: 1))
         .skCardShadow()
     }
 
@@ -431,6 +451,8 @@ struct SweepView: View {
         CGFloat(min(model.step, model.roles.count)) / CGFloat(max(model.roles.count, 1))
     }
 
+    /// Positive is a turn to the person's own left; the guide is mirrored, so its nose moves to the
+    /// screen's left, the way their face moves in the mirrored camera.
     private var targetYaw: Double {
         switch model.currentRole {
         case .left45: 0.62
@@ -498,11 +520,11 @@ struct SweepView: View {
             if done { Image(systemName: "checkmark").font(.system(size: 11, weight: .bold)) }
             Text(active ? "\(name) · now" : name)
         }
-        .font(SKFont.sans(13, relativeTo: .footnote))
-        .foregroundStyle(done || active ? SKColor.cream : SKColor.bg.opacity(0.85))
+        .font(SKFont.sans(13, weight: active ? .semibold : .regular, relativeTo: .footnote))
+        .foregroundStyle(done ? SKColor.cream : active ? SKColor.ink : SKColor.muted)
         .padding(.horizontal, SKSpace.md).padding(.vertical, SKSpace.sm)
-        .background(done ? SKColor.primary : active ? SKColor.primary.opacity(0.45) : SKColor.scannerBg.opacity(0.5), in: Capsule())
-        .overlay(Capsule().stroke(done || active ? SKColor.primary : SKColor.bg.opacity(0.35), lineWidth: 1))
+        .background(done ? SKColor.primary : active ? SKColor.clayTileBg : SKColor.cream, in: Capsule())
+        .overlay(Capsule().stroke(done || active ? SKColor.primary : SKColor.line, lineWidth: 1))
         .accessibilityElement(children: .combine)
         .accessibilityValue(done ? "Done" : active ? "Now" : "Waiting")
     }
@@ -525,19 +547,21 @@ struct SweepView: View {
         }
     }
 
+    /// Colour, glyph and word: a check that holds is sage with a tick, one to fix is clay with "!".
     private func check(ok: Bool, okText: String, fix: String) -> some View {
         HStack(spacing: 6) {
             Image(systemName: ok ? "checkmark" : "exclamationmark")
                 .font(.system(size: 11, weight: .bold))
+                .foregroundStyle(ok ? SKColor.goodFg : SKColor.cautionFg)
                 .accessibilityHidden(true)
             Text(ok ? okText : fix).lineLimit(1).minimumScaleFactor(0.8)
+                .foregroundStyle(ok ? SKColor.ink : SKColor.cautionFg)
         }
         .font(SKFont.sans(13, weight: .medium, relativeTo: .footnote))
-        .foregroundStyle(ok ? SKColor.goodFg : SKColor.cream)
         .padding(.horizontal, SKSpace.md).padding(.vertical, SKSpace.sm)
         .frame(maxWidth: .infinity)
-        .background(ok ? SKColor.goodBg : SKColor.scannerBg.opacity(0.6), in: Capsule())
-        .overlay(Capsule().stroke(ok ? SKColor.goodBg : SKColor.bg.opacity(0.35), lineWidth: 1))
+        .background(ok ? SKColor.goodBg : SKColor.cautionBg, in: Capsule())
+        .overlay(Capsule().stroke(ok ? SKColor.goodFg.opacity(0.3) : SKColor.cautionFg.opacity(0.25), lineWidth: 1))
         .animation(SKAnimation.ios(0.25), value: ok)
         .accessibilityElement(children: .combine)
         .accessibilityLabel(ok ? okText : fix)
