@@ -1,13 +1,12 @@
-import ImageIO
 import SkintelCore
 import SwiftUI
-import UIKit
-import Vision
 
-/// The 3D map with the 7-day check (canvas screen 5): a dark hero with the face, zone glow and
-/// labels, tappable day buttons, concentric rings with a legend, the insight, zones, tonight's
-/// routine, the report once it exists, the history list and Ask. Levels are words and glyphs,
-/// never raw scores (PRO-SPEC §6).
+/// The face map with the 7-day check (canvas screen 5), in the light chemist look: a porcelain
+/// hero with one map, the person's own Day 1 photo with the canonical mesh fitted over it, the
+/// zone glow and the AI's marked spots, or the turnable 3D model ("Photo · 3D"), both mirrored
+/// like a selfie; day buttons; rings; the insight; zones that open to their five readings; what
+/// Skinstel suggests; the person's goals with Ask; tonight's routine; the report; the history.
+/// Levels are words and glyphs, never raw scores or percentages (PRO-SPEC §6).
 ///
 /// With `onUnlock` (no Skintel+, e.g. the free scan's real Day 1 map), the week is locked: the
 /// rings card becomes the locked 7-day check, and the routine, the scan actions and Ask stay
@@ -18,21 +17,29 @@ struct FaceResultView: View {
     /// The scan action to offer today ("Take today's photo", "Final sweep"), or nil.
     let nextAction: String?
     let onNext: () -> Void
-    let onAsk: (() -> Void)?
+    /// Opens Ask with this question in the composer: a goal's question, or the general one.
+    let onAsk: ((String) -> Void)?
     let onClose: () -> Void
     /// Not Skintel+ only: opens the Skintel+ wall from the locked 7-day check.
     var onUnlock: (() -> Void)? = nil
-    /// The Day 1 front photo (JPEG, on this phone only). With it the hero opens on "You". It is
-    /// deleted with the Day 1 crops when the report is written, so the report map opens on 3D.
+    /// The Day 1 front photo (JPEG, on this phone only). With it the hero opens on the photo. It
+    /// is deleted with the Day 1 crops when the report is written, so the report map opens on 3D.
     var photo: Data? = nil
+    /// The questionnaire's answers: the goals and "Anything you want to know?" picks.
+    var answers: FaceAnswers? = nil
 
     @State private var selected: Int?
     /// The hero toggle; nil until the person picks, so it follows whether a photo exists.
     @State private var show3D: Bool?
+    /// Zone rows opened to their five readings.
+    @State private var openZones: Set<FaceZone> = []
 
     private var showsPhoto: Bool { photo != nil && !(show3D ?? false) }
 
     private var isFree: Bool { onUnlock != nil }
+
+    /// Ask is offered where it was before: not on the free (locked) map, and only with a handler.
+    private var askable: Bool { !isFree && onAsk != nil }
 
     private var scans: [FaceScanEntry] { calibration.scans }
     private var index: Int {
@@ -40,6 +47,9 @@ struct FaceResultView: View {
         return min(selected ?? scans.count - 1, scans.count - 1)
     }
     private var entry: FaceScanEntry? { scans.isEmpty ? nil : scans[index] }
+
+    private var goals: [FaceGoal] { FaceGoal.goals(in: answers) }
+    private var knows: [FaceKnow] { FaceQuestions.know(in: answers) }
 
     var body: some View {
         ScrollView {
@@ -49,10 +59,16 @@ struct FaceResultView: View {
                     if let onUnlock { lockedWeekCard(unlock: onUnlock) } else { ringsCard }
                     insightCard
                     zonesCard
+                    if let tips = suggestions { tipsCard(tips) }
+                    if showsGoalsCard { goalsCard }
                     if let report = calibration.latestReport?.report { reportCard(report) }
                     if !isFree, let routine, !(routine.pm.isEmpty && routine.am.isEmpty) { routineCard(routine) }
                     if !isFree, let nextAction { SKButton(title: nextAction, systemImage: "faceid") { onNext() } }
-                    if !isFree, let onAsk { SKButton(title: "Ask Skinstel about this scan", kind: nextAction == nil ? .primary : .secondary) { onAsk() } }
+                    if !isFree, let onAsk {
+                        SKButton(title: "Ask Skinstel about this scan", kind: nextAction == nil ? .primary : .secondary) {
+                            onAsk(FaceGoal.askPrompt(for: goals))
+                        }
+                    }
                     historyCard
                     Text("\(FaceScanResult.defaultDisclaimer) Photos are read, then deleted.")
                         .font(SKFont.caption).foregroundStyle(SKColor.muted).multilineTextAlignment(.center)
@@ -68,6 +84,17 @@ struct FaceResultView: View {
 
     // MARK: Hero
 
+    private var levels: FaceZoneLevels { FaceZoneLevels(result: entry?.result) }
+
+    /// The selected scan's marked spots, per zone (baseline and final reads carry them).
+    private var regions: [FaceZone: [FaceRegion]] {
+        var out: [FaceZone: [FaceRegion]] = [:]
+        for zone in entry?.result.zones ?? [] where !zone.regions.isEmpty {
+            out[zone.zone, default: []] += zone.regions
+        }
+        return out
+    }
+
     private var hero: some View {
         VStack(alignment: .leading, spacing: 0) {
             HStack {
@@ -76,14 +103,14 @@ struct FaceResultView: View {
                 }
                 .accessibilityLabel("Back")
                 Spacer()
-                Text("FACE SCAN").font(SKFont.mono(12)).tracking(1.5)
+                Text("FACE SCAN").font(SKFont.mono(12)).tracking(1.5).foregroundStyle(SKColor.clayTileFg)
                 Spacer()
                 Color.clear.frame(width: 44, height: 44)
             }
             .padding(.horizontal, SKSpace.sm)
             VStack(alignment: .leading, spacing: SKSpace.xs) {
-                Text("YOUR SKIN MAP · DAY \(index + 1) OF 7").font(SKFont.label).tracking(1.5).foregroundStyle(FaceScanColor.hot)
-                Text(insight.title).font(SKFont.pageTitle).accessibilityAddTraits(.isHeader)
+                Text("YOUR SKIN MAP · DAY \(index + 1) OF 7").font(SKFont.label).tracking(1.5).foregroundStyle(SKColor.primary)
+                Text(insight.title).font(SKFont.pageTitle).foregroundStyle(SKColor.ink).accessibilityAddTraits(.isHeader)
             }
             .padding(.horizontal, SKSpace.xl)
             .padding(.top, 14)
@@ -96,21 +123,27 @@ struct FaceResultView: View {
 
             Group {
                 if showsPhoto, let photo {
-                    FacePhotoMap(photo: photo, levels: FaceZoneLevels(result: entry?.result), labels: labels)
+                    FacePhotoMap(photo: photo, levels: levels, labels: labels, regions: regions)
                         .clipShape(RoundedRectangle(cornerRadius: SKRadius.card, style: .continuous))
+                        .overlay(RoundedRectangle(cornerRadius: SKRadius.card, style: .continuous).stroke(SKColor.line, lineWidth: 1))
                         .padding(.horizontal, SKSpace.md)
                         .padding(.vertical, SKSpace.sm)
                 } else {
-                    FaceMeshView(mode: .result, levels: FaceZoneLevels(result: entry?.result), labels: labels, zoom: 0.31)
+                    FaceMeshView(mode: .result, levels: levels, labels: labels, zoom: 0.31)
                 }
             }
             .frame(height: 330)
             .frame(maxWidth: SKLayout.readableWidth)
             .frame(maxWidth: .infinity)
 
+            Text("Mirrored, like a selfie")
+                .font(SKFont.caption).foregroundStyle(SKColor.muted)
+                .frame(maxWidth: .infinity)
+                .padding(.bottom, SKSpace.md)
+
             VStack(spacing: 10) {
                 ZStack {
-                    Rectangle().fill(SKColor.bg.opacity(0.14)).frame(height: 2).padding(.horizontal, 18)
+                    Rectangle().fill(SKColor.ink.opacity(0.12)).frame(height: 2).padding(.horizontal, 18)
                     HStack {
                         ForEach(1...7, id: \.self) { n in
                             dayButton(n)
@@ -119,28 +152,39 @@ struct FaceResultView: View {
                     }
                 }
                 HStack {
-                    Text("Tap a day · drag the face to turn it")
+                    Text(showsPhoto ? "Tap a day" : "Tap a day · drag the face to turn it")
                     Spacer()
-                    Text("◆ = unlock day").font(SKFont.label).foregroundStyle(FaceScanColor.hot)
+                    Text("◆ = unlock day").font(SKFont.label).foregroundStyle(SKColor.clayTileFg)
                 }
-                .font(SKFont.caption).foregroundStyle(SKColor.bg.opacity(0.62))
+                .font(SKFont.caption).foregroundStyle(SKColor.muted)
             }
             .padding(.horizontal, 18)
         }
         .padding(.top, 54)
         .padding(.bottom, 22)
-        .foregroundStyle(SKColor.bg)
-        .background(SKColor.scannerBg, in: UnevenRoundedRectangle(bottomLeadingRadius: SKRadius.sheet, bottomTrailingRadius: SKRadius.sheet))
+        .foregroundStyle(SKColor.ink)
+        .background { heroBackground }
     }
 
-    /// "You · 3D": their own Day 1 photo with the zone glow, or the 3D model.
+    /// Porcelain with a soft clay wash, a rose blush at the foot and a hairline edge.
+    private var heroBackground: some View {
+        let shape = UnevenRoundedRectangle(bottomLeadingRadius: SKRadius.sheet, bottomTrailingRadius: SKRadius.sheet)
+        return ZStack {
+            shape.fill(SKColor.cream)
+            shape.fill(LinearGradient(colors: [SKColor.blush, .clear, SKColor.rose.opacity(0.35)],
+                                      startPoint: .top, endPoint: .bottom))
+            shape.stroke(SKColor.line, lineWidth: 1)
+        }
+    }
+
+    /// "Photo · 3D": their own Day 1 photo with the mesh and glow, or the turnable 3D model.
     private var heroToggle: some View {
         HStack(spacing: 0) {
-            toggleButton("You", on: showsPhoto) { show3D = false }
+            toggleButton("Photo", on: showsPhoto) { show3D = false }
             toggleButton("3D", on: !showsPhoto) { show3D = true }
         }
         .padding(3)
-        .background(SKColor.bg.opacity(0.12), in: Capsule())
+        .background(SKColor.neutralChip, in: Capsule())
         .accessibilityElement(children: .contain)
         .accessibilityLabel("Map view")
     }
@@ -152,9 +196,9 @@ struct FaceResultView: View {
         } label: {
             Text(title)
                 .font(SKFont.sans(13, weight: .semibold, relativeTo: .footnote))
-                .foregroundStyle(on ? SKColor.scannerBg : SKColor.bg.opacity(0.8))
+                .foregroundStyle(on ? SKColor.ink : SKColor.muted)
                 .frame(minWidth: 64, minHeight: 32)
-                .background(on ? SKColor.bg : Color.clear, in: Capsule())
+                .background(on ? SKColor.cream : Color.clear, in: Capsule())
                 .contentShape(Capsule())
         }
         .buttonStyle(.plain)
@@ -169,10 +213,10 @@ struct FaceResultView: View {
         return Button { selected = n - 1; Haptics.selection() } label: {
             Text(unlock ? "\(n)◆" : "\(n)")
                 .font(SKFont.mono(13))
-                .foregroundStyle(on ? SKColor.scannerBg : past ? SKColor.cream : SKColor.bg.opacity(0.75))
+                .foregroundStyle(on || past ? SKColor.cream : SKColor.muted)
                 .frame(width: 44, height: 44)
-                .background(on ? SKColor.bg : past ? SKColor.primary : SKColor.scannerBg, in: Circle())
-                .overlay(Circle().stroke(on ? SKColor.bg : unlock ? SKColor.primary : SKColor.bg.opacity(0.25),
+                .background(on ? SKColor.ink : past ? SKColor.primary : SKColor.cream, in: Circle())
+                .overlay(Circle().stroke(on ? SKColor.ink : unlock ? SKColor.primary : SKColor.line,
                                          lineWidth: on ? 2 : unlock ? 1.5 : 1))
         }
         .buttonStyle(.plain)
@@ -183,24 +227,44 @@ struct FaceResultView: View {
 
     // MARK: Zones
 
-    /// Display order and label sides from the canvas.
+    /// Display order and label sides, mirrored like a selfie: the person's left cheek is on the
+    /// screen's left, their right cheek on the screen's right.
     private static let zoneOrder: [(zone: FaceZone, side: FaceMeshLabel.Side, y: CGFloat)] = [
-        (.forehead, .leading, 0.17), (.nose, .trailing, 0.36), (.rightCheek, .leading, 0.56),
-        (.leftCheek, .trailing, 0.66), (.chin, .leading, 0.86),
+        (.forehead, .leading, 0.17), (.nose, .trailing, 0.36), (.leftCheek, .leading, 0.56),
+        (.rightCheek, .trailing, 0.66), (.chin, .leading, 0.86),
     ]
 
-    /// The zone's strongest metric in this scan, and its band.
-    private func top(_ zone: FaceZone, in result: FaceScanResult?) -> (metric: FaceMetric, band: FaceCalibration.Band)? {
-        guard let z = result?.zone(zone), let best = z.scores.max(by: { $0.value < $1.value }) else { return nil }
-        return (best.key, FaceCalibration.band(best.value))
+    /// What a zone shows: clear (every reading under "Some"), its strongest finding, or nothing read.
+    private enum Finding: Equatable {
+        case clear
+        case finding(FaceMetric, FaceCalibration.Band)
+        case notRead
+    }
+
+    /// Uses the zone's own top finding (ties go away from shine, which moves most with light), so
+    /// a calm zone reads "Clear" instead of whichever metric happened to be largest.
+    private func finding(_ zone: FaceZone, in result: FaceScanResult?) -> Finding {
+        guard let z = result?.zone(zone) else { return .notRead }
+        if z.isClear { return .clear }
+        guard let top = z.topFinding else { return .notRead }
+        return .finding(top.metric, FaceCalibration.band(top.score))
     }
 
     private var labels: [FaceMeshLabel] {
-        Self.zoneOrder.compactMap { item in
-            guard let t = top(item.zone, in: entry?.result) else { return nil }
-            return FaceMeshLabel(zone: item.zone, title: item.zone.label.uppercased(),
-                                 value: "\(t.metric.label) · \(t.band.label)".uppercased(),
-                                 side: item.side, y: item.y, hot: t.band == .noticeable)
+        Self.zoneOrder.compactMap { item -> FaceMeshLabel? in
+            let value: String
+            let hot: Bool
+            switch finding(item.zone, in: entry?.result) {
+            case .notRead: return nil
+            case .clear:
+                value = "CLEAR"
+                hot = false
+            case .finding(let metric, let band):
+                value = "\(metric.label) · \(band.label)".uppercased()
+                hot = band == .noticeable
+            }
+            return FaceMeshLabel(zone: item.zone, title: item.zone.label.uppercased(), value: value,
+                                 side: item.side, y: item.y, hot: hot)
         }
     }
 
@@ -213,30 +277,130 @@ struct FaceResultView: View {
         }
         .padding(.horizontal, SKSpace.lg).padding(.vertical, SKSpace.xs)
         .background(SKColor.cream, in: RoundedRectangle(cornerRadius: SKRadius.card, style: .continuous))
+        .overlay(RoundedRectangle(cornerRadius: SKRadius.card, style: .continuous).stroke(SKColor.line, lineWidth: 1))
         .skCardShadow()
     }
 
+    /// The zone, its finding (glyph + words), and the AI's note for it (or the trend against
+    /// Day 1 when there is no note). A tap opens the five readings.
     private func zoneRow(_ zone: FaceZone) -> some View {
-        let t = top(zone, in: entry?.result)
-        let level = t.map { FaceZoneLevels.level(for: $0.band) } ?? 0
-        let trend = trendText(zone, metric: t?.metric)
-        return HStack(spacing: SKSpace.md) {
-            VStack(alignment: .leading, spacing: 2) {
-                Text(zone.label).font(SKFont.sans(15, weight: .semibold, relativeTo: .body)).foregroundStyle(SKColor.ink)
-                Text(trend.text).font(SKFont.caption).foregroundStyle(trend.calmer ? SKColor.goodFg : SKColor.muted)
+        let result = entry?.result
+        let zoneResult = result?.zone(zone)
+        let found = finding(zone, in: result)
+        let trend = trendText(zone, metric: zoneResult?.topFinding?.metric)
+        let note = zoneResult?.note
+        let open = openZones.contains(zone)
+        let tag = findingTag(found)
+        return VStack(alignment: .leading, spacing: 0) {
+            Button {
+                withAnimation(SKAnimation.ios(0.3)) {
+                    if open { openZones.remove(zone) } else { openZones.insert(zone) }
+                }
+                Haptics.selection()
+            } label: {
+                VStack(alignment: .leading, spacing: SKSpace.xs) {
+                    HStack {
+                        Text(zone.label).font(SKFont.sans(15, weight: .semibold, relativeTo: .body)).foregroundStyle(SKColor.ink)
+                        Spacer()
+                        if zoneResult != nil {
+                            Image(systemName: "chevron.down")
+                                .font(.system(size: 12, weight: .semibold))
+                                .foregroundStyle(SKColor.muted)
+                                .rotationEffect(.degrees(open ? 180 : 0))
+                                .accessibilityHidden(true)
+                        }
+                    }
+                    HStack(spacing: 6) {
+                        Image(systemName: tag.glyph).font(.system(size: 12, weight: .semibold)).accessibilityHidden(true)
+                        Text(tag.text).font(SKFont.sans(13, weight: .medium, relativeTo: .footnote))
+                    }
+                    .foregroundStyle(tag.color)
+                    Text(note ?? trend.text)
+                        .font(SKFont.sans(13, relativeTo: .footnote))
+                        .foregroundStyle(note == nil && trend.calmer ? SKColor.goodFg : SKColor.muted)
+                        .multilineTextAlignment(.leading)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+                .padding(.vertical, SKSpace.md)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .contentShape(Rectangle())
             }
-            Spacer()
-            Text(t?.metric.label ?? "").font(SKFont.caption).foregroundStyle(SKColor.muted)
-            HStack(spacing: 3) {
-                Capsule().fill(level >= 1 ? SKColor.primary : SKColor.line).frame(width: 14, height: 6)
-                Capsule().fill(level >= 2 ? SKColor.primary : SKColor.line).frame(width: 14, height: 6)
+            .buttonStyle(.plain)
+            .disabled(zoneResult == nil)
+            .accessibilityElement(children: .combine)
+            .accessibilityValue(zoneResult == nil ? "" : open ? "Open" : "Closed")
+            .accessibilityHint(zoneResult == nil ? "" : "Shows each reading for this zone")
+
+            if open, let zoneResult {
+                readings(zoneResult, trend: note == nil ? nil : trend.text)
+                    .transition(.opacity)
             }
-            .accessibilityHidden(true)
-            Text(t?.band.label ?? "Not read").font(SKFont.sans(13, weight: .medium, relativeTo: .footnote))
-                .foregroundStyle(SKColor.ink).frame(minWidth: 74, alignment: .trailing)
         }
-        .padding(.vertical, SKSpace.md)
-        .accessibilityElement(children: .combine)
+    }
+
+    /// Five small bars, one per reading, each with a glyph and a word. Never a number.
+    private func readings(_ zone: FaceZoneResult, trend: String?) -> some View {
+        VStack(alignment: .leading, spacing: SKSpace.sm) {
+            ForEach(FaceMetric.allCases) { metric in
+                let band = zone.scores[metric].map { FaceCalibration.band($0) }
+                let word = bandWord(band)
+                HStack(spacing: SKSpace.md) {
+                    Text(metric.label).font(SKFont.sans(14, relativeTo: .subheadline)).foregroundStyle(SKColor.ink)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                    levelBar(band)
+                    HStack(spacing: 5) {
+                        Image(systemName: word.glyph).font(.system(size: 11, weight: .semibold))
+                        Text(word.text).font(SKFont.sans(13, weight: .medium, relativeTo: .footnote))
+                    }
+                    .foregroundStyle(word.color)
+                    .frame(minWidth: 104, alignment: .leading)
+                }
+                .accessibilityElement(children: .ignore)
+                .accessibilityLabel(metric.label)
+                .accessibilityValue(word.text)
+            }
+            if let trend {
+                Text(trend).font(SKFont.caption).foregroundStyle(SKColor.muted)
+            }
+        }
+        .padding(.bottom, SKSpace.md)
+    }
+
+    /// Two segments: none lit for None, one for Some, both for Noticeable.
+    private func levelBar(_ band: FaceCalibration.Band?) -> some View {
+        let level = band.map { FaceZoneLevels.level(for: $0) } ?? 0
+        return HStack(spacing: 3) {
+            Capsule().fill(level >= 1 ? SKColor.primary : SKColor.line).frame(width: 16, height: 6)
+            Capsule().fill(level >= 2 ? SKColor.primary : SKColor.line).frame(width: 16, height: 6)
+        }
+        .accessibilityHidden(true)
+    }
+
+    private struct Word {
+        let glyph: String
+        let text: String
+        let color: Color
+    }
+
+    /// None / Some / Noticeable as colour, glyph and word.
+    private func bandWord(_ band: FaceCalibration.Band?) -> Word {
+        switch band {
+        case .clear?: Word(glyph: "circle", text: "None", color: SKColor.goodFg)
+        case .mild?: Word(glyph: "circle.lefthalf.filled", text: "Some", color: SKColor.primary)
+        case .noticeable?: Word(glyph: "circle.fill", text: "Noticeable", color: SKColor.cautionFg)
+        case nil: Word(glyph: "minus", text: "Not read", color: SKColor.muted)
+        }
+    }
+
+    /// The zone's headline: "Clear", or "Flat marks · Some".
+    private func findingTag(_ found: Finding) -> Word {
+        switch found {
+        case .clear: return Word(glyph: "checkmark.circle", text: "Clear", color: SKColor.goodFg)
+        case .notRead: return Word(glyph: "minus", text: "Not read", color: SKColor.muted)
+        case .finding(let metric, let band):
+            let word = bandWord(band)
+            return Word(glyph: word.glyph, text: "\(metric.label) · \(word.text)", color: word.color)
+        }
     }
 
     /// The selected scan against Day 1, by band so it never implies more precision than it has.
@@ -248,6 +412,139 @@ struct FaceResultView: View {
         if b < a { return ("Calmer than Day 1", true) }
         if b > a { return ("More than Day 1", false) }
         return ("Same as Day 1", false)
+    }
+
+    // MARK: Suggestions
+
+    /// The tips of the newest scan that has any; nil (no card) when none does.
+    private var suggestions: [FaceTip]? {
+        guard let tips = scans.last(where: { !$0.result.tips.isEmpty })?.result.tips, !tips.isEmpty else { return nil }
+        return tips
+    }
+
+    private func tipsCard(_ tips: [FaceTip]) -> some View {
+        SKCard {
+            VStack(alignment: .leading, spacing: SKSpace.md) {
+                Text("WHAT SKINSTEL SUGGESTS").font(SKFont.label).tracking(1).foregroundStyle(SKColor.primary)
+                ForEach(Array(tips.enumerated()), id: \.offset) { i, tip in
+                    HStack(alignment: .top, spacing: 10) {
+                        Text("\(i + 1)").font(SKFont.sans(12, weight: .semibold, relativeTo: .caption))
+                            .foregroundStyle(SKColor.clayTileFg)
+                            .frame(width: 24, height: 24)
+                            .background(SKColor.clayTileBg, in: Circle())
+                            .accessibilityHidden(true)
+                        VStack(alignment: .leading, spacing: 3) {
+                            Text(tip.title).font(SKFont.sans(15, weight: .semibold, relativeTo: .body)).foregroundStyle(SKColor.ink)
+                                .fixedSize(horizontal: false, vertical: true)
+                            if !tip.why.isEmpty {
+                                Text(tip.why).font(SKFont.secondary).foregroundStyle(SKColor.muted)
+                                    .fixedSize(horizontal: false, vertical: true)
+                            }
+                            if let about = Self.tipSubject(tip) {
+                                Text(about.uppercased()).font(SKFont.label).tracking(1).foregroundStyle(SKColor.clayTileFg)
+                            }
+                        }
+                    }
+                    .accessibilityElement(children: .combine)
+                }
+            }
+        }
+    }
+
+    /// "Nose & T-zone · Shine", from what the tip links to.
+    private static func tipSubject(_ tip: FaceTip) -> String? {
+        let parts = [tip.zone?.label, tip.metric?.label].compactMap { $0 }
+        return parts.isEmpty ? nil : parts.joined(separator: " · ")
+    }
+
+    // MARK: Goals
+
+    private var showsGoalsCard: Bool { !goals.isEmpty || (askable && !knows.isEmpty) }
+
+    private var goalsCard: some View {
+        SKCard {
+            VStack(alignment: .leading, spacing: SKSpace.md) {
+                Text(goals.isEmpty ? "YOUR QUESTIONS" : "FOR YOUR GOALS").font(SKFont.label).tracking(1)
+                    .foregroundStyle(SKColor.primary)
+                ForEach(goals) { goal in
+                    HStack(alignment: .center, spacing: SKSpace.md) {
+                        VStack(alignment: .leading, spacing: 3) {
+                            Text(goal.label).font(SKFont.sans(15, weight: .semibold, relativeTo: .body)).foregroundStyle(SKColor.ink)
+                            if let line = mapLine(for: goal) {
+                                Text(line).font(SKFont.secondary).foregroundStyle(SKColor.muted)
+                                    .fixedSize(horizontal: false, vertical: true)
+                            }
+                        }
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .accessibilityElement(children: .combine)
+                        if askable {
+                            askChip("Ask Skinstel", label: "Ask Skinstel about \(goal.label.lowercased())") {
+                                onAsk?(goal.askPrompt)
+                            }
+                        }
+                    }
+                }
+                if askable && !knows.isEmpty {
+                    if !goals.isEmpty { Divider().overlay(SKColor.line) }
+                    ChipFlow(spacing: SKSpace.sm) {
+                        ForEach(knows, id: \.label) { item in
+                            askChip(item.label, label: "Ask Skinstel: \(item.label)") { onAsk?(item.prompt) }
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    private func askChip(_ title: String, label: String, action: @escaping () -> Void) -> some View {
+        Button(action: action) {
+            HStack(spacing: 5) {
+                Image(systemName: "bubble.left").font(.system(size: 11, weight: .semibold))
+                Text(title).font(SKFont.sans(13, weight: .semibold, relativeTo: .footnote))
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+            .foregroundStyle(SKColor.primary)
+            .padding(.horizontal, SKSpace.md)
+            .padding(.vertical, 7)
+            .background(SKColor.blush, in: Capsule())
+            .overlay(Capsule().stroke(SKColor.primary.opacity(0.3), lineWidth: 1))
+            .frame(minHeight: 44)
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(SKPressStyle())
+        .accessibilityLabel(label)
+    }
+
+    /// What the map shows for a goal's reading, in words: "Shine: Some on your nose". Nil when the
+    /// goal is not about one reading, or the selected scan did not read it.
+    private func mapLine(for goal: FaceGoal) -> String? {
+        guard let metric = goal.metric, let result = entry?.result else { return nil }
+        var read = false
+        var showing: [(zone: FaceZone, score: Int)] = []
+        for item in Self.zoneOrder {
+            guard let score = result.score(metric, in: item.zone) else { continue }
+            read = true
+            if score >= FaceCalibration.someFrom { showing.append((item.zone, score)) }
+        }
+        guard read else { return nil }
+        guard let top = showing.max(by: { $0.score < $1.score }) else { return "\(metric.label): none showing on your map" }
+        let band = FaceCalibration.band(top.score)
+        let places = showing
+            .filter { FaceCalibration.band($0.score) == band }
+            .sorted { $0.score > $1.score }
+            .prefix(2)
+            .map { Self.place($0.zone) }
+        return "\(metric.label): \(band.label) on \(places.joined(separator: " and "))"
+    }
+
+    private static func place(_ zone: FaceZone) -> String {
+        switch zone {
+        case .forehead: "your forehead"
+        case .nose: "your nose"
+        case .leftCheek: "your left cheek"
+        case .rightCheek: "your right cheek"
+        case .chin: "your chin"
+        }
     }
 
     // MARK: Rings
@@ -298,6 +595,7 @@ struct FaceResultView: View {
         }
         .padding(SKSpace.lg)
         .background(SKColor.cream, in: RoundedRectangle(cornerRadius: SKRadius.card, style: .continuous))
+        .overlay(RoundedRectangle(cornerRadius: SKRadius.card, style: .continuous).stroke(SKColor.line, lineWidth: 1))
         .skCardShadow()
     }
 
@@ -335,6 +633,7 @@ struct FaceResultView: View {
         .padding(SKSpace.lg)
         .frame(maxWidth: .infinity, alignment: .leading)
         .background(SKColor.cream, in: RoundedRectangle(cornerRadius: SKRadius.card, style: .continuous))
+        .overlay(RoundedRectangle(cornerRadius: SKRadius.card, style: .continuous).stroke(SKColor.line, lineWidth: 1))
         .skCardShadow()
     }
 
@@ -473,150 +772,6 @@ struct FaceResultView: View {
         case .daily: "Daily photo"
         case .final: "Final sweep"
         case .report: "Report"
-        }
-    }
-}
-
-/// Where the face and its zone centres sit in the Day 1 photo, in Vision's normalised image
-/// space (0...1, origin bottom-left).
-struct FacePhotoLayout: Sendable, Equatable {
-    var face: CGRect
-    var centres: [FaceZone: CGPoint]
-
-    /// Zone centres in the face box's unit space when Vision finds no landmarks: the centres of
-    /// the crop rectangles the sweep cuts (`SweepCamera.zoneRects`). The photo is unmirrored, so
-    /// the person's right cheek is on the image's left.
-    static let fallbackCentres: [FaceZone: CGPoint] = [
-        .forehead: CGPoint(x: 0.5, y: 0.97), .nose: CGPoint(x: 0.5, y: 0.52),
-        .rightCheek: CGPoint(x: 0.21, y: 0.41), .leftCheek: CGPoint(x: 0.79, y: 0.41),
-        .chin: CGPoint(x: 0.5, y: 0.07),
-    ]
-
-    /// Runs face landmarks once on the photo. Off the main actor; nil when no face is found.
-    static func locate(_ jpeg: Data) -> FacePhotoLayout? {
-        guard let source = CGImageSourceCreateWithData(jpeg as CFData, nil),
-              let image = CGImageSourceCreateImageAtIndex(source, 0, nil) else { return nil }
-        let request = VNDetectFaceLandmarksRequest()
-        let handler = VNImageRequestHandler(cgImage: image, orientation: .up, options: [:])
-        try? handler.perform([request])
-        guard let face = (request.results ?? []).max(by: { $0.boundingBox.width < $1.boundingBox.width }) else { return nil }
-        let box = face.boundingBox
-        let unit = unitCentres(face.landmarks)
-        var centres: [FaceZone: CGPoint] = [:]
-        for (zone, p) in unit {
-            centres[zone] = CGPoint(x: box.minX + p.x * box.width, y: box.minY + p.y * box.height)
-        }
-        return FacePhotoLayout(face: box, centres: centres)
-    }
-
-    /// Zone centres in face-box unit space from the landmarks, falling back per zone.
-    private static func unitCentres(_ landmarks: VNFaceLandmarks2D?) -> [FaceZone: CGPoint] {
-        var out = fallbackCentres
-        guard let landmarks else { return out }
-        func centroid(_ region: VNFaceLandmarkRegion2D?) -> CGPoint? {
-            guard let points = region?.normalizedPoints, !points.isEmpty else { return nil }
-            let sum = points.reduce(CGPoint.zero) { CGPoint(x: $0.x + $1.x, y: $0.y + $1.y) }
-            return CGPoint(x: sum.x / CGFloat(points.count), y: sum.y / CGFloat(points.count))
-        }
-        let eyes = [centroid(landmarks.leftEye), centroid(landmarks.rightEye)].compactMap { $0 }.sorted { $0.x < $1.x }
-        let brows = [centroid(landmarks.leftEyebrow), centroid(landmarks.rightEyebrow)].compactMap { $0 }
-        let nose = centroid(landmarks.nose)
-        let mouth = centroid(landmarks.outerLips)
-        if let nose { out[.nose] = nose }
-        if eyes.count == 2 {
-            let midX = (eyes[0].x + eyes[1].x) / 2
-            let eyeY = (eyes[0].y + eyes[1].y) / 2
-            let browY = brows.isEmpty ? eyeY + 0.1 : brows.map(\.y).reduce(0, +) / CGFloat(brows.count)
-            out[.forehead] = CGPoint(x: midX, y: min(browY + 0.16, 1.05))
-            let cheekY = nose.map { $0.y - 0.04 } ?? eyeY - 0.2
-            // Image-left is the person's right cheek (unmirrored photo).
-            out[.rightCheek] = CGPoint(x: eyes[0].x - 0.03, y: cheekY)
-            out[.leftCheek] = CGPoint(x: eyes[1].x + 0.03, y: cheekY)
-        }
-        if let mouth { out[.chin] = CGPoint(x: mouth.x, y: max(mouth.y - 0.16, -0.04)) }
-        return out
-    }
-}
-
-/// The person's own Day 1 photo with the zone glow and labels drawn on it ("You" on the map).
-/// Same level-to-intensity mapping and words as the 3D map; the photo never leaves the phone.
-struct FacePhotoMap: View {
-    let photo: Data
-    var levels = FaceZoneLevels(levels: [:])
-    var labels: [FaceMeshLabel] = []
-
-    @State private var image: UIImage?
-    @State private var layout: FacePhotoLayout?
-
-    var body: some View {
-        Canvas { context, size in
-            guard let image else { return }
-            draw(image, in: &context, size: size)
-        }
-        .background(SKColor.scannerBg)
-        .task(id: photo) {
-            image = UIImage(data: photo)
-            let data = photo
-            layout = await Task.detached(priority: .userInitiated) { FacePhotoLayout.locate(data) }.value
-        }
-        .accessibilityElement()
-        .accessibilityLabel("Your Day 1 photo with zones highlighted")
-        .accessibilityAddTraits(.isImage)
-    }
-
-    private func draw(_ image: UIImage, in context: inout GraphicsContext, size: CGSize) {
-        let w = size.width, h = size.height
-        let iw = image.size.width, ih = image.size.height
-        guard w > 0, h > 0, iw > 0, ih > 0 else { return }
-        let face = layout?.face ?? CGRect(x: 0.25, y: 0.3, width: 0.5, height: 0.4)
-        let centres = layout?.centres ?? FacePhotoLayout.fallbackCentres.mapValues {
-            CGPoint(x: face.minX + $0.x * face.width, y: face.minY + $0.y * face.height)
-        }
-
-        // Fill the frame, zoomed so the face takes a bit over half the height, kept centred.
-        let fill = max(w / iw, h / ih)
-        let s = max(fill, min(0.56 * h / max(face.height * ih, 1), fill * 3))
-        let cx = face.midX * iw, cy = (1 - face.midY) * ih
-        let x0 = min(0, max(w - iw * s, w / 2 - cx * s))
-        let y0 = min(0, max(h - ih * s, h * 0.5 - cy * s))
-        func point(_ p: CGPoint) -> CGPoint { CGPoint(x: x0 + p.x * iw * s, y: y0 + (1 - p.y) * ih * s) }
-
-        context.draw(Image(uiImage: image), in: CGRect(x: x0, y: y0, width: iw * s, height: ih * s))
-        context.fill(Path(CGRect(origin: .zero, size: size)), with: .color(SKColor.scannerBg.opacity(0.18)))
-
-        let faceW = face.width * iw * s
-        for zone in FaceZone.allCases {
-            let l = Double(levels.level(zone)) / 2
-            guard l > 0, let c = centres[zone] else { continue }
-            let centre = point(c)
-            let rad = faceW * (zone == .forehead ? 0.42 : 0.27)
-            let gradient = Gradient(colors: [SKColor.primary.opacity(0.55 * l), SKColor.primary.opacity(0)])
-            context.fill(Path(ellipseIn: CGRect(x: centre.x - rad, y: centre.y - rad, width: rad * 2, height: rad * 2)),
-                         with: .radialGradient(gradient, center: centre, startRadius: 0, endRadius: rad))
-        }
-
-        var text = context
-        text.addFilter(.shadow(color: SKColor.scannerBg.opacity(0.85), radius: 3))
-        for label in labels {
-            guard let c = centres[label.zone] else { continue }
-            let anchorPoint = point(c)
-            let ax = anchorPoint.x, ay = anchorPoint.y
-            let leading = label.side == .leading
-            let lx = leading ? 16.0 : w - 16
-            let ly = h * label.y
-            let ex = leading ? min(ax - 14, lx + 96) : max(ax + 14, lx - 96)
-            var leader = Path()
-            leader.move(to: CGPoint(x: ax, y: ay))
-            leader.addLine(to: CGPoint(x: ex, y: ly))
-            leader.addLine(to: CGPoint(x: leading ? lx + 82 : lx - 82, y: ly))
-            text.stroke(leader, with: .color(SKColor.bg.opacity(0.7)), lineWidth: 0.8)
-            text.fill(Path(ellipseIn: CGRect(x: ax - 2.6, y: ay - 2.6, width: 5.2, height: 5.2)), with: .color(SKColor.bg))
-            let anchor: UnitPoint = leading ? .leading : .trailing
-            text.draw(Text(label.title).font(SKFont.label).foregroundStyle(SKColor.bg),
-                      at: CGPoint(x: lx, y: ly - 9), anchor: anchor)
-            text.draw(Text(label.value).font(SKFont.label)
-                        .foregroundStyle(label.hot ? FaceScanColor.hot : SKColor.bg.opacity(0.85)),
-                      at: CGPoint(x: lx, y: ly + 7), anchor: anchor)
         }
     }
 }
