@@ -9,7 +9,8 @@ import SkintelCore
 ///
 /// Day 1 zone crops live beside it in `FaceScanDay1/`, protected with `.complete` and excluded
 /// from backup. They are sent again with the Day 7 crops and deleted when the cycle ends, the
-/// scan is deleted, or `reset()` runs (PRO-SPEC §2).
+/// scan is deleted, or `reset()` runs (PRO-SPEC §2). The Day 1 front photo sits in the same
+/// folder under the same rules; it is only shown on the map ("You"), never sent again.
 @MainActor
 @Observable
 final class FaceScanStore {
@@ -36,6 +37,8 @@ final class FaceScanStore {
     }
 
     private(set) var data = Persisted()
+    /// The Day 1 front view (JPEG), on this phone only; nil once the Day 1 files are deleted.
+    private(set) var day1Front: Data?
     private let directory: URL
     private let fileURL: URL
     private let cropsURL: URL
@@ -48,6 +51,7 @@ final class FaceScanStore {
         fileURL = dir.appendingPathComponent("facescan.v1.json")
         cropsURL = dir.appendingPathComponent("FaceScanDay1", isDirectory: true)
         load()
+        day1Front = try? Data(contentsOf: frontURL)
     }
 
     // MARK: Reading
@@ -97,6 +101,8 @@ final class FaceScanStore {
     /// Day 1 crops are only needed for the Day 7 read; past day 14 the cycle is stale.
     func expireDay1Crops(now: Date, timeZone: TimeZone = .autoupdatingCurrent) {
         if hasCycle && cycleDay(now: now, timeZone: timeZone) > 14 { deleteDay1Crops() }
+        // A launch while the phone was locked can't read a `.complete` file: try again now.
+        else if day1Front == nil { day1Front = try? Data(contentsOf: frontURL) }
     }
 
     func saveAnswers(_ answers: FaceAnswers) {
@@ -121,7 +127,10 @@ final class FaceScanStore {
 
     // MARK: Day 1 crops
 
-    func saveDay1Crops(_ crops: [FaceZone: Data]) {
+    private var frontURL: URL { cropsURL.appendingPathComponent("front.jpg") }
+
+    /// Saves the Day 1 zone crops and, when given, the Day 1 front photo beside them.
+    func saveDay1Crops(_ crops: [FaceZone: Data], front: Data? = nil) {
         let fm = FileManager.default
         try? fm.createDirectory(at: cropsURL, withIntermediateDirectories: true,
                                 attributes: [.protectionKey: FileProtectionType.complete])
@@ -130,6 +139,11 @@ final class FaceScanStore {
             let url = cropsURL.appendingPathComponent("\(zone.rawValue).jpg")
             try? jpeg.write(to: url, options: [.atomic, .completeFileProtection])
             excludeFromBackup(url)
+        }
+        if let front {
+            try? front.write(to: frontURL, options: [.atomic, .completeFileProtection])
+            excludeFromBackup(frontURL)
+            day1Front = front
         }
     }
 
@@ -142,8 +156,10 @@ final class FaceScanStore {
         return out
     }
 
+    /// Deletes the Day 1 crops and the Day 1 front photo (one folder).
     func deleteDay1Crops() {
         try? FileManager.default.removeItem(at: cropsURL)
+        day1Front = nil
     }
 
     private func excludeFromBackup(_ url: URL) {
