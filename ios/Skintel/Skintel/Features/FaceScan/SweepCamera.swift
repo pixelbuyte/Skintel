@@ -151,8 +151,10 @@ final class SweepCamera: NSObject, @unchecked Sendable, AVCaptureVideoDataOutput
         let captureQuality: Float = quality.results?.first?.faceCaptureQuality ?? 0
         reading.sharp = captureQuality >= 0.45
 
+        // A `let` copy: capturing the `var` itself is a data race to Swift 6's region checker.
         let handlerReading = onReading
-        Task { @MainActor in handlerReading(reading) }
+        let snapshot = reading
+        Task { @MainActor in handlerReading(snapshot) }
 
         let current = target.withLock { $0 }
         guard reading.ready, let face, case .capture(let role) = current,
