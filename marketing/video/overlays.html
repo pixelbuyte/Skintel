@@ -1,0 +1,80 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<link rel="stylesheet" href="./style.css">
+<style>
+  /* Transparent 1080×1920 stickers for founder-shot POV footage. overlays.html?o=<id>; shoot-overlays.mjs saves each. */
+  html, body, #stage { background: transparent !important; }
+  #stage > div { position: absolute; inset: 0; }
+  #stage > div:not(.on) { display: none !important; }
+  /* Camera-UI frame (Reel 6): makes a filmed routine read as a candid capture. Generic, not any phone maker's UI. */
+  .cam .top { position: absolute; top: 70px; left: 0; right: 0; display: flex; justify-content: center; }
+  .cam .rec { display: flex; align-items: center; gap: 16px; background: rgba(0,0,0,.42); color: #fff; padding: 12px 26px;
+              border-radius: 14px; font-family: ui-monospace, monospace; font-size: 40px; letter-spacing: .06em; }
+  .cam .rec i { width: 22px; height: 22px; border-radius: 50%; background: #FF3B30; }
+  .cam .grid { position: absolute; inset: 200px 0 330px; background:
+      linear-gradient(90deg, transparent calc(33.33% - 1px), rgba(255,255,255,.35) calc(33.33% - 1px), rgba(255,255,255,.35) 33.33%, transparent 33.33%,
+                     transparent calc(66.66% - 1px), rgba(255,255,255,.35) calc(66.66% - 1px), rgba(255,255,255,.35) 66.66%, transparent 66.66%),
+      linear-gradient(180deg, transparent calc(33.33% - 1px), rgba(255,255,255,.35) calc(33.33% - 1px), rgba(255,255,255,.35) 33.33%, transparent 33.33%,
+                     transparent calc(66.66% - 1px), rgba(255,255,255,.35) calc(66.66% - 1px), rgba(255,255,255,.35) 66.66%, transparent 66.66%); }
+  .cam .focus { position: absolute; left: 50%; top: 46%; width: 200px; height: 200px; transform: translate(-50%, -50%); border: 3px solid #FFD60A; border-radius: 6px; opacity: .9; }
+  .cam .bot { position: absolute; left: 0; right: 0; bottom: 0; height: 330px; background: linear-gradient(transparent, rgba(0,0,0,.55)); }
+  .cam .mode { position: absolute; bottom: 250px; left: 0; right: 0; display: flex; justify-content: center; gap: 46px;
+               color: rgba(255,255,255,.75); font-size: 30px; font-weight: 700; letter-spacing: .12em; }
+  .cam .mode b { color: #FFD60A; }
+  .cam .shutter { position: absolute; bottom: 80px; left: 50%; transform: translateX(-50%); width: 150px; height: 150px; border-radius: 50%;
+                  border: 8px solid #fff; display: grid; place-items: center; }
+  .cam .shutter i { width: 64px; height: 64px; border-radius: 14px; background: #FF3B30; }
+  /* POV caption plates: the platform's native text look, so they read as the creator's own. */
+  .pov { display: flex !important; justify-content: center; align-items: flex-start; padding-top: 300px; }
+  .pov span { background: #fff; color: #000; font-weight: 700; font-size: 58px; line-height: 1.32; padding: 10px 26px;
+              border-radius: 16px; text-align: center; max-width: 900px; box-decoration-break: clone; -webkit-box-decoration-break: clone; }
+  .part { display: flex !important; justify-content: center; align-items: flex-start; padding-top: 140px; }
+  .part span { font-family: ui-monospace, monospace; font-size: 46px; letter-spacing: .2em; background: #1A1814; color: #FFFEFA; padding: 16px 34px; border-radius: 999px; }
+  /* Handheld sign (Reel 8): hold the phone up or composite next to your face. */
+  .sign { display: flex !important; justify-content: center; align-items: center; }
+  .sign .card { background: #FFFDF8; border-radius: 36px; padding: 60px 56px; width: 760px; text-align: center; transform: rotate(-3deg);
+                box-shadow: 0 30px 60px rgba(0,0,0,.25); }
+  .sign .a { font-family: 'Instrument Serif', serif; font-style: italic; font-size: 84px; color: #6B6760; }
+  .sign .b { font-family: 'Instrument Serif', serif; font-size: 168px; line-height: .95; color: #A35848; }
+  .sign .c { font-size: 38px; margin-top: 20px; color: #1A1814; }
+  /* App-style result chips for product close-ups (Reels 5/6). */
+  .chip { display: flex !important; justify-content: center; align-items: flex-end; padding-bottom: 520px; }
+  .chip span { display: inline-flex; align-items: center; gap: 18px; font-weight: 700; font-size: 50px; padding: 22px 38px; border-radius: 999px;
+               box-shadow: 0 20px 40px rgba(0,0,0,.2); }
+  .chip.ok span { background: #EEF2DD; color: #5C7A4F; }
+  .chip.bad span { background: #FDEAEA; color: #B22B2B; }
+  .end { display: flex !important; flex-direction: column; justify-content: flex-end; align-items: center; padding-bottom: 260px; }
+  .end span { background: #A35848; color: #FFFEFA; font-weight: 700; font-size: 64px; padding: 20px 48px; border-radius: 999px; box-shadow: 0 20px 40px rgba(163,88,72,.4); }
+  .end em { font-style: normal; color: #fff; font-size: 40px; margin-top: 22px; text-shadow: 0 2px 16px rgba(0,0,0,.5); font-weight: 700; }
+</style>
+</head>
+<body>
+<div id="stage">
+  <div id="camera-ui" class="cam">
+    <div class="grid"></div><div class="focus"></div>
+    <div class="top"><div class="rec"><i></i>00:14</div></div>
+    <div class="bot"></div>
+    <div class="mode"><span>SLO-MO</span><b>VIDEO</b><span>PHOTO</span><span>PORTRAIT</span></div>
+    <div class="shutter"><i></i></div>
+  </div>
+  <div id="pov-trigger" class="pov"><span>POV: you finally find out which ingredient<br>keeps breaking you out</span></div>
+  <div id="pov-genz" class="pov"><span>POV: you hire Gen Z to run<br>the skincare account</span></div>
+  <div id="pov-routine" class="pov"><span>POV: you&rsquo;re filming your<br>morning routine</span></div>
+  <div id="pov-shelf" class="pov"><span>POV: half your shelf was<br>fighting each other</span></div>
+  <div id="part-1" class="part"><span>1/3</span></div>
+  <div id="part-2" class="part"><span>2/3</span></div>
+  <div id="part-3" class="part"><span>3/3</span></div>
+  <div id="sign-comment" class="sign"><div class="card"><div class="a">comment</div><div class="b">SKINSTEL</div><div class="c">and I&rsquo;ll DM you the link</div></div></div>
+  <div id="chip-clear" class="chip ok"><span>&#10003; No conflicts</span></div>
+  <div id="chip-conflict" class="chip bad"><span>&#9888; Conflict: retinol + glycolic acid</span></div>
+  <div id="end-comment" class="end"><span>Comment SKINSTEL</span><em>I&rsquo;ll DM you the link &middot; @skins_tel</em></div>
+</div>
+<script>
+  const o = new URLSearchParams(location.search).get("o");
+  window.__ids = [...document.querySelectorAll("#stage > div")].map(d => d.id);
+  if (o) document.getElementById(o).classList.add("on");
+</script>
+</body>
+</html>

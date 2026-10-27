@@ -1,0 +1,89 @@
+{
+  "_rules": "Faceless clips only (Pexels/Mixkit forbid implying that a pictured person endorses the product), no readable brand labels (blur them), no medical settings. Files are downloaded into stock/cache/ (gitignored) by build_stock.py.",
+  "clips": {
+    "hands-white": {
+      "url": "https://www.pexels.com/download/video/6278955/",
+      "page": "https://www.pexels.com/video/person-holding-mobile-phone-6278955/",
+      "source": "Pexels", "license": "Pexels License (free, commercial use, no attribution)",
+      "use": "phone", "screen": "white", "what": "two hands holding a phone with a blank white screen"
+    },
+    "hand-laptop-white": {
+      "url": "https://www.pexels.com/download/video/6278834/",
+      "page": "https://www.pexels.com/video/mobile-phone-being-held-6278834/",
+      "source": "Pexels", "license": "Pexels License",
+      "use": "phone", "screen": "white", "what": "one hand holding a phone over a laptop, blank white screen"
+    },
+    "hand-green-outdoor": {
+      "url": "https://www.pexels.com/download/video/12039562/",
+      "page": "https://www.pexels.com/video/hand-holding-cellphone-with-green-screen-12039562/",
+      "source": "Pexels", "license": "Pexels License",
+      "use": "phone", "screen": "green", "what": "hand holding a green-screen phone outdoors"
+    },
+    "serum-drip": {
+      "url": "https://www.pexels.com/download/video/8131887/",
+      "page": "https://www.pexels.com/video/close-up-video-of-serum-dripping-on-person-s-palm-8131887/",
+      "source": "Pexels", "license": "Pexels License",
+      "use": "broll", "what": "serum dripping from a dropper onto a palm, pink background"
+    },
+    "shop-shelves": {
+      "url": "https://www.pexels.com/download/video/7754395/",
+      "page": "https://www.pexels.com/video/beauty-products-on-shelves-7754395/",
+      "source": "Pexels", "license": "Pexels License",
+      "use": "broll", "blur": 7, "what": "skincare products on shelves (labels readable, so blurred)"
+    },
+    "cream-jar": {
+      "url": "https://assets.mixkit.co/videos/45160/45160-720.mp4",
+      "page": "https://mixkit.co/free-stock-video/taking-moisturising-cream-from-a-jar-45160/",
+      "source": "Mixkit", "license": "Mixkit Stock Video Free License (free, commercial use, no attribution)",
+      "use": "broll", "what": "fingers taking cream from a jar"
+    },
+    "water-drop": {
+      "url": "https://assets.mixkit.co/videos/46315/46315-720.mp4",
+      "page": "https://mixkit.co/free-stock-video/slow-motion-of-a-drop-falling-46315/",
+      "source": "Mixkit", "license": "Mixkit Stock Video Free License",
+      "use": "broll", "what": "slow-motion drop falling into liquid"
+    },
+    "hand-cream": {
+      "url": "https://assets.mixkit.co/videos/45119/45119-720.mp4",
+      "page": "https://mixkit.co/free-stock-video/person-applying-hand-cream-45119/",
+      "source": "Mixkit", "license": "Mixkit Stock Video Free License",
+      "use": "broll", "what": "hands rubbing in hand cream"
+    },
+    "talk-conflicts": {
+      "url": "https://d8j0ntlcm91z4.cloudfront.net/user_3LAGF0fRBGVHqhdxkCqlyDhzPEL/hf_20261025_011110_718168bb-8d44-436d-9f3e-e0ff43c8e401.mp4",
+      "source": "Higgsfield (Kling 3.0 image-to-video, with sound), animated from the Skintel mascot art DropWarning",
+      "license": "Generated on the founder's Higgsfield plan; brand character, no real person",
+      "use": "talk", "what": "the mascot on a bathroom counter (square, 5 s) saying: You put retinol AND an acid on me last night?! I'm begging you... check first."
+    },
+    "talk-scan": {
+      "url": "https://d8j0ntlcm91z4.cloudfront.net/user_3LAGF0fRBGVHqhdxkCqlyDhzPEL/hf_20261025_011110_895c7dca-b349-43ba-8ba2-d6d5e23aebd1.mp4",
+      "source": "Higgsfield (Kling 3.0 image-to-video, with sound), animated from the Skintel mascot art DropWarning",
+      "license": "Generated on the founder's Higgsfield plan; brand character, no real person",
+      "use": "talk", "what": "the mascot on a bathroom counter (square, 5 s) saying: Before you buy that... can we scan it first? Please."
+    },
+    "talk-triggers": {
+      "url": "https://d8j0ntlcm91z4.cloudfront.net/user_3LAGF0fRBGVHqhdxkCqlyDhzPEL/hf_20261025_011111_b15fed4a-543e-4a51-95d3-60176f1f59ad.mp4",
+      "source": "Higgsfield (Kling 3.0 image-to-video, with sound), animated from the Skintel mascot art DropWarning",
+      "license": "Generated on the founder's Higgsfield plan; brand character, no real person",
+      "use": "talk", "what": "the mascot on a bathroom counter (square, 5 s) saying: I've been trying to tell you what's breaking me out for two years."
+    },
+    "narr-conflicts": {
+      "url": "https://d8j0ntlcm91z4.cloudfront.net/user_3LAGF0fRBGVHqhdxkCqlyDhzPEL/hf_20261025_021253_236d3682-b6de-453e-823f-c5a1d7763fff.mp4",
+      "source": "Higgsfield (Kling 3.0 image-to-video, with sound), animated from the Skintel mascot art DropRoutineBuilder on a flat blue screen",
+      "license": "Generated on the founder's Higgsfield plan; brand character, no real person",
+      "use": "narrator", "screen": "blue", "what": "the mascot on blue (square, 7 s), keyed out by build_narrated.py, saying: See? It found two conflicts! No toner on retinol nights. Comment Skinstel for the link!"
+    },
+    "narr-scan": {
+      "url": "https://d8j0ntlcm91z4.cloudfront.net/user_3LAGF0fRBGVHqhdxkCqlyDhzPEL/hf_20261025_021253_b604ffde-51e7-4ba8-89c3-71ca320b0f35.mp4",
+      "source": "Higgsfield (Kling 3.0 image-to-video, with sound), animated from the Skintel mascot art DropScanner on a flat blue screen",
+      "license": "Generated on the founder's Higgsfield plan; brand character, no real person",
+      "use": "narrator", "screen": "blue", "what": "the mascot on blue (square, 7 s), keyed out by build_narrated.py, saying: It says it's a good match for me. Phew! Comment Skinstel for the link!"
+    },
+    "narr-triggers": {
+      "url": "https://d8j0ntlcm91z4.cloudfront.net/user_3LAGF0fRBGVHqhdxkCqlyDhzPEL/hf_20261025_021253_175c8c0d-bfb9-430d-b488-6e203dc3f694.mp4",
+      "source": "Higgsfield (Kling 3.0 image-to-video, with sound), animated from the Skintel mascot art DropIngredients on a flat blue screen",
+      "license": "Generated on the founder's Higgsfield plan; brand character, no real person",
+      "use": "narrator", "screen": "blue", "what": "the mascot on blue (square, 7 s), keyed out by build_narrated.py, saying: See? My bad days all share one ingredient. That's the suspect! Comment Skinstel for the link!"
+    }
+  }
+}

@@ -1,0 +1,81 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<link rel="stylesheet" href="./style.css">
+<style>
+  /* Text for the narrated videos (stock/build_narrated.py). Transparent: render-alpha.mjs narr <id>.
+     narr.html?f=conflicts|scan|triggers: the mascot narrates the app demo (captions on top), then
+     the end card text under the big talking mascot. narr.html?f=pov-<demo>: the POV line over a
+     reaction shot. Caption timings come from transcribing each narrator clip (faster-whisper). */
+  @font-face { font-family: "TikTok Sans"; font-weight: 700; src: url("./fonts/TikTokSans-700.ttf"); }
+  html, body, #stage { background: transparent !important; }
+  #grain, #vignette { display: none; }
+  .t { position: absolute; left: 60px; right: 60px; text-align: center; font-family: "TikTok Sans", sans-serif; color: #fff; }
+  #pov { top: 170px; font-weight: 700; font-size: 74px; line-height: 1.12;
+         text-shadow: 0 0 2px rgba(0,0,0,.9), 0 2px 4px rgba(0,0,0,.75), 0 0 18px rgba(0,0,0,.35); }
+  /* Over the demo: one short line above the phone, TikTok's dark text box. */
+  #say { top: 110px; font-weight: 700; font-size: 58px; white-space: nowrap; }
+  #say span { display: inline-block; background: rgba(0,0,0,.62); padding: 10px 28px 14px; border-radius: 18px; }
+  /* End card under the talking mascot (same type as the reels' end card). */
+  #card { position: absolute; left: 0; right: 0; top: 1130px; text-align: center; color: var(--ink); }
+  #card .l1 { font-family: 'Instrument Serif', serif; font-size: 120px; line-height: 1; }
+  #card .kw { display: inline-block; margin-top: 26px; background: var(--primary); color: var(--cream); font-weight: 700;
+      font-size: 104px; letter-spacing: .04em; padding: 18px 56px 24px; border-radius: 999px; box-shadow: 0 24px 50px rgba(163,88,72,.4); }
+  #card .l2 { font-size: 46px; color: var(--muted); margin-top: 40px; line-height: 1.3; }
+  html.print #stage { background: #8FA3A0 !important; }
+</style>
+</head>
+<body>
+<div id="stage">
+  <div class="t" id="pov"></div>
+  <div class="t" id="say"></div>
+  <div id="card"><div class="l1">Comment</div><div><span class="kw">SKINSTEL</span></div><div class="l2">and I&rsquo;ll DM you the link.</div></div>
+</div>
+<script src="./engine.js"></script>
+<script>
+const E = window.__E, $ = id => document.getElementById(id);
+// dur: narrator clip length; cut: where the demo ends and the end card starts (keep both in sync
+// with NARR in build_narrated.py); say: [start, text] caption chunks of what the mascot says.
+const NARR = {
+  conflicts: { dur: 7.04, cut: 4.8, say: [[0.0, 'See?'], [0.62, 'It found two conflicts!'], [2.74, 'No toner on retinol nights.']] },
+  scan: { dur: 7.04, cut: 4.8, say: [[0.9, 'It says it’s'], [2.0, 'a good match for me.'], [4.0, 'Phew!']] },
+  triggers: { dur: 7.04, cut: 5.0, say: [[0.0, 'See?'], [1.3, 'My bad days all share'], [2.56, 'one ingredient.'], [3.74, 'That’s the suspect.']] },
+};
+// POV lines over the reaction shot; dur matches the reaction length in build_narrated.py.
+const POV = {
+  conflicts: { dur: 2.4, text: 'POV: you check if your skincare is fighting' },
+  scan: { dur: 2.2, text: 'POV: you scan it before you buy it' },
+  triggers: { dur: 2.3, text: 'POV: you find out what’s actually breaking you out' },
+};
+const q = new URLSearchParams(location.search);
+const f = q.get('f') || 'conflicts';
+const isPov = f.startsWith('pov-');
+const N = isPov ? null : NARR[f];
+const P = isPov ? POV[f.slice(4)] : null;
+const DURATION = isPov ? P.dur : N.dur;
+if (isPov) $('pov').textContent = P.text;
+
+function render(t) {
+  $('pov').style.opacity = isPov ? 1 : 0;
+  if (isPov) { $('say').style.opacity = 0; $('card').style.opacity = 0; return; }
+  // Captions while the demo plays, each chunk popping in.
+  let i = -1; N.say.forEach((c, k) => { if (t >= c[0]) i = k; });
+  if (i < 0 || t >= N.cut) $('say').style.opacity = 0;
+  else {
+    if ($('say').dataset.i !== String(i)) { $('say').dataset.i = String(i); $('say').innerHTML = `<span>${N.say[i][1]}</span>`; }
+    const p = E.easeEmil(E.seg(t, N.say[i][0], N.say[i][0] + 0.12));
+    $('say').style.opacity = 1; $('say').style.transform = `scale(${E.lerp(1.04, 1, p)})`;
+  }
+  // End card: the keyword pops in under the mascot as it starts saying it.
+  const c = E.easeEmil(E.seg(t, N.cut, N.cut + 0.35));
+  $('card').style.opacity = c;
+  $('card').style.transform = `translateY(${(1 - c) * 40}px) scale(${E.lerp(0.94, 1, c)})`;
+}
+window.__seek = t => { render(t); return true; };
+window.__duration = DURATION;
+if (q.get('print')) document.documentElement.classList.add('print');
+render(isPov ? 0.5 : N.cut + 1);
+</script>
+</body>
+</html>
