@@ -222,6 +222,24 @@ public struct FaceZoneResult: Codable, Sendable, Hashable, Identifiable {
         try c.encode(regions, forKey: .regions)
         try c.encodeIfPresent(note, forKey: .note)
     }
+
+    /// Ties go to the first metric here: shine moves most with lighting, so it comes last.
+    public static let findingOrder: [FaceMetric] = [.raisedBlemishes, .flatMarks, .redness, .texture, .shine]
+
+    /// The zone's strongest metric and its score, ties broken by `findingOrder`; nil with no scores.
+    public var topFinding: (metric: FaceMetric, score: Int)? {
+        var best: (metric: FaceMetric, score: Int)?
+        for metric in Self.findingOrder {
+            guard let score = scores[metric] else { continue }
+            if score > (best?.score ?? -1) { best = (metric, score) }
+        }
+        return best
+    }
+
+    /// True when every metric the server sent is below the "Some" band.
+    public var isClear: Bool {
+        !scores.isEmpty && scores.values.allSatisfy { $0 < FaceCalibration.someFrom }
+    }
 }
 
 // MARK: - Day 7 report and routine
@@ -426,10 +444,10 @@ public struct FaceRoutine: Codable, Sendable, Hashable {
     }
 }
 
-// MARK: - Tips
+// MARK: - Scan result
 
-/// One cosmetic suggestion from a baseline or final read (`tips`, at most 3). The server has
-/// already filtered the wording; `zone` and `metric` are set only when the tip is about one.
+/// One of up to three cosmetic suggestions the model gives with a sweep read ("Blot, don't scrub,
+/// the T-zone"). `zone` and `metric` are optional links to what it is about.
 public struct FaceTip: Codable, Sendable, Hashable {
     public var title: String
     public var why: String
@@ -445,20 +463,20 @@ public struct FaceTip: Codable, Sendable, Hashable {
 
     enum CodingKeys: String, CodingKey { case title, why, zone, metric }
 
+    /// Throws when `title` is missing or blank, so `FaceScanResult` drops the tip. An unknown
+    /// zone or metric becomes nil rather than failing the tip.
     public init(from decoder: Decoder) throws {
         let c = try decoder.container(keyedBy: CodingKeys.self)
-        let title = (try? c.decodeIfPresent(String.self, forKey: .title)) ?? nil
-        guard let title, !title.isEmpty else {
-            throw DecodingError.dataCorruptedError(forKey: .title, in: c, debugDescription: "A tip needs a title")
+        let title = try c.decode(String.self, forKey: .title).trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !title.isEmpty else {
+            throw DecodingError.dataCorruptedError(forKey: .title, in: c, debugDescription: "blank title")
         }
         self.init(title: title,
-                  why: ((try? c.decodeIfPresent(String.self, forKey: .why)) ?? nil) ?? "",
-                  zone: (try? c.decodeIfPresent(FaceZone.self, forKey: .zone)) ?? nil,
-                  metric: (try? c.decodeIfPresent(FaceMetric.self, forKey: .metric)) ?? nil)
+                  why: c.lenient(String.self, forKey: .why)?.trimmingCharacters(in: .whitespacesAndNewlines) ?? "",
+                  zone: c.lenient(String.self, forKey: .zone).flatMap(FaceZone.init(rawValue:)),
+                  metric: c.lenient(String.self, forKey: .metric).flatMap(FaceMetric.init(rawValue:)))
     }
 }
-
-// MARK: - Scan result
 
 /// One decoded `/api/face-scan` response. Safe to persist: every field is defaulted, and what it
 /// encodes decodes back to an equal value.
@@ -479,7 +497,8 @@ public struct FaceScanResult: Codable, Sendable, Hashable {
     /// scores and note, and the summary) with no regions, report or routine. The 7-day check is
     /// what Skintel+ pays for, so the app shows this map with the week locked.
     public var locked: Bool
-    /// Up to 3 cosmetic suggestions (baseline and final reads); empty for older results.
+    /// Up to three cosmetic suggestions from a sweep read (baseline or final). Empty from older
+    /// servers and for daily photos.
     public var tips: [FaceTip]
 
     public init(quality: FaceQuality, zones: [FaceZoneResult] = [], summary: String = "",
@@ -493,7 +512,7 @@ public struct FaceScanResult: Codable, Sendable, Hashable {
         self.report = report
         self.routine = routine
         self.locked = locked
-        self.tips = tips
+        self.tips = Array(tips.prefix(3))
     }
 
     enum CodingKeys: String, CodingKey { case quality, zones, summary, disclaimer, report, routine, locked, tips }
@@ -508,7 +527,7 @@ public struct FaceScanResult: Codable, Sendable, Hashable {
                   report: c.lenient(FaceReport.self, forKey: .report),
                   routine: c.lenient(FaceRoutine.self, forKey: .routine),
                   locked: c.lenient(Bool.self, forKey: .locked) ?? false,
-                  tips: Array(c.lossyArray(FaceTip.self, forKey: .tips).prefix(3)))
+                  tips: c.lossyArray(FaceTip.self, forKey: .tips))
     }
 
     /// The first result for `zone`, or nil when the server did not send it.

@@ -10,8 +10,5 @@ enum SKMeshShade {
     static let warmLow: SIMD3<Double> = [120, 60, 48]
     static let warmHigh: SIMD3<Double> = [222, 132, 110]
     static let scanLight: SIMD3<Double> = [244, 237, 224]
-    /// The light palette (cream screens): a pale clay-sand face, lit to cream.
-    static let lightLow: SIMD3<Double> = [206, 186, 168]
-    static let lightHigh: SIMD3<Double> = [250, 244, 234]
     static let light: SIMD3<Double> = [-0.35, 0.45, 0.82]
 }

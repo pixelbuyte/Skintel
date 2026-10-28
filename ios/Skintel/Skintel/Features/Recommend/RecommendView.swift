@@ -249,8 +249,8 @@ struct AssistantMessage: Codable, Identifiable, Sendable, Equatable {
     var suggestions: [SuggestedProduct]? = nil
     /// Names of shelf products tagged in this question (optional for older chats).
     var tags: [String]? = nil
-    /// Set when the face scan was tagged: the scan's day on the question, and on the answer,
-    /// which then ends with the "From your face scan" card (optional for older chats).
+    /// On an answer to a question with the face scan tagged: the scan's day of the week then. The
+    /// answer ends with the "From your face scan" card (optional for older chats).
     var faceDay: Int? = nil
 }
 
@@ -258,8 +258,7 @@ struct AssistantMessage: Codable, Identifiable, Sendable, Equatable {
 struct AssistantFaceFinding {
     var title: String
     var detail: String
-    var photo: Data?
-    var levels: FaceZoneLevels
+    var result: FaceScanResult
 }
 
 /// A saved Ask Skintel conversation.
@@ -328,8 +327,6 @@ struct AssistantView: View {
     var initialQuestion: String? = nil
     /// Shelf products already tagged in the composer when opened ("Ask Skintel about this").
     var initialTagged: [Product] = []
-    /// The face scan already tagged when opened ("Ask Skinstel about this scan").
-    var initialFaceTagged = false
     /// Where "back" goes from the Free-plan wall when hosted as a tab.
     var leave: (() -> Void)? = nil
 
@@ -344,17 +341,25 @@ struct AssistantView: View {
     @State private var paywall: PaywallReason?
     @State private var addingProduct: SuggestedProduct?
     @State private var tagged: [Product] = []
-    /// "@My face scan": the server reads the newest stored face-scan results (text, never photos).
+    /// The person's newest face scan is tagged in the composer.
     @State private var faceTagged = false
-    @State private var faceStore = FaceScanStore.shared
+    /// "Open your map" on the "From your face scan" card.
     @State private var showFaceMap = false
     @AppStorage(AskModel.key) private var askModel: AskModel = .luna
     /// Set once the user agrees to Ask Skintel sending their data to third-party AI (5.1.2(i)).
     @AppStorage("ask.aiConsent") private var aiConsent = false
+    /// Set when that agreement was to the copy that lists the face scan, so someone who agreed
+    /// before face scans existed is asked once more before a tagged scan is sent.
+    @AppStorage("ask.faceConsent") private var faceConsent = false
     @State private var showAIConsent = false
     @FocusState private var inputFocused: Bool
 
     private static let upsellText = "Typing your own questions is part of Skintel+. The suggested questions stay free."
+    /// The tag name a face-scan question carries in `AssistantMessage.tags`.
+    static let faceTag = "Face scan"
+
+    /// A face scan is stored on this phone, so it can be tagged.
+    private var hasFaceScans: Bool { !FaceScanStore.shared.entries.isEmpty }
 
     private var isPro: Bool { env.subscription.entitlement.isPro }
 
@@ -379,7 +384,7 @@ struct AssistantView: View {
                                     AskProGate { paywall = .assistant }.id(m.id)
                                 } else {
                                     AssistantBubble(message: m, shelfNames: shelfNames,
-                                                    face: m.faceDay == nil ? nil : faceFinding,
+                                                    face: m.faceDay.flatMap { faceFinding(day: $0) },
                                                     onOpenFace: { showFaceMap = true }) { addingProduct = $0 }.id(m.id)
                                 }
                             }
@@ -427,10 +432,10 @@ struct AssistantView: View {
         .sheet(item: $paywall) { PaywallView(reason: $0) }
         .fullScreenCover(isPresented: $showFaceMap) { FaceScanFlowView().skProGates() }
         .alert("Send your question to AI?", isPresented: $showAIConsent) {
-            Button("Allow") { aiConsent = true; sendDraft() }
+            Button("Allow") { aiConsent = true; faceConsent = true; sendDraft() }
             Button("Not now", role: .cancel) {}
         } message: {
-            Text("To answer, Ask Skintel sends your question, your shelf and routine, and your check-in notes to third-party AI providers through OpenRouter (including Google, OpenAI and Anthropic). We use them only to write your answer, never for ads. You can read the details in our Privacy Policy.")
+            Text("To answer, Ask Skintel sends your question, your shelf and routine, and your check-in notes to third-party AI providers through OpenRouter (including Google, OpenAI and Anthropic). If you tag your face scan: its written results and your goals (never your photos). We use them only to write your answer, never for ads. You can read the details in our Privacy Policy.")
         }
         .sheet(item: $addingProduct) { p in
             NavigationStack {
@@ -442,8 +447,36 @@ struct AssistantView: View {
             if messages.isEmpty, tagged.isEmpty, !initialTagged.isEmpty {
                 tagged = Array(initialTagged.prefix(MentionPanel.limit))
             }
-            if messages.isEmpty, initialFaceTagged, hasFaceScan { faceTagged = true }
+            takePendingAsk()
         }
+        .onChange(of: env.pendingAsk) { _, _ in takePendingAsk() }
+    }
+
+    /// A question handed over from elsewhere ("Ask Skinstel about this scan"): it goes in the
+    /// composer, not sent, with the Face scan tag, and the hand-off is cleared so it's used once.
+    private func takePendingAsk() {
+        guard let ask = env.pendingAsk else { return }
+        env.pendingAsk = nil
+        draft = ask.question
+        if ask.faceScan && hasFaceScans { faceTagged = true }
+    }
+
+    /// The newest scan's strongest finding, by each zone's top finding (a clear zone never
+    /// counts), for the card under an answer about the scan. Nil once no scan is stored.
+    private func faceFinding(day: Int) -> AssistantFaceFinding? {
+        guard let newest = FaceScanSummary(env: env).newest else { return nil }
+        let dayLine = "Day \(max(day, 1))"
+        var best: (zone: FaceZone, metric: FaceMetric, score: Int)?
+        for zone in newest.result.zones where !zone.isClear {
+            guard let top = zone.topFinding, top.score > (best?.score ?? -1) else { continue }
+            best = (zone.zone, top.metric, top.score)
+        }
+        guard let best, FaceCalibration.band(best.score) != .clear else {
+            return AssistantFaceFinding(title: "Every zone read clear", detail: "\(dayLine) map", result: newest.result)
+        }
+        return AssistantFaceFinding(title: "\(best.zone.label) · \(best.metric.label)",
+                                    detail: "\(FaceCalibration.band(best.score).label) on \(dayLine)",
+                                    result: newest.result)
     }
 
     // MARK: Empty state
@@ -502,36 +535,10 @@ struct AssistantView: View {
 
     private var shelfProducts: [Product] { env.products.products.map(\.product) }
 
-    /// A face scan exists to tag (any counted read, this cycle or kept from an earlier one).
-    private var hasFaceScan: Bool { !faceStore.calibration.scans.isEmpty }
-
-    /// The latest scan's strongest zone and metric, for the card under an answer about the scan.
-    private var faceFinding: AssistantFaceFinding? {
-        let scans = faceStore.calibration.scans
-        guard let latest = scans.last else { return nil }
-        var best: (zone: FaceZone, metric: FaceMetric, score: Int)?
-        for zone in latest.result.zones {
-            for (metric, score) in zone.scores where score > (best?.score ?? -1) {
-                best = (zone.zone, metric, score)
-            }
-        }
-        let day = "Day \(scans.count)"
-        guard let best, FaceCalibration.band(best.score) != .clear else {
-            return AssistantFaceFinding(title: "All five zones read clear", detail: "\(day) map",
-                                        photo: faceStore.day1Front, levels: FaceZoneLevels(result: latest.result))
-        }
-        return AssistantFaceFinding(title: "\(best.zone.label) · \(best.metric.label)",
-                                    detail: "\(FaceCalibration.band(best.score).label) on \(day)",
-                                    photo: faceStore.day1Front, levels: FaceZoneLevels(result: latest.result))
-    }
-
-    /// Their face-scan goals ("Less shine"), sent with every question so answers follow them.
-    private var faceGoals: [String] { faceStore.answers?.chips?["goals"] ?? [] }
-
     /// What follows a trailing "@" in the draft (empty right after typing it), or nil when
     /// the draft isn't mid-mention.
     private var mentionQuery: String? {
-        guard !shelfProducts.isEmpty || hasFaceScan, let at = draft.lastIndex(of: "@") else { return nil }
+        guard !shelfProducts.isEmpty || hasFaceScans, let at = draft.lastIndex(of: "@") else { return nil }
         let before = draft[..<at]
         guard before.isEmpty || before.last?.isWhitespace == true else { return nil }
         let rest = draft[draft.index(after: at)...]
@@ -560,65 +567,18 @@ struct AssistantView: View {
         inputFocused = true
     }
 
-    /// Tags (or untags) the face scan and removes the "@query" from the draft.
-    private func pickFace() {
+    /// Tags (or untags) the newest face scan and removes the "@query" from the draft.
+    private func pickFaceMention() {
         Haptics.selection()
         if let at = draft.lastIndex(of: "@") { draft = String(draft[..<at]) }
         withAnimation(SKAnimation.ios(0.25)) { faceTagged.toggle() }
         inputFocused = true
     }
 
-    /// The face scan's row above the shelf list while typing "@".
-    private func faceMentionRow(query: String) -> some View {
-        let latest = faceStore.calibration.scans.last
-        let summary = latest?.result.summary.split(separator: ".", maxSplits: 1).first.map(String.init) ?? ""
-        return Button { pickFace() } label: {
-            HStack(spacing: SKSpace.md) {
-                Image(systemName: "face.dashed")
-                    .font(.system(size: 16, weight: .semibold))
-                    .foregroundStyle(SKColor.clayTileFg)
-                    .frame(width: 34, height: 34)
-                    .background(SKColor.clayTileBg, in: RoundedRectangle(cornerRadius: 10, style: .continuous))
-                VStack(alignment: .leading, spacing: 1) {
-                    Text("My face scan").font(SKFont.sans(16, weight: .medium, relativeTo: .body)).foregroundStyle(SKColor.ink)
-                    if !summary.isEmpty {
-                        Text(summary).font(SKFont.secondary).foregroundStyle(SKColor.muted).lineLimit(1)
-                    }
-                }
-                Spacer(minLength: SKSpace.sm)
-                Text(faceTagged ? "Tagged" : "Face scan").font(SKFont.secondary)
-                    .foregroundStyle(faceTagged ? SKColor.primary : SKColor.muted)
-            }
-            .padding(.horizontal, 12)
-            .frame(minHeight: 56)
-            .contentShape(Rectangle())
-        }
-        .buttonStyle(SKPressStyle())
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .skGlass(in: RoundedRectangle(cornerRadius: 24, style: .continuous), interactive: false, fallback: SKColor.cream)
-        .overlay(RoundedRectangle(cornerRadius: 24, style: .continuous).stroke(SKColor.line))
-        .accessibilityLabel(faceTagged ? "My face scan, tagged" : "My face scan")
-        .accessibilityHint(faceTagged ? "Removes the tag" : "Asks about your latest face scan")
-    }
-
-    private var faceChip: some View {
-        HStack(spacing: 6) {
-            Image(systemName: "face.dashed").font(.system(size: 12, weight: .semibold)).foregroundStyle(SKColor.primary)
-                .frame(width: 22, height: 22)
-            Text("My face scan").font(SKFont.sans(13, weight: .semibold, relativeTo: .caption)).foregroundStyle(SKColor.primary)
-            Button {
-                withAnimation(SKAnimation.ios(0.25)) { faceTagged = false }
-            } label: {
-                Image(systemName: "xmark").font(.system(size: 10, weight: .bold)).foregroundStyle(SKColor.muted)
-                    .frame(width: 20, height: 20)
-            }
-            .buttonStyle(.plain)
-            .accessibilityLabel("Remove My face scan")
-        }
-        .padding(.leading, 4).padding(.trailing, 6)
-        .frame(height: 30)
-        .background(SKColor.blush, in: Capsule())
-        .overlay(Capsule().stroke(SKColor.primary.opacity(0.3)))
+    private var composerPlaceholder: String {
+        if !tagged.isEmpty { return "Ask about \(tagged.count == 1 ? "this product" : "these products")" }
+        if faceTagged { return "Ask about your face scan" }
+        return "Ask about your skin or products"
     }
 
     private var canSend: Bool {
@@ -648,14 +608,12 @@ struct AssistantView: View {
                     .padding(.horizontal, SKSpace.lg)
                 }
             }
-            if let q = mentionQuery, hasFaceScan,
-               q.isEmpty || "my face scan".contains(q.trimmingCharacters(in: .whitespaces).lowercased()) {
-                faceMentionRow(query: q)
-                    .padding(.horizontal, SKSpace.lg)
-                    .transition(.move(edge: .bottom).combined(with: .opacity))
-            }
-            if let q = mentionQuery, !shelfProducts.isEmpty, !MentionPanel.matches(shelfProducts, q).isEmpty || !q.contains(" ") {
-                MentionPanel(products: shelfProducts, query: q, tagged: tagged) { pickMention($0) }
+            if let q = mentionQuery,
+               !MentionPanel.matches(shelfProducts, q).isEmpty || (hasFaceScans && MentionPanel.faceMatches(q)) || !q.contains(" ") {
+                MentionPanel(products: shelfProducts, query: q, tagged: tagged,
+                             faceTagged: hasFaceScans ? faceTagged : nil,
+                             pick: { pickMention($0) },
+                             pickFace: { pickFaceMention() })
                     .padding(.horizontal, SKSpace.lg)
                     .transition(.move(edge: .bottom).combined(with: .opacity))
             }
@@ -663,7 +621,11 @@ struct AssistantView: View {
                 if !tagged.isEmpty || faceTagged {
                     ScrollView(.horizontal, showsIndicators: false) {
                         HStack(spacing: 6) {
-                            if faceTagged { faceChip }
+                            if faceTagged {
+                                ProductTagChip(name: Self.faceTag, systemImage: "face.dashed", onRemove: {
+                                    withAnimation(SKAnimation.ios(0.25)) { faceTagged = false }
+                                })
+                            }
                             ForEach(tagged) { p in
                                 ProductTagChip(name: p.productName, category: p.category) {
                                     withAnimation(SKAnimation.ios(0.25)) { tagged.removeAll { $0.id == p.id } }
@@ -674,8 +636,7 @@ struct AssistantView: View {
                     }
                     .padding(.top, 12)
                 }
-                TextField(faceTagged && tagged.isEmpty ? "Ask about your face scan"
-                          : tagged.isEmpty ? "Ask about your skin or products" : "Ask about \(tagged.count == 1 ? "this product" : "these products")", text: $draft)
+                TextField(composerPlaceholder, text: $draft)
                     .font(SKFont.body)
                     .foregroundStyle(SKColor.ink)
                     .focused($inputFocused)
@@ -692,8 +653,8 @@ struct AssistantView: View {
                             .background(tagged.isEmpty && !faceTagged ? SKColor.neutralChip : SKColor.blush, in: Circle())
                     }
                     .buttonStyle(.plain)
-                    .disabled(env.products.products.isEmpty && !hasFaceScan)
-                    .accessibilityLabel("Tag your face scan or products from your shelf")
+                    .disabled(env.products.products.isEmpty && !hasFaceScans)
+                    .accessibilityLabel(hasFaceScans ? "Tag your face scan or shelf products" : "Tag products from your shelf")
                     AskModelToggle(selection: $askModel)
                     Spacer(minLength: 0)
                     Button(action: sendDraft) {
@@ -756,17 +717,20 @@ struct AssistantView: View {
     private func sendDraft() {
         let question = draft.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !question.isEmpty, !isAnswering else { return }
+        // Once a face scan is in a chat, follow-ups keep it: the server adds it per question.
+        let face = faceTagged || messages.contains { $0.role == .user && $0.tags?.contains(Self.faceTag) == true }
         // Only Skintel+ questions leave the device, so only they need the disclosure first.
-        if isPro && !aiConsent { showAIConsent = true; return }
+        if isPro && (!aiConsent || (face && !faceConsent)) { showAIConsent = true; return }
         draft = ""
         Haptics.tap()
         let tags = tagged
         tagged = []
-        let face = faceTagged
+        var tagNames = tags.map(\.productName)
+        if faceTagged { tagNames.insert(Self.faceTag, at: 0) }
+        // Only the question the scan was tagged on gets the "From your face scan" card.
+        let faceDay: Int? = faceTagged ? FaceScanSummary(env: env).scanCount : nil
         faceTagged = false
-        let faceDay: Int? = face ? faceStore.calibration.scans.count : nil
-        let tagNames = tags.map(\.productName)
-        messages.append(AssistantMessage(role: .user, text: question, tags: tagNames.isEmpty ? nil : tagNames, faceDay: faceDay))
+        messages.append(AssistantMessage(role: .user, text: question, tags: tagNames.isEmpty ? nil : tagNames))
         guard isPro else {
             deliver(Self.upsellText, role: .upsell)
             return
@@ -780,7 +744,7 @@ struct AssistantView: View {
         let pm = names(.pm)
         let api = env.api
         let model = askModel.rawValue
-        let goals = faceGoals
+        let goals = face ? FaceGoal.goals(in: FaceScanStore.shared.answers).map(\.label) : []
         isAnswering = true
         Task {
             do {
@@ -819,7 +783,8 @@ struct AssistantView: View {
                 return
             }
             if reduce || role != .assistant {
-                messages.append(AssistantMessage(role: role, text: text, suggestions: offered, faceDay: faceDay))
+                messages.append(AssistantMessage(role: role, text: text, suggestions: offered,
+                                                 faceDay: role == .assistant ? faceDay : nil))
             } else {
                 let message = AssistantMessage(role: role, text: "")
                 messages.append(message)
@@ -1014,18 +979,12 @@ private struct AssistantBubble: View {
         switch message.role {
         case .user:
             VStack(alignment: .trailing, spacing: 6) {
-                if let day = message.faceDay {
+                if let tags = message.tags, !tags.isEmpty {
                     HStack(spacing: 6) {
                         Spacer(minLength: 48)
-                        if FaceScanNew.isActive() { SKNewBadge() }
-                        FaceTagChip(day: day)
-                    }
-                }
-                // Chats saved before `faceDay` stored the face tag as a name.
-                if let tags = message.tags?.filter({ !(message.faceDay != nil && $0 == "My face scan") }), !tags.isEmpty {
-                    HStack(spacing: 6) {
-                        Spacer(minLength: 48)
-                        ForEach(tags, id: \.self) { ProductTagChip(name: $0) }
+                        ForEach(tags, id: \.self) { name in
+                            ProductTagChip(name: name, systemImage: name == AssistantView.faceTag ? "face.dashed" : nil)
+                        }
                     }
                 }
                 HStack {
@@ -1053,37 +1012,31 @@ private struct AssistantBubble: View {
                     }
                     if message.role == .assistant, let face {
                         faceCard(face)
-                        Text(FaceScanResult.defaultDisclaimer).font(SKFont.sans(13, relativeTo: .footnote)).foregroundStyle(SKColor.muted)
                     }
                 }
             }
         }
     }
 
-    /// "From your face scan": the photo, the finding the answer is about, and the way to the map.
+    /// "From your face scan": the map, the finding the answer is about, and the way to the map.
     private func faceCard(_ face: AssistantFaceFinding) -> some View {
         Button(action: onOpenFace) {
             HStack(spacing: SKSpace.md) {
-                FaceScanThumb(photo: face.photo, levels: face.levels, zoom: 0.42)
-                    .frame(width: 72, height: 88)
-                    .background(SKColor.primary.opacity(0.06))
-                    .clipShape(RoundedRectangle(cornerRadius: SKRadius.tile, style: .continuous))
-                VStack(alignment: .leading, spacing: 4) {
-                    HStack(spacing: 6) {
-                        Text("FROM YOUR FACE SCAN").font(SKFont.label).tracking(1).foregroundStyle(SKColor.primary)
-                        if FaceScanNew.isActive() { SKNewBadge() }
-                    }
+                FaceScanThumb(result: face.result, size: 64)
+                VStack(alignment: .leading, spacing: 3) {
+                    Text("FROM YOUR FACE SCAN").font(SKFont.label).tracking(1).foregroundStyle(SKColor.primary)
                     Text(face.title).font(SKFont.sans(15, weight: .semibold, relativeTo: .subheadline)).foregroundStyle(SKColor.ink)
                         .multilineTextAlignment(.leading)
                     Text(face.detail).font(SKFont.sans(13, relativeTo: .footnote)).foregroundStyle(SKColor.muted)
-                    Text("Open your map ›").font(SKFont.sans(13, weight: .semibold, relativeTo: .footnote)).foregroundStyle(SKColor.primary)
+                    Text("Open your map").font(SKFont.sans(13, weight: .semibold, relativeTo: .footnote)).foregroundStyle(SKColor.primary)
                 }
                 Spacer(minLength: 0)
+                Image(systemName: "chevron.right").font(.system(size: 13, weight: .semibold)).foregroundStyle(SKColor.primary)
+                    .accessibilityHidden(true)
             }
-            .padding(.leading, 10).padding(.trailing, 14).padding(.vertical, 10)
+            .padding(SKSpace.md)
             .background(SKColor.cream, in: RoundedRectangle(cornerRadius: SKRadius.card, style: .continuous))
             .overlay(RoundedRectangle(cornerRadius: SKRadius.card, style: .continuous).stroke(SKColor.line))
-            .skCardShadow()
             .contentShape(RoundedRectangle(cornerRadius: SKRadius.card, style: .continuous))
         }
         .buttonStyle(SKPressStyle())
@@ -1181,39 +1134,26 @@ private struct TypingDots: View {
     }
 }
 
-/// A shelf product tagged into a question: bottle or photo, name, and (in the composer) a remove button.
-/// "Face scan · Day 1 map" on a question asked with the face scan tagged.
-private struct FaceTagChip: View {
-    let day: Int
-
-    var body: some View {
-        HStack(spacing: 6) {
-            Image(systemName: "face.dashed")
-                .font(.system(size: 12, weight: .semibold))
-                .foregroundStyle(SKColor.clayTileFg)
-                .frame(width: 22, height: 22)
-                .background(SKColor.clayTileBg, in: RoundedRectangle(cornerRadius: 5.5, style: .continuous))
-            Text("Face scan · Day \(max(day, 1)) map")
-                .font(SKFont.sans(13, weight: .semibold, relativeTo: .caption))
-                .foregroundStyle(SKColor.ink)
-                .lineLimit(1)
-        }
-        .padding(.leading, 4).padding(.trailing, 10)
-        .frame(height: 30)
-        .background(SKColor.cream, in: Capsule())
-        .overlay(Capsule().stroke(SKColor.line))
-        .accessibilityElement(children: .combine)
-    }
-}
-
+/// A shelf product tagged into a question: bottle or photo, name, and (in the composer) a remove
+/// button. With `systemImage` (the Face scan tag) the symbol stands in for the bottle.
 private struct ProductTagChip: View {
     let name: String
     var category: String? = nil
+    var systemImage: String? = nil
     var onRemove: (() -> Void)? = nil
 
     var body: some View {
         HStack(spacing: 6) {
-            SKProductMark(name: name, size: 22, category: category)
+            if let systemImage {
+                Image(systemName: systemImage)
+                    .font(.system(size: 11, weight: .semibold))
+                    .foregroundStyle(SKColor.primary)
+                    .frame(width: 22, height: 22)
+                    .background(SKColor.blush, in: Circle())
+                    .accessibilityHidden(true)
+            } else {
+                SKProductMark(name: name, size: 22, category: category)
+            }
             Text(name)
                 .font(SKFont.sans(13, weight: .semibold, relativeTo: .caption))
                 .foregroundStyle(SKColor.ink)
@@ -1237,13 +1177,17 @@ private struct ProductTagChip: View {
     }
 }
 
-/// ChatGPT-style mention list above the composer: shelf products matching what follows
-/// "@". Up to three can be tagged; the server reads their ingredient lists.
+/// ChatGPT-style mention list above the composer: the newest face scan on top (once there is
+/// one), then shelf products matching what follows "@". Up to three products can be tagged; the
+/// server reads their ingredient lists, and the face scan's written results.
 private struct MentionPanel: View {
     let products: [Product]
     let query: String
     let tagged: [Product]
+    /// Nil hides the Face scan row (no scan yet); otherwise whether it is tagged.
+    let faceTagged: Bool?
     let pick: (Product) -> Void
+    let pickFace: () -> Void
 
     static let limit = 3
 
@@ -1253,17 +1197,25 @@ private struct MentionPanel: View {
         return products.filter { "\($0.brand ?? "") \($0.productName)".lowercased().contains(q) }
     }
 
+    /// The Face scan row shows for "@", and while what's typed could still be "face scan".
+    static func faceMatches(_ query: String) -> Bool {
+        let q = query.trimmingCharacters(in: .whitespaces).lowercased()
+        return q.isEmpty || "face scan".contains(q) || q.contains("face")
+    }
+
     var body: some View {
         let found = Self.matches(products, query)
+        let showsFace = faceTagged != nil && Self.faceMatches(query)
         VStack(alignment: .leading, spacing: 0) {
-            Text(query.isEmpty ? "Type to search your shelf" : "Shelf products matching \u{201C}\(query)\u{201D}")
+            Text(query.isEmpty ? (faceTagged != nil ? "Tag your face scan or a shelf product" : "Type to search your shelf")
+                               : "Shelf products matching \u{201C}\(query)\u{201D}")
                 .font(SKFont.secondary)
                 .foregroundStyle(SKColor.muted)
                 .lineLimit(1)
                 .padding(.horizontal, 18)
                 .padding(.top, 14)
                 .padding(.bottom, 6)
-            if found.isEmpty {
+            if found.isEmpty && !showsFace {
                 Text("Nothing on your shelf matches.")
                     .font(SKFont.secondary)
                     .foregroundStyle(SKColor.muted)
@@ -1272,8 +1224,9 @@ private struct MentionPanel: View {
             } else {
                 ScrollView {
                     VStack(spacing: 2) {
+                        if showsFace { faceRow(highlighted: true) }
                         ForEach(found.indices, id: \.self) { i in
-                            row(found[i], highlighted: i == 0)
+                            row(found[i], highlighted: i == 0 && !showsFace)
                         }
                     }
                     .padding(.horizontal, 6)
@@ -1281,13 +1234,42 @@ private struct MentionPanel: View {
                 }
                 .scrollBounceBehavior(.basedOnSize)
                 .frame(maxHeight: 250)
-                .fixedSize(horizontal: false, vertical: found.count <= 4)
+                .fixedSize(horizontal: false, vertical: found.count + (showsFace ? 1 : 0) <= 4)
             }
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .skGlass(in: RoundedRectangle(cornerRadius: 24, style: .continuous), interactive: false, fallback: SKColor.cream)
         .overlay(RoundedRectangle(cornerRadius: 24, style: .continuous).stroke(SKColor.line))
         .shadow(color: .black.opacity(0.08), radius: 16, y: 6)
+    }
+
+    private func faceRow(highlighted: Bool) -> some View {
+        let on = faceTagged == true
+        return Button { pickFace() } label: {
+            HStack(spacing: SKSpace.md) {
+                Image(systemName: "face.dashed")
+                    .font(.system(size: 15, weight: .semibold))
+                    .foregroundStyle(SKColor.primary)
+                    .frame(width: 34, height: 34)
+                    .background(SKColor.blush, in: Circle())
+                Text(AssistantView.faceTag)
+                    .font(SKFont.sans(16, weight: .medium, relativeTo: .body))
+                    .foregroundStyle(SKColor.ink)
+                    .lineLimit(1)
+                Spacer(minLength: SKSpace.sm)
+                Text(on ? "Tagged" : "Your newest scan")
+                    .font(SKFont.secondary)
+                    .foregroundStyle(on ? SKColor.primary : SKColor.muted)
+                    .lineLimit(1)
+            }
+            .padding(.horizontal, 12)
+            .frame(height: 52)
+            .background(highlighted ? SKColor.neutralChip.opacity(0.7) : .clear, in: RoundedRectangle(cornerRadius: 18, style: .continuous))
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(SKPressStyle())
+        .accessibilityLabel(on ? "Face scan, tagged" : "Face scan")
+        .accessibilityHint(on ? "Removes the tag" : "Adds your newest face scan to your question")
     }
 
     private func row(_ p: Product, highlighted: Bool) -> some View {

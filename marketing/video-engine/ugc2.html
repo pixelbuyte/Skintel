@@ -1,8 +1,11 @@
 <!doctype html><html><head><meta charset="utf-8">
+<link href="fonts/fonts.css" rel="stylesheet"><!-- tools/fetch-fonts.sh; missing is fine -->
 <link href="https://fonts.googleapis.com/css2?family=TikTok+Sans:wght@600;700&family=Instrument+Serif:ital@0;1&family=DM+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
 <script src="ugc/app.js"></script>
 <script src="ugc/face_mesh.js"></script>
 <script src="ugc/facescan.js"></script>
+<script src="ugc/face_r3.js"></script>
+<script src="ugc/facescan2.js"></script>
 <style>
 *{margin:0;box-sizing:border-box}
 html,body{width:1080px;height:1920px;overflow:hidden;background:#000}
@@ -181,42 +184,60 @@ const V = {
       if (u >= 4.25) L.push({ s: 'triggers', st: { bars: ease((u - 4.9) / 1.2) }, tf: `translateY(${(1 - ease((u - 4.25) / .35)) * 4}%)`, op: ease((u - 4.25) / .3) });
       return { layers: L, touch };
     } },
-  // 9. Face Scan 2.0 (light): sweep with live hints -> goals while it reads -> map + tips for the goal
-  facescan: { hook: { img: 'photos/h1-hook.jpg', cap: 'I scanned my face and it showed me THIS 😳', top: 1330, dur: 2.4 },
-    scene: 'green', dur: 11.2, caps: [[0, 3.6, 'it tells you when the light is right 📱'], [3.6, 6.0, 'tell it what you want to fix ✨'], [6.0, 11.2, 'your face, zone by zone, with tips 👀']],
+  // 9. Face Scan v2 (light): NEW card on Today -> 3-angle sweep with her own face -> questions while the read
+  // runs -> one merged photo + mesh map, mirrored -> the AI's suggestions -> Ask with the Face scan tag.
+  // The woman is AI-generated (photos/r1, r3): label it when posting.
+  facescan: { hook: { img: 'photos/r1-frustrated.jpg', cap: 'my cheeks keep doing this so I tried the new face scan 👀', top: 1330, dur: 2.4 },
+    end: 'See what your skin <em>is doing.</em>',
+    scene: 'green', dur: 16.6, caps: [[0, 1.4, 'it\'s new in Skinstel 👀'], [1.4, 5.0, '3 angles. about 15 seconds 📱'], [5.0, 8.0, 'it reads my photos while I answer ⏱️'],
+      [8.0, 12.5, 'then maps MY face zone by zone 🤯'], [12.5, 16.6, 'and I can ask about my scan 💬']],
     pov(u) {
-      const L = [], ease2 = x => { x = clamp(x); return x * x * (3 - 2 * x); };
-      let touch = null;
-      const step = u < 1.2 ? 0 : u < 2.2 ? 1 : u < 3.1 ? 2 : 3;
-      const yaw = u < 1.2 ? 0 : u < 2.2 ? .62 * ease2((u - 1.2) / .55) : u < 3.1 ? .62 - 1.24 * ease2((u - 2.2) / .6) : -.62 * (1 - ease2((u - 3.1) / .5));
-      const prog = u < .6 ? 0 : u < 1.2 ? (u - .6) / .6 : u < 2.2 ? 1 + (u - 1.2) / 1.0 : u < 3.1 ? 2 + (u - 2.2) / .9 : 3;
-      const far = u < .6;
-      L.push({ s: 'sweep', st: { step: Math.min(step, 3), prog, yaw, t: u, done: u >= 3.1, far, hint: far ? 'Move a little closer' : null } });
-      if (u >= 3.6) {
-        const picked = [];
-        if (u >= 4.3) picked.push('Less shine');
-        if (u >= 4.9) picked.push('Fewer breakouts');
-        if (u >= 4.15 && u < 4.4) touch = [74, 318];
-        if (u >= 4.75 && u < 5.0) touch = [230, 318];
-        if (u >= 5.5 && u < 5.8) touch = [196, 742];
-        L.push({ s: 'goals', st: { picked, th: u }, tf: `translateX(${(1 - ease((u - 3.6) / .35)) * 100}%)` });
+      const L = []; let touch = null; const e2 = x => { x = clamp(x); return x * x * (3 - 2 * x); };
+      if (u < 1.4) {
+        if (u >= .85 && u < 1.15) touch = [84, 268];
+        L.push({ s: 'facetoday', st: { t: u, tap: u >= .9 && u < 1.15 } });
+        return { layers: L, touch };
       }
-      if (u >= 6.0) {
+      if (u < 5.0) {
+        const w = u - 1.4, step = w < 1.0 ? 0 : w < 2.0 ? 1 : w < 3.0 ? 2 : 3;
+        const pan = step === 1 ? 16 * e2((w - 1.0) / .5) : step === 2 ? 16 - 32 * e2((w - 2.0) / .6) : step === 3 ? -16 * (1 - e2((w - 3.0) / .5)) : 0;
+        L.push({ s: 'sweep2', st: { step: Math.min(step, 3), prog: Math.min(w, 3), pan, scan: step < 3 ? (w % 1) : 1, t: u, done: step >= 3 },
+          tf: `translateY(${(1 - ease((u - 1.4) / .35)) * 100}%)` });
+        return { layers: L };
+      }
+      if (u < 8.0) {
+        const picks = [[5.7, 3], [6.3, 2], [6.9, 0]], picked = picks.filter(([t0]) => u >= t0 + .12).map(p => p[1]);
+        const hot = (picks.find(([t0]) => u >= t0 - .05 && u < t0 + .12) || [])[1];
+        const tp = { 3: [76, 330], 2: [292, 282], 0: [70, 282] };
+        if (hot != null) touch = tp[hot];
+        if (u >= 7.55 && u < 7.85) touch = [196, 760];
+        L.push({ s: 'quiz2', st: { picked, hot, ready: u >= 7.2, t: u }, tf: `translateX(${(1 - ease((u - 5.0) / .35)) * 100}%)` });
+        return { layers: L, touch };
+      }
+      if (u < 12.5) {
         const lv = (t0, max) => max * ease((u - t0) / .45), a = t0 => clamp((u - t0) / .3);
-        const levels = { nose: lv(6.6, 1), chin: lv(7.1, 1) };
+        const levels = { right_cheek: lv(8.7, 1), left_cheek: lv(9.1, 1), nose: lv(9.5, 1) };
         const labels = [
-          { zone: 'forehead', title: 'FOREHEAD', value: 'CLEAR', side: 'leading', y: .17, hot: false, alpha: a(7.4) },
-          { zone: 'nose', title: 'NOSE & T-ZONE', value: 'SHINE · SOME', side: 'trailing', y: .36, hot: true, alpha: a(6.6) },
-          { zone: 'right_cheek', title: 'RIGHT CHEEK', value: 'CLEAR', side: 'leading', y: .56, hot: false, alpha: a(7.4) },
-          { zone: 'left_cheek', title: 'LEFT CHEEK', value: 'CLEAR', side: 'trailing', y: .66, hot: false, alpha: a(7.4) },
-          { zone: 'chin', title: 'CHIN', value: 'RAISED BLEMISHES · SOME', side: 'leading', y: .86, hot: true, alpha: a(7.1) },
+          { zone: 'left_cheek', title: 'LEFT CHEEK', value: 'REDNESS · SOME', side: 'leading', y: .55, alpha: a(9.1) },
+          { zone: 'right_cheek', title: 'RIGHT CHEEK', value: 'REDNESS · SOME', side: 'trailing', y: .64, alpha: a(8.7) },
+          { zone: 'nose', title: 'NOSE & T-ZONE', value: 'SHINE · SOME', side: 'trailing', y: .36, alpha: a(9.5) },
+          { zone: 'forehead', title: 'FOREHEAD', value: 'CLEAR', side: 'leading', y: .14, alpha: a(9.8), clear: true },
+          { zone: 'chin', title: 'CHIN', value: 'CLEAR', side: 'leading', y: .86, alpha: a(9.9), clear: true },
         ];
-        const tipsOn = clamp((u - 8.1) / .4);
-        const card = `<div class="card"><div style="font:400 11px 'JetBrains Mono';letter-spacing:1px;color:#6B6760">FOR YOUR GOAL · LESS SHINE</div>
-          <div style="opacity:${tipsOn};margin-top:8px"><div style="font:600 15px 'DM Sans'">1. A gel moisturiser in the morning</div><div style="font-size:13px;color:#6B6760;margin-top:2px">Your nose shows some shine while your cheeks stay matte.</div>
-          <div style="font:600 15px 'DM Sans';margin-top:8px">2. Niacinamide on the T-zone</div><div style="font-size:13px;color:#6B6760;margin-top:2px">A common pick for the look of shine and pores.</div></div></div>`;
-        L.push({ s: 'facemap', st: { t: u, day: 1, scans: 1, levels, labels, card, title: 'Mostly clear. Some shine on your nose.' }, tf: `translateY(${(1 - ease((u - 6.0) / .5)) * 100}%)` });
+        const rings = [[205, a(8.9)], [187, a(9.0)], [425, a(9.3)]];
+        const scroll = 360 * e2((u - 10.6) / .8);
+        if (u >= 12.0 && u < 12.35) touch = [150, 772];
+        L.push({ s: 'facemap2', st: { t: u, levels, labels, rings, scroll, mesh: ease((u - 8.0) / .6) }, tf: `translateY(${(1 - ease((u - 8.0) / .5)) * 100}%)` });
+        return { layers: L, touch };
       }
+      const q = 'How do I calm the redness my face scan shows?';
+      const ans = 'Your scan shows <b>some redness on both cheeks</b> and a little shine on your nose. The rest looks clear.<br><br><b>Morning:</b> a gentle gel cleanser, a niacinamide serum, then SPF 30+.<br><b>Night:</b> skip scrubs for now and use a fragrance-free moisturiser.<br><br>Take Day 3\'s photo to see if it\'s calming.';
+      const st = { th: u, tag: true, input: u < 13.4 ? q : '', sendHot: u >= 13.25 && u < 13.45, qTop: 120 };
+      if (u >= 13.25 && u < 13.45) touch = [349, 742];
+      if (u >= 13.4) st.q = q;
+      if (u >= 13.5 && u < 14.2) st.thinking = true;
+      if (u >= 14.2) st.answer = answerTyping(ans, 14.2, 70, u);
+      L.push({ s: 'askface', st, tf: `translateY(${(1 - ease((u - 12.5) / .45)) * 100}%)` });
       return { layers: L, touch };
     } },
   // 7. Mascot hook -> Ask (tap a suggestion) about tonight's order
@@ -250,7 +271,7 @@ if (sc.night) stage.insertAdjacentHTML('beforeend', `<div style="position:absolu
 $('rig').style.transformOrigin = `${sc.origin[0]}px ${sc.origin[1]}px`;
 $('pcap').style.top = sc.cap + 'px';
 // end
-$('end').innerHTML = `${v.endMascot ? '<img class="m" src="mascot/drop.png">' : '<img class="icon" src="icon.png">'}<div class="w">Skinstel<b>.</b></div><div class="t">Find the ingredient <em>breaking you out.</em></div><div class="p">Free on the App Store</div>`;
+$('end').innerHTML = `${v.endMascot ? '<img class="m" src="mascot/drop.png">' : '<img class="icon" src="icon.png">'}<div class="w">Skinstel<b>.</b></div><div class="t">${v.end || 'Find the ingredient <em>breaking you out.</em>'}</div><div class="p">Free on the App Store</div>`;
 
 function popCap(el, dt) { el.style.opacity = clamp(dt / .12); el.style.transform = `scale(${.85 + .15 * spring((dt - .05) / .45)})`; }
 let lastCap = null;
@@ -278,5 +299,5 @@ window.render = async (t) => {
     [...$('end').children].forEach((c, i) => { const dt = t - B - i * .1; c.style.opacity = clamp(dt / .2); c.style.transform = `translateY(${(1 - spring(dt / .5)) * 40}px)`; });
   }
 };
-window.ready = Promise.all([document.fonts.ready, ...[...document.images].map(i => i.decode().catch(() => {}))]);
+window.ready = Promise.all([document.fonts.ready, window.faceFonts, ...[...document.images].map(i => i.decode().catch(() => {}))]);
 </script></body></html>

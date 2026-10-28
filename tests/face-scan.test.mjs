@@ -797,3 +797,232 @@ test('unreadable reads do not count toward the stage cap (a retake after a dim p
   assert.equal(third.status, 429);
   assert.equal(third.body.stage, 'baseline');
 });
+
+// ---- Prompt anchors and notes (baseline, daily, final) ----
+
+test('prompt: score anchors match the app bands, notes name the most visible thing, summary names the top findings', async () => {
+  for (const stage of ['baseline', 'daily', 'final']) {
+    usageRows = [];
+    modelQueue.push({ content: goodRead() });
+    await post({ stage, cycleId: 'c1', day: stage === 'baseline' ? 1 : 7, images: [front] });
+    const system = modelCalls().at(-1).messages[0].content;
+    assert.match(system, /0-24 nothing, or barely visible; 25-59 visible on a close look; 60-100 easy to see at arm's length/, stage);
+    assert.match(system, /Keep your scale steady/, stage);
+    assert.match(system, /name the most visible thing in that zone in plain cosmetic words/, stage);
+    assert.match(system, /A few small raised bumps near the jawline/, stage);
+    assert.match(system, /Do not default to shine/, stage);
+    assert.match(system, /If hair, glasses, a hand or shadow covers part of a zone, say so/, stage);
+    assert.match(system, /name the one or two most visible things across the whole face in words \(no numbers\), or say the skin looks clear and even overall/, stage);
+  }
+});
+
+test('prompt: tips are asked for on baseline and final, never on daily; actives that need the locks are kept out', async () => {
+  const systemFor = async (stage) => {
+    usageRows = [];
+    modelQueue.push({ content: goodRead() });
+    await post({ stage, cycleId: 'c1', day: stage === 'baseline' ? 1 : 7, images: [front] });
+    return modelCalls().at(-1).messages[0].content;
+  };
+  for (const stage of ['baseline', 'final']) {
+    const system = await systemFor(stage);
+    assert.match(system, /\nTIPS\n/, stage);
+    assert.match(system, /"tips": \[ \{ "title": string, "why": string, "zone": "forehead"/, stage);
+    assert.match(system, /Blot, don't scrub, the T-zone/, stage);
+    assert.match(system, /at most 60 characters/, stage);
+    assert.match(system, /at most 160 characters/, stage);
+    assert.match(system, /Never suggest medicine\. Never suggest retinol or any retinoid, or salicylic acid/, stage);
+    assert.match(system, /keeping it that way \(SPF daily, a gentle cleanser\)/, stage);
+  }
+  const daily = await systemFor('daily');
+  assert.doesNotMatch(daily, /\nTIPS\n/);
+  assert.doesNotMatch(daily, /"tips"/);
+});
+
+// ---- Tips ----
+
+const goodTip = (extra = {}) => ({
+  title: "Blot, don't scrub, the T-zone",
+  why: 'There is some shine down your nose; a light gel moisturiser and blotting papers keep it down without drying the skin.',
+  zone: 'nose', metric: 'shine', ...extra,
+});
+const tipBody = (stage = 'baseline') => ({ stage, cycleId: 'c1', day: stage === 'baseline' ? 1 : 7, images: [front] });
+
+test('tips: good tips are kept in order on baseline and final, with zone and metric', async () => {
+  const tips = [
+    goodTip(),
+    { title: 'SPF 30+ every morning', why: 'Daily sunscreen keeps the marks on your cheeks from getting darker.', zone: 'left_cheek', metric: 'flat_marks' },
+    { title: 'Try a gentle gel cleanser', why: 'It lifts oil without leaving the skin tight.' },
+  ];
+  for (const stage of ['baseline', 'final']) {
+    usageRows = []; calls.length = 0;
+    modelQueue.push({ content: goodRead({ tips }) });
+    const result = await post(tipBody(stage));
+    assert.equal(result.status, 200);
+    assert.deepEqual(result.body.tips, tips, stage);
+    assert.equal(modelCalls().length, 1, stage);
+  }
+});
+
+test('tips: more than 3 are trimmed to the first 3 valid ones', async () => {
+  const tips = ['One', 'Two', 'Three', 'Four', 'Five'].map((title) => ({ title, why: `Tip ${title.toLowerCase()} in plain words.` }));
+  modelQueue.push({ content: goodRead({ tips }) });
+  const result = await post(tipBody());
+  assert.deepEqual(result.body.tips.map((t) => t.title), ['One', 'Two', 'Three']);
+});
+
+test('tips: unknown zone or metric becomes absent; other keys are dropped', async () => {
+  modelQueue.push({
+    content: goodRead({
+      tips: [
+        goodTip({ zone: 'ear', metric: 'glow', extra: 'dropped' }),
+        goodTip({ title: 'Second', zone: 7, metric: null }),
+        goodTip({ title: 'Third', zone: 'chin', metric: 'nope' }),
+      ],
+    }),
+  });
+  const result = await post(tipBody());
+  assert.deepEqual(result.body.tips.map((t) => Object.keys(t)), [['title', 'why'], ['title', 'why'], ['title', 'why', 'zone']]);
+  assert.equal(result.body.tips[2].zone, 'chin');
+});
+
+test('tips: missing or oversized title or why drops the tip (never trimmed); duplicates and non-objects are dropped', async () => {
+  const exact60 = 'T'.repeat(60);
+  const exact160 = 'w'.repeat(160);
+  modelQueue.push({
+    content: goodRead({
+      tips: [
+        { why: 'No title here.' },
+        { title: 'No why here' },
+        { title: '   ', why: 'Blank title.' },
+        { title: 'T'.repeat(61), why: 'Title one character too long.' },
+        { title: 'Long why', why: 'w'.repeat(161) },
+        'a string',
+        null,
+        { title: exact60, why: exact160 },
+        { title: exact60.toLowerCase(), why: 'Same title again.' },
+        { title: 'Kept', why: 'The last good one.' },
+      ],
+    }),
+  });
+  const result = await post(tipBody());
+  assert.deepEqual(result.body.tips.map((t) => t.title), [exact60, 'Kept']);
+  assert.equal(result.body.tips[0].why, exact160);
+});
+
+test('tips: not an array, empty, or all invalid means no tips key at all (still a valid read)', async () => {
+  for (const tips of [undefined, null, 'tips', {}, [], [{ title: '' }]]) {
+    usageRows = [];
+    modelQueue.push({ content: goodRead(tips === undefined ? {} : { tips }) });
+    const result = await post(tipBody());
+    assert.equal(result.status, 200);
+    assert.equal(result.body.quality.ok, true);
+    assert.equal(result.body.zones.length, 5);
+    assert.equal('tips' in result.body, false, JSON.stringify(tips));
+  }
+});
+
+test('tips: a banned word retries once, then the tip is dropped (not rewritten); the other tips stay', async () => {
+  const tips = [goodTip({ why: 'This will treat the shine on your nose.' }), goodTip({ title: 'Safe one', why: 'Keeps the skin comfortable.' })];
+  modelQueue.push({ content: goodRead({ tips }) }, { content: goodRead({ tips }) });
+  const result = await post(tipBody());
+  assert.equal(modelCalls().length, 2);
+  assert.match(modelCalls()[1].messages[1].content.at(-1).text, /treat/);
+  assert.deepEqual(result.body.tips.map((t) => t.title), ['Safe one']);
+
+  // The title is checked too, and a clean retry brings the tip back.
+  usageRows = []; modelQueue.length = 0; calls.length = 0;
+  modelQueue.push(
+    { content: goodRead({ tips: [goodTip({ title: 'Cure the T-zone' })] }) },
+    { content: goodRead({ tips: [goodTip({ title: 'Calm the T-zone' })] }) },
+  );
+  const retried = await post(tipBody());
+  assert.equal(modelCalls().length, 2);
+  assert.deepEqual(retried.body.tips.map((t) => t.title), ['Calm the T-zone']);
+
+  // Every tip flagged on both tries: no tips key, but the read itself is fine.
+  usageRows = []; modelQueue.length = 0; calls.length = 0;
+  const flagged = goodRead({ tips: [goodTip({ why: 'Signs of rosacea around the nose.' })] });
+  modelQueue.push({ content: flagged }, { content: flagged });
+  const none = await post(tipBody());
+  assert.equal(none.body.quality.ok, true);
+  assert.equal('tips' in none.body, false);
+  assert.equal(none.body.zones.length, 5);
+});
+
+test('tips: percentages and scores drop the tip; an ingredient strength passes', async () => {
+  const tips = [
+    goodTip({ title: 'Shine is down 20%', why: 'Less shine than before on the nose.' }),
+    goodTip({ title: 'Try niacinamide', why: 'A 2% niacinamide serum can keep shine down.' }),
+  ];
+  modelQueue.push({ content: goodRead({ tips }) }, { content: goodRead({ tips }) });
+  const result = await post(tipBody());
+  assert.equal(modelCalls().length, 2);
+  assert.match(modelCalls()[1].messages[1].content.at(-1).text, /no percentages or scores/);
+  assert.deepEqual(result.body.tips.map((t) => t.title), ['Try niacinamide']);
+});
+
+test('tips: medicine, doctors, retinoids and salicylic acid are dropped silently (photo stages never see the locks)', async () => {
+  const tips = [
+    goodTip({ title: 'Ask for an antibiotic', why: 'Bumps along the jaw may settle.' }),
+    goodTip({ title: 'Use a retinol serum', why: 'Smooths the look of texture on your forehead.' }),
+    goodTip({ title: 'A salicylic acid wash', why: 'Helps with bumps on the chin.' }),
+    goodTip({ title: 'See a dermatologist', why: 'Someone can look at the marks.' }),
+    goodTip({ title: 'Keep hands off bumps', why: 'Picking can leave marks that last longer.' }),
+  ];
+  modelQueue.push({ content: goodRead({ tips }) });
+  const result = await post(tipBody());
+  assert.equal(modelCalls().length, 1); // not a retry reason
+  assert.deepEqual(result.body.tips.map((t) => t.title), ['Keep hands off bumps']);
+});
+
+test('tips: daily never returns tips, even if the model sends them', async () => {
+  modelQueue.push({ content: goodRead({ tips: [goodTip()] }) });
+  const result = await post(dailyBody());
+  assert.equal(result.status, 200);
+  assert.equal('tips' in result.body, false);
+  assert.equal(scanRows.at(-1).result.tips, undefined);
+});
+
+test('tips: an unreadable photo has no tips; the report stage ignores them', async () => {
+  modelQueue.push({ content: { quality: { ok: false, issues: ['blurry'] }, zones: [], summary: 'Blurry.', tips: [goodTip()] } });
+  const bad = await post(tipBody());
+  assert.equal(bad.body.quality.ok, false);
+  assert.equal('tips' in bad.body, false);
+
+  modelQueue.push({ content: goodReport({ tips: [goodTip()] }) });
+  const report = await post(reportBody());
+  assert.equal('tips' in report.body, false);
+});
+
+test('tips: the free Day 1 map keeps them (regions are still stripped), and the saved answer holds them', async () => {
+  tier = 'free'; status = 'none';
+  const tips = [goodTip(), { title: 'Gentle cleanser', why: 'Keeps the skin comfortable.' }];
+  const chin = goodZone('chin', { regions: [{ kind: 'raised_blemish', box: [0.4, 0.6, 0.1, 0.1] }] });
+  modelQueue.push({ content: goodRead({ zones: [chin, goodZone('nose')], tips }) });
+  const free = await post(tipBody());
+  assert.equal(free.status, 200);
+  assert.equal(free.body.locked, true);
+  assert.deepEqual(free.body.tips, tips);
+  for (const z of free.body.zones) assert.equal('regions' in z, false);
+  assert.equal('report' in free.body, false);
+  assert.deepEqual(scanRows.at(-1).result, free.body);
+  assert.deepEqual(scanRows.at(-1).result.tips, tips);
+
+  // GET hands the same answer back, tips included.
+  const got = await latest({ cycleId: 'c1', stage: 'baseline' });
+  assert.deepEqual(got.body.scan.result.tips, tips);
+});
+
+test('tips: a free map with no tips has no tips key; a Pro baseline keeps tips with regions', async () => {
+  tier = 'free'; status = 'none';
+  modelQueue.push({ content: goodRead() });
+  assert.equal('tips' in (await post(tipBody())).body, false);
+
+  tier = 'pro'; status = 'active';
+  const regions = [{ kind: 'red_mark', box: [0.2, 0.2, 0.1, 0.1] }];
+  modelQueue.push({ content: goodRead({ zones: [goodZone('nose', { regions })], tips: [goodTip()] }) });
+  const pro = await post({ ...tipBody(), cycleId: 'c2' });
+  assert.equal(pro.body.locked, undefined);
+  assert.deepEqual(pro.body.zones[0].regions, regions);
+  assert.deepEqual(pro.body.tips, [goodTip()]);
+});
