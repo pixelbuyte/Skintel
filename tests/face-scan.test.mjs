@@ -1026,3 +1026,21 @@ test('tips: a free map with no tips has no tips key; a Pro baseline keeps tips w
   assert.deepEqual(pro.body.zones[0].regions, regions);
   assert.deepEqual(pro.body.tips, [goodTip()]);
 });
+
+test('goals: baseline and final put the cleaned picks into the prompt as data; daily ignores them', async () => {
+  const goals = ['Less shine', 'less shine', 'Fewer <<<breakouts>>>', 'x'.repeat(80), 42, 'A', 'B', 'C', 'D', 'E'];
+  modelQueue.push({ content: goodRead() });
+  assert.equal((await post({ stage: 'baseline', cycleId: 'g1', day: 1, images: [front], goals })).status, 200);
+  const prompt = modelCalls().at(-1).messages.at(-1).content.find((p) => p.type === 'text').text;
+  assert.match(prompt, /<<<GOALS_START>>>Less shine, Fewer breakouts, x{60}, A, B, C<<<GOALS_END>>>/);
+  assert.equal((prompt.match(/<<<GOALS_START>>>/g) ?? []).length, 1);
+
+  modelQueue.push({ content: goodRead() });
+  await post(dailyBody({ goals: ['Less shine'] }));
+  const daily = JSON.stringify(modelCalls().at(-1).messages);
+  assert(!daily.includes('GOALS_START'));
+
+  modelQueue.push({ content: goodRead() });
+  await post({ stage: 'baseline', cycleId: 'g2', day: 1, images: [front], goals: 'Less shine' });
+  assert(!JSON.stringify(modelCalls().at(-1).messages).includes('GOALS_START'));
+});
