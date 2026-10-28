@@ -615,6 +615,7 @@ struct InsightsView: View {
 
                     consistencyCard
                     skinDaysCard
+                    FaceScanInsightsCard()
                     suspectsCard
                     patternRow
                     historyRow

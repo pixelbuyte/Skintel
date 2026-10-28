@@ -8,6 +8,10 @@ import SkinstelMascot
 struct HomeView: View {
     @Environment(AppEnvironment.self) private var env
     @Environment(\.openPaywall) private var openPaywall
+    @Environment(\.openFaceScan) private var openFaceScan
+    @AppStorage(FaceScanWhatsNewSheet.seenKey) private var whatsNewSeen = false
+    @State private var showWhatsNew = false
+    @State private var scanAfterWhatsNew = false
     @State private var path: [AppDestination] = []
     @State private var slot: RoutineStore.Slot = RoutineStore.currentSlot()
     @State private var showCheckIn = false
@@ -40,15 +44,26 @@ struct HomeView: View {
             .skPageBackground()
             .toolbar(.hidden, for: .navigationBar)
             .navigationDestination(for: AppDestination.self) { destination(for: $0) }
-            .skHint(.today, when: (!env.products.products.isEmpty || env.isNewFreeShelf) && !showCheckIn && !showAssistant)
+            .skHint(.today, when: (!env.products.products.isEmpty || env.isNewFreeShelf) && !showCheckIn && !showAssistant && !showWhatsNew)
         }
         .tint(SKColor.primary)
         .sheet(isPresented: $showCheckIn) { CheckInSheet() }
         .skAskSheet(isPresented: $showAssistant)
         .sheet(isPresented: $showAddProduct) { AddProductHub().skProGates() }
+        .sheet(isPresented: $showWhatsNew, onDismiss: {
+            if scanAfterWhatsNew { scanAfterWhatsNew = false; openFaceScan() }
+        }) {
+            FaceScanWhatsNewSheet(onScan: { scanAfterWhatsNew = true; showWhatsNew = false },
+                                  onLater: { showWhatsNew = false })
+        }
         .task {
             await env.journal.load()
             promptCheckInIfDue()
+            // Once: "Face scan is here", unless a check-in prompt is up or they've scanned already.
+            if !whatsNewSeen && !showCheckIn {
+                whatsNewSeen = true
+                if !FaceScanStore.shared.hasCycle { showWhatsNew = true }
+            }
         }
         .onChange(of: scenePhase) { _, phase in
             guard phase == .active else { return }
@@ -135,8 +150,10 @@ struct HomeView: View {
             SKErrorState(error: e) { Task { await env.products.load() } }
         case .loaded(let products):
             if products.isEmpty {
+                FaceMapCard()
                 newUserCard
             } else {
+                FaceMapCard()
                 todayCard
                 routineCard
                 checkInCard

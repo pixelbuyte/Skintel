@@ -45,9 +45,13 @@ struct MainTabView: View {
     @State private var showAssistant = false
     @State private var showShelf = false
     @State private var showFaceScan = false
-    /// "Ask Skinstel about this scan": close the face scan cover, then open Ask.
+    /// "Ask Skinstel about this scan": close the face scan cover, then open Ask with the scan tagged.
     @State private var askAfterFaceScan = false
-    @AppStorage("seen.faceScan") private var seenFaceScan = false
+    @State private var askAboutFace = false
+    /// The ready question a goal row on the map asked ("How do I get less shine?"), or nil.
+    @State private var faceQuestion: String?
+    /// Bumped when You is tapped while already on You: rebuilds its stack, back to the top.
+    @State private var youRoot = 0
     @State private var keyboardUp = false
     @AppStorage(AssistantPlacement.key) private var assistantPlacement = AssistantPlacement.tab
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
@@ -62,7 +66,7 @@ struct MainTabView: View {
                 // composer pinned inside its own NavigationStack.
                 case .ask: AssistantView(showsClose: false, tabBarClearance: keyboardUp ? 0 : SKTabBar.height + SKSpace.md, leave: { tab = .today })
                 case .insights: InsightsView(leave: { tab = .today })
-                case .you: YouTab()
+                case .you: YouTab().id(youRoot)
                 }
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -101,7 +105,7 @@ struct MainTabView: View {
         }
         .sheet(isPresented: $showQuick, onDismiss: runPending) {
             QuickActionsSheet(canScan: env.subscription.entitlement.canUseScanner,
-                              showsFaceScanNew: !seenFaceScan,
+                              showsFaceScanNew: FaceScanNew.isActive(),
                               assistantInTab: assistantPlacement == AssistantPlacement.tab) { action in
                 pending = action
                 showQuick = false
@@ -114,14 +118,22 @@ struct MainTabView: View {
         .sheet(isPresented: $showCheckIn) { CheckInSheet() }
         .sheet(isPresented: $showAddProduct) { AddProductHub().skProGates() }
         .sheet(isPresented: $showCompare) { CompareView().skProGates() }
-        .skAskSheet(isPresented: $showAssistant)
+        .skAskSheet(isPresented: $showAssistant,
+                    initialQuestion: askAboutFace ? (faceQuestion ?? "What does my face scan show, and what should I try first?") : nil,
+                    faceTagged: askAboutFace)
+        .onChange(of: showAssistant) { _, open in if !open { askAboutFace = false; faceQuestion = nil } }
         .sheet(isPresented: $showShelf) { ShelfTab().skProGates() }
         .fullScreenCover(isPresented: $showFaceScan, onDismiss: {
-            if askAfterFaceScan { askAfterFaceScan = false; showAssistant = true }
+            if askAfterFaceScan { askAfterFaceScan = false; askAboutFace = true; showAssistant = true }
         }) {
-            FaceScanFlowView(onAsk: { askAfterFaceScan = true; showFaceScan = false }).skProGates()
+            FaceScanFlowView(onAsk: { question in
+                faceQuestion = question
+                askAfterFaceScan = true
+                showFaceScan = false
+            }).skProGates()
         }
         .environment(\.openPaywall, OpenPaywallAction { reason in gate(reason) })
+        .environment(\.openFaceScan, OpenFaceScanAction { showFaceScan = true })
         .onChange(of: env.pendingDeepLink, initial: true) { consumeDeepLink() }
         .onChange(of: env.subscription.loaded) { consumeDeepLink() }
     }
@@ -217,6 +229,8 @@ struct MainTabView: View {
     }
 
     private func select(_ next: MainTab) {
+        // Tapping You again (from Account & data, Settings…) goes back to the top of You.
+        if next == tab && next == .you { youRoot += 1 }
         guard let feature = Self.lockedFeature(for: next), !env.subscription.entitlement.isPro else {
             tab = next
             return
@@ -270,7 +284,6 @@ struct MainTabView: View {
         case .shelf:
             showShelf = true
         case .faceScan:
-            seenFaceScan = true
             // Everyone may start: a free account's first scan is a real Day 1 map (one per account);
             // the flow opens the wall from its locked 7-day check, or on a 402.
             showFaceScan = true
