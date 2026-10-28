@@ -123,7 +123,8 @@ struct FaceResultView: View {
 
             Group {
                 if showsPhoto, let photo {
-                    FacePhotoMap(photo: photo, levels: levels, labels: labels, regions: regions)
+                    FacePhotoMap(photo: photo, levels: levels, labels: labels,
+                                 regions: entry?.stage == .baseline ? regions : [:])
                         .clipShape(RoundedRectangle(cornerRadius: SKRadius.card, style: .continuous))
                         .overlay(RoundedRectangle(cornerRadius: SKRadius.card, style: .continuous).stroke(SKColor.line, lineWidth: 1))
                         .padding(.horizontal, SKSpace.md)
@@ -417,10 +418,20 @@ struct FaceResultView: View {
     // MARK: Suggestions
 
     /// The tips of the newest scan that has any; nil (no card) when none does.
+    /// The newest tips, held to the Q5 locks: the photo reads that write tips never see the answers.
+    /// Skin medicine means a gentle routine only, so no tips; otherwise (or with no answers yet) any
+    /// tip naming a retinoid or salicylic acid is dropped.
     private var suggestions: [FaceTip]? {
         guard let tips = scans.last(where: { !$0.result.tips.isEmpty })?.result.tips, !tips.isEmpty else { return nil }
-        return tips
+        if answers?.locks.contains(.skinMedicine) == true { return nil }
+        let kept = tips.filter { tip in
+            let text = "\(tip.title) \(tip.why)".lowercased()
+            return !Self.lockedActiveWords.contains { text.contains($0) }
+        }
+        return kept.isEmpty ? nil : kept
     }
+
+    private static let lockedActiveWords = ["retin", "adapalene", "tretinoin", "salicylic", "bha"]
 
     private func tipsCard(_ tips: [FaceTip]) -> some View {
         SKCard {

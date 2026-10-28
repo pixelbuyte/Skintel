@@ -98,6 +98,8 @@ struct HomeView: View {
     private func showWhatsNewIfDue() {
         guard !whatsNewSeen else { return }
         guard FaceScanStore.shared.entries.isEmpty else { whatsNewSeen = true; return }
+        // A widget deep link opens its own screen first; What's New waits for the next visit.
+        guard env.pendingDeepLink == nil else { return }
         guard !isCovered, !showCheckIn, !showAssistant, !showAddProduct, !showWhatsNew else { return }
         whatsNewSeen = true
         showWhatsNew = true
