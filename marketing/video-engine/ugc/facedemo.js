@@ -8,6 +8,7 @@
   const check = (c = 'currentColor', s = 13, w = 3) => `<svg width="${s}" height="${s}" viewBox="0 0 24 24" fill="none" stroke="${c}" stroke-width="${w}" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12l5 5L20 7"/></svg>`;
   const spark = (c = 'currentColor', s = 13) => `<svg width="${s}" height="${s}" viewBox="0 0 24 24" fill="${c}"><path d="M12 3l1.8 4.7 4.7 1.8-4.7 1.8L12 16l-1.8-4.7-4.7-1.8 4.7-1.8z"/></svg>`;
   const chev = (d, c = '#1A1814') => `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="${c}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="${d}"/></svg>`;
+  const clamp = x => Math.max(0, Math.min(1, x)), ease = x => { x = clamp(x); return 1 - Math.pow(1 - x, 3); };
   const BASE = `position:absolute;inset:0;background:#F4EDE0;color:#1A1814;font-family:'DM Sans';overflow:hidden`;
 
   // SweepView: stadium portal with the cream ring-light halo, Front / Left / Right chips, live checks.
@@ -157,5 +158,47 @@
                 <span style="font:600 15px 'DM Sans'">Nose &amp; T-zone · Shine</span><span style="font-size:13px;color:#6B6760">Some on Day 1</span><span style="font:600 13px 'DM Sans';color:#A35848">Open your map ›</span></span></div>
             <span style="opacity:${st.card || 0};font-size:13px;color:#6B6760">A cosmetic read of a photo, not a diagnosis.</span>
           </div></div></div></div>`;
+  };
+  // The demo's screen timeline (u = seconds into the phone part); used by ugc2 'facedemo' and ad 'facescan'.
+  window.FACEDEMO_POV = (u) => {
+      const L = [], ease2 = x => { x = clamp(x); return x * x * (3 - 2 * x); };
+      let touch = null;
+      // sweep 0-3.8
+      const step = u < 1.2 ? 0 : u < 2.2 ? 1 : u < 3.1 ? 2 : 3;
+      const yaw = u < 1.2 ? 0 : u < 2.2 ? .62 * ease2((u - 1.2) / .55) : u < 3.1 ? .62 - 1.24 * ease2((u - 2.2) / .6) : -.62 * (1 - ease2((u - 3.1) / .5));
+      const prog = u < .6 ? 0 : u < 1.2 ? (u - .6) / .6 : u < 2.2 ? 1 + (u - 1.2) / 1.0 : u < 3.1 ? 2 + (u - 2.2) / .9 : 3;
+      if (u < 4.3) L.push({ s: 'sweep2', st: { step, prog, yaw, t: u, done: u >= 3.1, far: u < .6, hint: u < .6 ? 'Move a little closer' : null } });
+      // questions 3.8-6.9
+      if (u >= 3.8 && u < 7.4) {
+        const picked = [];
+        if (u >= 4.5) picked.push('Less shine');
+        if (u >= 5.0) picked.push('Fade marks');
+        if (u >= 5.5) picked.push('A simpler routine');
+        if (u >= 4.3 && u < 4.55) touch = [72, 382];
+        if (u >= 4.8 && u < 5.05) touch = [278, 432];
+        if (u >= 5.3 && u < 5.55) touch = [86, 528];
+        if (u >= 6.45 && u < 6.75) touch = [196, 787];
+        L.push({ s: 'quiz2', st: { picked, read: u >= 6.0, th: u }, tf: `translateX(${(1 - ease((u - 3.8) / .35)) * 100}%)` });
+      }
+      // result 6.9-14.4
+      if (u >= 6.9 && u < 14.9) {
+        const view = u >= 8.9 && u < 10.4 ? '3d' : 'photo';
+        const dragYaw = view === '3d' ? Math.sin((u - 8.9) * 2.2) * .5 * clamp((u - 9.1) / .3) : 0;
+        const scroll = u < 10.6 ? 0 : u < 11.6 ? 560 * ease((u - 10.6) / 1.0) : u < 12.7 ? 560 : 560 + 610 * ease((u - 12.7) / 1.0);
+        const open = u >= 11.9 ? 'chin' : null;
+        let hot = null;
+        if (u >= 8.6 && u < 8.95) { touch = [258, 315]; hot = '3d'; }
+        if (u >= 9.3 && u < 10.3) touch = [196 + Math.sin((u - 9.1) * 2.2) * 80, 470];
+        if (u >= 10.1 && u < 10.4) touch = [182, 315];
+        if (u >= 11.7 && u < 11.95) touch = [196, 1135 - 560];
+        if (u >= 13.9 && u < 14.25) { touch = [150, 1960 - 1170]; hot = 'ask'; }
+        L.push({ s: 'main2', st: { view, scroll, open, hotZone: open, hot, k: ease((u - 7.3) / 1.0), t: u, yaw: dragYaw }, tf: `translateY(${(1 - ease((u - 6.9) / .5)) * 100}%)` });
+      }
+      // Ask 14.4+
+      if (u >= 14.4) {
+        const ans = 'Your Day 1 map shows <b>some shine on your forehead and Nose &amp; T-zone</b>, while both cheeks read clear. That\'s a T-zone pattern, not oily all over.<br><br><b>Blot at midday</b> instead of washing again, and keep your <b>niacinamide serum</b> on the T-zone in the morning.';
+        L.push({ s: 'ask2', st: { thinking: u < 15.2, answer: answerTyping(ans, 15.2, 75, u), card: clamp((u - 18.0) / .4) }, tf: `translateY(${(1 - ease((u - 14.4) / .45)) * 100}%)` });
+      }
+      return { layers: L, touch };
   };
 })();
