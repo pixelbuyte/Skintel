@@ -29,6 +29,7 @@ struct SettingsView: View {
     @State private var showAccount = false
     @State private var showSettings = false
     @State private var confirmDeleteFaceScans = false
+    @State private var showFeedback = false
 
     var body: some View {
         ScrollView {
@@ -45,6 +46,7 @@ struct SettingsView: View {
         .navigationDestination(isPresented: $showAccount) { AccountDataView() }
         .navigationDestination(isPresented: $showSettings) { SettingsView() }
         .sheet(isPresented: $showEditProfile) { EditProfileSheet() }
+        .sheet(isPresented: $showFeedback) { FeedbackSheet() }
         .task {
             await env.subscription.load()
             await env.journal.load()
@@ -56,7 +58,18 @@ struct SettingsView: View {
     @ViewBuilder
     private var youPage: some View {
         HStack(alignment: .center) {
-            Text("You").font(SKFont.pageTitle).foregroundStyle(SKColor.ink)
+            Button { showFeedback = true } label: {
+                Label("Feedback", systemImage: "bubble.left.and.text.bubble.right")
+                    .font(SKFont.sans(14, weight: .semibold, relativeTo: .subheadline))
+                    .foregroundStyle(SKColor.ink)
+                    .padding(.horizontal, 14)
+                    .frame(height: 44)
+                    .background(SKColor.cream, in: Capsule())
+                    .overlay(Capsule().stroke(SKColor.line))
+                    .contentShape(Capsule())
+            }
+            .buttonStyle(SKPressStyle(scale: 0.96))
+            .accessibilityHint("Send the Skinstel team an idea or a problem")
             Spacer(minLength: 0)
             Button { showSettings = true } label: {
                 Image(systemName: "gearshape")
@@ -71,6 +84,9 @@ struct SettingsView: View {
             .accessibilityLabel("Settings")
         }
         .padding(.top, SKSpace.md)
+
+        Text("You").font(SKFont.pageTitle).foregroundStyle(SKColor.ink)
+            .accessibilityAddTraits(.isHeader)
 
         profileHero
         stats
