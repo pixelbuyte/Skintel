@@ -7,7 +7,7 @@ import UIKit
 /// the app and iOS version filled in. Without Mail it falls back to a mailto link, then to
 /// copying the address.
 struct FeedbackSheet: View {
-    static let address = "hello@skinstel.com"
+    static let address = "skinstelreview@gmail.com"
 
     private enum Kind: String, CaseIterable {
         case idea = "An idea"
