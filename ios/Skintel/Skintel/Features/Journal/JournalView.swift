@@ -227,14 +227,20 @@ struct CheckInSheet: View {
     @State private var error: String?
     @State private var showAsk = false
 
-    static let symptomOptions = ["Redness", "Stinging", "Dryness", "Flaking", "Bumps", "Oily T-zone", "Itching"]
+    /// What the skin is doing: specific enough to track across the week.
+    static let symptomOptions = ["New breakout", "Redness", "Tight or dry", "Flaky patches", "Extra oily", "Stinging", "Itchy", "Dark marks"]
+    /// The "no" answer to question 2. Exclusive, and never written to the note.
+    static let noSymptom = "Nothing, it feels fine"
+    /// The "no" answer to question 3. Exclusive, and never written to the note.
+    static let noFactor = "Nothing different"
     static let symptomPrefix = "Symptoms: "
     static let yesterdayPrefix = "Yesterday: "
     static let todayPrefix = "Today: "
     /// Today's routine, added on save so nobody has to list what they used.
     static let usedPrefix = "Used: "
-    private static let morningFactors = ["New product", "Late night", "Stress", "Workout", "Lots of sun", "Heavy makeup"]
-    private static let nightFactors = ["Sun", "Sweat", "Makeup", "Stress", "Picked at it", "Tried something new"]
+    /// Things that commonly change skin, so the journal can line them up with bad days.
+    private static let morningFactors = ["Tried a new product", "Slept badly", "Stressed", "Sweaty workout", "Lots of sun", "Slept in makeup", "Hormonal week"]
+    private static let nightFactors = ["Tried a new product", "Sun without SPF", "Sweated a lot", "Makeup all day", "Stressed", "Touched or picked", "Shaved or waxed"]
 
     private var factorOptions: [String] { part == .morning ? Self.morningFactors : Self.nightFactors }
     private var factorPrefix: String { part == .morning ? Self.yesterdayPrefix : Self.todayPrefix }
@@ -286,9 +292,9 @@ struct CheckInSheet: View {
         case 0:
             conditionChoices
         case 1:
-            chips(Self.symptomOptions, selection: $symptoms)
+            chips(Self.symptomOptions, none: Self.noSymptom, selection: $symptoms)
         default:
-            chips(factorOptions, selection: $factors)
+            chips(factorOptions, none: Self.noFactor, selection: $factors)
             if part == .night {
                 SKTextEditor(placeholder: "Anything else about today? (optional)", text: $note, minHeight: 84)
             }
@@ -336,11 +342,20 @@ struct CheckInSheet: View {
         }
     }
 
-    private func chips(_ options: [String], selection: Binding<Set<String>>) -> some View {
+    /// Multi-select chips with one "none" answer first: picking it clears the others, and
+    /// picking anything else clears it.
+    private func chips(_ options: [String], none: String, selection: Binding<Set<String>>) -> some View {
         FlowLayout(spacing: SKSpace.sm) {
-            ForEach(options, id: \.self) { o in
+            ForEach([none] + options, id: \.self) { o in
                 SKSelectChip(title: o, selected: selection.wrappedValue.contains(o)) {
-                    if selection.wrappedValue.contains(o) { selection.wrappedValue.remove(o) } else { selection.wrappedValue.insert(o) }
+                    if selection.wrappedValue.contains(o) {
+                        selection.wrappedValue.remove(o)
+                    } else if o == none {
+                        selection.wrappedValue = [none]
+                    } else {
+                        selection.wrappedValue.remove(none)
+                        selection.wrappedValue.insert(o)
+                    }
                     Haptics.selection()
                 }
             }
@@ -370,18 +385,20 @@ struct CheckInSheet: View {
             if let name = env.session.user?.firstName { return "Morning, \(name). How's your skin?" }
             return "Morning. How's your skin?"
         case (0, .night): return "How did your skin hold up today?"
-        case (1, .morning): return "Anything you notice?"
-        case (1, .night): return "Anything you noticed today?"
-        case (_, .morning): return "Anything different yesterday?"
-        case (_, .night): return "What was today like?"
+        case (1, .morning): return "What's your skin doing this morning?"
+        case (1, .night): return "What did your skin do today?"
+        case (_, .morning): return "Did any of these happen yesterday?"
+        case (_, .night): return "Did any of these happen today?"
         }
     }
 
     private var hint: String {
         switch step {
         case 0: return part == .night && env.journal.today != nil ? "Updates today's entry." : "One tap is enough."
-        case 1: return "Pick any, or skip."
-        default: return part == .morning ? "Skintel lines these up with how your skin reacts." : "Last one. A note is optional."
+        case 1: return "Pick all that fit. Skinstel tracks these across your week."
+        default: return part == .morning
+            ? "This is how Skinstel finds what sets your skin off."
+            : "This is how Skinstel finds what sets your skin off. A note is optional."
         }
     }
 
@@ -458,8 +475,8 @@ struct CheckInSheet: View {
         if let top = counts.max(by: { $0.value < $1.value }), top.value >= 2 {
             lines.append("\(top.key) showed up \(top.value) times this week.")
         }
-        if factors.contains("New product") || factors.contains("Tried something new") {
-            lines.append("Skintel will line this up with what you added.")
+        if factors.contains("Tried a new product") {
+            lines.append("Skinstel will line this up with what you added.")
         }
         return lines.isEmpty ? "Every check-in makes the patterns sharper." : lines.joined(separator: " ")
     }
@@ -470,9 +487,9 @@ struct CheckInSheet: View {
             return part == .morning ? "What should I keep doing to stay clear?" : "Anything I should add to keep my skin this calm?"
         }
         if part == .night {
-            return symptom.map { "My skin had \($0) today. What should I skip tonight?" } ?? "What should I skip tonight after today?"
+            return symptom.map { "My skin today: \($0). What should I skip tonight?" } ?? "What should I skip tonight after today?"
         }
-        return symptom.map { "Why is my skin showing \($0) this morning?" } ?? "What should I change this morning?"
+        return symptom.map { "My skin this morning: \($0). What could be behind it?" } ?? "What should I change this morning?"
     }
 
     // MARK: Flow
