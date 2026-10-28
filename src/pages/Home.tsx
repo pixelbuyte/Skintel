@@ -6,8 +6,9 @@ import { track } from '@vercel/analytics';
  * Minimal landing at "/". Skintel is live on the App Store, so the page has two jobs: get
  * the app, and sell the web launch offer (Skintel+ at $6.49/month for the first three
  * months, then $8.99). Traffic mostly arrives from short-video comment replies on phones,
- * so both sit on the first screen, and a bar pinned to the top (Safari and in-app browsers
- * put their chrome at the bottom) is there from the first paint until the offer card shows.
+ * so both sit on the first screen, and a bar pinned to the bottom, within thumb reach, is
+ * there from the first paint until the offer card shows. Prices show the $8.99 in-app price
+ * struck through next to the $6.49 launch price.
  * The previous long landing lives at /classic.
  *
  * Attribution: ?ref=<tag> (or ?s=<tag>) is kept in localStorage and sent with checkout.
@@ -133,7 +134,7 @@ function OfferCard() {
     <form onSubmit={submit} className="mx-auto w-full max-w-[460px] rounded-[26px] border border-[#E6DED2] bg-[#FBF7F0] p-5 shadow-[0_20px_50px_rgba(70,42,28,0.08)]">
       <div className="flex flex-col gap-3">
         {option('prepay', '3 months up front', '$19.47', '$6.49 a month · price locked in', 'BEST DEAL')}
-        {option('monthly', 'Monthly', '$6.49/mo', 'For your first 3 months')}
+        {option('monthly', 'Monthly', '$6.49/mo', 'Normally $8.99 · for your first 3 months')}
       </div>
       <p className="mt-3 text-[12.5px] leading-relaxed text-[#6B6760]">
         {plan === 'monthly'
@@ -203,7 +204,7 @@ export default function Home() {
 
   return (
     <div className="min-h-[100dvh] overflow-x-hidden bg-[#F4EDE0] font-sans text-ink antialiased">
-      <div className="mx-auto max-w-[1120px] px-5 pt-[calc(env(safe-area-inset-top)+68px)]">
+      <div className="mx-auto max-w-[1120px] px-5 pt-[calc(env(safe-area-inset-top)+12px)]">
         <nav className="flex h-14 items-center">
           <Link to="/" className="font-display text-[28px] tracking-tight">Skintel</Link>
         </nav>
@@ -220,7 +221,7 @@ export default function Home() {
             <div className="mt-6 flex flex-wrap items-center gap-3">
               <AppStoreButton />
               <button onClick={jumpToOffer} className="rounded-full bg-[#A35848] px-5 py-3 text-[15px] font-semibold text-[#FFFEFA]">
-                Skintel+ for $6.49
+                Skintel+ <s className="font-normal opacity-70">$8.99</s> $6.49
               </button>
             </div>
             <p className="mt-3 text-[13px] text-[#8A7A6C]">Free to download. Skintel+ launch price for your first 3 months.</p>
@@ -241,7 +242,8 @@ export default function Home() {
             <div className="text-center md:text-left">
               <p className="font-mono text-[11px] tracking-[0.22em] text-[#A35848]">LAUNCH OFFER · FIRST 3 MONTHS</p>
               <h2 className="mt-3 font-display text-[clamp(38px,9vw,58px)] font-normal leading-[1.0] tracking-[-0.01em]">
-                Skintel+ for <em className="italic text-[#A35848]">$6.49</em> a month.
+                Skintel+ for <s className="text-[#8A7A6C] decoration-[#A35848] decoration-2">$8.99</s>{' '}
+                <em className="italic text-[#A35848]">$6.49</em> a month.
               </h2>
               <p className="mx-auto mt-3 max-w-[400px] text-[16px] leading-relaxed text-[#6B6760] md:mx-0">
                 Unlimited scans, Ask Skintel and your trigger report. $8.99/month in the app, less here while it lasts.
@@ -277,7 +279,7 @@ export default function Home() {
           <div className="mt-6 flex justify-center"><AppStoreButton /></div>
         </section>
 
-        <footer className="flex flex-wrap gap-5 border-t border-[#E6DED2] pb-[calc(env(safe-area-inset-bottom)+32px)] pt-6 text-[13px] text-[#8A7A6C]">
+        <footer className="flex flex-wrap gap-5 border-t border-[#E6DED2] pb-[calc(env(safe-area-inset-bottom)+96px)] pt-6 text-[13px] text-[#8A7A6C]">
           <span>© Skintel</span>
           <Link to="/privacy">Privacy</Link>
           <Link to="/terms">Terms</Link>
@@ -286,13 +288,13 @@ export default function Home() {
       </div>
 
       <div
-        className={`fixed left-3 right-3 top-[calc(env(safe-area-inset-top)+10px)] z-10 flex items-center justify-between gap-2.5 rounded-full bg-[rgba(26,24,20,0.92)] py-2 pl-5 pr-2 text-[#FFFEFA] backdrop-blur-md transition-transform duration-500 ease-ios md:left-auto md:right-6 md:w-auto ${
-          showBar ? 'translate-y-0 shadow-[0_10px_30px_rgba(26,24,20,0.18)]' : '-translate-y-[calc(100%+env(safe-area-inset-top)+40px)] shadow-none'
+        className={`fixed bottom-[calc(env(safe-area-inset-bottom)+12px)] left-3 right-3 z-10 flex items-center justify-between gap-2.5 rounded-full bg-[rgba(26,24,20,0.92)] py-2 pl-5 pr-2 text-[#FFFEFA] backdrop-blur-md transition-transform duration-500 ease-ios md:left-auto md:right-6 md:w-auto ${
+          showBar ? 'translate-y-0 shadow-[0_10px_30px_rgba(26,24,20,0.18)]' : 'translate-y-[calc(100%+env(safe-area-inset-bottom)+40px)] shadow-none'
         }`}
         aria-hidden={!showBar}
       >
         <button onClick={jumpToOffer} tabIndex={showBar ? 0 : -1} className="min-w-0 truncate text-left text-sm">
-          Launch offer <span className="text-[#E7B8A6]">$6.49/mo</span>
+          Launch offer <s className="text-[#FFFEFA]/55">$8.99</s> <span className="text-[#E7B8A6]">$6.49/mo</span>
         </button>
         <a href={APP_STORE_URL} tabIndex={showBar ? 0 : -1} className="shrink-0 rounded-full bg-[#A35848] px-[18px] py-[11px] text-sm font-semibold">
           Get the app
