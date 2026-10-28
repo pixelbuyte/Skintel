@@ -3,6 +3,7 @@
 <script src="ugc/app.js"></script>
 <script src="ugc/face_mesh.js"></script>
 <script src="ugc/facescan.js"></script>
+<script src="ugc/facedemo.js"></script>
 <style>
 *{margin:0;box-sizing:border-box}
 html,body{width:1080px;height:1920px;overflow:hidden;background:#000}
@@ -219,6 +220,52 @@ const V = {
       }
       return { layers: L, touch };
     } },
+  // 10. Introducing Face Scan (Face Scan Pro v2 design): sweep -> goals while it reads -> map (Photo/3D)
+  //     -> zone by zone -> goals -> Ask about the scan.
+  facedemo: { hook: { img: 'photos/h1-hook.jpg', cap: 'Skinstel can read your skin now 😳 introducing Face Scan', top: 1300, dur: 2.6 },
+    end: { t: 'See your skin, <em>zone by zone.</em>', p: 'Your first scan is free' },
+    scene: 'green', dur: 19.6, caps: [[0, 3.8, 'a 15-second head turn 📱'], [3.8, 6.9, 'pick what you want to fix while it reads ✨'], [6.9, 10.6, 'your photo + a 3D map of your skin 👀'], [10.6, 14.2, 'every zone in plain words, with what to try'], [14.2, 19.6, 'then ask Skinstel about YOUR scan 💬']],
+    pov(u) {
+      const L = [], ease2 = x => { x = clamp(x); return x * x * (3 - 2 * x); };
+      let touch = null;
+      // sweep 0-3.8
+      const step = u < 1.2 ? 0 : u < 2.2 ? 1 : u < 3.1 ? 2 : 3;
+      const yaw = u < 1.2 ? 0 : u < 2.2 ? .62 * ease2((u - 1.2) / .55) : u < 3.1 ? .62 - 1.24 * ease2((u - 2.2) / .6) : -.62 * (1 - ease2((u - 3.1) / .5));
+      const prog = u < .6 ? 0 : u < 1.2 ? (u - .6) / .6 : u < 2.2 ? 1 + (u - 1.2) / 1.0 : u < 3.1 ? 2 + (u - 2.2) / .9 : 3;
+      if (u < 4.3) L.push({ s: 'sweep2', st: { step, prog, yaw, t: u, done: u >= 3.1, far: u < .6, hint: u < .6 ? 'Move a little closer' : null } });
+      // questions 3.8-6.9
+      if (u >= 3.8 && u < 7.4) {
+        const picked = [];
+        if (u >= 4.5) picked.push('Less shine');
+        if (u >= 5.0) picked.push('Fade marks');
+        if (u >= 5.5) picked.push('A simpler routine');
+        if (u >= 4.3 && u < 4.55) touch = [72, 382];
+        if (u >= 4.8 && u < 5.05) touch = [278, 432];
+        if (u >= 5.3 && u < 5.55) touch = [86, 528];
+        if (u >= 6.45 && u < 6.75) touch = [196, 787];
+        L.push({ s: 'quiz2', st: { picked, read: u >= 6.0, th: u }, tf: `translateX(${(1 - ease((u - 3.8) / .35)) * 100}%)` });
+      }
+      // result 6.9-14.4
+      if (u >= 6.9 && u < 14.9) {
+        const view = u >= 8.9 && u < 10.4 ? '3d' : 'photo';
+        const dragYaw = view === '3d' ? Math.sin((u - 8.9) * 2.2) * .5 * clamp((u - 9.1) / .3) : 0;
+        const scroll = u < 10.6 ? 0 : u < 11.6 ? 560 * ease((u - 10.6) / 1.0) : u < 12.7 ? 560 : 560 + 610 * ease((u - 12.7) / 1.0);
+        const open = u >= 11.9 ? 'chin' : null;
+        let hot = null;
+        if (u >= 8.6 && u < 8.95) { touch = [258, 315]; hot = '3d'; }
+        if (u >= 9.3 && u < 10.3) touch = [196 + Math.sin((u - 9.1) * 2.2) * 80, 470];
+        if (u >= 10.1 && u < 10.4) touch = [182, 315];
+        if (u >= 11.7 && u < 11.95) touch = [196, 1135 - 560];
+        if (u >= 13.9 && u < 14.25) { touch = [150, 1960 - 1170]; hot = 'ask'; }
+        L.push({ s: 'main2', st: { view, scroll, open, hotZone: open, hot, k: ease((u - 7.3) / 1.0), t: u, yaw: dragYaw }, tf: `translateY(${(1 - ease((u - 6.9) / .5)) * 100}%)` });
+      }
+      // Ask 14.4+
+      if (u >= 14.4) {
+        const ans = 'Your Day 1 map shows <b>some shine on your forehead and Nose &amp; T-zone</b>, while both cheeks read clear. That\'s a T-zone pattern, not oily all over.<br><br><b>Blot at midday</b> instead of washing again, and keep your <b>niacinamide serum</b> on the T-zone in the morning.';
+        L.push({ s: 'ask2', st: { thinking: u < 15.2, answer: answerTyping(ans, 15.2, 75, u), card: clamp((u - 18.0) / .4) }, tf: `translateY(${(1 - ease((u - 14.4) / .45)) * 100}%)` });
+      }
+      return { layers: L, touch };
+    } },
   // 7. Mascot hook -> Ask (tap a suggestion) about tonight's order
   mascot: { hook: { seq: 'mascot/wave', frames: 151, fps: 30, cap: 'your breakouts are trying to tell you something 👀', top: 200, dur: 3.0 }, endMascot: true,
     scene: 'green', dur: 9.0, caps: [[0, 2.2, 'ask Skinstel anything about YOUR shelf 💬'], [2.2, 9.0, 'it builds tonight\'s order from what you own 🌙']],
@@ -250,7 +297,7 @@ if (sc.night) stage.insertAdjacentHTML('beforeend', `<div style="position:absolu
 $('rig').style.transformOrigin = `${sc.origin[0]}px ${sc.origin[1]}px`;
 $('pcap').style.top = sc.cap + 'px';
 // end
-$('end').innerHTML = `${v.endMascot ? '<img class="m" src="mascot/drop.png">' : '<img class="icon" src="icon.png">'}<div class="w">Skinstel<b>.</b></div><div class="t">Find the ingredient <em>breaking you out.</em></div><div class="p">Free on the App Store</div>`;
+$('end').innerHTML = `${v.endMascot ? '<img class="m" src="mascot/drop.png">' : '<img class="icon" src="icon.png">'}<div class="w">Skinstel<b>.</b></div><div class="t">${(v.end && v.end.t) || 'Find the ingredient <em>breaking you out.</em>'}</div><div class="p">${(v.end && v.end.p) || 'Free on the App Store'}</div>`;
 
 function popCap(el, dt) { el.style.opacity = clamp(dt / .12); el.style.transform = `scale(${.85 + .15 * spring((dt - .05) / .45)})`; }
 let lastCap = null;
