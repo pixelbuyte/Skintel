@@ -173,7 +173,9 @@ private struct FeedbackMailView: UIViewControllerRepresentable {
         func mailComposeController(_ controller: MFMailComposeViewController,
                                    didFinishWith result: MFMailComposeResult, error: Error?) {
             let sent = result == .sent
-            Task { @MainActor in onFinish(sent) }
+            // Capture the main-actor closure, not self (the coordinator isn't Sendable).
+            let finish = onFinish
+            Task { @MainActor in finish(sent) }
         }
     }
 }
