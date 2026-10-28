@@ -485,8 +485,11 @@ private struct AppSettingsView: View {
                 }
             }
 
-            SettingsGroup(title: "Face scan data", footer: "Face scans, your answers and the Day 1 close-ups are kept on this phone.") {
-                SettingsRow(title: "Delete face scans", subtitle: "Scans, answers and Day 1 close-ups on this phone",
+            SettingsGroup(title: "Face scan data", footer: "Photos are read, then deleted from our server. Face scans, your answers and the Day 1 close-ups are kept on this phone.") {
+                SettingsRow(icon: "camera", title: "Camera access", subtitle: "Opens iPhone Settings") {
+                    CameraPermission.openSettings()
+                }
+                SettingsRow(icon: "trash", title: "Delete face scans", subtitle: "Scans, answers and Day 1 close-ups on this phone",
                             showsChevron: false, last: true, trailing: { EmptyView() }) {
                     showDeleteFaceScans = true
                 }

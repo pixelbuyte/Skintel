@@ -46,6 +46,9 @@ struct FaceScanFlowView: View {
     @State private var wallFromLocked = false
     /// The quiz was opened to collect Q5's locks before the report.
     @State private var quizThenReport = false
+    /// The quiz was opened from the map ("For your goals · Edit"): it starts from the saved
+    /// answers and goes back to the map, with no read.
+    @State private var editingAnswers = false
     @State private var store = FaceScanStore.shared
     @State private var screen: Screen
     /// `begin()` ran its gates once for this presentation.
@@ -118,13 +121,21 @@ struct FaceScanFlowView: View {
                 }
             case .quiz:
                 FaceQuizView(under18: treatAsUnder18,
-                             prefill: FaceQuestions.prefill(profile: profile, triggerNames: triggerNames),
+                             prefill: FaceQuestions.prefill(profile: profile, triggerNames: triggerNames,
+                                                            shelfActives: shelfActives.picks),
                              triggerHint: triggerHint,
                              profileLine: FaceQuestions.profileLine(profile: profile),
-                             readStatus: quizReadStatus,
-                             onClose: close) { answers in
+                             readStatus: editingAnswers ? nil : quizReadStatus,
+                             saved: editingAnswers ? store.answers : nil,
+                             shelfHint: shelfActives.hint,
+                             onClose: {
+                                 if editingAnswers { editingAnswers = false; screen = .result } else { close() }
+                             }) { answers in
                     store.saveAnswers(answers)
-                    if quizThenReport {
+                    if editingAnswers {
+                        editingAnswers = false
+                        screen = .result
+                    } else if quizThenReport {
                         quizThenReport = false
                         Task { await readReport() }
                     } else if earlyRead != nil {
@@ -138,7 +149,8 @@ struct FaceScanFlowView: View {
             case .result:
                 FaceResultView(calibration: store.calibration, routine: store.latestRoutine,
                                nextAction: nextAction, onNext: beginNext, onAsk: onAsk, onClose: close,
-                               onUnlock: unlockWeek, photo: store.day1Front, answers: store.answers)
+                               onUnlock: unlockWeek, photo: store.day1Front, answers: store.answers,
+                               onEditGoals: editGoals)
                     .sheet(isPresented: $wallFromLocked) {
                         PaywallView(reason: .faceScan, faceMapReady: true)
                     }
@@ -259,12 +271,25 @@ struct FaceScanFlowView: View {
 
     private var triggerNames: [String] { env.products.culprits.all.map(\.name) }
 
+    /// Actives found on the shelf, for Q3.
+    private var shelfActives: (picks: [String], hint: String?) {
+        FaceQuestions.shelfActives(env.products.products.map { item in
+            (name: item.product.productName, ingredients: item.ingredients.map(\.inciRaw))
+        })
+    }
+
     private var triggerHint: String? {
         let picks = FaceQuestions.triggerPicks(triggerNames)
         guard !picks.isEmpty else { return nil }
         let list = picks.joined(separator: ", ")
         return picks.count == 1 ? "\(list) is already in your Triggers, so it is picked."
                                 : "\(list) are already in your Triggers, so they are picked."
+    }
+
+    /// "For your goals · Edit": the questions again from the saved answers, once there are some.
+    private var editGoals: (() -> Void)? {
+        guard store.answers != nil else { return nil }
+        return { editingAnswers = true; screen = .quiz }
     }
 
     private var hasBaseline: Bool { store.hasCycle && store.calibration.hasBaselineScan }
@@ -397,6 +422,7 @@ struct FaceScanFlowView: View {
             } else {
                 retakeIssues = nil
                 startEarlyRead(images)
+                editingAnswers = false
                 screen = .quiz
             }
         case .daily, .final:
@@ -551,6 +577,7 @@ struct FaceScanFlowView: View {
         // Locks never fail open: no stored answers means the quiz (Q5) runs first.
         guard let answers = store.answers else {
             quizThenReport = true
+            editingAnswers = false
             screen = .quiz
             return
         }

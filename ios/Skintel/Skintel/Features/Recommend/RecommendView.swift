@@ -249,6 +249,16 @@ struct AssistantMessage: Codable, Identifiable, Sendable, Equatable {
     var suggestions: [SuggestedProduct]? = nil
     /// Names of shelf products tagged in this question (optional for older chats).
     var tags: [String]? = nil
+    /// On an answer to a question with the face scan tagged: the scan's day of the week then. The
+    /// answer ends with the "From your face scan" card (optional for older chats).
+    var faceDay: Int? = nil
+}
+
+/// The face scan finding an answer about the scan points back to.
+struct AssistantFaceFinding {
+    var title: String
+    var detail: String
+    var result: FaceScanResult
 }
 
 /// A saved Ask Skintel conversation.
@@ -333,6 +343,8 @@ struct AssistantView: View {
     @State private var tagged: [Product] = []
     /// The person's newest face scan is tagged in the composer.
     @State private var faceTagged = false
+    /// "Open your map" on the "From your face scan" card.
+    @State private var showFaceMap = false
     @AppStorage(AskModel.key) private var askModel: AskModel = .luna
     /// Set once the user agrees to Ask Skintel sending their data to third-party AI (5.1.2(i)).
     @AppStorage("ask.aiConsent") private var aiConsent = false
@@ -371,7 +383,9 @@ struct AssistantView: View {
                                 if m.role == .upsell {
                                     AskProGate { paywall = .assistant }.id(m.id)
                                 } else {
-                                    AssistantBubble(message: m, shelfNames: shelfNames) { addingProduct = $0 }.id(m.id)
+                                    AssistantBubble(message: m, shelfNames: shelfNames,
+                                                    face: m.faceDay.flatMap { faceFinding(day: $0) },
+                                                    onOpenFace: { showFaceMap = true }) { addingProduct = $0 }.id(m.id)
                                 }
                             }
                             if isAnswering && messages.last?.role == .user {
@@ -416,6 +430,7 @@ struct AssistantView: View {
                 .presentationDetents([.medium, .large])
         }
         .sheet(item: $paywall) { PaywallView(reason: $0) }
+        .fullScreenCover(isPresented: $showFaceMap) { FaceScanFlowView().skProGates() }
         .alert("Send your question to AI?", isPresented: $showAIConsent) {
             Button("Allow") { aiConsent = true; faceConsent = true; sendDraft() }
             Button("Not now", role: .cancel) {}
@@ -444,6 +459,24 @@ struct AssistantView: View {
         env.pendingAsk = nil
         draft = ask.question
         if ask.faceScan && hasFaceScans { faceTagged = true }
+    }
+
+    /// The newest scan's strongest finding, by each zone's top finding (a clear zone never
+    /// counts), for the card under an answer about the scan. Nil once no scan is stored.
+    private func faceFinding(day: Int) -> AssistantFaceFinding? {
+        guard let newest = FaceScanSummary(env: env).newest else { return nil }
+        let dayLine = "Day \(max(day, 1))"
+        var best: (zone: FaceZone, metric: FaceMetric, score: Int)?
+        for zone in newest.result.zones where !zone.isClear {
+            guard let top = zone.topFinding, top.score > (best?.score ?? -1) else { continue }
+            best = (zone.zone, top.metric, top.score)
+        }
+        guard let best, FaceCalibration.band(best.score) != .clear else {
+            return AssistantFaceFinding(title: "Every zone read clear", detail: "\(dayLine) map", result: newest.result)
+        }
+        return AssistantFaceFinding(title: "\(best.zone.label) · \(best.metric.label)",
+                                    detail: "\(FaceCalibration.band(best.score).label) on \(dayLine)",
+                                    result: newest.result)
     }
 
     // MARK: Empty state
@@ -694,6 +727,8 @@ struct AssistantView: View {
         tagged = []
         var tagNames = tags.map(\.productName)
         if faceTagged { tagNames.insert(Self.faceTag, at: 0) }
+        // Only the question the scan was tagged on gets the "From your face scan" card.
+        let faceDay: Int? = faceTagged ? FaceScanSummary(env: env).scanCount : nil
         faceTagged = false
         messages.append(AssistantMessage(role: .user, text: question, tags: tagNames.isEmpty ? nil : tagNames))
         guard isPro else {
@@ -715,7 +750,7 @@ struct AssistantView: View {
             do {
                 let reply = try await api.askAssistant(messages: turns, amRoutine: am, pmRoutine: pm, model: model,
                                                        tagged: tags.map(\.id), face: face, goals: goals)
-                deliver(reply.reply, role: .assistant, alreadyWaited: true, suggestions: reply.products)
+                deliver(reply.reply, role: .assistant, alreadyWaited: true, suggestions: reply.products, faceDay: faceDay)
             } catch let e as APIError {
                 if e.requiresPaywall {
                     deliver(Self.upsellText, role: .upsell, alreadyWaited: true)
@@ -734,7 +769,7 @@ struct AssistantView: View {
     /// are revealed word by word the way a live assistant streams. Reduce Motion shows the
     /// text at once. Every finished exchange is saved to history.
     private func deliver(_ text: String, role: AssistantMessage.Role, alreadyWaited: Bool = false,
-                         suggestions: [SuggestedProduct] = []) {
+                         suggestions: [SuggestedProduct] = [], faceDay: Int? = nil) {
         isAnswering = true
         let reduce = reduceMotion
         let chatID = conversationID
@@ -748,7 +783,8 @@ struct AssistantView: View {
                 return
             }
             if reduce || role != .assistant {
-                messages.append(AssistantMessage(role: role, text: text, suggestions: offered))
+                messages.append(AssistantMessage(role: role, text: text, suggestions: offered,
+                                                 faceDay: role == .assistant ? faceDay : nil))
             } else {
                 let message = AssistantMessage(role: role, text: "")
                 messages.append(message)
@@ -758,8 +794,11 @@ struct AssistantView: View {
                     if let index = messages.firstIndex(where: { $0.id == message.id }) { messages[index].text = shown }
                     try? await Task.sleep(for: .milliseconds(22))
                 }
-                // The shelf card appears once the answer has finished writing out.
-                if let index = messages.firstIndex(where: { $0.id == message.id }) { messages[index].suggestions = offered }
+                // The shelf and face scan cards appear once the answer has finished writing out.
+                if let index = messages.firstIndex(where: { $0.id == message.id }) {
+                    messages[index].suggestions = offered
+                    messages[index].faceDay = faceDay
+                }
             }
             isAnswering = false
             saveConversation()
@@ -932,6 +971,8 @@ private enum AssistantPrompt: String, CaseIterable, Identifiable {
 private struct AssistantBubble: View {
     let message: AssistantMessage
     var shelfNames: Set<String> = []
+    var face: AssistantFaceFinding? = nil
+    var onOpenFace: () -> Void = {}
     var onAdd: (SuggestedProduct) -> Void = { _ in }
 
     var body: some View {
@@ -969,9 +1010,38 @@ private struct AssistantBubble: View {
                     if let suggestions = message.suggestions, !suggestions.isEmpty {
                         shelfCard(suggestions)
                     }
+                    if message.role == .assistant, let face {
+                        faceCard(face)
+                    }
                 }
             }
         }
+    }
+
+    /// "From your face scan": the map, the finding the answer is about, and the way to the map.
+    private func faceCard(_ face: AssistantFaceFinding) -> some View {
+        Button(action: onOpenFace) {
+            HStack(spacing: SKSpace.md) {
+                FaceScanThumb(result: face.result, size: 64)
+                VStack(alignment: .leading, spacing: 3) {
+                    Text("FROM YOUR FACE SCAN").font(SKFont.label).tracking(1).foregroundStyle(SKColor.primary)
+                    Text(face.title).font(SKFont.sans(15, weight: .semibold, relativeTo: .subheadline)).foregroundStyle(SKColor.ink)
+                        .multilineTextAlignment(.leading)
+                    Text(face.detail).font(SKFont.sans(13, relativeTo: .footnote)).foregroundStyle(SKColor.muted)
+                    Text("Open your map").font(SKFont.sans(13, weight: .semibold, relativeTo: .footnote)).foregroundStyle(SKColor.primary)
+                }
+                Spacer(minLength: 0)
+                Image(systemName: "chevron.right").font(.system(size: 13, weight: .semibold)).foregroundStyle(SKColor.primary)
+                    .accessibilityHidden(true)
+            }
+            .padding(SKSpace.md)
+            .background(SKColor.cream, in: RoundedRectangle(cornerRadius: SKRadius.card, style: .continuous))
+            .overlay(RoundedRectangle(cornerRadius: SKRadius.card, style: .continuous).stroke(SKColor.line))
+            .contentShape(RoundedRectangle(cornerRadius: SKRadius.card, style: .continuous))
+        }
+        .buttonStyle(SKPressStyle())
+        .accessibilityElement(children: .combine)
+        .accessibilityHint("Opens your face map")
     }
 
     private func shelfCard(_ items: [SuggestedProduct]) -> some View {

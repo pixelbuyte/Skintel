@@ -27,6 +27,8 @@ struct FaceResultView: View {
     var photo: Data? = nil
     /// The questionnaire's answers: the goals and "Anything you want to know?" picks.
     var answers: FaceAnswers? = nil
+    /// Back to the questions with the saved answers, from "For your goals · Edit"; nil hides Edit.
+    var onEditGoals: (() -> Void)? = nil
 
     @State private var selected: Int?
     /// The hero toggle; nil until the person picks, so it follows whether a photo exists.
@@ -475,8 +477,18 @@ struct FaceResultView: View {
     private var goalsCard: some View {
         SKCard {
             VStack(alignment: .leading, spacing: SKSpace.md) {
-                Text(goals.isEmpty ? "YOUR QUESTIONS" : "FOR YOUR GOALS").font(SKFont.label).tracking(1)
-                    .foregroundStyle(SKColor.primary)
+                HStack {
+                    Text(goals.isEmpty ? "YOUR QUESTIONS" : "FOR YOUR GOALS").font(SKFont.label).tracking(1)
+                        .foregroundStyle(SKColor.primary)
+                    Spacer(minLength: SKSpace.sm)
+                    if let onEditGoals {
+                        Button("Edit", action: onEditGoals)
+                            .font(SKFont.sans(14, weight: .semibold, relativeTo: .subheadline))
+                            .foregroundStyle(SKColor.primary)
+                            .frame(minHeight: 44)
+                            .accessibilityLabel("Edit your answers")
+                    }
+                }
                 ForEach(goals) { goal in
                     HStack(alignment: .center, spacing: SKSpace.md) {
                         VStack(alignment: .leading, spacing: 3) {
@@ -724,7 +736,7 @@ struct FaceResultView: View {
         let steps = routine.pm.isEmpty ? routine.am : routine.pm
         return SKCard {
             VStack(alignment: .leading, spacing: 10) {
-                Text(routine.pm.isEmpty ? "THIS MORNING" : "TONIGHT, FROM YOUR SHELF").font(SKFont.label).foregroundStyle(SKColor.muted)
+                Text(routine.pm.isEmpty ? "THIS MORNING, FROM YOUR SHELF" : "TONIGHT, FROM YOUR SHELF").font(SKFont.label).foregroundStyle(SKColor.muted)
                 ForEach(Array(steps.enumerated()), id: \.offset) { i, step in
                     HStack(alignment: .top, spacing: 10) {
                         Text("\(i + 1)").font(SKFont.sans(12, weight: .semibold, relativeTo: .caption))
@@ -739,11 +751,21 @@ struct FaceResultView: View {
                         }
                     }
                 }
+                // A clash between two steps: glyph, word and colour, never colour alone.
                 ForEach(routine.conflicts, id: \.self) { conflict in
-                    Text(conflict).font(SKFont.sans(13, relativeTo: .footnote)).foregroundStyle(SKColor.cautionFg)
-                        .padding(.horizontal, SKSpace.md).padding(.vertical, 10)
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                        .background(SKColor.cautionBg, in: RoundedRectangle(cornerRadius: SKRadius.tile, style: .continuous))
+                    HStack(alignment: .top, spacing: SKSpace.sm) {
+                        Image(systemName: "exclamationmark.triangle").font(.system(size: 13, weight: .semibold))
+                            .padding(.top, 1)
+                            .accessibilityHidden(true)
+                        (Text("Clash: ").fontWeight(.semibold) + Text(conflict))
+                            .font(SKFont.sans(13, relativeTo: .footnote))
+                            .fixedSize(horizontal: false, vertical: true)
+                    }
+                    .foregroundStyle(SKColor.cautionFg)
+                    .padding(.horizontal, SKSpace.md).padding(.vertical, 10)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .background(SKColor.cautionBg, in: RoundedRectangle(cornerRadius: SKRadius.tile, style: .continuous))
+                    .accessibilityElement(children: .combine)
                 }
             }
         }

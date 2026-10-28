@@ -28,7 +28,16 @@ struct RootView: View {
     @AppStorage("onboarding.skipped") private var onboardingSkipped = false
     /// Onboarding just finished: the Skintel+ offer shows once before the app opens.
     @AppStorage(OnboardingOfferView.pendingKey) private var offerPending = false
+    /// The "Face scan is here" demo, once per phone, before sign-in or onboarding.
+    @AppStorage(FeatureIntroView.seenKey) private var introSeen = false
+    /// Seeing the demo here counts as seeing Today's What's New for the same feature.
+    @AppStorage(WhatsNewSheet.seenKey) private var whatsNewSeen = false
     @State private var warmed = false
+
+    private var showsIntro: Binding<Bool> {
+        Binding(get: { !introSeen && (route == .signedOut || route == .onboarding) },
+                set: { if !$0 { introSeen = true; whatsNewSeen = true } })
+    }
 
     private var route: AppRoute {
         AppRoute.resolve(env.session.state, onboardingSkippedLocally: onboardingSkipped)
@@ -55,6 +64,10 @@ struct RootView: View {
             }
         }
         .animation(SKAnimation.ios(0.35), value: route)
+        .sheet(isPresented: showsIntro) {
+            FeatureIntroView { showsIntro.wrappedValue = false }
+                .interactiveDismissDisabled()
+        }
         .task { await env.session.restore() }
         // Widget links (skintel://scan|ask|shelf|checkin). Kept while the session is still
         // restoring so a cold launch lands where the widget pointed; signed-out users just

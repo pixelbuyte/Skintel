@@ -48,8 +48,9 @@ struct MainTabView: View {
     /// "Ask Skinstel about this scan": the question for Ask's composer, kept while the face scan
     /// cover closes; Ask opens once it has gone.
     @State private var askAfterFaceScan: String?
-    /// A new value rebuilds the You tab's stack, back on its first page (tapping You again).
-    @State private var youStack = UUID()
+    /// Bumped when the current tab is tapped again (all but Ask): the tab's stack is rebuilt,
+    /// back on its first page, like the system tab bar.
+    @State private var tabRoot = 0
     @State private var keyboardUp = false
     @AppStorage(AssistantPlacement.key) private var assistantPlacement = AssistantPlacement.tab
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
@@ -58,13 +59,13 @@ struct MainTabView: View {
         ZStack(alignment: .bottom) {
             Group {
                 switch tab {
-                case .today: HomeView(isCovered: isPresenting)
-                case .shelf: ShelfTab()
+                case .today: HomeView(isCovered: isPresenting).id(tabRoot)
+                case .shelf: ShelfTab().id(tabRoot)
                 // Ask reserves the bar's space itself: an inset from out here doesn't reach a
                 // composer pinned inside its own NavigationStack.
                 case .ask: AssistantView(showsClose: false, tabBarClearance: keyboardUp ? 0 : SKTabBar.height + SKSpace.md, leave: { tab = .today })
-                case .insights: InsightsView(leave: { tab = .today })
-                case .you: YouTab().id(youStack)
+                case .insights: InsightsView(leave: { tab = .today }).id(tabRoot)
+                case .you: YouTab().id(tabRoot)
                 }
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -245,8 +246,9 @@ struct MainTabView: View {
     }
 
     private func select(_ next: MainTab) {
-        // You again while on You: back to its first page, like the system tab bar.
-        if next == .you && tab == .you { youStack = UUID() }
+        // The tab you're on, tapped again: back to its first page, like the system tab bar. Ask
+        // keeps its conversation.
+        if next == tab && next != .ask { tabRoot += 1 }
         guard let feature = Self.lockedFeature(for: next), !env.subscription.entitlement.isPro else {
             tab = next
             return

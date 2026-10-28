@@ -59,7 +59,7 @@ enum FaceQuestions {
     /// The goals question first, then Q1–Q7, then "Anything you want to know?". Under-18s don't
     /// see the pregnancy options (PRO-SPEC §7.2, the safe default). Q7 asks only for the step
     /// limit now: the goals question replaced its goal row.
-    static func core(under18: Bool, triggerHint: String?) -> [FaceQuestion] {
+    static func core(under18: Bool, triggerHint: String?, shelfHint: String? = nil) -> [FaceQuestion] {
         let locks = under18 ? ["Prescription skin medicine", "None of these"]
                             : ["Pregnant or trying", "Breastfeeding", "Prescription skin medicine", "None of these"]
         let list: [FaceQuestion] = [
@@ -69,7 +69,7 @@ enum FaceQuestions {
                          rows: [.init(key: "q1", options: ["Tight", "Comfortable", "Shiny on the T-zone", "Shiny all over"])]),
             FaceQuestion(id: "q2", title: "Do products sting or burn when you put them on?",
                          rows: [.init(key: "q2", options: ["Never", "Sometimes", "Often", "Only certain ones"])]),
-            FaceQuestion(id: "q3", title: "Which actives are you using right now?", hint: "Pick all that apply.",
+            FaceQuestion(id: "q3", title: "Which actives are you using right now?", hint: shelfHint ?? "Pick all that apply.",
                          rows: [.init(key: "q3", options: ["Retinoid", "AHA or BHA", "Vitamin C", "Benzoyl peroxide", "Niacinamide", "None"],
                                       multi: true, exclusive: ["None"])]),
             FaceQuestion(id: "q4", title: "When a blemish heals, the mark it leaves is usually…",
@@ -146,7 +146,7 @@ enum FaceQuestions {
     static let profileAnswered: Set<String> = [FaceGoal.chipKey, "q1", "q2"]
 
     /// What the app already knows, so the person confirms instead of re-answering (PRO-SPEC §4.2).
-    static func prefill(profile: SkinProfile, triggerNames: [String]) -> [String: Set<String>] {
+    static func prefill(profile: SkinProfile, triggerNames: [String], shelfActives: [String] = []) -> [String: Set<String>] {
         var out: [String: Set<String>] = [:]
         switch profile.skinType {
         case .oily?: out["q1"] = ["Shiny all over"]
@@ -158,9 +158,32 @@ enum FaceQuestions {
         if profile.skinType == .sensitive { out["q2"] = ["Sometimes"] }
         let wanted = goals(from: profile.concerns)
         if !wanted.isEmpty { out[FaceGoal.chipKey] = Set(wanted.map(\.label)) }
+        if !shelfActives.isEmpty { out["q3"] = Set(shelfActives) }
         let picked = triggerPicks(triggerNames)
         if !picked.isEmpty { out["q6"] = Set(picked) }
         return out
+    }
+
+    /// Actives found on the shelf: the Q3 options they match, and a hint naming the products
+    /// ("Picked from your shelf: …"), or no picks and nil when nothing on the shelf has one.
+    static func shelfActives(_ products: [(name: String, ingredients: [String])]) -> (picks: [String], hint: String?) {
+        let patterns: [(option: String, words: [String])] = [
+            ("Retinoid", ["retinol", "retinal", "retinyl", "adapalene", "tretinoin"]),
+            ("AHA or BHA", ["glycolic", "lactic acid", "mandelic", "salicylic"]),
+            ("Vitamin C", ["ascorbic", "ascorbyl"]),
+            ("Benzoyl peroxide", ["benzoyl peroxide"]),
+            ("Niacinamide", ["niacinamide"]),
+        ]
+        var picks: [String] = []
+        var names: [String] = []
+        for (option, words) in patterns {
+            let hits = products.filter { p in p.ingredients.contains { inci in words.contains { inci.lowercased().contains($0) } } }
+            guard !hits.isEmpty else { continue }
+            picks.append(option)
+            for hit in hits where !names.contains(hit.name) { names.append(hit.name) }
+        }
+        guard !names.isEmpty else { return ([], nil) }
+        return (picks, "Picked from your shelf: " + names.prefix(3).joined(separator: ", ") + ". Change anything that is wrong.")
     }
 
     /// The goals that onboarding's concerns already name, in the goals question's order.
@@ -216,6 +239,11 @@ struct FaceQuizView: View {
     var profileLine: String? = nil
     /// Nil hides the pill (no read running, or one that failed: that shows after the questions).
     var readStatus: ReadStatus? = nil
+    /// Editing from the map ("For your goals · Edit"): starts from these saved answers, notes and
+    /// goal order included, with every question shown (none skipped behind the profile line).
+    var saved: FaceAnswers? = nil
+    /// Q3's hint when actives were picked from the shelf.
+    var shelfHint: String? = nil
     let onClose: () -> Void
     let onFinish: (FaceAnswers) -> Void
 
@@ -230,7 +258,7 @@ struct FaceQuizView: View {
     /// Edit on the profile line: the skipped questions come back.
     @State private var showPrefilled = false
 
-    private var allCore: [FaceQuestion] { FaceQuestions.core(under18: under18, triggerHint: triggerHint) }
+    private var allCore: [FaceQuestion] { FaceQuestions.core(under18: under18, triggerHint: triggerHint, shelfHint: shelfHint) }
     private var deep: [FaceQuestion] { FaceQuestions.deep(under18: under18) }
 
     /// Profile-answered questions the prefill fully covers, until Edit.
@@ -264,7 +292,13 @@ struct FaceQuizView: View {
         .onAppear {
             guard !didPrefill else { return }
             didPrefill = true
-            picks = orderedPrefill()
+            if let saved {
+                picks = saved.chips ?? [:]
+                notes = saved.notes ?? [:]
+                showPrefilled = true
+            } else {
+                picks = orderedPrefill()
+            }
         }
     }
 

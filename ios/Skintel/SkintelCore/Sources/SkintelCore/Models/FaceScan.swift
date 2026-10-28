@@ -454,7 +454,7 @@ public struct FaceTip: Codable, Sendable, Hashable {
     public var zone: FaceZone?
     public var metric: FaceMetric?
 
-    public init(title: String, why: String, zone: FaceZone? = nil, metric: FaceMetric? = nil) {
+    public init(title: String, why: String = "", zone: FaceZone? = nil, metric: FaceMetric? = nil) {
         self.title = title
         self.why = why
         self.zone = zone

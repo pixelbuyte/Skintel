@@ -35,6 +35,8 @@ struct FaceScanSummary {
     let newest: FaceScanEntry?
     /// Scans counted this week (one per day).
     let scanCount: Int
+    /// This week's counted scans, Day 1 first (at most 7): one column each on Insights.
+    let week: [FaceScanEntry]
     let scannedToday: Bool
     let hasBaseline: Bool
     let hasFinalScan: Bool
@@ -50,6 +52,7 @@ struct FaceScanSummary {
         entries = store.entries
         hasScans = !store.entries.isEmpty
         scanCount = cycle ? calibration.scanCount : 0
+        week = cycle ? Array(calibration.scans.prefix(7)) : []
         scannedToday = cycle && calibration.scannedToday(now: now)
         hasBaseline = cycle && calibration.hasBaselineScan
         hasFinalScan = cycle && calibration.hasFinalScan
@@ -108,6 +111,15 @@ struct FaceScanSummary {
     static func dayLabel(_ key: String) -> String {
         guard let date = ISO8601.date(key) else { return key }
         return DateFormatting.short(date)
+    }
+
+    /// A zone's level in one scan, from its top finding: 0 clear, 1 some, 2 noticeable; nil when
+    /// the zone was not read (drawn empty, never as clear).
+    static func level(_ zone: FaceZone, in result: FaceScanResult) -> Int? {
+        guard let read = result.zone(zone) else { return nil }
+        if read.isClear { return 0 }
+        guard let top = read.topFinding else { return nil }
+        return FaceZoneLevels.level(for: FaceCalibration.band(top.score))
     }
 
     struct ZoneWords: Identifiable {

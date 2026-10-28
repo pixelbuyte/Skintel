@@ -90,20 +90,27 @@ public struct SkintelAPI: Sendable {
     /// `POST /api/assistant`. The server adds the user's shelf and skin profile; the routine
     /// is sent because it only lives on the device. `model` is a Skintel model name
     /// ("luna" or "sol"); the server maps it to a provider model and treats anything else as
-    /// Luna. Throws `.proRequired` for free accounts and `.server(503, …)` while the model
-    /// isn't configured. `face` asks the server to add the person's newest face scan (it reads its
-    /// own stored copy); `goals` are the face-scan goal labels. Both are left out when unset.
+    /// Luna. `face` means the person tagged their face scan: the server reads their newest stored
+    /// face-scan results (text only, never photos). `goals` are their face-scan goals ("Less
+    /// shine"). Both are left out of the body when unused. Throws `.proRequired` for free accounts
+    /// and `.server(503, …)` while the model isn't configured.
     public func askAssistant(messages: [AssistantTurn], amRoutine: [String], pmRoutine: [String],
                              model: String = "luna", tagged: [String] = [],
                              face: Bool = false, goals: [String] = []) async throws -> AssistantReply {
-        struct Routine: Encodable { let am: [String]; let pm: [String] }
-        struct Body: Encodable {
-            let messages: [AssistantTurn]; let routine: Routine; let model: String; let tagged: [String]
-            let face: Bool?; let goals: [String]?
-        }
-        let body = Body(messages: messages, routine: Routine(am: amRoutine, pm: pmRoutine), model: model, tagged: tagged,
-                        face: face ? true : nil, goals: goals.isEmpty ? nil : goals)
+        let body = AssistantBody(messages: messages, routine: AssistantBody.Routine(am: amRoutine, pm: pmRoutine),
+                                 model: model, tagged: tagged, face: face ? true : nil, goals: goals.isEmpty ? nil : goals)
         return try await post(AssistantReply.self, "assistant", body: body)
+    }
+
+    /// The `/api/assistant` request body. Optionals are omitted when nil.
+    struct AssistantBody: Encodable {
+        struct Routine: Encodable { let am: [String]; let pm: [String] }
+        let messages: [AssistantTurn]
+        let routine: Routine
+        let model: String
+        let tagged: [String]
+        let face: Bool?
+        let goals: [String]?
     }
 
     // MARK: Face scan

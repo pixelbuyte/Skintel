@@ -155,11 +155,11 @@ struct FaceZoneLevels: Sendable, Hashable {
         }
     }
 
-    /// The highest band across a zone's metrics.
+    /// The band of each zone's top finding (`FaceZoneResult.topFinding`); a clear zone is 0.
     init(result: FaceScanResult?) {
         guard let result else { return }
         for zone in result.zones {
-            let top = zone.scores.values.max() ?? 0
+            let top = zone.isClear ? 0 : (zone.topFinding?.score ?? 0)
             levels[zone.zone] = Self.level(for: FaceCalibration.band(top))
         }
     }

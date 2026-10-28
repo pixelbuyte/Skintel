@@ -213,10 +213,14 @@ public struct FaceScanRequest: Codable, Sendable, Hashable {
     public var profile: [String: JSONValue]?
     public var shelf: [JSONValue]?
     public var triggers: [JSONValue]?
+    /// What the person wants to improve ("Less shine"), baseline and final only: the server
+    /// orders the tips by it. Older servers ignore it.
+    public var goals: [String]?
 
     public init(stage: FaceScanStage, cycleId: String, day: Int, images: [FaceScanImage] = [],
                 answers: FaceAnswers? = nil, history: [JSONValue]? = nil, profile: [String: JSONValue]? = nil,
-                shelf: [JSONValue]? = nil, triggers: [JSONValue]? = nil) {
+                shelf: [JSONValue]? = nil, triggers: [JSONValue]? = nil, goals: [String]? = nil) {
+        self.goals = goals
         self.stage = stage
         self.cycleId = cycleId
         self.day = day
