@@ -136,8 +136,10 @@ struct HomeView: View {
         case .loaded(let products):
             if products.isEmpty {
                 newUserCard
+                FaceMapCard()
             } else {
                 todayCard
+                FaceMapCard()
                 routineCard
                 checkInCard
                 askCard

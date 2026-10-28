@@ -5,11 +5,12 @@ import UserNotifications
 import SkintelCore
 import SkinstelMascot
 
-/// You: a profile the person shapes up top, then settings in layers. Everyday choices live
-/// one tap down in Personalization; account, data and the destructive actions live in
-/// Account & data instead of on the first screen.
+/// Two screens from one view. As the You tab (`isRoot`): the profile, the face map, the streak
+/// and the membership, with a gear on top. Behind the gear (and Today's settings link):
+/// Settings, where the everyday choices, the account, data and the legal links live.
 struct SettingsView: View {
-    /// True when hosted as the You tab: no back button, no room reserved for one.
+    /// True when hosted as the You tab: the You page with the gear. False: the Settings screen,
+    /// with a back button.
     var isRoot = false
 
     @Environment(AppEnvironment.self) private var env
@@ -26,44 +27,12 @@ struct SettingsView: View {
     @State private var showEditProfile = false
     @State private var showPersonalization = false
     @State private var showAccount = false
+    @State private var showSettings = false
 
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: SKSpace.xl) {
-                Text(isRoot ? "You" : "Settings").font(SKFont.pageTitle).foregroundStyle(SKColor.ink).padding(.leading, isRoot ? 0 : 44).padding(.top, SKSpace.md)
-
-                profileHero
-                stats
-
-                SettingsGroup(title: "Personalize") {
-                    SettingsRow(icon: "drop", title: "Skin profile", subtitle: skinSummary) { showEditProfile = true }
-                    SettingsRow(icon: "sparkles", title: "Ask Skintel",
-                                subtitle: "\(askModel.name) · \(assistantPlacement == AssistantPlacement.tab ? "in the tab bar" : "top of Today")") {
-                        showPersonalization = true
-                    }
-                    SettingsRow(icon: "bell", title: "Reminders", subtitle: reminderSummary) { showPersonalization = true }
-                    SettingsRow(icon: "slider.horizontal.3", title: "Feel", subtitle: hapticsOn ? "Haptics on" : "Haptics off", last: true) {
-                        showPersonalization = true
-                    }
-                }
-
-                membershipCard
-
-                HStack(spacing: SKSpace.md) {
-                    SKDrop("DropPrivacy", size: 56)
-                    Text("Your shelf, journal and check-ins belong to your account. Delete them any time in Account & data.")
-                        .font(SKFont.caption).foregroundStyle(SKColor.muted)
-                }
-                .padding(.horizontal, 4)
-
-                SettingsGroup(title: "Account") {
-                    SettingsRow(title: "Account & data", subtitle: env.session.user?.email) { showAccount = true }
-                    SettingsLinkRow(title: "Privacy policy", url: env.config.privacyURL)
-                    SettingsLinkRow(title: "Terms", url: env.config.termsURL, last: true)
-                }
-
-                Text("Skintel \(Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "") · Not medical advice. Patterns, not prescriptions.")
-                    .font(SKFont.caption).foregroundStyle(SKColor.muted).frame(maxWidth: .infinity).multilineTextAlignment(.center)
+                if isRoot { youPage } else { settingsPage }
             }
             .skPagePadding()
             .padding(.bottom, SKSpace.xxl)
@@ -73,11 +42,74 @@ struct SettingsView: View {
         .overlay(alignment: .topLeading) { if !isRoot { BackButton().padding(.top, 2) } }
         .navigationDestination(isPresented: $showPersonalization) { PersonalizationView() }
         .navigationDestination(isPresented: $showAccount) { AccountDataView() }
+        .navigationDestination(isPresented: $showSettings) { SettingsView() }
         .sheet(isPresented: $showEditProfile) { EditProfileSheet() }
         .task {
             await env.subscription.load()
             await env.journal.load()
         }
+    }
+
+    // MARK: Pages
+
+    @ViewBuilder
+    private var youPage: some View {
+        HStack(alignment: .center) {
+            Text("You").font(SKFont.pageTitle).foregroundStyle(SKColor.ink)
+            Spacer(minLength: 0)
+            Button { showSettings = true } label: {
+                Image(systemName: "gearshape")
+                    .font(.system(size: 18, weight: .semibold))
+                    .foregroundStyle(SKColor.ink)
+                    .frame(width: 44, height: 44)
+                    .background(SKColor.cream, in: Circle())
+                    .overlay(Circle().stroke(SKColor.line))
+                    .contentShape(Circle())
+            }
+            .buttonStyle(SKPressStyle(scale: 0.94))
+            .accessibilityLabel("Settings")
+        }
+        .padding(.top, SKSpace.md)
+
+        profileHero
+        FaceMapCard()
+        stats
+        membershipCard
+    }
+
+    @ViewBuilder
+    private var settingsPage: some View {
+        Text("Settings").font(SKFont.pageTitle).foregroundStyle(SKColor.ink).padding(.leading, 44).padding(.top, SKSpace.md)
+
+        SettingsGroup(title: "Personalize") {
+            SettingsRow(icon: "drop", title: "Skin profile", subtitle: skinSummary) { showEditProfile = true }
+            SettingsRow(icon: "sparkles", title: "Ask Skintel",
+                        subtitle: "\(askModel.name) · \(assistantPlacement == AssistantPlacement.tab ? "in the tab bar" : "top of Today")") {
+                showPersonalization = true
+            }
+            SettingsRow(icon: "bell", title: "Reminders", subtitle: reminderSummary) { showPersonalization = true }
+            SettingsRow(icon: "slider.horizontal.3", title: "Feel", subtitle: hapticsOn ? "Haptics on" : "Haptics off", last: true) {
+                showPersonalization = true
+            }
+        }
+
+        membershipCard
+
+        HStack(spacing: SKSpace.md) {
+            SKDrop("DropPrivacy", size: 56)
+            Text("Your shelf, journal and check-ins belong to your account. Delete them any time in Account & data.")
+                .font(SKFont.caption).foregroundStyle(SKColor.muted)
+        }
+        .padding(.horizontal, 4)
+
+        SettingsGroup(title: "Account") {
+            SettingsRow(title: "Account & data", subtitle: env.session.user?.email) { showAccount = true }
+            SettingsLinkRow(title: "Privacy policy", url: env.config.privacyURL)
+            SettingsLinkRow(title: "Terms", url: env.config.termsURL, last: true)
+        }
+
+        Text("Skintel \(Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "") · Not medical advice. Patterns, not prescriptions.")
+            .font(SKFont.caption).foregroundStyle(SKColor.muted).frame(maxWidth: .infinity).multilineTextAlignment(.center)
     }
 
     // MARK: Profile

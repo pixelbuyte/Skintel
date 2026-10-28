@@ -27,11 +27,20 @@ enum FaceQuestions {
         "Prescription skin medicine": .skinMedicine,
     ]
 
-    /// Q1–Q7. Under-18s don't see the pregnancy options (PRO-SPEC §7.2, the safe default).
+    /// The goals question's key: its picks go to the read (tips start with them) and to Ask.
+    static let goalsKey = "goals"
+    /// The question that collects the locks: never skippable, so the report never fails open.
+    static let locksID = "q5"
+    static let goalOptions = ["Less shine", "Fewer breakouts", "Fade dark marks", "Calmer redness",
+                              "Smoother texture", "Smaller-looking pores", "More even tone", "Just know my skin"]
+
+    /// Goals, then Q1–Q7. Under-18s don't see the pregnancy options (PRO-SPEC §7.2, the safe default).
     static func core(under18: Bool, triggerHint: String?) -> [FaceQuestion] {
         let locks = under18 ? ["Prescription skin medicine", "None of these"]
                             : ["Pregnant or trying", "Breastfeeding", "Prescription skin medicine", "None of these"]
         return [
+            FaceQuestion(id: goalsKey, title: "What do you want to improve?", hint: "Pick any. Your tips start with these.",
+                         rows: [.init(key: goalsKey, options: goalOptions, multi: true, exclusive: ["Just know my skin"])]),
             FaceQuestion(id: "q1", title: "30 minutes after washing, with nothing on, your skin feels…",
                          rows: [.init(key: "q1", options: ["Tight", "Comfortable", "Shiny on the T-zone", "Shiny all over"])]),
             FaceQuestion(id: "q2", title: "Do products sting or burn when you put them on?",
@@ -47,9 +56,8 @@ enum FaceQuestions {
             FaceQuestion(id: "q6", title: "Ingredients that have bothered you before", hint: triggerHint,
                          rows: [.init(key: "q6", options: ["Fragrance", "Essential oils", "Drying alcohol", "Coconut oil", "Not sure"],
                                       multi: true, exclusive: ["Not sure"])]),
-            FaceQuestion(id: "q7", title: "Your main goal, and how many steps you will really do",
-                         rows: [.init(key: "q7_goal", label: "Goal", options: ["Fewer breakouts", "Calmer redness", "Less shine", "More even tone"]),
-                                .init(key: "q7_steps", label: "Steps", options: ["3", "4 to 5", "6 or more"])]),
+            FaceQuestion(id: "q7", title: "How many steps will you really do in a routine?",
+                         rows: [.init(key: "q7_steps", options: ["3", "4 to 5", "6 or more"])]),
         ]
     }
 
@@ -100,11 +108,12 @@ enum FaceQuestions {
         case .sensitive?, nil: break
         }
         if profile.skinType == .sensitive { out["q2"] = ["Sometimes"] }
-        let goal: String? = profile.concerns.contains(.breakouts) ? "Fewer breakouts"
-            : profile.concerns.contains(.redness) ? "Calmer redness"
-            : profile.concerns.contains(.oiliness) ? "Less shine"
-            : profile.concerns.contains(.darkSpots) ? "More even tone" : nil
-        if let goal { out["q7_goal"] = [goal] }
+        var goals: Set<String> = []
+        if profile.concerns.contains(.breakouts) { goals.insert("Fewer breakouts") }
+        if profile.concerns.contains(.redness) { goals.insert("Calmer redness") }
+        if profile.concerns.contains(.oiliness) { goals.insert("Less shine") }
+        if profile.concerns.contains(.darkSpots) { goals.insert("Fade dark marks") }
+        if !goals.isEmpty { out[goalsKey] = goals }
         let picked = triggerPicks(triggerNames)
         if !picked.isEmpty { out["q6"] = Set(picked) }
         return out
@@ -124,12 +133,15 @@ enum FaceQuestions {
     }
 }
 
-/// Q1–Q7, the checkpoint, and the opt-in deep dive (canvas screen 4).
+/// Goals, Q1–Q7, the checkpoint, and the opt-in deep dive (canvas screen 4). Every question but
+/// the locks (Q5) can be skipped; "Later" shows the results with what is answered so far.
 struct FaceQuizView: View {
     let under18: Bool
     let prefill: [String: Set<String>]
     let triggerHint: String?
     let onClose: () -> Void
+    /// Called once, when the goals question is left: the read starts then, during the rest.
+    var onGoals: ([String]) -> Void = { _ in }
     let onFinish: (FaceAnswers) -> Void
 
     private enum Stage: Equatable { case core(Int), checkpoint, deep(Int) }
@@ -139,6 +151,7 @@ struct FaceQuizView: View {
     @State private var notes: [String: String] = [:]
     @State private var noteOpen = false
     @State private var didPrefill = false
+    @State private var sentGoals = false
 
     private var core: [FaceQuestion] { FaceQuestions.core(under18: under18, triggerHint: triggerHint) }
     private var deep: [FaceQuestion] { FaceQuestions.deep(under18: under18) }
@@ -173,7 +186,15 @@ struct FaceQuizView: View {
                 Spacer()
                 Text(kicker).font(SKFont.mono(12)).tracking(1.5).foregroundStyle(SKColor.ink)
                 Spacer()
-                Color.clear.frame(width: 44, height: 44)
+                if canFinishLater {
+                    Button("Later") { finish() }
+                        .font(SKFont.sans(15, weight: .semibold, relativeTo: .subheadline))
+                        .foregroundStyle(SKColor.muted)
+                        .frame(minWidth: 44, minHeight: 44)
+                        .accessibilityHint("Shows your results now with what you've answered")
+                } else {
+                    Color.clear.frame(width: 44, height: 44)
+                }
             }
             .padding(.horizontal, SKSpace.sm)
             HStack(spacing: SKSpace.xs) {
@@ -189,11 +210,15 @@ struct FaceQuizView: View {
 
     private var kicker: String {
         switch stage {
-        case .core(let i): "QUESTION \(i + 1) OF 7"
-        case .checkpoint: "CORE PROFILE · 7 OF 7"
-        case .deep(let i): "DEEP DIVE · \(i + 8) OF \(7 + deep.count)"
+        case .core(let i): "QUESTION \(i + 1) OF \(core.count)"
+        case .checkpoint: "CORE PROFILE · DONE"
+        case .deep(let i): "DEEP DIVE · \(i + 1 + core.count) OF \(core.count + deep.count)"
         }
     }
+
+    /// "Later" shows the results with what is answered. Safe at any point: the report re-asks
+    /// the locks question first when it was never answered (`FaceScanFlowView.readReport`).
+    private var canFinishLater: Bool { true }
 
     private var segmentCount: Int {
         if case .deep = stage { return deep.count }
@@ -243,10 +268,17 @@ struct FaceQuizView: View {
                         SKButton(title: "See my results") { finish() }
                     } else {
                         SKButton(title: "Next") { next() }.disabled(!answered(q))
-                        SKButton(title: "See my results now", kind: .ghost) { finish() }
+                        if !answered(q) {
+                            SKButton(title: "Not sure, skip this one", kind: .ghost) { next() }
+                        } else {
+                            SKButton(title: "See my results now", kind: .ghost) { finish() }
+                        }
                     }
                 } else {
                     SKButton(title: "Next") { next() }.disabled(!answered(q))
+                    if q.id != FaceQuestions.locksID && !answered(q) {
+                        SKButton(title: "Not sure, skip this one", kind: .ghost) { next() }
+                    }
                 }
             }
             .skPagePadding()
@@ -360,6 +392,7 @@ struct FaceQuizView: View {
 
     private func next() {
         noteOpen = false
+        sendGoalsIfLeaving()
         switch stage {
         case .core(let i): stage = i + 1 < core.count ? .core(i + 1) : .checkpoint
         case .deep(let i): if i + 1 < deep.count { stage = .deep(i + 1) } else { finish() }
@@ -376,8 +409,15 @@ struct FaceQuizView: View {
         }
     }
 
+    /// Leaving the goals question (Next or Skip) starts the read with whatever was picked.
+    private func sendGoalsIfLeaving() {
+        guard !sentGoals, case .core(let i) = stage, core[i].id == FaceQuestions.goalsKey else { return }
+        sentGoals = true
+        onGoals(FaceQuestions.goalOptions.filter { (picks[FaceQuestions.goalsKey] ?? []).contains($0) })
+    }
+
     private func finish() {
-        let chosen = picks[ "q5"] ?? []
+        let chosen = picks[FaceQuestions.locksID] ?? []
         let locks = FaceLock.allCases.filter { lock in
             chosen.contains { FaceQuestions.lockOptions[$0] == lock }
         }

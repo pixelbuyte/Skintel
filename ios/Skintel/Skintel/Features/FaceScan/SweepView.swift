@@ -210,13 +210,8 @@ struct SweepView: View {
 
     var body: some View {
         ZStack {
-            SKColor.scannerBg.ignoresSafeArea()
-            if live, let session = model.session {
-                SweepPreview(session: session)
-                    .ignoresSafeArea()
-                    .accessibilityHidden(true)
-            }
-            scrims
+            // A cream screen at full brightness is the ring light; the camera shows in the oval.
+            SKColor.bg.ignoresSafeArea()
             if lightOn { ringLight }
             content
             if showRetake {
@@ -226,7 +221,7 @@ struct SweepView: View {
                     .transition(.move(edge: .bottom).combined(with: .opacity))
             }
         }
-        .foregroundStyle(SKColor.bg)
+        .foregroundStyle(SKColor.ink)
         .task { await model.start() }
         .onAppear { updateLight() }
         .onDisappear {
@@ -270,7 +265,7 @@ struct SweepView: View {
                 Spacer()
                 Button { model.restart() } label: {
                     Image(systemName: "arrow.counterclockwise").font(.system(size: 17, weight: .semibold))
-                        .foregroundStyle(SKColor.bg.opacity(0.8)).frame(width: 44, height: 44)
+                        .foregroundStyle(SKColor.muted).frame(width: 44, height: 44)
                 }
                 .accessibilityLabel("Start the sweep again")
                 .disabled(model.holding)
@@ -282,13 +277,13 @@ struct SweepView: View {
                 VStack(alignment: .leading, spacing: SKSpace.xs) {
                     Text(title).font(SKFont.serif(32, relativeTo: .largeTitle))
                         .accessibilityAddTraits(.isHeader)
-                    Text(subtitle).font(SKFont.sans(15, relativeTo: .subheadline)).foregroundStyle(SKColor.bg.opacity(0.85))
+                    Text(subtitle).font(SKFont.sans(15, weight: hint == nil ? .regular : .semibold, relativeTo: .subheadline))
+                        .foregroundStyle(hint == nil ? SKColor.muted : SKColor.primary)
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
                 .animation(SKAnimation.ios(0.3), value: title)
                 if live { meshGuide }
             }
-            .shadow(color: SKColor.scannerBg.opacity(0.5), radius: 6)
             .padding(.horizontal, SKSpace.xl)
             .padding(.top, SKSpace.sm)
 
@@ -308,28 +303,12 @@ struct SweepView: View {
             if model.phase == .scanning { shutter.padding(.top, SKSpace.lg) }
             if showsPrivacyNote {
                 Text("Your Day 1 photo and close-ups stay on this phone until your week ends, then are deleted.")
-                    .font(SKFont.caption).foregroundStyle(SKColor.bg.opacity(0.7))
+                    .font(SKFont.caption).foregroundStyle(SKColor.muted)
                     .multilineTextAlignment(.center).padding(.horizontal, 40)
                     .padding(.top, SKSpace.md)
             }
             Spacer().frame(height: SKSpace.lg)
         }
-    }
-
-    /// Dark gradients at the top and bottom so the words read over any background.
-    private var scrims: some View {
-        VStack(spacing: 0) {
-            LinearGradient(colors: [SKColor.scannerBg.opacity(0.75), SKColor.scannerBg.opacity(0)],
-                           startPoint: .top, endPoint: .bottom)
-                .frame(height: 220)
-            Spacer(minLength: 0)
-            LinearGradient(colors: [SKColor.scannerBg.opacity(0), SKColor.scannerBg.opacity(0.8)],
-                           startPoint: .top, endPoint: .bottom)
-                .frame(height: 300)
-        }
-        .ignoresSafeArea()
-        .allowsHitTesting(false)
-        .accessibilityHidden(true)
     }
 
     /// A soft cream border: with the screen at full brightness it lights the face.
@@ -348,7 +327,18 @@ struct SweepView: View {
 
     private var ovalGuide: some View {
         ZStack {
-            Ellipse().stroke(SKColor.bg.opacity(0.35), lineWidth: 5)
+            // The camera, mirrored like a selfie, only inside the oval.
+            Group {
+                if live, let session = model.session {
+                    SweepPreview(session: session)
+                } else {
+                    SKColor.neutralChip
+                }
+            }
+            .clipShape(Ellipse())
+            .padding(6)
+            .accessibilityHidden(true)
+            Ellipse().stroke(SKColor.line, lineWidth: 5)
             Ellipse().trim(from: 0, to: progress)
                 .stroke(SKColor.primary, style: StrokeStyle(lineWidth: 6, lineCap: .round))
                 .rotationEffect(.degrees(-90))
@@ -365,10 +355,10 @@ struct SweepView: View {
 
     /// The "you are here" guide: the 3D face turned to the angle wanted now.
     private var meshGuide: some View {
-        FaceMeshView(mode: .scan, zoom: 0.4, targetYaw: targetYaw)
+        FaceMeshView(mode: .scan, zoom: 0.4, targetYaw: targetYaw, palette: .light)
             .frame(width: 96, height: 96)
-            .background(SKColor.scannerBg.opacity(0.72), in: RoundedRectangle(cornerRadius: SKRadius.card, style: .continuous))
-            .overlay(RoundedRectangle(cornerRadius: SKRadius.card, style: .continuous).stroke(SKColor.bg.opacity(0.25), lineWidth: 1))
+            .background(SKColor.cream, in: RoundedRectangle(cornerRadius: SKRadius.card, style: .continuous))
+            .overlay(RoundedRectangle(cornerRadius: SKRadius.card, style: .continuous).stroke(SKColor.line, lineWidth: 1))
             .allowsHitTesting(false)
             .accessibilityHidden(true)
     }
@@ -379,8 +369,8 @@ struct SweepView: View {
             model.shutter()
         } label: {
             ZStack {
-                Circle().stroke(SKColor.bg, lineWidth: 3).frame(width: 66, height: 66)
-                Circle().fill(SKColor.bg).frame(width: 54, height: 54)
+                Circle().stroke(SKColor.primary, lineWidth: 3).frame(width: 66, height: 66)
+                Circle().fill(SKColor.primary).frame(width: 54, height: 54)
             }
             .frame(width: 70, height: 70)
             .contentShape(Circle())
@@ -499,10 +489,10 @@ struct SweepView: View {
             Text(active ? "\(name) · now" : name)
         }
         .font(SKFont.sans(13, relativeTo: .footnote))
-        .foregroundStyle(done || active ? SKColor.cream : SKColor.bg.opacity(0.85))
+        .foregroundStyle(done ? SKColor.cream : active ? SKColor.primaryPressed : SKColor.muted)
         .padding(.horizontal, SKSpace.md).padding(.vertical, SKSpace.sm)
-        .background(done ? SKColor.primary : active ? SKColor.primary.opacity(0.45) : SKColor.scannerBg.opacity(0.5), in: Capsule())
-        .overlay(Capsule().stroke(done || active ? SKColor.primary : SKColor.bg.opacity(0.35), lineWidth: 1))
+        .background(done ? SKColor.primary : active ? SKColor.primary.opacity(0.14) : SKColor.cream, in: Capsule())
+        .overlay(Capsule().stroke(done || active ? SKColor.primary : SKColor.line, lineWidth: 1))
         .accessibilityElement(children: .combine)
         .accessibilityValue(done ? "Done" : active ? "Now" : "Waiting")
     }
@@ -533,11 +523,10 @@ struct SweepView: View {
             Text(ok ? okText : fix).lineLimit(1).minimumScaleFactor(0.8)
         }
         .font(SKFont.sans(13, weight: .medium, relativeTo: .footnote))
-        .foregroundStyle(ok ? SKColor.goodFg : SKColor.cream)
+        .foregroundStyle(ok ? SKColor.goodFg : SKColor.cautionFg)
         .padding(.horizontal, SKSpace.md).padding(.vertical, SKSpace.sm)
         .frame(maxWidth: .infinity)
-        .background(ok ? SKColor.goodBg : SKColor.scannerBg.opacity(0.6), in: Capsule())
-        .overlay(Capsule().stroke(ok ? SKColor.goodBg : SKColor.bg.opacity(0.35), lineWidth: 1))
+        .background(ok ? SKColor.goodBg : SKColor.cautionBg, in: Capsule())
         .animation(SKAnimation.ios(0.25), value: ok)
         .accessibilityElement(children: .combine)
         .accessibilityLabel(ok ? okText : fix)

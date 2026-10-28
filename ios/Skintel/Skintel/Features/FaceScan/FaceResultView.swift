@@ -4,8 +4,9 @@ import SwiftUI
 import UIKit
 import Vision
 
-/// The 3D map with the 7-day check (canvas screen 5): a dark hero with the face, zone glow and
-/// labels, tappable day buttons, concentric rings with a legend, the insight, zones, tonight's
+/// The map with the 7-day check (canvas screen 5): a cream hero with their own photo (mirrored,
+/// like a selfie) and the 3D mesh laid over it as one view, zone glow and labels, tappable day
+/// buttons, the tips for their goals, concentric rings with a legend, the insight, zones, tonight's
 /// routine, the report once it exists, the history list and Ask. Levels are words and glyphs,
 /// never raw scores (PRO-SPEC §6).
 ///
@@ -22,15 +23,15 @@ struct FaceResultView: View {
     let onClose: () -> Void
     /// Not Skintel+ only: opens the Skintel+ wall from the locked 7-day check.
     var onUnlock: (() -> Void)? = nil
-    /// The Day 1 front photo (JPEG, on this phone only). With it the hero opens on "You". It is
-    /// deleted with the Day 1 crops when the report is written, so the report map opens on 3D.
+    /// The Day 1 front photo (JPEG, on this phone only), shown mirrored with the mesh over it. It
+    /// is deleted with the Day 1 crops when the report is written, so the report map is 3D only.
     var photo: Data? = nil
+    /// What they want to improve, from the questions: heads the tips.
+    var goals: [String] = []
 
     @State private var selected: Int?
-    /// The hero toggle; nil until the person picks, so it follows whether a photo exists.
-    @State private var show3D: Bool?
 
-    private var showsPhoto: Bool { photo != nil && !(show3D ?? false) }
+    private var showsPhoto: Bool { photo != nil }
 
     private var isFree: Bool { onUnlock != nil }
 
@@ -48,11 +49,12 @@ struct FaceResultView: View {
                 VStack(spacing: 14) {
                     if let onUnlock { lockedWeekCard(unlock: onUnlock) } else { ringsCard }
                     insightCard
+                    if let tips = entry?.result.tips, !tips.isEmpty { tipsCard(tips) }
                     zonesCard
                     if let report = calibration.latestReport?.report { reportCard(report) }
                     if !isFree, let routine, !(routine.pm.isEmpty && routine.am.isEmpty) { routineCard(routine) }
                     if !isFree, let nextAction { SKButton(title: nextAction, systemImage: "faceid") { onNext() } }
-                    if !isFree, let onAsk { SKButton(title: "Ask Skinstel about this scan", kind: nextAction == nil ? .primary : .secondary) { onAsk() } }
+                    if !isFree, let onAsk { SKButton(title: "Ask Skinstel about my scan", kind: nextAction == nil ? .primary : .secondary) { onAsk() } }
                     historyCard
                     Text("\(FaceScanResult.defaultDisclaimer) Photos are read, then deleted.")
                         .font(SKFont.caption).foregroundStyle(SKColor.muted).multilineTextAlignment(.center)
@@ -82,35 +84,39 @@ struct FaceResultView: View {
             }
             .padding(.horizontal, SKSpace.sm)
             VStack(alignment: .leading, spacing: SKSpace.xs) {
-                Text("YOUR SKIN MAP · DAY \(index + 1) OF 7").font(SKFont.label).tracking(1.5).foregroundStyle(FaceScanColor.hot)
-                Text(insight.title).font(SKFont.pageTitle).accessibilityAddTraits(.isHeader)
+                Text("YOUR SKIN MAP · DAY \(index + 1) OF 7").font(SKFont.label).tracking(1.5).foregroundStyle(SKColor.primary)
+                Text(insight.title).font(SKFont.pageTitle).foregroundStyle(SKColor.ink).accessibilityAddTraits(.isHeader)
             }
             .padding(.horizontal, SKSpace.xl)
             .padding(.top, 14)
 
-            if photo != nil {
-                heroToggle
-                    .padding(.horizontal, SKSpace.xl)
-                    .padding(.top, SKSpace.md)
-            }
-
             Group {
                 if showsPhoto, let photo {
-                    FacePhotoMap(photo: photo, levels: FaceZoneLevels(result: entry?.result), labels: labels)
-                        .clipShape(RoundedRectangle(cornerRadius: SKRadius.card, style: .continuous))
+                    FacePhotoMap(photo: photo, levels: FaceZoneLevels(result: entry?.result), labels: labels(mirrored: true))
+                        .clipShape(RoundedRectangle(cornerRadius: 24, style: .continuous))
+                        .overlay(RoundedRectangle(cornerRadius: 24, style: .continuous).stroke(SKColor.line))
+                        .overlay(alignment: .bottomTrailing) {
+                            Text("Your photo + 3D map · mirrored")
+                                .font(SKFont.caption).foregroundStyle(SKColor.cream)
+                                .padding(.horizontal, 10).padding(.vertical, 4)
+                                .background(SKColor.ink.opacity(0.55), in: Capsule())
+                                .padding(10)
+                                .accessibilityHidden(true)
+                        }
                         .padding(.horizontal, SKSpace.md)
                         .padding(.vertical, SKSpace.sm)
                 } else {
-                    FaceMeshView(mode: .result, levels: FaceZoneLevels(result: entry?.result), labels: labels, zoom: 0.31)
+                    FaceMeshView(mode: .result, levels: FaceZoneLevels(result: entry?.result), labels: labels(mirrored: false),
+                                 zoom: 0.31, palette: .light)
                 }
             }
-            .frame(height: 330)
+            .frame(height: 360)
             .frame(maxWidth: SKLayout.readableWidth)
             .frame(maxWidth: .infinity)
 
             VStack(spacing: 10) {
                 ZStack {
-                    Rectangle().fill(SKColor.bg.opacity(0.14)).frame(height: 2).padding(.horizontal, 18)
+                    Rectangle().fill(SKColor.line).frame(height: 2).padding(.horizontal, 18)
                     HStack {
                         ForEach(1...7, id: \.self) { n in
                             dayButton(n)
@@ -119,46 +125,17 @@ struct FaceResultView: View {
                     }
                 }
                 HStack {
-                    Text("Tap a day · drag the face to turn it")
+                    Text(showsPhoto ? "Tap a day to see it" : "Tap a day · drag the face to turn it")
                     Spacer()
-                    Text("◆ = unlock day").font(SKFont.label).foregroundStyle(FaceScanColor.hot)
+                    Text("◆ = unlock day").font(SKFont.label).foregroundStyle(SKColor.primary)
                 }
-                .font(SKFont.caption).foregroundStyle(SKColor.bg.opacity(0.62))
+                .font(SKFont.caption).foregroundStyle(SKColor.muted)
             }
             .padding(.horizontal, 18)
         }
         .padding(.top, 54)
-        .padding(.bottom, 22)
-        .foregroundStyle(SKColor.bg)
-        .background(SKColor.scannerBg, in: UnevenRoundedRectangle(bottomLeadingRadius: SKRadius.sheet, bottomTrailingRadius: SKRadius.sheet))
-    }
-
-    /// "You · 3D": their own Day 1 photo with the zone glow, or the 3D model.
-    private var heroToggle: some View {
-        HStack(spacing: 0) {
-            toggleButton("You", on: showsPhoto) { show3D = false }
-            toggleButton("3D", on: !showsPhoto) { show3D = true }
-        }
-        .padding(3)
-        .background(SKColor.bg.opacity(0.12), in: Capsule())
-        .accessibilityElement(children: .contain)
-        .accessibilityLabel("Map view")
-    }
-
-    private func toggleButton(_ title: String, on: Bool, action: @escaping () -> Void) -> some View {
-        Button {
-            withAnimation(SKAnimation.ios(0.3)) { action() }
-            Haptics.selection()
-        } label: {
-            Text(title)
-                .font(SKFont.sans(13, weight: .semibold, relativeTo: .footnote))
-                .foregroundStyle(on ? SKColor.scannerBg : SKColor.bg.opacity(0.8))
-                .frame(minWidth: 64, minHeight: 32)
-                .background(on ? SKColor.bg : Color.clear, in: Capsule())
-                .contentShape(Capsule())
-        }
-        .buttonStyle(.plain)
-        .accessibilityAddTraits(on ? [.isSelected] : [])
+        .padding(.bottom, 8)
+        .foregroundStyle(SKColor.ink)
     }
 
     private func dayButton(_ n: Int) -> some View {
@@ -169,10 +146,10 @@ struct FaceResultView: View {
         return Button { selected = n - 1; Haptics.selection() } label: {
             Text(unlock ? "\(n)◆" : "\(n)")
                 .font(SKFont.mono(13))
-                .foregroundStyle(on ? SKColor.scannerBg : past ? SKColor.cream : SKColor.bg.opacity(0.75))
+                .foregroundStyle(on ? SKColor.cream : past ? SKColor.cream : SKColor.muted)
                 .frame(width: 44, height: 44)
-                .background(on ? SKColor.bg : past ? SKColor.primary : SKColor.scannerBg, in: Circle())
-                .overlay(Circle().stroke(on ? SKColor.bg : unlock ? SKColor.primary : SKColor.bg.opacity(0.25),
+                .background(on ? SKColor.ink : past ? SKColor.primary : SKColor.cream, in: Circle())
+                .overlay(Circle().stroke(on ? SKColor.ink : unlock ? SKColor.primary : SKColor.line,
                                          lineWidth: on ? 2 : unlock ? 1.5 : 1))
         }
         .buttonStyle(.plain)
@@ -195,12 +172,46 @@ struct FaceResultView: View {
         return (best.key, FaceCalibration.band(best.value))
     }
 
-    private var labels: [FaceMeshLabel] {
+    /// On a mirrored photo the person's right cheek is on the screen's right, so the two cheek
+    /// labels swap sides.
+    private func labels(mirrored: Bool) -> [FaceMeshLabel] {
         Self.zoneOrder.compactMap { item in
             guard let t = top(item.zone, in: entry?.result) else { return nil }
+            var side = item.side
+            if mirrored && (item.zone == .leftCheek || item.zone == .rightCheek) {
+                side = side == .leading ? .trailing : .leading
+            }
             return FaceMeshLabel(zone: item.zone, title: item.zone.label.uppercased(),
-                                 value: "\(t.metric.label) · \(t.band.label)".uppercased(),
-                                 side: item.side, y: item.y, hot: t.band == .noticeable)
+                                 value: (t.band == .clear ? "Clear" : "\(t.metric.label) · \(t.band.label)").uppercased(),
+                                 side: side, y: item.y, hot: t.band != .clear)
+        }
+    }
+
+    // MARK: Tips
+
+    private func tipsCard(_ tips: [FaceTip]) -> some View {
+        SKCard {
+            VStack(alignment: .leading, spacing: 12) {
+                Text(goals.first.map { "FOR YOUR GOAL · \($0.uppercased())" } ?? "WHAT TO TRY FIRST")
+                    .font(SKFont.label).tracking(1).foregroundStyle(SKColor.muted)
+                ForEach(Array(tips.enumerated()), id: \.offset) { i, tip in
+                    HStack(alignment: .top, spacing: 12) {
+                        Text("\(i + 1)").font(SKFont.sans(13, weight: .semibold, relativeTo: .footnote))
+                            .foregroundStyle(SKColor.clayTileFg)
+                            .frame(width: 26, height: 26)
+                            .background(SKColor.clayTileBg, in: Circle())
+                            .accessibilityHidden(true)
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text(tip.title).font(SKFont.sans(15, weight: .semibold, relativeTo: .body)).foregroundStyle(SKColor.ink)
+                            if !tip.why.isEmpty {
+                                Text(tip.why).font(SKFont.secondary).foregroundStyle(SKColor.muted)
+                                    .fixedSize(horizontal: false, vertical: true)
+                            }
+                        }
+                    }
+                    .accessibilityElement(children: .combine)
+                }
+            }
         }
     }
 
@@ -538,12 +549,15 @@ struct FacePhotoLayout: Sendable, Equatable {
     }
 }
 
-/// The person's own Day 1 photo with the zone glow and labels drawn on it ("You" on the map).
-/// Same level-to-intensity mapping and words as the 3D map; the photo never leaves the phone.
+/// The person's own Day 1 photo, mirrored like a selfie, with the 3D face mesh laid over it, the
+/// zone glow and the labels: one view, so the 3D map and their face are the same picture. Same
+/// level-to-intensity mapping and words as the 3D map; the photo never leaves the phone.
 struct FacePhotoMap: View {
     let photo: Data
     var levels = FaceZoneLevels(levels: [:])
     var labels: [FaceMeshLabel] = []
+    /// Mirrored like the front camera's preview (how people see themselves).
+    var mirrored = true
 
     @State private var image: UIImage?
     @State private var layout: FacePhotoLayout?
@@ -553,25 +567,30 @@ struct FacePhotoMap: View {
             guard let image else { return }
             draw(image, in: &context, size: size)
         }
-        .background(SKColor.scannerBg)
+        .background(SKColor.neutralChip)
         .task(id: photo) {
             image = UIImage(data: photo)
             let data = photo
             layout = await Task.detached(priority: .userInitiated) { FacePhotoLayout.locate(data) }.value
         }
         .accessibilityElement()
-        .accessibilityLabel("Your Day 1 photo with zones highlighted")
+        .accessibilityLabel("Your Day 1 photo with the 3D map and zones highlighted")
         .accessibilityAddTraits(.isImage)
     }
+
+    /// Normalised image x seen through the mirror.
+    private func flip(_ p: CGPoint) -> CGPoint { mirrored ? CGPoint(x: 1 - p.x, y: p.y) : p }
 
     private func draw(_ image: UIImage, in context: inout GraphicsContext, size: CGSize) {
         let w = size.width, h = size.height
         let iw = image.size.width, ih = image.size.height
         guard w > 0, h > 0, iw > 0, ih > 0 else { return }
-        let face = layout?.face ?? CGRect(x: 0.25, y: 0.3, width: 0.5, height: 0.4)
-        let centres = layout?.centres ?? FacePhotoLayout.fallbackCentres.mapValues {
-            CGPoint(x: face.minX + $0.x * face.width, y: face.minY + $0.y * face.height)
+        let rawFace = layout?.face ?? CGRect(x: 0.25, y: 0.3, width: 0.5, height: 0.4)
+        let face = mirrored ? CGRect(x: 1 - rawFace.maxX, y: rawFace.minY, width: rawFace.width, height: rawFace.height) : rawFace
+        let rawCentres = layout?.centres ?? FacePhotoLayout.fallbackCentres.mapValues {
+            CGPoint(x: rawFace.minX + $0.x * rawFace.width, y: rawFace.minY + $0.y * rawFace.height)
         }
+        let centres = rawCentres.mapValues { flip($0) }
 
         // Fill the frame, zoomed so the face takes a bit over half the height, kept centred.
         let fill = max(w / iw, h / ih)
@@ -581,8 +600,16 @@ struct FacePhotoMap: View {
         let y0 = min(0, max(h - ih * s, h * 0.5 - cy * s))
         func point(_ p: CGPoint) -> CGPoint { CGPoint(x: x0 + p.x * iw * s, y: y0 + (1 - p.y) * ih * s) }
 
-        context.draw(Image(uiImage: image), in: CGRect(x: x0, y: y0, width: iw * s, height: ih * s))
-        context.fill(Path(CGRect(origin: .zero, size: size)), with: .color(SKColor.scannerBg.opacity(0.18)))
+        let rect = CGRect(x: x0, y: y0, width: iw * s, height: ih * s)
+        var photoLayer = context
+        if mirrored {
+            photoLayer.translateBy(x: rect.midX, y: 0)
+            photoLayer.scaleBy(x: -1, y: 1)
+            photoLayer.translateBy(x: -rect.midX, y: 0)
+        }
+        photoLayer.draw(Image(uiImage: image), in: rect)
+
+        drawMesh(over: face, in: &context, point: point)
 
         let faceW = face.width * iw * s
         for zone in FaceZone.allCases {
@@ -590,33 +617,73 @@ struct FacePhotoMap: View {
             guard l > 0, let c = centres[zone] else { continue }
             let centre = point(c)
             let rad = faceW * (zone == .forehead ? 0.42 : 0.27)
-            let gradient = Gradient(colors: [SKColor.primary.opacity(0.55 * l), SKColor.primary.opacity(0)])
+            let gradient = Gradient(colors: [SKColor.primary.opacity(0.5 * l), SKColor.primary.opacity(0)])
             context.fill(Path(ellipseIn: CGRect(x: centre.x - rad, y: centre.y - rad, width: rad * 2, height: rad * 2)),
                          with: .radialGradient(gradient, center: centre, startRadius: 0, endRadius: rad))
         }
 
-        var text = context
-        text.addFilter(.shadow(color: SKColor.scannerBg.opacity(0.85), radius: 3))
         for label in labels {
             guard let c = centres[label.zone] else { continue }
             let anchorPoint = point(c)
             let ax = anchorPoint.x, ay = anchorPoint.y
             let leading = label.side == .leading
-            let lx = leading ? 16.0 : w - 16
+            let title = context.resolve(Text(label.title).font(SKFont.label).foregroundStyle(SKColor.ink))
+            let value = context.resolve(Text(label.value).font(SKFont.label)
+                .foregroundStyle(label.hot ? SKColor.primary : SKColor.goodFg))
+            let tSize = title.measure(in: CGSize(width: 160, height: 40))
+            let vSize = value.measure(in: CGSize(width: 160, height: 40))
+            let boxW = max(tSize.width, vSize.width) + 16
+            let boxH = tSize.height + vSize.height + 10
             let ly = h * label.y
-            let ex = leading ? min(ax - 14, lx + 96) : max(ax + 14, lx - 96)
+            let bx = leading ? 12 : w - 12 - boxW
+            let box = CGRect(x: bx, y: ly - boxH / 2, width: boxW, height: boxH)
             var leader = Path()
             leader.move(to: CGPoint(x: ax, y: ay))
-            leader.addLine(to: CGPoint(x: ex, y: ly))
-            leader.addLine(to: CGPoint(x: leading ? lx + 82 : lx - 82, y: ly))
-            text.stroke(leader, with: .color(SKColor.bg.opacity(0.7)), lineWidth: 0.8)
-            text.fill(Path(ellipseIn: CGRect(x: ax - 2.6, y: ay - 2.6, width: 5.2, height: 5.2)), with: .color(SKColor.bg))
-            let anchor: UnitPoint = leading ? .leading : .trailing
-            text.draw(Text(label.title).font(SKFont.label).foregroundStyle(SKColor.bg),
-                      at: CGPoint(x: lx, y: ly - 9), anchor: anchor)
-            text.draw(Text(label.value).font(SKFont.label)
-                        .foregroundStyle(label.hot ? FaceScanColor.hot : SKColor.bg.opacity(0.85)),
-                      at: CGPoint(x: lx, y: ly + 7), anchor: anchor)
+            leader.addLine(to: CGPoint(x: leading ? box.maxX : box.minX, y: ly))
+            context.stroke(leader, with: .color(SKColor.cream.opacity(0.85)), lineWidth: 1)
+            context.fill(Path(ellipseIn: CGRect(x: ax - 3, y: ay - 3, width: 6, height: 6)), with: .color(SKColor.cream))
+            let shape = Path(roundedRect: box, cornerRadius: 9)
+            context.fill(shape, with: .color(SKColor.cream.opacity(0.93)))
+            if label.hot { context.stroke(shape, with: .color(SKColor.primary), lineWidth: 1) }
+            context.draw(title, at: CGPoint(x: box.minX + 8, y: box.minY + 5), anchor: .topLeading)
+            context.draw(value, at: CGPoint(x: box.minX + 8, y: box.minY + 5 + tSize.height), anchor: .topLeading)
         }
+    }
+
+    /// The canonical face mesh's front half, fitted to the face box (a bit taller, since Vision's
+    /// box stops at the brows), as a fine cream wireframe: the 3D map on their own face.
+    private func drawMesh(over face: CGRect, in context: inout GraphicsContext, point: (CGPoint) -> CGPoint) {
+        guard let mesh = FaceMeshData.shared else { return }
+        let P = mesh.positions, F = mesh.faces
+        var minX = Float.greatestFiniteMagnitude, maxX = -Float.greatestFiniteMagnitude
+        var minY = Float.greatestFiniteMagnitude, maxY = -Float.greatestFiniteMagnitude
+        for i in 0..<mesh.vertexCount {
+            minX = min(minX, P[i * 3]); maxX = max(maxX, P[i * 3])
+            minY = min(minY, P[i * 3 + 1]); maxY = max(maxY, P[i * 3 + 1])
+        }
+        let mw = Double(max(maxX - minX, 0.001)), mh = Double(max(maxY - minY, 0.001))
+        let midX = Double(minX + maxX) / 2, midY = Double(minY + maxY) / 2
+        let width = Double(face.width) * 1.02, height = Double(face.height) * 1.38
+        let centreX = Double(face.midX), centreY = Double(face.midY) + Double(face.height) * 0.1
+        func project(_ i: Int) -> CGPoint {
+            let x = Double(P[i * 3]) * (mirrored ? -1 : 1)
+            let y = Double(P[i * 3 + 1])
+            return point(CGPoint(x: centreX + (x - (mirrored ? -midX : midX)) / mw * width,
+                                 y: centreY + (y - midY) / mh * height))
+        }
+        var wire = Path()
+        var k = 0
+        while k + 2 < F.count {
+            let a = F[k], b = F[k + 1], c = F[k + 2]
+            k += 3
+            // The front half only: the back of the head would draw over the face.
+            guard P[a * 3 + 2] > -0.1, P[b * 3 + 2] > -0.1, P[c * 3 + 2] > -0.1 else { continue }
+            let pa = project(a), pb = project(b), pc = project(c)
+            wire.move(to: pa)
+            wire.addLine(to: pb)
+            wire.addLine(to: pc)
+            wire.closeSubpath()
+        }
+        context.stroke(wire, with: .color(SKColor.cream.opacity(0.28)), lineWidth: 0.5)
     }
 }

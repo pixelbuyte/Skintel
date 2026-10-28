@@ -8,6 +8,8 @@ private typealias MeshShade = SKMeshShade
 /// Drag turns it; it sways slowly on its own unless Reduce Motion is on.
 struct FaceMeshView: View {
     enum Mode: Sendable { case result, scan }
+    /// `.dark` for the black hero; `.light` for cream screens (pale face, ink labels).
+    enum Palette: Sendable { case dark, light }
 
     var mode: Mode = .result
     var levels = FaceZoneLevels(levels: [:])
@@ -16,6 +18,7 @@ struct FaceMeshView: View {
     var zoom: CGFloat = 0.38
     /// The yaw the face eases towards, in radians (the sweep turns it per angle).
     var targetYaw: Double = 0
+    var palette: Palette = .dark
 
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State private var dragYaw: Double = 0
@@ -108,6 +111,10 @@ struct FaceMeshView: View {
         tris.sort { (RZ[F[$0]] + RZ[F[$0 + 1]] + RZ[F[$0 + 2]]) < (RZ[F[$1]] + RZ[F[$1 + 1]] + RZ[F[$1 + 2]]) }
 
         let L = MeshShade.light
+        let light = palette == .light
+        let low = light ? MeshShade.lightLow : MeshShade.darkLow
+        let high = light ? MeshShade.lightHigh : MeshShade.darkHigh
+        let edgeColor = light ? SKColor.clayTileFg : SKColor.bg
         let scanY = 1.15 - (t * 0.42).truncatingRemainder(dividingBy: 1) * 2.5
         let scanning = mode == .scan && !still
 
@@ -119,8 +126,8 @@ struct FaceMeshView: View {
             let nl = max((nx * nx + ny * ny + nz * nz).squareRoot(), 1e-9)
             let diff = max(0, (nx * L.x + ny * L.y + nz * L.z) / nl)
             let heat = min(1, ((H[a] + H[b] + H[c]) / 3) * 1.15)
-            var rgb = lerp(MeshShade.darkLow, MeshShade.darkHigh, diff)
-            if mode == .scan { rgb *= 0.8 }
+            var rgb = lerp(low, high, diff)
+            if mode == .scan && !light { rgb *= 0.8 }
             rgb = lerp(rgb, lerp(MeshShade.warmLow, MeshShade.warmHigh, diff), heat)
             var edge = 0.07 + heat * 0.22
             if scanning {
@@ -128,7 +135,7 @@ struct FaceMeshView: View {
                 let d = abs(my - scanY)
                 if d < 0.12 {
                     let f = 1 - d / 0.12
-                    rgb = lerp(rgb, MeshShade.scanLight, f * 0.55)
+                    rgb = lerp(rgb, light ? MeshShade.warmHigh : MeshShade.scanLight, f * 0.55)
                     edge += f * 0.35
                 }
             }
@@ -138,18 +145,18 @@ struct FaceMeshView: View {
             path.addLine(to: CGPoint(x: X[c], y: Y[c]))
             path.closeSubpath()
             context.fill(path, with: .color(Color(.sRGB, red: rgb.x / 255, green: rgb.y / 255, blue: rgb.z / 255, opacity: 1)))
-            context.stroke(path, with: .color(SKColor.bg.opacity(edge)), lineWidth: 0.6)
+            context.stroke(path, with: .color(edgeColor.opacity(light ? edge * 1.4 : edge)), lineWidth: 0.6)
         }
 
         if mode == .result {
             var glow = context
-            glow.blendMode = .plusLighter
+            glow.blendMode = light ? .normal : .plusLighter
             for zone in FaceZone.allCases {
                 let l = Double(levels.level(zone)) / 2
                 guard l > 0, let i = FaceMeshData.anchors[zone], RZ[i] >= -0.05 else { continue }
                 let rad = scale * (zone == .forehead ? 0.55 : 0.36)
                 let centre = CGPoint(x: X[i], y: Y[i])
-                let gradient = Gradient(colors: [SKColor.primary.opacity(0.32 * l), SKColor.primary.opacity(0)])
+                let gradient = Gradient(colors: [SKColor.primary.opacity((light ? 0.26 : 0.32) * l), SKColor.primary.opacity(0)])
                 glow.fill(Path(ellipseIn: CGRect(x: X[i] - rad, y: Y[i] - rad, width: rad * 2, height: rad * 2)),
                           with: .radialGradient(gradient, center: centre, startRadius: 0, endRadius: rad))
             }
@@ -161,7 +168,7 @@ struct FaceMeshView: View {
                 if RZ[i] >= 0.05 {
                     let tw = still ? 0.6 : 0.35 + 0.65 * abs(sin(t * 2.2 + Double(i) * 1.7))
                     context.fill(Path(CGRect(x: X[i] - 0.7, y: Y[i] - 0.7, width: 1.4, height: 1.4)),
-                                 with: .color(SKColor.bg.opacity(0.55 * tw)))
+                                 with: .color((light ? SKColor.primary : SKColor.bg).opacity(0.55 * tw)))
                 }
                 i += 2
             }
@@ -190,13 +197,15 @@ struct FaceMeshView: View {
             leader.move(to: CGPoint(x: ax, y: ay))
             leader.addLine(to: CGPoint(x: ex, y: ly))
             leader.addLine(to: CGPoint(x: leading ? lx + 82 : lx - 82, y: ly))
-            context.stroke(leader, with: .color(SKColor.bg.opacity(0.45)), lineWidth: 0.8)
-            context.fill(Path(ellipseIn: CGRect(x: ax - 2.6, y: ay - 2.6, width: 5.2, height: 5.2)), with: .color(SKColor.bg))
+            let ink = light ? SKColor.ink : SKColor.bg
+            context.stroke(leader, with: .color(ink.opacity(light ? 0.3 : 0.45)), lineWidth: 0.8)
+            context.fill(Path(ellipseIn: CGRect(x: ax - 2.6, y: ay - 2.6, width: 5.2, height: 5.2)),
+                         with: .color(light ? SKColor.primary : SKColor.bg))
             let anchor: UnitPoint = leading ? .leading : .trailing
-            context.draw(Text(label.title).font(SKFont.label).foregroundStyle(SKColor.bg.opacity(0.92)),
+            context.draw(Text(label.title).font(SKFont.label).foregroundStyle(ink.opacity(0.92)),
                          at: CGPoint(x: lx, y: ly - 9), anchor: anchor)
             context.draw(Text(label.value).font(SKFont.label)
-                            .foregroundStyle(label.hot ? FaceScanColor.hot : SKColor.bg.opacity(0.62)),
+                            .foregroundStyle(label.hot ? (light ? SKColor.primary : FaceScanColor.hot) : (light ? SKColor.muted : SKColor.bg.opacity(0.62))),
                          at: CGPoint(x: lx, y: ly + 7), anchor: anchor)
         }
     }

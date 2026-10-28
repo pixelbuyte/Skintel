@@ -28,6 +28,12 @@ struct FaceScanFlowView: View {
     /// The 13+ answer (COPPA), asked only when onboarding gave no age or "Under 18".
     @AppStorage("faceScan.age13Confirmed") private var age13Confirmed: Bool?
     @AppStorage("faceScan.freeUsed") private var freeUsed = false
+    /// The first-time intro ("See your skin, zone by zone") was shown.
+    @AppStorage("faceScan.introSeen") private var introSeen = false
+    @State private var showIntro = false
+    /// The Day 1 read, started when the goals question is left so it runs during the rest of the
+    /// questions. Its success is recorded as soon as it lands, even if the quiz is left.
+    @State private var earlyRead: Task<ReadOutcome, Never>?
     /// The 402 path: the wall over a blank flow, which closes when the wall does.
     @State private var wallThenClose = false
     /// The wall opened from the locked 7-day check on the map (no Skintel+).
@@ -46,6 +52,13 @@ struct FaceScanFlowView: View {
     @State private var retakeIssues: [String]?
     /// When the current read was sent, for the timed steps on the reading screen.
     @State private var readingStarted = Date()
+
+    enum ReadOutcome: Sendable {
+        case result(FaceScanResult)
+        case proRequired
+        case rateLimited
+        case failed(String)
+    }
 
     private enum Attempt {
         case baseline(FaceAnswers)
@@ -66,7 +79,7 @@ struct FaceScanFlowView: View {
         Group {
             switch screen {
             case .start:
-                SKColor.scannerBg.ignoresSafeArea()
+                SKColor.bg.ignoresSafeArea()
             case .ageGate:
                 FaceAgeGateView(tooYoung: age13Confirmed == false, onAnswer: { yes in
                     age13Confirmed = yes
@@ -82,11 +95,14 @@ struct FaceScanFlowView: View {
                 }
             case .quiz:
                 FaceQuizView(under18: treatAsUnder18, prefill: FaceQuestions.prefill(profile: profile, triggerNames: triggerNames),
-                             triggerHint: triggerHint, onClose: close) { answers in
+                             triggerHint: triggerHint, onClose: close,
+                             onGoals: { goals in if !quizThenReport { startEarlyBaseline(goals: goals) } }) { answers in
                     store.saveAnswers(answers)
                     if quizThenReport {
                         quizThenReport = false
                         Task { await readReport() }
+                    } else if let early = earlyRead {
+                        Task { await finishEarlyBaseline(early, answers: answers) }
                     } else {
                         Task { await readBaseline(answers: answers) }
                     }
@@ -96,7 +112,8 @@ struct FaceScanFlowView: View {
             case .result:
                 FaceResultView(calibration: store.calibration, routine: store.latestRoutine,
                                nextAction: nextAction, onNext: beginNext, onAsk: onAsk, onClose: close,
-                               onUnlock: unlockWeek, photo: store.day1Front)
+                               onUnlock: unlockWeek, photo: store.day1Front,
+                               goals: store.answers?.chips?[FaceQuestions.goalsKey] ?? [])
                     .sheet(isPresented: $wallFromLocked) {
                         PaywallView(reason: .faceScan, faceMapReady: true)
                     }
@@ -106,6 +123,10 @@ struct FaceScanFlowView: View {
         .task { await env.subscription.confirmIfUnsure() }
         .sheet(isPresented: $wallThenClose, onDismiss: close) {
             PaywallView(reason: .faceScan)
+        }
+        .sheet(isPresented: $showIntro, onDismiss: afterIntro) {
+            FaceScanIntroSheet(onStart: { introSeen = true; showIntro = false },
+                               onLater: { showIntro = false })
         }
         .sheet(isPresented: $showConsent, onDismiss: afterConsent) {
             FaceConsentSheet(privacyURL: env.config.privacyURL,
@@ -129,6 +150,11 @@ struct FaceScanFlowView: View {
         }
     }
 
+    /// The intro closed: Start goes on to consent and the camera, Later (or a swipe) closes.
+    private func afterIntro() {
+        if introSeen { begin() } else { close() }
+    }
+
     /// The consent sheet closed: Allow goes on, anything else (Not now, a swipe) closes the flow.
     private func afterConsent() {
         if aiConsent { begin() } else { close() }
@@ -139,10 +165,10 @@ struct FaceScanFlowView: View {
     private var reading: some View {
         ZStack {
             VStack(spacing: SKSpace.lg) {
-                FaceMeshView(mode: .scan, zoom: 0.4).frame(width: 240, height: 290)
-                Text("Reading your skin").font(SKFont.serif(34, relativeTo: .largeTitle)).foregroundStyle(SKColor.bg)
+                FaceMeshView(mode: .scan, zoom: 0.4, palette: .light).frame(width: 240, height: 290)
+                Text("Reading your skin").font(SKFont.serif(34, relativeTo: .largeTitle)).foregroundStyle(SKColor.ink)
                     .accessibilityAddTraits(.isHeader)
-                Text("This can take up to a minute").font(SKFont.secondary).foregroundStyle(SKColor.bg.opacity(0.72))
+                Text("Usually under a minute").font(SKFont.secondary).foregroundStyle(SKColor.muted)
                 if errorText == nil {
                     TimelineView(.periodic(from: readingStarted, by: 1)) { context in
                         readingSteps(elapsed: context.date.timeIntervalSince(readingStarted))
@@ -159,7 +185,7 @@ struct FaceScanFlowView: View {
                     .transition(.move(edge: .bottom).combined(with: .opacity))
             }
         }
-        .background(SKColor.scannerBg.ignoresSafeArea())
+        .background(SKColor.bg.ignoresSafeArea())
     }
 
     /// Three steps on timers. The last one stays in progress until the answer arrives: the
@@ -172,16 +198,16 @@ struct FaceScanFlowView: View {
                 HStack(spacing: SKSpace.md) {
                     ZStack {
                         if i < current {
-                            Image(systemName: "checkmark").font(.system(size: 11, weight: .bold)).foregroundStyle(SKColor.goodBg)
+                            Image(systemName: "checkmark").font(.system(size: 11, weight: .bold)).foregroundStyle(SKColor.goodFg)
                         } else if i == current {
-                            ProgressView().controlSize(.small).tint(SKColor.bg)
+                            ProgressView().controlSize(.small).tint(SKColor.primary)
                         } else {
-                            Circle().stroke(SKColor.bg.opacity(0.3), lineWidth: 1.5).frame(width: 12, height: 12)
+                            Circle().stroke(SKColor.line, lineWidth: 1.5).frame(width: 12, height: 12)
                         }
                     }
                     .frame(width: 20, height: 20)
                     Text(step).font(SKFont.secondary)
-                        .foregroundStyle(i <= current ? SKColor.bg : SKColor.bg.opacity(0.5))
+                        .foregroundStyle(i <= current ? SKColor.ink : SKColor.muted)
                 }
             }
         }
@@ -275,6 +301,8 @@ struct FaceScanFlowView: View {
         // The free scan is used and there is no map left to show (deleted): straight to the wall.
         // With its cycle still here, it reopens below as the Day 1 map with the week locked.
         if !isPro && freeUsed && !hasBaseline { wallThenClose = true; return }
+        // Once for everyone, existing scans too: what the feature is, before anything else.
+        guard introSeen else { showIntro = true; return }
         guard aiConsent else { showConsent = true; return }
         screen = hasBaseline ? .result : .sweep(.baseline)
     }
@@ -383,7 +411,8 @@ struct FaceScanFlowView: View {
         guard let images = pendingImages else { screen = .sweep(.baseline); return }
         if newCycle || !store.hasCycle { store.startCycle(now: Date()) }
         lastAttempt = .baseline(answers)
-        await send(stage: .baseline, images: sweepImages(images), answers: answers) {
+        await send(stage: .baseline, images: sweepImages(images), answers: answers,
+                   goals: answers.chips?[FaceQuestions.goalsKey]) {
             store.saveDay1Crops(images.crops, front: images.views[.front])
             pendingImages = nil
         }
@@ -395,7 +424,8 @@ struct FaceScanFlowView: View {
             ? images.views[.front].map { [FaceScanImage(role: .front, base64: $0.base64EncodedString())] } ?? []
             : sweepImages(images, day1: day1)
         lastAttempt = .scan(stage, images)
-        await send(stage: stage, images: list, answers: store.answers) {}
+        await send(stage: stage, images: list, answers: store.answers,
+                   goals: stage == .final ? store.answers?.chips?[FaceQuestions.goalsKey] : nil) {}
         if stage == .final, store.calibration.hasFinalScan { await readReport() }
     }
 
@@ -404,8 +434,9 @@ struct FaceScanFlowView: View {
             guard let data = try? JSONEncoder().encode(entry) else { return nil }
             return try? JSONDecoder().decode(JSONValue.self, from: data)
         }
-        // Locks never fail open: no stored answers means the quiz (Q5) runs first.
-        guard let answers = store.answers else {
+        // Locks never fail open: no stored answers, or answers without the locks question (the
+        // quiz was left with "Later" before it), means the quiz runs first.
+        guard let answers = store.answers, answers.chips?[FaceQuestions.locksID] != nil else {
             quizThenReport = true
             screen = .quiz
             return
@@ -422,35 +453,99 @@ struct FaceScanFlowView: View {
         await send(stage: .report, images: [], answers: answers, history: history, shelf: shelf.isEmpty ? nil : shelf) {}
     }
 
+    private func makeRequest(stage: FaceScanStage, images: [FaceScanImage], answers: FaceAnswers?,
+                             history: [JSONValue]? = nil, shelf: [JSONValue]? = nil, goals: [String]? = nil) -> FaceScanRequest {
+        let day = min(max(store.cycleDay(now: Date()), FaceScanLimits.cycleDays.lowerBound), FaceScanLimits.cycleDays.upperBound)
+        return FaceScanRequest(stage: stage, cycleId: store.cycleId, day: day, images: images, answers: answers,
+                               history: history, profile: profileJSON, shelf: shelf, triggers: triggersJSON,
+                               goals: (goals?.isEmpty ?? true) ? nil : goals)
+    }
+
     private func send(stage: FaceScanStage, images: [FaceScanImage], answers: FaceAnswers?,
-                      history: [JSONValue]? = nil, shelf: [JSONValue]? = nil, onSuccess: () -> Void) async {
+                      history: [JSONValue]? = nil, shelf: [JSONValue]? = nil, goals: [String]? = nil,
+                      onSuccess: () -> Void) async {
         errorText = nil
         readingStarted = Date()
         screen = .reading
-        let day = min(max(store.cycleDay(now: Date()), FaceScanLimits.cycleDays.lowerBound), FaceScanLimits.cycleDays.upperBound)
-        let request = FaceScanRequest(stage: stage, cycleId: store.cycleId, day: day, images: images, answers: answers,
-                                      history: history, profile: profileJSON, shelf: shelf, triggers: triggersJSON)
+        let request = makeRequest(stage: stage, images: images, answers: answers, history: history, shelf: shelf, goals: goals)
+        apply(await perform(request), stage: stage, onSuccess: onSuccess)
+    }
+
+    /// The request and its error mapping, with no screen changes (the early read runs while the
+    /// questions are still on screen).
+    private func perform(_ request: FaceScanRequest) async -> ReadOutcome {
         do {
-            let result = try await env.api.faceScan(request)
-            accept(result, stage: stage, onSuccess: onSuccess)
+            return .result(try await env.api.faceScan(request))
         } catch APIError.proRequired {
+            return .proRequired
+        } catch APIError.rateLimited {
+            return .rateLimited
+        } catch let error as APIError {
+            // The server keeps every readable answer. If only the reply was lost, fetch it
+            // rather than closing the flow and throwing away a finished (and counted) read.
+            if Self.mayHaveFinished(error), let kept = await recover(request) { return .result(kept) }
+            return .failed(error.userMessage)
+        } catch {
+            return .failed("Something went wrong. Please try again.")
+        }
+    }
+
+    private func apply(_ outcome: ReadOutcome, stage: FaceScanStage, onSuccess: () -> Void) {
+        switch outcome {
+        case .result(let result):
+            accept(result, stage: stage, onSuccess: onSuccess)
+        case .proRequired:
             // The free scan is used up: straight to the wall; the flow closes with it.
             freeUsed = true
             screen = .start
             wallThenClose = true
-        } catch APIError.rateLimited {
+        case .rateLimited:
             lastAttempt = nil
+            screen = .reading
             errorText = "That's today's limit for face scans. Try again tomorrow."
-        } catch let error as APIError {
-            // The server keeps every readable answer. If only the reply was lost, fetch it
-            // rather than closing the flow and throwing away a finished (and counted) read.
-            if Self.mayHaveFinished(error), let kept = await recover(stage: stage, day: day) {
-                accept(kept, stage: stage, onSuccess: onSuccess)
-            } else {
-                errorText = error.userMessage
+        case .failed(let message):
+            screen = .reading
+            errorText = message
+        }
+    }
+
+    /// Starts the Day 1 read as soon as the goals are known, so it runs while the other questions
+    /// are answered (the photo read never sees those answers). A readable result is kept the
+    /// moment it lands: the server has counted it, so leaving the questions early never loses it.
+    private func startEarlyBaseline(goals: [String]) {
+        guard earlyRead == nil, let images = pendingImages else { return }
+        store.startCycle(now: Date())
+        let request = makeRequest(stage: .baseline, images: sweepImages(images), answers: nil, goals: goals)
+        readingStarted = Date()
+        earlyRead = Task {
+            let outcome = await perform(request)
+            if case .result(let result) = outcome, result.quality.ok {
+                if result.locked { freeUsed = true }
+                store.record(stage: .baseline, result: result, now: Date())
+                store.saveDay1Crops(images.crops, front: images.views[.front])
             }
-        } catch {
-            errorText = "Something went wrong. Please try again."
+            return outcome
+        }
+    }
+
+    /// The questions are done: show the early read, waiting on the reading screen if it hasn't
+    /// landed yet. A readable result was already recorded by the read itself.
+    private func finishEarlyBaseline(_ early: Task<ReadOutcome, Never>, answers: FaceAnswers) async {
+        errorText = nil
+        screen = .reading
+        let outcome = await early.value
+        earlyRead = nil
+        lastAttempt = .baseline(answers)
+        if case .result(let result) = outcome, result.quality.ok {
+            pendingImages = nil
+            lastAttempt = nil
+            Haptics.success()
+            screen = .result
+            return
+        }
+        apply(outcome, stage: .baseline) {
+            if let images = pendingImages { store.saveDay1Crops(images.crops, front: images.views[.front]) }
+            pendingImages = nil
         }
     }
 
@@ -487,10 +582,10 @@ struct FaceScanFlowView: View {
 
     /// Asks for the kept read a few times: a connection that dropped early can come back before
     /// the server is done (its whole budget is under a minute). Stays on the reading screen.
-    private func recover(stage: FaceScanStage, day: Int) async -> FaceScanResult? {
+    private func recover(_ request: FaceScanRequest) async -> FaceScanResult? {
         for attempt in 0..<6 {
             if attempt > 0 { try? await Task.sleep(nanoseconds: 8_000_000_000) }
-            if let kept = try? await env.api.latestFaceScan(cycleId: store.cycleId, stage: stage, day: day) {
+            if let kept = try? await env.api.latestFaceScan(cycleId: request.cycleId, stage: request.stage, day: request.day) {
                 return kept
             }
         }
