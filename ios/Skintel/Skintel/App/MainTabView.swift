@@ -51,7 +51,8 @@ struct MainTabView: View {
     /// The ready question a goal row on the map asked ("How do I get less shine?"), or nil.
     @State private var faceQuestion: String?
     /// Bumped when You is tapped while already on You: rebuilds its stack, back to the top.
-    @State private var youRoot = 0
+    /// Bumped when the selected tab is tapped again, so its stack goes back to its first page.
+    @State private var tabRoot = 0
     @State private var keyboardUp = false
     @AppStorage(AssistantPlacement.key) private var assistantPlacement = AssistantPlacement.tab
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
@@ -60,13 +61,13 @@ struct MainTabView: View {
         ZStack(alignment: .bottom) {
             Group {
                 switch tab {
-                case .today: HomeView()
-                case .shelf: ShelfTab()
+                case .today: HomeView().id(tabRoot)
+                case .shelf: ShelfTab().id(tabRoot)
                 // Ask reserves the bar's space itself: an inset from out here doesn't reach a
                 // composer pinned inside its own NavigationStack.
                 case .ask: AssistantView(showsClose: false, tabBarClearance: keyboardUp ? 0 : SKTabBar.height + SKSpace.md, leave: { tab = .today })
-                case .insights: InsightsView(leave: { tab = .today })
-                case .you: YouTab().id(youRoot)
+                case .insights: InsightsView(leave: { tab = .today }).id(tabRoot)
+                case .you: YouTab().id(tabRoot)
                 }
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -229,8 +230,9 @@ struct MainTabView: View {
     }
 
     private func select(_ next: MainTab) {
-        // Tapping You again (from Account & data, Settings…) goes back to the top of You.
-        if next == tab && next == .you { youRoot += 1 }
+        // Tapping the selected tab again (from Routine, Account & data…) goes back to its first page.
+        // Not Ask: that would throw away the open chat.
+        if next == tab && next != .ask { tabRoot += 1 }
         guard let feature = Self.lockedFeature(for: next), !env.subscription.entitlement.isPro else {
             tab = next
             return
