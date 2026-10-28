@@ -16,6 +16,16 @@ import { track } from '@vercel/analytics';
  * and the webhook puts Skintel+ on the Skintel account with that email.
  */
 
+/** The in-app price, crossed out with a thin diagonal so the digits stay readable. */
+function OldPrice({ className, slash }: { className: string; slash: string }) {
+  return (
+    <span className={`relative inline-block px-[1px] ${className}`}>
+      <span className="sr-only">was </span>$8.99
+      <span aria-hidden="true" className={`pointer-events-none absolute left-[-2px] right-[-2px] top-1/2 h-[2px] -rotate-[14deg] rounded-full ${slash}`} />
+    </span>
+  );
+}
+
 const REF_KEY = 'skintel_ref';
 const APP_STORE_URL = 'https://apps.apple.com/us/app/skinstel-scan-track-clear/id6812903021';
 
@@ -221,7 +231,7 @@ export default function Home() {
             <div className="mt-6 flex flex-wrap items-center gap-3">
               <AppStoreButton />
               <button onClick={jumpToOffer} className="rounded-full bg-[#A35848] px-5 py-3 text-[15px] font-semibold text-[#FFFEFA]">
-                Skintel+ <s className="font-normal opacity-70">$8.99</s> $6.49
+                Skintel+ <OldPrice className="text-[#FFFEFA]/85" slash="bg-[#FFFEFA]" /> $6.49
               </button>
             </div>
             <p className="mt-3 text-[13px] text-[#8A7A6C]">Free to download. Skintel+ launch price for your first 3 months.</p>
@@ -242,7 +252,7 @@ export default function Home() {
             <div className="text-center md:text-left">
               <p className="font-mono text-[11px] tracking-[0.22em] text-[#A35848]">LAUNCH OFFER · FIRST 3 MONTHS</p>
               <h2 className="mt-3 font-display text-[clamp(38px,9vw,58px)] font-normal leading-[1.0] tracking-[-0.01em]">
-                Skintel+ for <s className="text-[#8A7A6C] decoration-[#A35848] decoration-2">$8.99</s>{' '}
+                Skintel+ for <OldPrice className="text-[#8A7A6C]" slash="bg-[#A35848]" />{' '}
                 <em className="italic text-[#A35848]">$6.49</em> a month.
               </h2>
               <p className="mx-auto mt-3 max-w-[400px] text-[16px] leading-relaxed text-[#6B6760] md:mx-0">
@@ -294,7 +304,7 @@ export default function Home() {
         aria-hidden={!showBar}
       >
         <button onClick={jumpToOffer} tabIndex={showBar ? 0 : -1} className="min-w-0 truncate text-left text-sm">
-          Launch offer <s className="text-[#FFFEFA]/55">$8.99</s> <span className="text-[#E7B8A6]">$6.49/mo</span>
+          Launch offer <OldPrice className="text-[#FFFEFA]/70" slash="bg-[#E7B8A6]" /> <span className="text-[#E7B8A6]">$6.49/mo</span>
         </button>
         <a href={APP_STORE_URL} tabIndex={showBar ? 0 : -1} className="shrink-0 rounded-full bg-[#A35848] px-[18px] py-[11px] text-sm font-semibold">
           Get the app
