@@ -171,10 +171,9 @@ enum SweepRetakeAdvice {
     }
 }
 
-/// The scanner (canvas screen 3), over the live front camera: the person sees their own face,
-/// mirrored, inside an oval guide with the angle progress ring. A small 3D face in the corner
-/// turns to the angle wanted; live checks say what to fix; the screen glows cream as a ring
-/// light. An angle locks once every check holds for `SweepCamera.framesToLock` analysed frames
+/// The sweep (Face Scan Pro v2 "Sweep"): the person sees their own face, mirrored, inside a
+/// stadium-shaped portal with a cream ring-light halo and the clay progress ring; Front / Left /
+/// Right chips and live checks say where they are and what to fix. An angle locks once every check holds for `SweepCamera.framesToLock` analysed frames
 /// (about 0.6 s), or with the shutter. With `retakeIssues`, it opens on the "Let's retake that" card instead.
 struct SweepView: View {
     let fullSweep: Bool
@@ -202,7 +201,7 @@ struct SweepView: View {
         _showRetake = State(initialValue: retakeIssues != nil)
     }
 
-    private let names: [FaceScanImage.Role: String] = [.front: "Centre", .left45: "Left 45°", .right45: "Right 45°"]
+    private let names: [FaceScanImage.Role: String] = [.front: "Front", .left45: "Left", .right45: "Right"]
 
     private var live: Bool { model.phase == .scanning || model.phase == .done }
     /// The ring light is on while an angle is being looked for.
@@ -212,7 +211,6 @@ struct SweepView: View {
         ZStack {
             // A cream screen at full brightness is the ring light; the camera shows in the oval.
             SKColor.bg.ignoresSafeArea()
-            if lightOn { ringLight }
             content
             if showRetake {
                 SKColor.scannerOverlay.ignoresSafeArea()
@@ -254,113 +252,113 @@ struct SweepView: View {
     // MARK: Layout
 
     private var content: some View {
-        VStack(spacing: 0) {
-            HStack {
-                Button(action: close) {
-                    Image(systemName: "xmark").font(.system(size: 18, weight: .semibold)).frame(width: 44, height: 44)
+        GeometryReader { geo in
+            // The portal is 300 × 392 on a full-size phone and shrinks on a short one.
+            let scale = min(1, max(0.68, (geo.size.height - 400) / 420))
+            VStack(spacing: 0) {
+                HStack {
+                    Button(action: close) {
+                        Image(systemName: "xmark").font(.system(size: 18, weight: .semibold)).frame(width: 44, height: 44)
+                    }
+                    .accessibilityLabel("Close")
+                    Spacer()
+                    Text(kicker).font(SKFont.mono(12)).tracking(1.5).foregroundStyle(SKColor.primary)
+                    Spacer()
+                    Button { model.restart() } label: {
+                        Image(systemName: "arrow.counterclockwise").font(.system(size: 17, weight: .semibold))
+                            .foregroundStyle(SKColor.muted).frame(width: 44, height: 44)
+                    }
+                    .accessibilityLabel("Start the sweep again")
+                    .disabled(model.holding)
                 }
-                .accessibilityLabel("Close")
-                Spacer()
-                Text(kicker).font(SKFont.mono(12)).tracking(1.5)
-                Spacer()
-                Button { model.restart() } label: {
-                    Image(systemName: "arrow.counterclockwise").font(.system(size: 17, weight: .semibold))
-                        .foregroundStyle(SKColor.muted).frame(width: 44, height: 44)
-                }
-                .accessibilityLabel("Start the sweep again")
-                .disabled(model.holding)
-            }
-            .padding(.top, SKSpace.md)
-            .padding(.horizontal, SKSpace.lg)
+                .padding(.top, SKSpace.md)
+                .padding(.leading, SKSpace.sm).padding(.trailing, SKSpace.md)
 
-            HStack(alignment: .top, spacing: SKSpace.md) {
-                VStack(alignment: .leading, spacing: SKSpace.xs) {
-                    Text(title).font(SKFont.serif(32, relativeTo: .largeTitle))
-                        .accessibilityAddTraits(.isHeader)
-                    Text(subtitle).font(SKFont.sans(15, weight: hint == nil ? .regular : .semibold, relativeTo: .subheadline))
-                        .foregroundStyle(hint == nil ? SKColor.muted : SKColor.primary)
-                }
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .animation(SKAnimation.ios(0.3), value: title)
-                if live { meshGuide }
-            }
-            .padding(.horizontal, SKSpace.xl)
-            .padding(.top, SKSpace.sm)
+                Text(title).font(SKFont.serif(34, relativeTo: .largeTitle))
+                    .multilineTextAlignment(.center)
+                    .padding(.horizontal, 30)
+                    .padding(.top, 10)
+                    .accessibilityAddTraits(.isHeader)
+                    .animation(SKAnimation.ios(0.3), value: title)
+                Text(subtitle).font(SKFont.sans(15, weight: hint == nil ? .regular : .semibold, relativeTo: .subheadline))
+                    .foregroundStyle(hint == nil ? SKColor.muted : SKColor.primary)
+                    .multilineTextAlignment(.center)
+                    .padding(.horizontal, 30)
+                    .padding(.top, 6)
 
-            Spacer(minLength: SKSpace.md)
-            ovalGuide
-            Spacer(minLength: SKSpace.md)
+                Spacer(minLength: SKSpace.md)
+                portal(scale: scale)
+                Spacer(minLength: SKSpace.md)
 
-            if model.roles.count > 1 {
-                HStack(spacing: SKSpace.sm) {
-                    ForEach(Array(model.roles.enumerated()), id: \.offset) { index, role in
-                        chip(index: index, role: role)
+                if model.roles.count > 1 {
+                    HStack(spacing: SKSpace.sm) {
+                        ForEach(Array(model.roles.enumerated()), id: \.offset) { index, role in
+                            chip(index: index, role: role)
+                        }
                     }
                 }
-                .padding(.bottom, SKSpace.md)
-            }
-            if model.phase == .scanning { checks.padding(.horizontal, SKSpace.lg) }
-            if model.phase == .scanning { shutter.padding(.top, SKSpace.lg) }
-            if showsPrivacyNote {
-                Text("Your Day 1 photo and close-ups stay on this phone until your week ends, then are deleted.")
+                if model.phase == .scanning {
+                    checks.padding(.top, SKSpace.lg)
+                    shutter.padding(.top, SKSpace.md)
+                }
+                Text(showsPrivacyNote ? "Your 3D face shape stays on this phone. Only the photos are read, then deleted. Your Day 1 photo stays on this phone for your week."
+                                      : "Your 3D face shape stays on this phone. Only the photos are read, then deleted.")
                     .font(SKFont.caption).foregroundStyle(SKColor.muted)
                     .multilineTextAlignment(.center).padding(.horizontal, 40)
                     .padding(.top, SKSpace.md)
+                    .padding(.bottom, SKSpace.lg)
             }
-            Spacer().frame(height: SKSpace.lg)
+            .frame(width: geo.size.width, height: geo.size.height)
         }
     }
 
-    /// A soft cream border: with the screen at full brightness it lights the face.
-    private var ringLight: some View {
-        ZStack {
-            RoundedRectangle(cornerRadius: SKRadius.sheet, style: .continuous)
-                .strokeBorder(SKColor.cream, lineWidth: 34)
-                .blur(radius: 14)
-            RoundedRectangle(cornerRadius: SKRadius.sheet, style: .continuous)
-                .strokeBorder(SKColor.cream, lineWidth: 14)
-        }
-        .ignoresSafeArea()
-        .allowsHitTesting(false)
-        .accessibilityHidden(true)
-    }
-
-    private var ovalGuide: some View {
-        ZStack {
-            // The camera, mirrored like a selfie, only inside the oval.
+    /// The stadium portal: the camera (or the 3D face before it starts) inside, a cream halo
+    /// around it that the full-brightness screen turns into a ring light, and the progress ring.
+    private func portal(scale: CGFloat) -> some View {
+        let w = 300 * scale, h = 392 * scale
+        return ZStack {
+            RoundedRectangle(cornerRadius: (h + 52) / 2, style: .continuous)
+                .fill(SKColor.cream)
+                .frame(width: w + 52, height: h + 52)
+                .shadow(color: SKColor.cream.opacity(lightOn ? 0.95 : 0.6), radius: 30)
+                .shadow(color: SKColor.ink.opacity(0.08), radius: 22, y: 22)
+            RoundedRectangle(cornerRadius: (h + 24) / 2, style: .continuous)
+                .stroke(SKColor.line, lineWidth: 1)
+                .frame(width: w + 24, height: h + 24)
             Group {
                 if live, let session = model.session {
                     SweepPreview(session: session)
                 } else {
-                    SKColor.neutralChip
+                    FaceMeshView(mode: .scan, zoom: 0.42, targetYaw: targetYaw, palette: .light)
+                        .background(SKColor.clayTileBg)
+                        .allowsHitTesting(false)
                 }
             }
-            .clipShape(Ellipse())
-            .padding(6)
+            .frame(width: w, height: h)
+            .clipShape(RoundedRectangle(cornerRadius: w / 2, style: .continuous))
             .accessibilityHidden(true)
-            Ellipse().stroke(SKColor.line, lineWidth: 5)
-            Ellipse().trim(from: 0, to: progress)
-                .stroke(SKColor.primary, style: StrokeStyle(lineWidth: 6, lineCap: .round))
-                .rotationEffect(.degrees(-90))
+            RoundedRectangle(cornerRadius: (h + 24) / 2, style: .continuous)
+                .trim(from: 0, to: progress)
+                .stroke(SKColor.primary, style: StrokeStyle(lineWidth: 4, lineCap: .round))
+                .frame(width: w + 24, height: h + 24)
                 .animation(SKAnimation.ios(0.4), value: progress)
             if model.phase == .scanning && model.reading.ready && !model.holding {
-                Ellipse().stroke(SKColor.goodBg.opacity(0.9), lineWidth: 2).padding(8)
+                RoundedRectangle(cornerRadius: w / 2, style: .continuous)
+                    .stroke(SKColor.goodFg.opacity(0.7), lineWidth: 2)
+                    .frame(width: w - 8, height: h - 8)
             }
+            Text("CAMERA · MIRRORED")
+                .font(SKFont.label).tracking(1).foregroundStyle(SKColor.clayTileFg)
+                .padding(.horizontal, 10).padding(.vertical, 4)
+                .background(SKColor.cream.opacity(0.88), in: Capsule())
+                .frame(width: w, height: h, alignment: .top)
+                .padding(.top, 28)
+                .accessibilityHidden(true)
         }
-        .frame(width: 250, height: 330)
+        .frame(width: w + 52, height: h + 52)
         .accessibilityElement(children: .ignore)
         .accessibilityLabel("Scan progress")
         .accessibilityValue("\(min(model.step, model.roles.count)) of \(model.roles.count) angles")
-    }
-
-    /// The "you are here" guide: the 3D face turned to the angle wanted now.
-    private var meshGuide: some View {
-        FaceMeshView(mode: .scan, zoom: 0.4, targetYaw: targetYaw, palette: .light)
-            .frame(width: 96, height: 96)
-            .background(SKColor.cream, in: RoundedRectangle(cornerRadius: SKRadius.card, style: .continuous))
-            .overlay(RoundedRectangle(cornerRadius: SKRadius.card, style: .continuous).stroke(SKColor.line, lineWidth: 1))
-            .allowsHitTesting(false)
-            .accessibilityHidden(true)
     }
 
     private var shutter: some View {
@@ -439,12 +437,12 @@ struct SweepView: View {
         switch model.phase {
         case .denied: return "Camera is off"
         case .unavailable: return "No front camera"
-        case .done: return "Got it"
+        case .done: return model.roles.count == 1 ? "Got it" : "Got it. Reading your skin"
         default: break
         }
         switch model.currentRole {
-        case .left45: return "Slowly turn left"
-        case .right45: return "Now right"
+        case .left45: return "Slowly turn to your left"
+        case .right45: return "Now slowly to your right"
         default: return "Look straight ahead"
         }
     }
@@ -453,16 +451,17 @@ struct SweepView: View {
         switch model.phase {
         case .denied: return "Allow the camera for Skinstel in Settings to scan your face."
         case .unavailable: return "Face scan needs a front camera."
-        case .done: return "Reading your skin next"
+        case .done: return model.roles.count == 1 ? "Reading today's photo" : "Questions next, while it reads"
         case .starting: return "Starting the camera"
         default: break
         }
-        if model.holding { return "Phone at eye level, face in the oval" }
+        if model.holding { return "Phone at eye level, about 35 cm away" }
         if let hint { return hint }
         if model.reading.ready { return "Hold it there" }
         switch model.currentRole {
-        case .left45, .right45: return "Keep your phone where it is"
-        default: return "Phone at eye level, face in the oval"
+        case .left45: return "Keep your phone where it is"
+        case .right45: return "Almost there"
+        default: return "Phone at eye level, about 35 cm away"
         }
     }
 
@@ -471,7 +470,7 @@ struct SweepView: View {
     private var hint: String? {
         guard model.phase == .scanning else { return nil }
         let r = model.reading
-        if r.faceCount == 0 { return "Fit your face in the oval" }
+        if r.faceCount == 0 { return "Fit your face in the frame" }
         if r.faceCount > 1 { return "Only one face in view, please" }
         if !r.evenLight { return "Too dark. Face a window or a bright light" }
         if r.tooFar { return "Move a little closer" }
@@ -485,14 +484,21 @@ struct SweepView: View {
         let active = index == model.step && model.phase == .scanning
         let name = names[role] ?? ""
         return HStack(spacing: 6) {
-            if done { Image(systemName: "checkmark").font(.system(size: 11, weight: .bold)) }
+            if done {
+                Image(systemName: "checkmark").font(.system(size: 10, weight: .heavy))
+            } else if active {
+                Circle().fill(SKColor.primary).frame(width: 9, height: 9)
+            } else {
+                Circle().stroke(SKColor.muted, lineWidth: 1.5).frame(width: 9, height: 9)
+            }
             Text(active ? "\(name) · now" : name)
         }
-        .font(SKFont.sans(13, relativeTo: .footnote))
-        .foregroundStyle(done ? SKColor.cream : active ? SKColor.primaryPressed : SKColor.muted)
-        .padding(.horizontal, SKSpace.md).padding(.vertical, SKSpace.sm)
-        .background(done ? SKColor.primary : active ? SKColor.primary.opacity(0.14) : SKColor.cream, in: Capsule())
-        .overlay(Capsule().stroke(done || active ? SKColor.primary : SKColor.line, lineWidth: 1))
+        .font(SKFont.sans(13, weight: .semibold, relativeTo: .footnote))
+        .foregroundStyle(done ? SKColor.goodFg : active ? SKColor.ink : SKColor.muted)
+        .padding(.leading, 9).padding(.trailing, 12)
+        .frame(height: 36)
+        .background(done ? SKColor.goodBg : active ? SKColor.cream : .clear, in: Capsule())
+        .overlay(Capsule().stroke(done ? SKColor.goodBg : active ? SKColor.primary : SKColor.line, lineWidth: active ? 1.5 : 1))
         .accessibilityElement(children: .combine)
         .accessibilityValue(done ? "Done" : active ? "Now" : "Waiting")
     }
@@ -501,32 +507,25 @@ struct SweepView: View {
 
     private var checks: some View {
         let r = model.reading
-        let faceFix = r.faceCount == 0 ? "Fit your face in the oval" : "Only you in view"
-        let distanceFix = r.tooClose ? "Move back a little" : "Move a little closer"
-        return VStack(spacing: SKSpace.sm) {
-            HStack(spacing: SKSpace.sm) {
-                check(ok: r.evenLight, okText: "Good light", fix: "Face a window or a lamp")
-                check(ok: r.goodDistance, okText: "Good distance", fix: distanceFix)
-            }
-            HStack(spacing: SKSpace.sm) {
-                check(ok: r.sharp && r.steady, okText: "Steady", fix: "Hold still")
-                check(ok: r.oneFace, okText: "One face", fix: faceFix)
-            }
+        let distanceFix = r.tooClose ? "Move back" : "Move closer"
+        return HStack(spacing: 14) {
+            check(ok: r.evenLight, okText: "Even light", fix: "Find light")
+            check(ok: r.goodDistance, okText: "35 cm away", fix: distanceFix)
+            check(ok: r.oneFace, okText: "One face", fix: r.faceCount == 0 ? "No face yet" : "Only you")
         }
+        .padding(.horizontal, SKSpace.lg)
     }
 
     private func check(ok: Bool, okText: String, fix: String) -> some View {
-        HStack(spacing: 6) {
-            Image(systemName: ok ? "checkmark" : "exclamationmark")
-                .font(.system(size: 11, weight: .bold))
+        HStack(spacing: 5) {
+            Image(systemName: ok ? "checkmark.circle.fill" : "exclamationmark.circle.fill")
+                .font(.system(size: 13, weight: .semibold))
+                .foregroundStyle(ok ? SKColor.goodFg : SKColor.cautionFg)
                 .accessibilityHidden(true)
             Text(ok ? okText : fix).lineLimit(1).minimumScaleFactor(0.8)
+                .foregroundStyle(SKColor.ink)
         }
-        .font(SKFont.sans(13, weight: .medium, relativeTo: .footnote))
-        .foregroundStyle(ok ? SKColor.goodFg : SKColor.cautionFg)
-        .padding(.horizontal, SKSpace.md).padding(.vertical, SKSpace.sm)
-        .frame(maxWidth: .infinity)
-        .background(ok ? SKColor.goodBg : SKColor.cautionBg, in: Capsule())
+        .font(SKFont.sans(13, relativeTo: .footnote))
         .animation(SKAnimation.ios(0.25), value: ok)
         .accessibilityElement(children: .combine)
         .accessibilityLabel(ok ? okText : fix)

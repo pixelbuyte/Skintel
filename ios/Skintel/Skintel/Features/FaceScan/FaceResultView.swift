@@ -4,34 +4,43 @@ import SwiftUI
 import UIKit
 import Vision
 
-/// The map with the 7-day check (canvas screen 5): a cream hero with their own photo (mirrored,
-/// like a selfie) and the 3D mesh laid over it as one view, zone glow and labels, tappable day
-/// buttons, the tips for their goals, concentric rings with a legend, the insight, zones, tonight's
-/// routine, the report once it exists, the history list and Ask. Levels are words and glyphs,
-/// never raw scores (PRO-SPEC §6).
+/// The face scan result (Face Scan Pro v2 "Main"): a cream hero with the map (their own Day 1
+/// photo, mirrored, or the 3D face, picked with Photo/3D), zone by zone with all five reads, what
+/// Skinstel suggests, a row per goal with a ready Ask question, tonight's routine, the 7-day check
+/// and Ask. Levels are words and glyphs, never raw scores (PRO-SPEC §6).
 ///
 /// With `onUnlock` (no Skintel+, e.g. the free scan's real Day 1 map), the week is locked: the
-/// rings card becomes the locked 7-day check, and the routine, the scan actions and Ask stay
-/// hidden. Without it, the same cycle shows unlocked.
+/// 7-day check becomes the Skintel+ card, and the routine, the scan actions and Ask stay hidden.
 struct FaceResultView: View {
     let calibration: FaceCalibration
     let routine: FaceRoutine?
     /// The scan action to offer today ("Take today's photo", "Final sweep"), or nil.
     let nextAction: String?
     let onNext: () -> Void
-    let onAsk: (() -> Void)?
+    /// Opens Ask with the scan tagged, with a ready question (nil: the general one).
+    let onAsk: ((String?) -> Void)?
     let onClose: () -> Void
     /// Not Skintel+ only: opens the Skintel+ wall from the locked 7-day check.
     var onUnlock: (() -> Void)? = nil
     /// The Day 1 front photo (JPEG, on this phone only), shown mirrored with the mesh over it. It
     /// is deleted with the Day 1 crops when the report is written, so the report map is 3D only.
     var photo: Data? = nil
-    /// What they want to improve, from the questions: heads the tips.
+    /// What they want to improve, from the questions: one row each under "For your goals".
     var goals: [String] = []
+    /// "Anything you want to know?" picks: the "You asked" rows.
+    var asked: [String] = []
+    /// Products on their shelf, for "A simpler routine".
+    var shelfCount: Int = 0
+    /// Back to the questions, from "For your goals · Edit".
+    var onEditGoals: (() -> Void)? = nil
+
+    private enum MapView: Hashable { case photo, mesh }
 
     @State private var selected: Int?
+    @State private var mapView: MapView = .photo
+    @State private var openZone: FaceZone?
 
-    private var showsPhoto: Bool { photo != nil }
+    private var showsPhoto: Bool { photo != nil && mapView == .photo }
 
     private var isFree: Bool { onUnlock != nil }
 
@@ -47,20 +56,21 @@ struct FaceResultView: View {
             VStack(spacing: 0) {
                 hero
                 VStack(spacing: 14) {
-                    if let onUnlock { lockedWeekCard(unlock: onUnlock) } else { ringsCard }
-                    insightCard
-                    if let tips = entry?.result.tips, !tips.isEmpty { tipsCard(tips) }
-                    zonesCard
+                    zonesSection
+                    if let tips = entry?.result.tips, !tips.isEmpty { suggestsCard(tips) }
+                    if !goalRows.isEmpty { goalsCard }
                     if let report = calibration.latestReport?.report { reportCard(report) }
                     if !isFree, let routine, !(routine.pm.isEmpty && routine.am.isEmpty) { routineCard(routine) }
-                    if !isFree, let nextAction { SKButton(title: nextAction, systemImage: "faceid") { onNext() } }
-                    if !isFree, let onAsk { SKButton(title: "Ask Skinstel about my scan", kind: nextAction == nil ? .primary : .secondary) { onAsk() } }
-                    historyCard
-                    Text("\(FaceScanResult.defaultDisclaimer) Photos are read, then deleted.")
+                    if let onUnlock { lockedWeekCard(unlock: onUnlock) } else { weekCard }
+                    if scans.count > 1 { historyCard }
+                    if !isFree, let nextAction { SKButton(title: nextAction, kind: onAsk == nil ? .primary : .secondary, systemImage: "faceid") { onNext() } }
+                    if let onAsk { askButton { onAsk(nil) } }
+                    Text("\(FaceScanResult.defaultDisclaimer) Photos are read, then deleted; your Day 1 photo stays on this phone.")
                         .font(SKFont.caption).foregroundStyle(SKColor.muted).multilineTextAlignment(.center)
+                        .fixedSize(horizontal: false, vertical: true)
                 }
                 .skPagePadding()
-                .padding(.top, SKSpace.lg)
+                .padding(.top, 18)
                 .padding(.bottom, 30)
             }
         }
@@ -74,97 +84,131 @@ struct FaceResultView: View {
         VStack(alignment: .leading, spacing: 0) {
             HStack {
                 Button(action: onClose) {
-                    Image(systemName: "chevron.left").font(.system(size: 18, weight: .semibold)).frame(width: 44, height: 44)
+                    Image(systemName: "chevron.left").font(.system(size: 20, weight: .semibold)).frame(width: 44, height: 44)
                 }
                 .accessibilityLabel("Back")
                 Spacer()
-                Text("FACE SCAN").font(SKFont.mono(12)).tracking(1.5)
+                HStack(spacing: SKSpace.sm) {
+                    Text("FACE SCAN").font(SKFont.mono(12)).tracking(1.5)
+                    if FaceScanNew.isActive() { SKNewBadge() }
+                }
                 Spacer()
                 Color.clear.frame(width: 44, height: 44)
             }
-            .padding(.horizontal, SKSpace.sm)
+            .padding(.leading, SKSpace.sm).padding(.trailing, 14)
+
             VStack(alignment: .leading, spacing: SKSpace.xs) {
                 Text("YOUR SKIN MAP · DAY \(index + 1) OF 7").font(SKFont.label).tracking(1.5).foregroundStyle(SKColor.primary)
-                Text(insight.title).font(SKFont.pageTitle).foregroundStyle(SKColor.ink).accessibilityAddTraits(.isHeader)
+                Text(insight.title).font(SKFont.serif(34, relativeTo: .largeTitle)).foregroundStyle(SKColor.ink)
+                    .fixedSize(horizontal: false, vertical: true)
+                    .accessibilityAddTraits(.isHeader)
+                if !insight.body.isEmpty {
+                    Text(insight.body).font(SKFont.secondary).foregroundStyle(SKColor.muted)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+            }
+            .padding(.horizontal, SKSpace.xl)
+            .padding(.top, SKSpace.md)
+
+            HStack(spacing: SKSpace.md) {
+                if photo != nil {
+                    HStack(spacing: 0) {
+                        viewButton("Photo", .photo)
+                        viewButton("3D", .mesh)
+                    }
+                    .padding(3)
+                    .background(SKColor.neutralChip, in: Capsule())
+                    .accessibilityElement(children: .contain)
+                    .accessibilityLabel("Map view")
+                }
+                Spacer(minLength: 0)
+                if showsPhoto {
+                    Label("Mirrored, like a selfie", systemImage: "arrow.left.and.right")
+                        .font(SKFont.caption).foregroundStyle(SKColor.muted)
+                }
             }
             .padding(.horizontal, SKSpace.xl)
             .padding(.top, 14)
 
-            Group {
-                if showsPhoto, let photo {
-                    FacePhotoMap(photo: photo, levels: FaceZoneLevels(result: entry?.result), labels: labels(mirrored: true))
-                        .clipShape(RoundedRectangle(cornerRadius: 24, style: .continuous))
-                        .overlay(RoundedRectangle(cornerRadius: 24, style: .continuous).stroke(SKColor.line))
-                        .overlay(alignment: .bottomTrailing) {
-                            Text("Your photo + 3D map · mirrored")
-                                .font(SKFont.caption).foregroundStyle(SKColor.cream)
-                                .padding(.horizontal, 10).padding(.vertical, 4)
-                                .background(SKColor.ink.opacity(0.55), in: Capsule())
-                                .padding(10)
-                                .accessibilityHidden(true)
-                        }
-                        .padding(.horizontal, SKSpace.md)
-                        .padding(.vertical, SKSpace.sm)
-                } else {
-                    FaceMeshView(mode: .result, levels: FaceZoneLevels(result: entry?.result), labels: labels(mirrored: false),
-                                 zoom: 0.31, palette: .light)
-                }
-            }
-            .frame(height: 360)
-            .frame(maxWidth: SKLayout.readableWidth)
-            .frame(maxWidth: .infinity)
-
-            VStack(spacing: 10) {
-                ZStack {
-                    Rectangle().fill(SKColor.line).frame(height: 2).padding(.horizontal, 18)
-                    HStack {
-                        ForEach(1...7, id: \.self) { n in
-                            dayButton(n)
-                            if n < 7 { Spacer(minLength: 0) }
-                        }
+            ZStack(alignment: .top) {
+                Group {
+                    if showsPhoto, let photo {
+                        FacePhotoMap(photo: photo, levels: FaceZoneLevels(result: entry?.result))
+                            .clipShape(RoundedRectangle(cornerRadius: 24, style: .continuous))
+                            .padding(.horizontal, SKSpace.xl)
+                            .padding(.top, 40)
+                            .padding(.bottom, SKSpace.sm)
+                    } else {
+                        FaceMeshView(mode: .result, levels: FaceZoneLevels(result: entry?.result), zoom: 0.33, palette: .light)
                     }
                 }
+                .frame(height: 340)
                 HStack {
-                    Text(showsPhoto ? "Tap a day to see it" : "Tap a day · drag the face to turn it")
+                    Text(showsPhoto ? "YOUR PHOTO · ON THIS PHONE" : "3D · DRAG TO TURN")
+                        .font(SKFont.label).tracking(1).foregroundStyle(SKColor.clayTileFg)
+                        .padding(.horizontal, 10).padding(.vertical, 4)
+                        .background(SKColor.cream, in: Capsule())
+                        .overlay(Capsule().stroke(SKColor.line))
                     Spacer()
-                    Text("◆ = unlock day").font(SKFont.label).foregroundStyle(SKColor.primary)
+                    Text("YOUR RIGHT ›").font(SKFont.label).tracking(1).foregroundStyle(SKColor.muted)
                 }
-                .font(SKFont.caption).foregroundStyle(SKColor.muted)
+                .padding(.horizontal, SKSpace.xl)
+                .padding(.top, SKSpace.sm)
+                .accessibilityHidden(true)
             }
-            .padding(.horizontal, 18)
+            .frame(maxWidth: SKLayout.readableWidth)
+            .frame(maxWidth: .infinity)
+            .padding(.top, 6)
+
+            HStack(spacing: 6) {
+                Circle().fill(SKColor.primary.opacity(0.22)).frame(width: 14, height: 14)
+                Text("Glow means more showing")
+            }
+            .font(SKFont.caption).foregroundStyle(SKColor.muted)
+            .padding(.horizontal, SKSpace.xl)
+            .padding(.top, SKSpace.xs)
+            .accessibilityElement(children: .combine)
         }
         .padding(.top, 54)
-        .padding(.bottom, 8)
+        .padding(.bottom, SKSpace.lg)
         .foregroundStyle(SKColor.ink)
+        .background(SKColor.primary.opacity(0.06))
+        .background(SKColor.cream)
+        .clipShape(UnevenRoundedRectangle(bottomLeadingRadius: 28, bottomTrailingRadius: 28, style: .continuous))
+        .overlay(alignment: .bottom) {
+            UnevenRoundedRectangle(bottomLeadingRadius: 28, bottomTrailingRadius: 28, style: .continuous)
+                .stroke(SKColor.line, lineWidth: 1)
+        }
     }
 
-    private func dayButton(_ n: Int) -> some View {
-        let unlock = [1, 3, 5, 7].contains(n)
-        let has = n <= scans.count
-        let on = has && n - 1 == index
-        let past = has && !on
-        return Button { selected = n - 1; Haptics.selection() } label: {
-            Text(unlock ? "\(n)◆" : "\(n)")
-                .font(SKFont.mono(13))
-                .foregroundStyle(on ? SKColor.cream : past ? SKColor.cream : SKColor.muted)
-                .frame(width: 44, height: 44)
-                .background(on ? SKColor.ink : past ? SKColor.primary : SKColor.cream, in: Circle())
-                .overlay(Circle().stroke(on ? SKColor.ink : unlock ? SKColor.primary : SKColor.line,
-                                         lineWidth: on ? 2 : unlock ? 1.5 : 1))
+    private func viewButton(_ title: String, _ view: MapView) -> some View {
+        let on = mapView == view
+        return Button {
+            withAnimation(SKAnimation.ios(0.25)) { mapView = view }
+            Haptics.selection()
+        } label: {
+            Text(title)
+                .font(SKFont.sans(14, weight: .semibold, relativeTo: .subheadline))
+                .foregroundStyle(on ? SKColor.ink : SKColor.muted)
+                .padding(.horizontal, 14)
+                .frame(minWidth: 74, minHeight: 44)
+                .background {
+                    if on {
+                        Capsule().fill(SKColor.cream)
+                            .shadow(color: SKColor.ink.opacity(0.08), radius: 1, y: 1)
+                            .shadow(color: SKColor.ink.opacity(0.08), radius: 1.5, y: 1)
+                    }
+                }
+                .contentShape(Capsule())
         }
         .buttonStyle(.plain)
-        .disabled(!has)
-        .accessibilityLabel("Day \(n)")
-        .accessibilityValue(has ? (on ? "Showing" : "Scanned") : "Not scanned yet")
+        .accessibilityAddTraits(on ? [.isButton, .isSelected] : .isButton)
     }
 
-    // MARK: Zones
+    // MARK: Zone by zone
 
-    /// Display order and label sides from the canvas.
-    private static let zoneOrder: [(zone: FaceZone, side: FaceMeshLabel.Side, y: CGFloat)] = [
-        (.forehead, .leading, 0.17), (.nose, .trailing, 0.36), (.rightCheek, .leading, 0.56),
-        (.leftCheek, .trailing, 0.66), (.chin, .leading, 0.86),
-    ]
+    /// The display order from the design.
+    private static let zoneOrder: [FaceZone] = [.forehead, .nose, .leftCheek, .rightCheek, .chin]
 
     /// The zone's strongest metric in this scan, and its band.
     private func top(_ zone: FaceZone, in result: FaceScanResult?) -> (metric: FaceMetric, band: FaceCalibration.Band)? {
@@ -172,197 +216,369 @@ struct FaceResultView: View {
         return (best.key, FaceCalibration.band(best.value))
     }
 
-    /// On a mirrored photo the person's right cheek is on the screen's right, so the two cheek
-    /// labels swap sides.
-    private func labels(mirrored: Bool) -> [FaceMeshLabel] {
-        Self.zoneOrder.compactMap { item in
-            guard let t = top(item.zone, in: entry?.result) else { return nil }
-            var side = item.side
-            if mirrored && (item.zone == .leftCheek || item.zone == .rightCheek) {
-                side = side == .leading ? .trailing : .leading
+    private var zonesSection: some View {
+        VStack(spacing: 14) {
+            HStack(alignment: .firstTextBaseline) {
+                Text("ZONE BY ZONE").font(SKFont.label).tracking(1.6).foregroundStyle(SKColor.muted)
+                Spacer()
+                Text("Tap a zone for all five reads").font(SKFont.caption).foregroundStyle(SKColor.muted)
             }
-            return FaceMeshLabel(zone: item.zone, title: item.zone.label.uppercased(),
-                                 value: (t.band == .clear ? "Clear" : "\(t.metric.label) · \(t.band.label)").uppercased(),
-                                 side: side, y: item.y, hot: t.band != .clear)
+            .padding(.horizontal, 2)
+            VStack(spacing: 0) {
+                ForEach(Array(Self.zoneOrder.enumerated()), id: \.element) { i, zone in
+                    zoneRow(zone)
+                    if i < Self.zoneOrder.count - 1 { Rectangle().fill(SKColor.line).frame(height: 1) }
+                }
+            }
+            .padding(.horizontal, SKSpace.lg).padding(.vertical, 2)
+            .background(SKColor.cream, in: RoundedRectangle(cornerRadius: SKRadius.card, style: .continuous))
+            .overlay(RoundedRectangle(cornerRadius: SKRadius.card, style: .continuous).stroke(SKColor.line))
+            .skCardShadow()
         }
     }
 
-    // MARK: Tips
+    private func zoneRow(_ zone: FaceZone) -> some View {
+        let result = entry?.result
+        let t = top(zone, in: result)
+        let level = t.map { FaceZoneLevels.level(for: $0.band) } ?? 0
+        let open = openZone == zone
+        let note = result?.zone(zone)?.note ?? defaultNote(t)
+        return VStack(alignment: .leading, spacing: 0) {
+            Button {
+                withAnimation(SKAnimation.ios(0.3)) { openZone = open ? nil : zone }
+                Haptics.selection()
+            } label: {
+                HStack(alignment: .top, spacing: 10) {
+                    VStack(alignment: .leading, spacing: 6) {
+                        HStack(spacing: 10) {
+                            Text(zone.label).font(SKFont.sans(15, weight: .semibold, relativeTo: .body)).foregroundStyle(SKColor.ink)
+                            Spacer(minLength: 0)
+                            toneChip(t, level: level)
+                        }
+                        Text(note).font(SKFont.sans(13, relativeTo: .footnote)).foregroundStyle(SKColor.muted)
+                            .multilineTextAlignment(.leading)
+                            .fixedSize(horizontal: false, vertical: true)
+                    }
+                    Image(systemName: open ? "chevron.up" : "chevron.down")
+                        .font(.system(size: 13, weight: .bold)).foregroundStyle(SKColor.muted)
+                        .padding(.top, 6)
+                        .accessibilityHidden(true)
+                }
+                .padding(.vertical, SKSpace.md)
+                .frame(minHeight: 72)
+                .contentShape(Rectangle())
+            }
+            .buttonStyle(.plain)
+            .accessibilityElement(children: .combine)
+            .accessibilityHint(open ? "Hides the five reads" : "Shows all five reads")
+            if open {
+                VStack(spacing: 9) {
+                    ForEach(FaceMetric.allCases) { metric in
+                        metricBar(metric, score: result?.score(metric, in: zone))
+                    }
+                }
+                .padding(.bottom, 14)
+                .transition(.opacity)
+            }
+        }
+    }
 
-    private func tipsCard(_ tips: [FaceTip]) -> some View {
-        SKCard {
-            VStack(alignment: .leading, spacing: 12) {
-                Text(goals.first.map { "FOR YOUR GOAL · \($0.uppercased())" } ?? "WHAT TO TRY FIRST")
-                    .font(SKFont.label).tracking(1).foregroundStyle(SKColor.muted)
-                ForEach(Array(tips.enumerated()), id: \.offset) { i, tip in
+    private func defaultNote(_ t: (metric: FaceMetric, band: FaceCalibration.Band)?) -> String {
+        guard let t else { return "Not read in this photo." }
+        if t.band == .clear { return "Even tone. Nothing stands out." }
+        return "\(t.metric.label) reads \(t.band.label.lowercased())."
+    }
+
+    @ViewBuilder
+    private func toneChip(_ t: (metric: FaceMetric, band: FaceCalibration.Band)?, level: Int) -> some View {
+        let fg = level == 0 ? SKColor.goodFg : level == 1 ? SKColor.cautionFg : SKColor.clayTileFg
+        let bg = level == 0 ? SKColor.goodBg : level == 1 ? SKColor.cautionBg : SKColor.clayTileBg
+        HStack(spacing: 6) {
+            if level == 0 {
+                Image(systemName: "checkmark").font(.system(size: 11, weight: .heavy))
+            } else {
+                HStack(spacing: 2) {
+                    Circle().fill(fg).frame(width: 6, height: 6)
+                    Circle().fill(level == 2 ? fg : .clear).frame(width: 5, height: 5)
+                        .overlay(Circle().stroke(fg, lineWidth: 1.2))
+                }
+            }
+            Text(t == nil ? "Not read" : level == 0 ? "Clear" : "\(t!.metric.label) · \(t!.band.label)")
+                .font(SKFont.sans(13, weight: .semibold, relativeTo: .footnote))
+                .lineLimit(1)
+        }
+        .foregroundStyle(fg)
+        .padding(.leading, 8).padding(.trailing, 10)
+        .frame(height: 28)
+        .background(bg, in: Capsule())
+        .fixedSize()
+    }
+
+    private func metricBar(_ metric: FaceMetric, score: Int?) -> some View {
+        let level = score.map { FaceZoneLevels.level(for: FaceCalibration.band($0)) } ?? 0
+        let word = score.map { FaceCalibration.band($0).label } ?? "Not read"
+        return HStack(spacing: 10) {
+            Text(metric.label).font(SKFont.sans(13, relativeTo: .footnote)).foregroundStyle(SKColor.ink)
+                .frame(width: 116, alignment: .leading)
+            HStack(spacing: 3) {
+                RoundedRectangle(cornerRadius: 3).fill(level >= 1 ? SKColor.primary : SKColor.line).frame(height: 8)
+                RoundedRectangle(cornerRadius: 3).fill(level >= 2 ? SKColor.primary : SKColor.line).frame(height: 8)
+            }
+            .accessibilityHidden(true)
+            Text(word).font(SKFont.sans(13, weight: .semibold, relativeTo: .footnote))
+                .foregroundStyle(level == 0 ? SKColor.muted : SKColor.ink)
+                .frame(width: 82, alignment: .trailing)
+        }
+        .accessibilityElement(children: .combine)
+    }
+
+    // MARK: Suggests
+
+    private func suggestsCard(_ tips: [FaceTip]) -> some View {
+        VStack(alignment: .leading, spacing: 12) {
+            HStack {
+                Text("WHAT SKINSTEL SUGGESTS").font(SKFont.label).tracking(1.6).foregroundStyle(SKColor.primary)
+                Spacer()
+                Text("From this scan").font(SKFont.caption).foregroundStyle(SKColor.muted)
+            }
+            ForEach(Array(tips.enumerated()), id: \.offset) { i, tip in
+                VStack(spacing: 12) {
+                    Rectangle().fill(SKColor.line).frame(height: 1)
                     HStack(alignment: .top, spacing: 12) {
-                        Text("\(i + 1)").font(SKFont.sans(13, weight: .semibold, relativeTo: .footnote))
+                        Text("\(i + 1)").font(SKFont.mono(12))
                             .foregroundStyle(SKColor.clayTileFg)
-                            .frame(width: 26, height: 26)
+                            .frame(width: 28, height: 28)
                             .background(SKColor.clayTileBg, in: Circle())
                             .accessibilityHidden(true)
-                        VStack(alignment: .leading, spacing: 2) {
+                        VStack(alignment: .leading, spacing: 3) {
                             Text(tip.title).font(SKFont.sans(15, weight: .semibold, relativeTo: .body)).foregroundStyle(SKColor.ink)
                             if !tip.why.isEmpty {
-                                Text(tip.why).font(SKFont.secondary).foregroundStyle(SKColor.muted)
+                                Text(tip.why).font(SKFont.sans(13, relativeTo: .footnote)).foregroundStyle(SKColor.muted)
                                     .fixedSize(horizontal: false, vertical: true)
                             }
                         }
+                        Spacer(minLength: 0)
                     }
                     .accessibilityElement(children: .combine)
                 }
             }
+            Text("Ideas to try, not a treatment plan.").font(SKFont.caption).foregroundStyle(SKColor.muted)
         }
+        .modifier(FaceCardStyle())
     }
 
-    private var zonesCard: some View {
-        VStack(spacing: 0) {
-            ForEach(Array(Self.zoneOrder.enumerated()), id: \.offset) { i, item in
-                zoneRow(item.zone)
-                if i < Self.zoneOrder.count - 1 { Divider().overlay(SKColor.line) }
+    // MARK: For your goals
+
+    private struct GoalRow: Hashable { let title: String; let hint: String; let question: String }
+
+    /// Where a metric shows most in this scan, as "Nose & T-zone · Some", or nil when clear everywhere.
+    private func whereShows(_ metric: FaceMetric) -> String? {
+        guard let result = entry?.result else { return nil }
+        let best = Self.zoneOrder.compactMap { zone in result.score(metric, in: zone).map { (zone, $0) } }
+            .max { $0.1 < $1.1 }
+        guard let best else { return nil }
+        let band = FaceCalibration.band(best.1)
+        return band == .clear ? nil : "\(best.0.label) · \(band.label)"
+    }
+
+    private var goalRows: [GoalRow] {
+        var rows: [GoalRow] = []
+        for goal in goals {
+            let metric: FaceMetric?
+            let question: String
+            switch goal {
+            case "Less shine": metric = .shine; question = "How do I get less shine?"
+            case "Fewer breakouts": metric = .raisedBlemishes; question = "How do I get fewer breakouts?"
+            case "Fade marks": metric = .flatMarks; question = "How do I fade my marks?"
+            case "Calmer redness": metric = .redness; question = "How do I calm the redness?"
+            case "Smoother texture": metric = .texture; question = "How do I get smoother texture?"
+            case "Smaller-looking pores": metric = .texture; question = "How do I make my pores look smaller?"
+            case "More glow": metric = nil; question = "How do I get more glow?"
+            case "A simpler routine": metric = nil; question = "Which steps can I drop?"
+            default: continue
+            }
+            let hint: String
+            if goal == "A simpler routine" {
+                hint = shelfCount == 1 ? "1 product on your shelf" : "\(shelfCount) products on your shelf"
+            } else if let metric {
+                hint = whereShows(metric) ?? "Clear in this scan"
+            } else {
+                hint = "Across your face"
+            }
+            rows.append(GoalRow(title: goal, hint: hint, question: question))
+        }
+        for question in asked {
+            rows.append(GoalRow(title: "You asked", hint: "From your answers", question: question))
+        }
+        return rows
+    }
+
+    private var goalsCard: some View {
+        VStack(alignment: .leading, spacing: 0) {
+            HStack {
+                Text("FOR YOUR GOALS").font(SKFont.label).tracking(1.6).foregroundStyle(SKColor.muted)
+                Spacer()
+                if let onEditGoals {
+                    Button("Edit", action: onEditGoals)
+                        .font(SKFont.sans(14, weight: .semibold, relativeTo: .subheadline))
+                        .foregroundStyle(SKColor.primary)
+                        .frame(minHeight: 44)
+                }
+            }
+            .frame(minHeight: 44)
+            ForEach(goalRows, id: \.self) { row in
+                VStack(alignment: .leading, spacing: SKSpace.sm) {
+                    HStack(alignment: .firstTextBaseline, spacing: 10) {
+                        Text(row.title).font(SKFont.sans(15, weight: .semibold, relativeTo: .body)).foregroundStyle(SKColor.ink)
+                        Spacer(minLength: 0)
+                        Text(row.hint).font(SKFont.caption).foregroundStyle(SKColor.muted)
+                    }
+                    .accessibilityElement(children: .combine)
+                    if let onAsk, !isFree {
+                        Button { onAsk(row.question) } label: {
+                            Label(row.question, systemImage: "sparkle")
+                                .font(SKFont.sans(14, weight: .semibold, relativeTo: .subheadline))
+                                .foregroundStyle(SKColor.primaryPressed)
+                                .padding(.horizontal, 14)
+                                .frame(minHeight: 44)
+                                .background(SKColor.primary.opacity(0.06), in: Capsule())
+                                .overlay(Capsule().stroke(SKColor.line))
+                        }
+                        .buttonStyle(SKPressStyle())
+                        .accessibilityHint("Asks Skinstel with your scan tagged")
+                    }
+                }
+                .padding(.vertical, SKSpace.md)
+                .overlay(alignment: .top) { Rectangle().fill(SKColor.line).frame(height: 1) }
             }
         }
-        .padding(.horizontal, SKSpace.lg).padding(.vertical, SKSpace.xs)
+        .padding(.horizontal, SKSpace.lg).padding(.top, SKSpace.sm).padding(.bottom, SKSpace.xs)
         .background(SKColor.cream, in: RoundedRectangle(cornerRadius: SKRadius.card, style: .continuous))
+        .overlay(RoundedRectangle(cornerRadius: SKRadius.card, style: .continuous).stroke(SKColor.line))
         .skCardShadow()
     }
 
-    private func zoneRow(_ zone: FaceZone) -> some View {
-        let t = top(zone, in: entry?.result)
-        let level = t.map { FaceZoneLevels.level(for: $0.band) } ?? 0
-        let trend = trendText(zone, metric: t?.metric)
-        return HStack(spacing: SKSpace.md) {
-            VStack(alignment: .leading, spacing: 2) {
-                Text(zone.label).font(SKFont.sans(15, weight: .semibold, relativeTo: .body)).foregroundStyle(SKColor.ink)
-                Text(trend.text).font(SKFont.caption).foregroundStyle(trend.calmer ? SKColor.goodFg : SKColor.muted)
-            }
-            Spacer()
-            Text(t?.metric.label ?? "").font(SKFont.caption).foregroundStyle(SKColor.muted)
-            HStack(spacing: 3) {
-                Capsule().fill(level >= 1 ? SKColor.primary : SKColor.line).frame(width: 14, height: 6)
-                Capsule().fill(level >= 2 ? SKColor.primary : SKColor.line).frame(width: 14, height: 6)
-            }
-            .accessibilityHidden(true)
-            Text(t?.band.label ?? "Not read").font(SKFont.sans(13, weight: .medium, relativeTo: .footnote))
-                .foregroundStyle(SKColor.ink).frame(minWidth: 74, alignment: .trailing)
-        }
-        .padding(.vertical, SKSpace.md)
-        .accessibilityElement(children: .combine)
-    }
-
-    /// The selected scan against Day 1, by band so it never implies more precision than it has.
-    private func trendText(_ zone: FaceZone, metric: FaceMetric?) -> (text: String, calmer: Bool) {
-        guard index > 0, let metric, let first = scans.first?.result.score(metric, in: zone),
-              let now = entry?.result.score(metric, in: zone) else { return ("Day 1 baseline", false) }
-        let a = FaceZoneLevels.level(for: FaceCalibration.band(first))
-        let b = FaceZoneLevels.level(for: FaceCalibration.band(now))
-        if b < a { return ("Calmer than Day 1", true) }
-        if b > a { return ("More than Day 1", false) }
-        return ("Same as Day 1", false)
-    }
-
-    // MARK: Rings
+    // MARK: 7-day check
 
     private struct Ring { let milestone: FaceCalibration.Milestone; let color: Color; let radius: CGFloat }
 
     private var rings: [Ring] {
-        [Ring(milestone: .faceMap, color: SKColor.ink, radius: 58),
+        [Ring(milestone: .faceMap, color: SKColor.clayTileFg, radius: 58),
          Ring(milestone: .oilPattern, color: SKColor.primary, radius: 46),
-         Ring(milestone: .rednessBaseline, color: FaceScanColor.ringThree, radius: 34),
+         Ring(milestone: .rednessBaseline, color: SKColor.primary.opacity(0.55), radius: 34),
          Ring(milestone: .fullReport, color: SKColor.goodFg, radius: 22)]
     }
 
     private func ringStatus(_ m: FaceCalibration.Milestone) -> String {
-        if calibration.isUnlocked(m) { return "READY ✓" }
+        if calibration.isUnlocked(m) { return "READY" }
         let left = calibration.scansToGo(for: m)
         if left == 0 { return m.requiresFinalScan ? "FINAL SWEEP" : "FIRST SWEEP" }
         return left == 1 ? "1 SCAN" : "\(left) SCANS"
     }
 
-    private var ringsCard: some View {
-        HStack(spacing: SKSpace.lg) {
-            ZStack {
-                ForEach(rings, id: \.radius) { ring in
-                    Circle().stroke(SKColor.ink.opacity(0.07), lineWidth: 10)
-                        .frame(width: ring.radius * 2, height: ring.radius * 2)
-                    Circle().trim(from: 0, to: CGFloat(calibration.isUnlocked(ring.milestone) ? 1 : min(calibration.progress(for: ring.milestone), 0.999)))
-                        .stroke(ring.color, style: StrokeStyle(lineWidth: 10, lineCap: .round))
-                        .rotationEffect(.degrees(-90))
-                        .frame(width: ring.radius * 2, height: ring.radius * 2)
-                }
-            }
-            .frame(width: 132, height: 132)
-            .accessibilityElement()
-            .accessibilityLabel(rings.map { "\($0.milestone.label) \(ringStatus($0.milestone).lowercased())" }.joined(separator: ", "))
-            VStack(alignment: .leading, spacing: 9) {
-                ForEach(rings, id: \.radius) { ring in
-                    HStack(spacing: SKSpace.sm) {
-                        RoundedRectangle(cornerRadius: 3).fill(ring.color).frame(width: 10, height: 10)
-                        Text(ring.milestone.label).font(SKFont.sans(14, weight: .semibold, relativeTo: .subheadline)).foregroundStyle(SKColor.ink)
-                        Spacer(minLength: 0)
-                        Text(ringStatus(ring.milestone)).font(SKFont.label)
-                            .foregroundStyle(calibration.isUnlocked(ring.milestone) ? SKColor.goodFg : SKColor.muted)
-                    }
-                }
-            }
-            .accessibilityHidden(true)
+    private var weekFooter: String {
+        let day = scans.count
+        if calibration.latestReport != nil { return "Your week is done. Start a new one any time." }
+        if calibration.scannedToday(now: Date()) {
+            return "Day \(max(day, 1)) of 7 · next photo tomorrow, inside your skin check-in."
         }
-        .padding(SKSpace.lg)
-        .background(SKColor.cream, in: RoundedRectangle(cornerRadius: SKRadius.card, style: .continuous))
-        .skCardShadow()
+        return "Day \(max(day, 1)) of 7 · today's photo is ready to take."
     }
 
-    // MARK: Locked week (free scan)
-
-    /// The free scan's stand-in for the rings: the four rings drawn empty around a lock, the
-    /// question the week answers, and the way into Skintel+.
-    private func lockedWeekCard(unlock: @escaping () -> Void) -> some View {
-        VStack(alignment: .leading, spacing: SKSpace.lg) {
+    private var weekCard: some View {
+        VStack(alignment: .leading, spacing: 14) {
+            Text("7-DAY CHECK").font(SKFont.label).tracking(1.6).foregroundStyle(SKColor.muted)
             HStack(spacing: SKSpace.lg) {
                 ZStack {
                     ForEach(rings, id: \.radius) { ring in
-                        Circle().stroke(SKColor.ink.opacity(0.07), lineWidth: 10)
+                        Circle().stroke(SKColor.neutralChip, lineWidth: 10)
+                            .frame(width: ring.radius * 2, height: ring.radius * 2)
+                        Circle().trim(from: 0, to: CGFloat(calibration.isUnlocked(ring.milestone) ? 1 : min(calibration.progress(for: ring.milestone), 0.999)))
+                            .stroke(ring.color, style: StrokeStyle(lineWidth: 10, lineCap: .round))
+                            .rotationEffect(.degrees(-90))
                             .frame(width: ring.radius * 2, height: ring.radius * 2)
                     }
-                    Image(systemName: "lock.fill")
-                        .font(.system(size: 18, weight: .semibold))
-                        .foregroundStyle(SKColor.primary)
                 }
-                .frame(width: 132, height: 132)
+                .frame(width: 128, height: 128)
+                .accessibilityElement()
+                .accessibilityLabel(rings.map { "\($0.milestone.label) \(ringStatus($0.milestone).lowercased())" }.joined(separator: ", "))
+                VStack(alignment: .leading, spacing: 10) {
+                    ForEach(rings, id: \.radius) { ring in
+                        let ready = calibration.isUnlocked(ring.milestone)
+                        HStack(spacing: SKSpace.sm) {
+                            RoundedRectangle(cornerRadius: 3).fill(ring.color).frame(width: 10, height: 10)
+                            Text(ring.milestone.label).font(SKFont.sans(14, weight: .semibold, relativeTo: .subheadline)).foregroundStyle(SKColor.ink)
+                            Spacer(minLength: 0)
+                            HStack(spacing: 3) {
+                                if ready { Image(systemName: "checkmark").font(.system(size: 9, weight: .heavy)) }
+                                Text(ringStatus(ring.milestone)).font(SKFont.label)
+                            }
+                            .foregroundStyle(ready ? SKColor.goodFg : SKColor.muted)
+                        }
+                    }
+                }
                 .accessibilityHidden(true)
-                VStack(alignment: .leading, spacing: 6) {
-                    Text("7-DAY CHECK").font(SKFont.label).tracking(1).foregroundStyle(SKColor.primary)
-                    Text("Is your skin getting calmer?")
-                        .font(SKFont.sans(17, weight: .semibold, relativeTo: .headline)).foregroundStyle(SKColor.ink)
-                        .fixedSize(horizontal: false, vertical: true)
-                    Text("Follow it for 7 days with Skintel+")
-                        .font(SKFont.secondary).foregroundStyle(SKColor.muted)
-                        .fixedSize(horizontal: false, vertical: true)
+            }
+            Text(weekFooter).font(SKFont.sans(13, relativeTo: .footnote)).foregroundStyle(SKColor.muted)
+                .padding(.top, SKSpace.md)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .overlay(alignment: .top) { Rectangle().fill(SKColor.line).frame(height: 1) }
+        }
+        .modifier(FaceCardStyle())
+    }
+
+    /// The free scan's 7-day check: what the week answers, and the way into Skintel+.
+    private func lockedWeekCard(unlock: @escaping () -> Void) -> some View {
+        VStack(alignment: .leading, spacing: SKSpace.md) {
+            Text("7-DAY CHECK").font(SKFont.label).tracking(1.6).foregroundStyle(SKColor.primary)
+            Text("Is your skin getting calmer?").font(SKFont.serif(26, relativeTo: .title2)).foregroundStyle(SKColor.ink)
+                .accessibilityAddTraits(.isHeader)
+            Text("Follow it for 7 days with Skintel+. One photo can't show change; a 10-second photo each morning can.")
+                .font(SKFont.secondary).foregroundStyle(SKColor.muted)
+                .fixedSize(horizontal: false, vertical: true)
+            VStack(alignment: .leading, spacing: SKSpace.sm) {
+                ForEach(["Day 3 · your oil pattern", "Day 5 · redness and barrier", "Day 7 · full report and a routine from your shelf"], id: \.self) { line in
+                    HStack(spacing: SKSpace.sm) {
+                        Image(systemName: "lock.fill").font(.system(size: 11, weight: .semibold)).foregroundStyle(SKColor.primary)
+                            .accessibilityHidden(true)
+                        Text(line).font(SKFont.sans(14, relativeTo: .subheadline)).foregroundStyle(SKColor.ink)
+                    }
                 }
-                .accessibilityElement(children: .combine)
             }
             SKButton(title: "Get Skintel+", action: unlock)
         }
-        .padding(SKSpace.lg)
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .background(SKColor.cream, in: RoundedRectangle(cornerRadius: SKRadius.card, style: .continuous))
-        .skCardShadow()
+        .modifier(FaceCardStyle())
+    }
+
+    // MARK: Ask
+
+    private func askButton(_ action: @escaping () -> Void) -> some View {
+        Button(action: action) {
+            Label("Ask Skinstel about this scan", systemImage: "sparkles")
+                .font(SKFont.button)
+                .foregroundStyle(SKColor.cream)
+                .frame(maxWidth: .infinity)
+                .frame(height: 52)
+                .background(SKColor.primary, in: RoundedRectangle(cornerRadius: SKRadius.button, style: .continuous))
+                .shadow(color: SKColor.primary.opacity(0.35), radius: 8, y: 6)
+        }
+        .buttonStyle(SKPressStyle())
     }
 
     // MARK: Insight
 
-    private var insight: (kicker: String, title: String, body: String) {
+    private var insight: (title: String, body: String) {
         let count = index + 1
-        let summary = entry?.result.summary ?? ""
+        let summary = entry?.result.summary.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
         if count >= 7, calibration.isUnlocked(.fullReport), let report = calibration.latestReport {
-            return ("DAY 7 · FULL REPORT", "Your week, zone by zone.", report.summary.isEmpty ? summary : report.summary)
+            return ("Your week, zone by zone.", report.summary.isEmpty ? summary : report.summary)
         }
         if count >= 5, calibration.isUnlocked(.rednessBaseline), let redness = calibration.rednessBaseline {
             var body = "Across five scans your redness was \(redness.label.lowercased())."
             if let steady = calibration.barrierSteady {
                 body += steady ? " Your cheeks barely changed, so your barrier looks steady." : " Your cheeks changed from day to day, so your barrier looks less steady."
             }
-            return ("DAY 5 · REDNESS BASELINE", redness == .steady ? "Your redness stays steady." : "Your redness comes and goes.", body)
+            return (redness == .steady ? "Your redness stays steady." : "Your redness comes and goes.", body)
         }
         if count >= 3, calibration.isUnlocked(.oilPattern), let oil = calibration.oilPattern {
             let title: String = switch oil {
@@ -371,43 +587,31 @@ struct FaceResultView: View {
             case .dry: "Your skin stays matte."
             case .normal, .unknown: "Your shine is balanced."
             }
-            return ("DAY 3 · OIL PATTERN", title, "Across three scans your pattern reads as \(oil.label.lowercased()). \(summary)")
+            return (title, "Across three scans your pattern reads as \(oil.label.lowercased()). \(summary)")
         }
-        if count == 1 { return ("DAY 1 · FACE MAP", "Your first map is ready.", summary) }
-        return ("DAY \(count) · DAILY READ", "Day \(count) of your week.", summary)
-    }
-
-    private var insightCard: some View {
-        SKCard {
-            VStack(alignment: .leading, spacing: 6) {
-                Text(insight.kicker).font(SKFont.label).tracking(1).foregroundStyle(SKColor.primary)
-                Text(insight.body.isEmpty ? "No read for this day." : insight.body)
-                    .font(SKFont.sans(15, relativeTo: .body)).foregroundStyle(SKColor.ink)
-                    .fixedSize(horizontal: false, vertical: true)
-            }
-        }
+        if count == 1 { return ("Your first map is ready.", summary) }
+        return ("Day \(count) of your week.", summary)
     }
 
     // MARK: Report
 
     private func reportCard(_ report: FaceReport) -> some View {
-        SKCard {
-            VStack(alignment: .leading, spacing: 10) {
-                Text("YOUR SKIN REPORT").font(SKFont.label).foregroundStyle(SKColor.muted)
-                reportRow("Oil pattern", report.oilPattern.label)
-                reportRow("Redness", report.redness.label)
-                reportRow("Barrier", report.barrier.label)
-                reportRow("Marks", report.marks.label)
-                if let active = report.suggestedActive {
-                    VStack(alignment: .leading, spacing: 4) {
-                        Text("Suggested active: \(active.name)").font(SKFont.sans(15, weight: .semibold, relativeTo: .body))
-                        if let nights = active.nightsPerWeek { Text("\(nights) nights a week").font(SKFont.secondary).foregroundStyle(SKColor.muted) }
-                        if !active.why.isEmpty { Text(active.why).font(SKFont.secondary).foregroundStyle(SKColor.muted) }
-                    }
-                    .foregroundStyle(SKColor.ink)
+        VStack(alignment: .leading, spacing: 10) {
+            Text("YOUR SKIN REPORT").font(SKFont.label).tracking(1.6).foregroundStyle(SKColor.muted)
+            reportRow("Oil pattern", report.oilPattern.label)
+            reportRow("Redness", report.redness.label)
+            reportRow("Barrier", report.barrier.label)
+            reportRow("Marks", report.marks.label)
+            if let active = report.suggestedActive {
+                VStack(alignment: .leading, spacing: 4) {
+                    Text("Suggested active: \(active.name)").font(SKFont.sans(15, weight: .semibold, relativeTo: .body))
+                    if let nights = active.nightsPerWeek { Text("\(nights) nights a week").font(SKFont.secondary).foregroundStyle(SKColor.muted) }
+                    if !active.why.isEmpty { Text(active.why).font(SKFont.secondary).foregroundStyle(SKColor.muted) }
                 }
+                .foregroundStyle(SKColor.ink)
             }
         }
+        .modifier(FaceCardStyle())
     }
 
     private func reportRow(_ title: String, _ value: String) -> some View {
@@ -423,59 +627,65 @@ struct FaceResultView: View {
 
     private func routineCard(_ routine: FaceRoutine) -> some View {
         let steps = routine.pm.isEmpty ? routine.am : routine.pm
-        return SKCard {
-            VStack(alignment: .leading, spacing: 10) {
-                Text(routine.pm.isEmpty ? "THIS MORNING" : "TONIGHT, FROM YOUR SHELF").font(SKFont.label).foregroundStyle(SKColor.muted)
-                ForEach(Array(steps.enumerated()), id: \.offset) { i, step in
-                    HStack(alignment: .top, spacing: 10) {
-                        Text("\(i + 1)").font(SKFont.sans(12, weight: .semibold, relativeTo: .caption))
-                            .foregroundStyle(SKColor.clayTileFg)
-                            .frame(width: 24, height: 24)
-                            .background(SKColor.clayTileBg, in: Circle())
-                            .accessibilityHidden(true)
-                        VStack(alignment: .leading, spacing: 2) {
-                            Text(step.product.map { "\(step.step): \($0)" } ?? step.step)
-                                .font(SKFont.sans(14, relativeTo: .subheadline)).foregroundStyle(SKColor.ink)
-                            if !step.note.isEmpty { Text(step.note).font(SKFont.caption).foregroundStyle(SKColor.muted) }
-                        }
+        return VStack(alignment: .leading, spacing: 10) {
+            Text(routine.pm.isEmpty ? "THIS MORNING, FROM YOUR SHELF" : "TONIGHT, FROM YOUR SHELF")
+                .font(SKFont.label).tracking(1.6).foregroundStyle(SKColor.muted)
+            ForEach(Array(steps.enumerated()), id: \.offset) { i, step in
+                HStack(alignment: .top, spacing: 10) {
+                    Text("\(i + 1)").font(SKFont.sans(12, weight: .semibold, relativeTo: .caption))
+                        .foregroundStyle(SKColor.clayTileFg)
+                        .frame(width: 24, height: 24)
+                        .background(SKColor.clayTileBg, in: Circle())
+                        .accessibilityHidden(true)
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text(step.product.map { "\(step.step): \($0)" } ?? step.step)
+                            .font(SKFont.sans(14, relativeTo: .subheadline)).foregroundStyle(SKColor.ink)
+                        if !step.note.isEmpty { Text(step.note).font(SKFont.caption).foregroundStyle(SKColor.muted) }
                     }
-                }
-                ForEach(routine.conflicts, id: \.self) { conflict in
-                    Text(conflict).font(SKFont.sans(13, relativeTo: .footnote)).foregroundStyle(SKColor.cautionFg)
-                        .padding(.horizontal, SKSpace.md).padding(.vertical, 10)
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                        .background(SKColor.cautionBg, in: RoundedRectangle(cornerRadius: SKRadius.tile, style: .continuous))
+                    .padding(.top, 3)
                 }
             }
+            ForEach(routine.conflicts, id: \.self) { conflict in
+                HStack(alignment: .top, spacing: SKSpace.sm) {
+                    Image(systemName: "exclamationmark.triangle").font(.system(size: 13, weight: .semibold))
+                        .padding(.top, 1)
+                        .accessibilityHidden(true)
+                    (Text("Clash: ").fontWeight(.semibold) + Text(conflict))
+                        .font(SKFont.sans(13, relativeTo: .footnote))
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+                .foregroundStyle(SKColor.cautionFg)
+                .padding(.horizontal, SKSpace.md).padding(.vertical, 10)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .background(SKColor.cautionBg, in: RoundedRectangle(cornerRadius: SKRadius.tile, style: .continuous))
+            }
         }
+        .modifier(FaceCardStyle())
     }
 
     // MARK: History
 
     private var historyCard: some View {
-        SKCard {
-            VStack(alignment: .leading, spacing: 10) {
-                Text("THIS WEEK'S SCANS").font(SKFont.label).foregroundStyle(SKColor.muted)
-                if scans.isEmpty {
-                    Text("No scans yet.").font(SKFont.secondary).foregroundStyle(SKColor.muted)
-                }
-                ForEach(Array(scans.enumerated()), id: \.offset) { i, scan in
-                    Button { selected = i } label: {
-                        HStack {
-                            Text("Day \(i + 1)").font(SKFont.sans(15, weight: .semibold, relativeTo: .body))
-                            Text(Self.stageLabel(scan.stage)).font(SKFont.secondary).foregroundStyle(SKColor.muted)
-                            Spacer()
-                            Text(scan.day).font(SKFont.dataSmall).foregroundStyle(SKColor.muted)
-                        }
-                        .foregroundStyle(SKColor.ink)
-                        .frame(minHeight: 44)
-                        .contentShape(Rectangle())
+        VStack(alignment: .leading, spacing: 10) {
+            Text("THIS WEEK'S SCANS").font(SKFont.label).tracking(1.6).foregroundStyle(SKColor.muted)
+            ForEach(Array(scans.enumerated()), id: \.offset) { i, scan in
+                Button { selected = i; Haptics.selection() } label: {
+                    HStack {
+                        Text("Day \(i + 1)").font(SKFont.sans(15, weight: .semibold, relativeTo: .body))
+                        Text(Self.stageLabel(scan.stage)).font(SKFont.secondary).foregroundStyle(SKColor.muted)
+                        Spacer()
+                        if i == index { Text("SHOWING").font(SKFont.label).foregroundStyle(SKColor.primary) }
+                        Text(scan.day).font(SKFont.dataSmall).foregroundStyle(SKColor.muted)
                     }
-                    .buttonStyle(.plain)
-                    .accessibilityAddTraits(i == index ? .isSelected : [])
+                    .foregroundStyle(SKColor.ink)
+                    .frame(minHeight: 44)
+                    .contentShape(Rectangle())
                 }
+                .buttonStyle(.plain)
+                .accessibilityAddTraits(i == index ? .isSelected : [])
             }
         }
+        .modifier(FaceCardStyle())
     }
 
     static func stageLabel(_ stage: FaceScanStage) -> String {
@@ -485,6 +695,18 @@ struct FaceResultView: View {
         case .final: "Final sweep"
         case .report: "Report"
         }
+    }
+}
+
+/// The result's cards: cream, a hairline border, 16 pt corners and the card shadow.
+private struct FaceCardStyle: ViewModifier {
+    func body(content: Content) -> some View {
+        content
+            .padding(SKSpace.lg)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .background(SKColor.cream, in: RoundedRectangle(cornerRadius: SKRadius.card, style: .continuous))
+            .overlay(RoundedRectangle(cornerRadius: SKRadius.card, style: .continuous).stroke(SKColor.line))
+            .skCardShadow()
     }
 }
 

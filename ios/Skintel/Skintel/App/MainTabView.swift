@@ -48,6 +48,8 @@ struct MainTabView: View {
     /// "Ask Skinstel about this scan": close the face scan cover, then open Ask with the scan tagged.
     @State private var askAfterFaceScan = false
     @State private var askAboutFace = false
+    /// The ready question a goal row on the map asked ("How do I get less shine?"), or nil.
+    @State private var faceQuestion: String?
     /// Bumped when You is tapped while already on You: rebuilds its stack, back to the top.
     @State private var youRoot = 0
     @State private var keyboardUp = false
@@ -117,14 +119,18 @@ struct MainTabView: View {
         .sheet(isPresented: $showAddProduct) { AddProductHub().skProGates() }
         .sheet(isPresented: $showCompare) { CompareView().skProGates() }
         .skAskSheet(isPresented: $showAssistant,
-                    initialQuestion: askAboutFace ? "What does my face scan show, and what should I try first?" : nil,
+                    initialQuestion: askAboutFace ? (faceQuestion ?? "What does my face scan show, and what should I try first?") : nil,
                     faceTagged: askAboutFace)
-        .onChange(of: showAssistant) { _, open in if !open { askAboutFace = false } }
+        .onChange(of: showAssistant) { _, open in if !open { askAboutFace = false; faceQuestion = nil } }
         .sheet(isPresented: $showShelf) { ShelfTab().skProGates() }
         .fullScreenCover(isPresented: $showFaceScan, onDismiss: {
             if askAfterFaceScan { askAfterFaceScan = false; askAboutFace = true; showAssistant = true }
         }) {
-            FaceScanFlowView(onAsk: { askAfterFaceScan = true; showFaceScan = false }).skProGates()
+            FaceScanFlowView(onAsk: { question in
+                faceQuestion = question
+                askAfterFaceScan = true
+                showFaceScan = false
+            }).skProGates()
         }
         .environment(\.openPaywall, OpenPaywallAction { reason in gate(reason) })
         .environment(\.openFaceScan, OpenFaceScanAction { showFaceScan = true })

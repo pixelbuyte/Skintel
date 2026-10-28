@@ -6,7 +6,7 @@ import UIKit
 /// and the 7-day map. The one entry point lane F wires in:
 ///
 ///     FaceScanFlowView()                       // present full screen
-///     FaceScanFlowView(onAsk: { ... })         // also offer "Ask Skinstel about this scan"
+///     FaceScanFlowView(onAsk: { question in ... })  // also offer "Ask Skinstel about this scan"
 ///
 /// It needs `AppEnvironment` in the environment, closes itself with `dismiss`, and keeps its
 /// scans in `FaceScanStore.shared` (call `FaceScanStore.shared.reset()` on sign-out and account
@@ -16,9 +16,10 @@ import UIKit
 /// cycle, the Day 1 crops, the answers) and shown as a real Day 1 map with the week locked.
 /// Once the account is Pro, the same cycle goes on from Day 2.
 struct FaceScanFlowView: View {
-    let onAsk: (() -> Void)?
+    /// Opens Ask with the scan tagged; the question is a goal's ready one, or nil for the general one.
+    let onAsk: ((String?) -> Void)?
 
-    init(onAsk: (() -> Void)? = nil) {
+    init(onAsk: ((String?) -> Void)? = nil) {
         self.onAsk = onAsk
     }
 
@@ -28,12 +29,13 @@ struct FaceScanFlowView: View {
     /// The 13+ answer (COPPA), asked only when onboarding gave no age or "Under 18".
     @AppStorage("faceScan.age13Confirmed") private var age13Confirmed: Bool?
     @AppStorage("faceScan.freeUsed") private var freeUsed = false
-    /// The first-time intro ("See your skin, zone by zone") was shown.
-    @AppStorage("faceScan.introSeen") private var introSeen = false
-    @State private var showIntro = false
     /// The Day 1 read, started when the goals question is left so it runs during the rest of the
     /// questions. Its success is recorded as soon as it lands, even if the quiz is left.
     @State private var earlyRead: Task<ReadOutcome, Never>?
+    /// The early read has landed (the questions' status pill turns to "Photos read").
+    @State private var earlyReadLanded = false
+    /// "For your goals · Edit": the questions again, saving the answers only (no new read).
+    @State private var editingAnswers = false
     /// The 402 path: the wall over a blank flow, which closes when the wall does.
     @State private var wallThenClose = false
     /// The wall opened from the locked 7-day check on the map (no Skintel+).
@@ -94,11 +96,17 @@ struct FaceScanFlowView: View {
                     swept(images, stage: stage)
                 }
             case .quiz:
-                FaceQuizView(under18: treatAsUnder18, prefill: FaceQuestions.prefill(profile: profile, triggerNames: triggerNames),
-                             triggerHint: triggerHint, onClose: close,
-                             onGoals: { goals in if !quizThenReport { startEarlyBaseline(goals: goals) } }) { answers in
+                FaceQuizView(under18: treatAsUnder18, prefill: quizPrefill, shelfLine: shelfActives.line,
+                             readStatus: editingAnswers || earlyRead == nil ? .hidden : earlyReadLanded ? .read : .reading,
+                             onClose: {
+                                 if editingAnswers { editingAnswers = false; screen = .result } else { close() }
+                             },
+                             onGoals: { goals in if !quizThenReport && !editingAnswers { startEarlyBaseline(goals: goals) } }) { answers in
                     store.saveAnswers(answers)
-                    if quizThenReport {
+                    if editingAnswers {
+                        editingAnswers = false
+                        screen = .result
+                    } else if quizThenReport {
                         quizThenReport = false
                         Task { await readReport() }
                     } else if let early = earlyRead {
@@ -113,7 +121,10 @@ struct FaceScanFlowView: View {
                 FaceResultView(calibration: store.calibration, routine: store.latestRoutine,
                                nextAction: nextAction, onNext: beginNext, onAsk: onAsk, onClose: close,
                                onUnlock: unlockWeek, photo: store.day1Front,
-                               goals: store.answers?.chips?[FaceQuestions.goalsKey] ?? [])
+                               goals: FaceQuestions.goalOptions.filter { (store.answers?.chips?[FaceQuestions.goalsKey] ?? []).contains($0) },
+                               asked: store.answers?.chips?[FaceQuestions.knowKey] ?? [],
+                               shelfCount: env.products.products.count,
+                               onEditGoals: editGoals)
                     .sheet(isPresented: $wallFromLocked) {
                         PaywallView(reason: .faceScan, faceMapReady: true)
                     }
@@ -123,10 +134,6 @@ struct FaceScanFlowView: View {
         .task { await env.subscription.confirmIfUnsure() }
         .sheet(isPresented: $wallThenClose, onDismiss: close) {
             PaywallView(reason: .faceScan)
-        }
-        .sheet(isPresented: $showIntro, onDismiss: afterIntro) {
-            FaceScanIntroSheet(onStart: { introSeen = true; showIntro = false },
-                               onLater: { showIntro = false })
         }
         .sheet(isPresented: $showConsent, onDismiss: afterConsent) {
             FaceConsentSheet(privacyURL: env.config.privacyURL,
@@ -148,11 +155,6 @@ struct FaceScanFlowView: View {
         } else {
             UIApplication.shared.isIdleTimerDisabled = false
         }
-    }
-
-    /// The intro closed: Start goes on to consent and the camera, Later (or a swipe) closes.
-    private func afterIntro() {
-        if introSeen { begin() } else { close() }
     }
 
     /// The consent sheet closed: Allow goes on, anything else (Not now, a swipe) closes the flow.
@@ -239,12 +241,25 @@ struct FaceScanFlowView: View {
 
     private var triggerNames: [String] { env.products.culprits.all.map(\.name) }
 
-    private var triggerHint: String? {
-        let picks = FaceQuestions.triggerPicks(triggerNames)
-        guard !picks.isEmpty else { return nil }
-        let list = picks.joined(separator: ", ")
-        return picks.count == 1 ? "\(list) is already in your Triggers, so it is picked."
-                                : "\(list) are already in your Triggers, so they are picked."
+    /// "For your goals · Edit": the questions again from the saved answers, once there are some.
+    private var editGoals: (() -> Void)? {
+        guard store.answers != nil else { return nil }
+        return { editingAnswers = true; screen = .quiz }
+    }
+
+    /// Actives found on the shelf, for the actives question.
+    private var shelfActives: (picks: [String], line: String?) {
+        FaceQuestions.shelfActives(env.products.products.map { item in
+            (name: item.product.productName, ingredients: item.ingredients.map(\.inciRaw))
+        })
+    }
+
+    /// Editing from the map starts from the saved answers; a new scan from what the app knows.
+    private var quizPrefill: [String: Set<String>] {
+        if editingAnswers, let chips = store.answers?.chips {
+            return chips.mapValues { Set($0) }
+        }
+        return FaceQuestions.prefill(profile: profile, triggerNames: triggerNames, shelfActives: shelfActives.picks)
     }
 
     private var hasBaseline: Bool { store.hasCycle && store.calibration.hasBaselineScan }
@@ -301,8 +316,6 @@ struct FaceScanFlowView: View {
         // The free scan is used and there is no map left to show (deleted): straight to the wall.
         // With its cycle still here, it reopens below as the Day 1 map with the week locked.
         if !isPro && freeUsed && !hasBaseline { wallThenClose = true; return }
-        // Once for everyone, existing scans too: what the feature is, before anything else.
-        guard introSeen else { showIntro = true; return }
         guard aiConsent else { showConsent = true; return }
         screen = hasBaseline ? .result : .sweep(.baseline)
     }
@@ -517,8 +530,10 @@ struct FaceScanFlowView: View {
         store.startCycle(now: Date())
         let request = makeRequest(stage: .baseline, images: sweepImages(images), answers: nil, goals: goals)
         readingStarted = Date()
+        earlyReadLanded = false
         earlyRead = Task {
             let outcome = await perform(request)
+            earlyReadLanded = true
             if case .result(let result) = outcome, result.quality.ok {
                 if result.locked { freeUsed = true }
                 store.record(stage: .baseline, result: result, now: Date())

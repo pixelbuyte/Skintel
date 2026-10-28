@@ -28,6 +28,7 @@ struct SettingsView: View {
     @State private var showPersonalization = false
     @State private var showAccount = false
     @State private var showSettings = false
+    @State private var confirmDeleteFaceScans = false
 
     var body: some View {
         ScrollView {
@@ -72,9 +73,12 @@ struct SettingsView: View {
         .padding(.top, SKSpace.md)
 
         profileHero
-        FaceMapCard()
         stats
+        FaceScansSection()
         membershipCard
+
+        Text("Skinstel \(Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "") · Not medical advice.")
+            .font(SKFont.caption).foregroundStyle(SKColor.muted).frame(maxWidth: .infinity).multilineTextAlignment(.center)
     }
 
     @ViewBuilder
@@ -93,7 +97,36 @@ struct SettingsView: View {
             }
         }
 
-        membershipCard
+        VStack(alignment: .leading, spacing: SKSpace.sm) {
+            HStack(spacing: SKSpace.sm) {
+                Text("Face scan data").skLabelStyle()
+                if FaceScanNew.isActive() { SKNewBadge() }
+            }
+            .padding(.leading, 4)
+            VStack(spacing: 0) {
+                SettingsRow(icon: "camera", title: "Camera & photo access", subtitle: "Opens iPhone Settings") {
+                    if let url = URL(string: UIApplication.openSettingsURLString) { UIApplication.shared.open(url) }
+                }
+                SettingsRow(icon: "trash", title: "Delete face scans", subtitle: "Scans, answers and Day 1 close-ups on this phone",
+                            showsChevron: false, last: true) {
+                    confirmDeleteFaceScans = true
+                }
+            }
+            .background(SKColor.cream, in: RoundedRectangle(cornerRadius: 18, style: .continuous))
+            .overlay(RoundedRectangle(cornerRadius: 18, style: .continuous).stroke(SKColor.line))
+            .skCardShadow()
+            Text("Photos are read, then deleted from our server. What stays is on this phone.")
+                .font(SKFont.caption).foregroundStyle(SKColor.muted).padding(.horizontal, 4)
+        }
+        .confirmationDialog("Delete your face scans?", isPresented: $confirmDeleteFaceScans, titleVisibility: .visible) {
+            Button("Delete face scans", role: .destructive) {
+                FaceScanStore.shared.reset()
+                Haptics.success()
+            }
+            Button("Cancel", role: .cancel) {}
+        } message: {
+            Text("Your maps, answers and Day 1 photos on this phone are removed. This can't be undone.")
+        }
 
         HStack(spacing: SKSpace.md) {
             SKDrop("DropPrivacy", size: 56)
