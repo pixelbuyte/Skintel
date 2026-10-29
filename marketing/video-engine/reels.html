@@ -1,0 +1,60 @@
+<!doctype html><html><head><meta charset="utf-8">
+<link href="https://fonts.googleapis.com/css2?family=TikTok+Sans:wght@600;700;800&family=Instrument+Serif:ital@0;1&family=DM+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
+<script src="ugc/app.js"></script>
+<script>
+const clamp = x => Math.max(0, Math.min(1, x));
+const ease = x => { x = clamp(x); return 1 - Math.pow(1 - x, 3); };
+</script>
+<script src="ugc/pov.js"></script>
+<script src="ugc/reels.js"></script>
+<style>
+*{margin:0;box-sizing:border-box}
+html,body{width:1080px;height:1920px;overflow:hidden;background:#000}
+.seg{position:absolute;inset:0;overflow:hidden;display:none}
+#himg{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
+/* Kiku-style text: big white bold with a black outline, readable muted at a glance */
+.ot{position:absolute;left:70px;right:70px;text-align:center;font:800 64px/1.18 'TikTok Sans',sans-serif;color:#fff;
+  -webkit-text-stroke:7px #000;paint-order:stroke fill;z-index:20;letter-spacing:-.3px}
+#dot{font-size:58px}
+#dscr{position:absolute;left:0;top:0;width:393px;height:852px;transform-origin:0 0}
+</style></head><body>
+<div class="seg" id="hook"><img id="himg"><div class="ot" id="htxt"></div></div>
+<div class="seg" id="demo" style="background:#F4EDE0"><div id="dscr"></div><div class="ot" id="dot"></div></div>
+<script>
+document.head.insertAdjacentHTML('beforeend', `<style>${APP_CSS}</style>`);
+const $ = id => document.getElementById(id);
+const HOOK = 3.0;
+const P = new URLSearchParams(location.search); const R = REELS.find(r => r.n === +(P.get('r') || 1));
+const A = ASSET[R.a], K = KITS[R.kit], BEATS = BEAT_AT[R.kit];
+window.DUR = HOOK + K.dur;
+window.EVENTS = { dur: window.DUR, amb: .12, fx: R.cues.map(([n, t]) => [t, n, .8]) };
+$('htxt').textContent = R.hook; $('htxt').style.top = A.top + 'px';
+const himg = $('himg'); if (A.img) himg.src = A.img;
+himg.style.objectPosition = `${A.fx}% ${A.fy}%`;
+const S = 1080 / 393;
+window.render = async (t) => {
+  const inHook = t < HOOK;
+  $('hook').style.display = inHook ? 'block' : 'none'; $('demo').style.display = inHook ? 'none' : 'block';
+  if (inHook) {
+    if (A.seq) { const f = Math.min(A.frames, (A.from || 0) + Math.floor(t * 30) + 1); const src = `${A.seq}/f${String(f).padStart(4, '0')}.jpg`;
+      if (!himg.src.endsWith(src)) { himg.src = src; await himg.decode().catch(() => {}); } }
+    // hand-held selfie feel: slow push-in + small drift
+    const k = t / HOOK, dx = Math.sin(t * 1.9) * 6 + Math.sin(t * 4.1) * 2, dy = Math.cos(t * 1.4) * 5;
+    himg.style.transformOrigin = `${A.fx}% ${A.fy}%`;
+    himg.style.transform = `translate(${dx}px,${dy}px) scale(${(A.flip ? -1 : 1) * (1.06 + .08 * k)},${1.06 + .08 * k})`;
+    const h = $('htxt'); h.style.opacity = clamp(t / .12);
+  } else {
+    const u = t - HOOK, r = K.run(u), z = r.zoom || { s: 1, x: 196, y: 426 };
+    // full-screen recording: the 393-pt screen scaled to 1080 wide, zoom around a point, scroll in points
+    const sc = $('dscr'), s = S * z.s;
+    sc.style.transform = `translate(${540 - z.x * s}px,${(z.s === 1 ? 0 : 960 - z.y * s)}px) scale(${s})`;
+    sc.innerHTML = `<div class="scr" style="isolation:isolate">${r.layers.map((l, li) => `<div class="scr" style="z-index:${li + 1};isolation:isolate;transform:${l.tf || 'none'};opacity:${l.op == null ? 1 : l.op}"><div style="position:absolute;inset:0;transform:translateY(${-(r.scroll || 0)}px)">${SCREENS[l.s](l.st)}</div></div>`).join('')}</div>`
+      + (r.touch ? `<div class="scr" style="background:none;z-index:90"><div class="touch" style="left:${r.touch[0]}px;top:${r.touch[1] - (r.scroll || 0)}px"></div></div>` : '');
+    await Promise.all([...sc.querySelectorAll('img')].map(i => i.decode().catch(() => {})));
+    let bi = 0; BEATS.forEach((b, i) => { if (u >= b) bi = i; });
+    const o = $('dot'); o.style.top = (R.kit === 'C' ? 1300 : 1640) + 'px'; o.textContent = R.beats[Math.min(bi, R.beats.length - 1)];
+    const d = u - BEATS[bi]; o.style.opacity = clamp(d / .1); o.style.transform = `scale(${.9 + .1 * ease(d / .25)})`;
+  }
+};
+window.ready = Promise.all([document.fonts.ready, ...[...document.images].map(i => i.decode().catch(() => {}))]);
+</script></body></html>

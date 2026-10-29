@@ -87,7 +87,7 @@ function askScreen(st) {
   const chips = !st.kb && !st.q && st.chips ? `<div style="display:flex;gap:8px;padding:0 16px 8px;overflow:hidden">${st.chips.map((c, i) => `<div style="flex:none;height:38px;padding:0 14px;border-radius:99px;background:${st.chipHot === i ? '#F1E3DC' : 'var(--cream)'};border:1px solid var(--line);display:flex;align-items:center;font:500 14px 'DM Sans'">${c}</div>`).join('')}</div>` : '';
   const caret = st.kb ? `<i style="display:inline-block;width:2px;height:19px;background:var(--p);vertical-align:-3px;margin-left:1px;opacity:${Math.floor(st.th * 2.5) % 2 ? 0 : 1}"></i>` : '';
   const inputTxt = st.input ? `<span style="color:var(--ink)">${st.input}</span>${caret}` : (st.kb ? caret : '<span style="color:#A9A49C">Ask about your skin or products</span>');
-  return `${sbar(false)}<div class="nav" style="height:54px;position:relative"><span style="position:absolute;left:0;right:0;text-align:center">Ask Skintel</span><span style="margin-left:auto;display:flex;align-items:center;gap:30px;height:44px;padding:0 16px;border-radius:99px;background:rgba(255,254,250,.6);border:1px solid rgba(26,24,20,.08);font-size:21px">${ic('clock','color:var(--p);stroke-width:2')}${ic('pen','color:#B5AFA7')}</span></div>
+  return `${sbar(false)}<div class="nav" style="height:54px;position:relative"><span style="position:absolute;left:0;right:0;text-align:center">Ask Skinstel</span><span style="margin-left:auto;display:flex;align-items:center;gap:30px;height:44px;padding:0 16px;border-radius:99px;background:rgba(255,254,250,.6);border:1px solid rgba(26,24,20,.08);font-size:21px">${ic('clock','color:var(--p);stroke-width:2')}${ic('pen','color:#B5AFA7')}</span></div>
   <div class="page" style="padding-top:14px">${empty}${msgs}${ans}</div>
   <div style="position:absolute;left:0;right:0;bottom:${bottom}px;z-index:20">${mention}${chips}
     <div style="margin:0 16px 8px;border-radius:26px;background:rgba(255,254,250,.96);border:1px solid var(--line);box-shadow:0 8px 24px rgba(26,24,20,.06)">
@@ -97,7 +97,7 @@ function askScreen(st) {
         <div style="display:flex;background:var(--chip);border-radius:99px;padding:3px"><div style="height:30px;padding:0 12px;border-radius:99px;background:var(--p);color:var(--cream);display:flex;align-items:center;gap:5px;font:600 14px 'DM Sans'">${ic('moon','font-size:11px;fill:currentColor')}Luna</div><div style="height:30px;padding:0 12px;display:flex;align-items:center;gap:5px;font:600 14px 'DM Sans';color:var(--mu)">${ic('sun','font-size:11px')}Sol</div></div>
         <div style="flex:1"></div><div style="width:36px;height:36px;border-radius:50%;background:${st.input ? 'var(--p)' : 'rgba(107,103,96,.35)'};color:var(--cream);display:flex;align-items:center;justify-content:center;font-size:16px">${ic('up','stroke-width:2.8')}</div>
       </div></div>
-    ${st.kb ? '' : `<div style="text-align:center;font-size:12px;color:var(--mu);margin-top:2px">Answers can be wrong. Skintel isn't a doctor.</div>`}
+    ${st.kb ? '' : `<div style="text-align:center;font-size:12px;color:var(--mu);margin-top:2px">Answers can be wrong. Skinstel isn't a doctor.</div>`}
   </div>${st.kb ? keyboard(st.hi) : tabbar('ask')}`;
 }
 
@@ -147,7 +147,7 @@ function verdictScreen(st) {
         <div style="position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center"><span class="serif" style="font-size:44px;line-height:1">${num}</span><span style="font:400 10px 'JetBrains Mono';letter-spacing:1.4px;color:var(--mu)">MATCH</span></div></div>
       <div style="flex:1">${[['Good for you','9','var(--gfg)'],['Watch','1','var(--cfg)'],['Red flags','0','var(--ink)']].map((x, i) => `<div style="display:flex;justify-content:space-between;padding:9px 0;${i < 2 ? 'border-bottom:1px solid var(--line)' : ''}"><span style="font-size:14px;color:var(--mu)">${x[0]}</span><span style="font:600 16px 'DM Sans';color:${x[2]}">${x[1]}</span></div>`).join('')}</div>
     </div>
-    <div style="font-size:17px;line-height:1.4;margin-top:16px">A gentle foaming cleanser for oily and breakout-prone skin. Nothing here should clog pores.</div>
+    <div style="font-size:17px;line-height:1.4;margin-top:16px">A gentle foaming cleanser with ceramides and niacinamide. One ingredient to watch if your skin runs dry.</div>
   </div>
   <div class="serif" style="font-size:24px;margin-top:22px">Why this verdict</div>
   ${[['var(--cfg)','Sodium Lauroyl Sarcosinate','can feel tight on very dry skin.'],['var(--gfg)','Niacinamide','calms redness and helps balance oil.'],['var(--gfg)','Ceramide NP','supports your skin barrier.']].map(x => `<div class="card" style="margin-top:12px;display:flex;gap:12px"><i style="width:8px;height:8px;border-radius:50%;background:${x[0]};margin-top:8px;flex:none"></i><div style="font-size:16px;line-height:1.35"><b style="font-weight:600">${x[1]}</b> — ${x[2]}</div></div>`).join('')}
