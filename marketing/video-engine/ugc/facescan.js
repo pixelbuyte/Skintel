@@ -19,8 +19,11 @@
   // o: { mode:'result'|'scan', levels:{zone:0..2 (fractional ok)}, labels:[{zone,title,value,side,y,hot}], zoom, yaw, t,
   //      palette:'dark'|'light' (FaceMeshView.Palette) }
   function drawFace(ctx, cw, ch, o) {
-    const light = o.palette === 'light';
-    const LOW = light ? SH.lightLow : SH.darkLow, HIGH = light ? SH.lightHigh : SH.darkHigh, EDGE = light ? CLAY : BG;
+    // 'photo' (skin tones) and 'paper' (cream) are the Face Scan Pro v2 map modes; both draw like 'light'.
+    const pal = o.palette, light = pal === 'light' || pal === 'photo' || pal === 'paper';
+    const LOW = pal === 'photo' ? [192,148,122] : pal === 'paper' ? [222,212,198] : light ? SH.lightLow : SH.darkLow;
+    const HIGH = pal === 'photo' ? [247,225,205] : pal === 'paper' ? [255,254,250] : light ? SH.lightHigh : SH.darkHigh;
+    const EDGE = pal === 'photo' || pal === 'paper' ? INK : light ? CLAY : BG;
     const t = o.t || 0, swing = o.mode === 'scan' ? .1 : .4;
     const yaw = (o.yaw || 0) + Math.sin(t * .5) * swing, pitch = -.1 + Math.sin(t * .37) * .04;
     const cyw = Math.cos(yaw), syw = Math.sin(yaw), cp = Math.cos(pitch), sp = Math.sin(pitch);
@@ -51,7 +54,7 @@
         if (d < .12) { const f = 1 - d / .12; rgb = lerp(rgb, light ? SH.warmHigh : SH.scan, f * .55); edge += f * .35; } }
       ctx.beginPath(); ctx.moveTo(X[a], Y[a]); ctx.lineTo(X[b], Y[b]); ctx.lineTo(X[c], Y[c]); ctx.closePath();
       ctx.fillStyle = `rgb(${rgb[0]|0},${rgb[1]|0},${rgb[2]|0})`; ctx.fill();
-      ctx.strokeStyle = `rgba(${EDGE},${light ? edge * 1.4 : edge})`; ctx.stroke();
+      ctx.strokeStyle = `rgba(${EDGE},${EDGE === INK ? .07 + heat * .1 : light ? edge * 1.4 : edge})`; ctx.stroke();
     }
     if (o.mode !== 'scan') {
       ctx.save(); ctx.globalCompositeOperation = light ? 'source-over' : 'lighter';
@@ -81,6 +84,7 @@
     }
   }
   // Canvases are emitted as <canvas data-face='json'>; paintFaces() draws them after each innerHTML.
+  window.drawFace = drawFace;
   window.paintFaces = (root) => root.querySelectorAll('canvas[data-face]').forEach(cv => {
     const o = JSON.parse(cv.dataset.face), dpr = 2, w = +cv.getAttribute('width'), h = +cv.getAttribute('height');
     cv.width = w * dpr; cv.height = h * dpr; cv.style.width = w + 'px'; cv.style.height = h + 'px';

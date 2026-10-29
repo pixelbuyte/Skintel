@@ -3,6 +3,7 @@
 <script src="ugc/app.js"></script>
 <script src="ugc/face_mesh.js"></script>
 <script src="ugc/facescan.js"></script>
+<script src="ugc/facedemo.js"></script>
 <style>
 *{margin:0;box-sizing:border-box}
 html,body{width:1080px;height:1920px;overflow:hidden;background:#000}
@@ -219,6 +220,12 @@ const V = {
       }
       return { layers: L, touch };
     } },
+  // 10. Introducing Face Scan (Face Scan Pro v2 design): sweep -> goals while it reads -> map (Photo/3D)
+  //     -> zone by zone -> goals -> Ask about the scan.
+  facedemo: { hook: { img: 'photos/h1-hook.jpg', cap: 'Skinstel can read your skin now 😳 introducing Face Scan', top: 1300, dur: 2.6 },
+    end: { t: 'See your skin, <em>zone by zone.</em>', p: 'Your first scan is free' },
+    scene: 'green', dur: 19.6, caps: [[0, 3.8, 'a 15-second head turn 📱'], [3.8, 6.9, 'pick what you want to fix while it reads ✨'], [6.9, 10.6, 'your photo + a 3D map of your skin 👀'], [10.6, 14.2, 'every zone in plain words, with what to try'], [14.2, 19.6, 'then ask Skinstel about YOUR scan 💬']],
+    pov: (u) => window.FACEDEMO_POV(u) },
   // 7. Mascot hook -> Ask (tap a suggestion) about tonight's order
   mascot: { hook: { seq: 'mascot/wave', frames: 151, fps: 30, cap: 'your breakouts are trying to tell you something 👀', top: 200, dur: 3.0 }, endMascot: true,
     scene: 'green', dur: 9.0, caps: [[0, 2.2, 'ask Skinstel anything about YOUR shelf 💬'], [2.2, 9.0, 'it builds tonight\'s order from what you own 🌙']],
@@ -250,7 +257,7 @@ if (sc.night) stage.insertAdjacentHTML('beforeend', `<div style="position:absolu
 $('rig').style.transformOrigin = `${sc.origin[0]}px ${sc.origin[1]}px`;
 $('pcap').style.top = sc.cap + 'px';
 // end
-$('end').innerHTML = `${v.endMascot ? '<img class="m" src="mascot/drop.png">' : '<img class="icon" src="icon.png">'}<div class="w">Skinstel<b>.</b></div><div class="t">Find the ingredient <em>breaking you out.</em></div><div class="p">Free on the App Store</div>`;
+$('end').innerHTML = `${v.endMascot ? '<img class="m" src="mascot/drop.png">' : '<img class="icon" src="icon.png">'}<div class="w">Skinstel<b>.</b></div><div class="t">${(v.end && v.end.t) || 'Find the ingredient <em>breaking you out.</em>'}</div><div class="p">${(v.end && v.end.p) || 'Free on the App Store'}</div>`;
 
 function popCap(el, dt) { el.style.opacity = clamp(dt / .12); el.style.transform = `scale(${.85 + .15 * spring((dt - .05) / .45)})`; }
 let lastCap = null;

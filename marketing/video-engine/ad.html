@@ -2,6 +2,9 @@
 <link href="https://fonts.googleapis.com/css2?family=TikTok+Sans:wght@600;700;800&family=Instrument+Serif:ital@0;1&family=DM+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
 <script src="ugc/app.js"></script>
 <script src="ugc/vo.js"></script>
+<script src="ugc/face_mesh.js"></script>
+<script src="ugc/facescan.js"></script>
+<script src="ugc/facedemo.js"></script>
 <style>
 *{margin:0;box-sizing:border-box}
 html,body{width:1080px;height:1920px;overflow:hidden;background:#000}
@@ -57,6 +60,7 @@ async function paint(el, r, extra = '') {
     + (r.flash ? `<div style="position:absolute;inset:0;background:#fff;opacity:${r.flash};z-index:70"></div>` : '')
     + (r.touch ? `<div class="scr" style="background:none;z-index:90"><div class="touch" style="left:${r.touch[0]}px;top:${r.touch[1]}px"></div></div>` : '') + extra;
   await Promise.all([...el.querySelectorAll('img')].map(i => i.decode().catch(() => {})));
+  window.paintFaces && window.paintFaces(el);
 }
 const words = (txt, k, cls = '') => txt.split(' ').map((w, i) => { const q = spring(k * 1.0 - i * .09); return `<span class="kw ${cls}" style="opacity:${clamp((k - i * .09) * 5)};transform:translateY(${(1 - q) * 60}px);filter:blur(${(1 - clamp((k - i * .09) * 4)) * 8}px)">${w}</span>`; }).join(' ');
 
@@ -123,6 +127,17 @@ function endcard(o) { return { dur: o.dur, in: o.in, mk(el) { el.innerHTML = `<d
 const tagPov = V.tag.pov, mentionPov = V.mention.pov, morningPov = V.morning.pov;
 const scanPov = (u) => { const L = []; scanFlow(u, L); return { layers: L }; };
 const ADS = {
+  // Introducing Face Scan: kinetic type + the floating phone running the Face Scan Pro v2 screens. No POV, no people.
+  facescan: [
+    type({ dur: 2.3, in: 'flash', bg: 'radial-gradient(90% 60% at 20% 15%,#FBF3EA,#F1E6D6 55%,#E7D6C1)', color: '#1A1814', accent: '#A35848', l1: 'Introducing', l2: 'Face Scan.', l3: 'New in Skinstel', s1: 120, s2: 150 }),
+    phone({ dur: 3.6, in: 'zoom', pov: (u) => window.FACEDEMO_POV(u), from: 0, heads: [[0, 'A 15-second', 'head turn.']] }),
+    phone({ dur: 2.9, in: 'whip', pov: (u) => window.FACEDEMO_POV(u), from: 4.2, ry: [10, 2], heads: [[0, 'Say what you', 'want to improve.']] }),
+    phone({ dur: 3.6, in: 'whip', pov: (u) => window.FACEDEMO_POV(u), from: 7.3, heads: [[0, 'Your photo and', 'a 3D map, in one view.', 84]] }),
+    phone({ dur: 3.4, in: 'whip', pov: (u) => window.FACEDEMO_POV(u), from: 10.6, ry: [10, 2], heads: [[0, 'Every zone,', 'in plain words.']] }),
+    phone({ dur: 4.4, in: 'whip', pov: (u) => window.FACEDEMO_POV(u), from: 14.9, heads: [[0, 'Then ask Skinstel', 'about your scan.', 88]] }),
+    type({ dur: 2.5, in: 'flash', bg: '#1A1814', color: '#F4EDE0', accent: '#E3A08E', l1: 'Follow it for', l2: '7 days.', l3: 'Your first scan is free.', s1: 120, s2: 150 }),
+    endcard({ dur: 2.8, in: 'zoom', line: 'See your skin, <em>zone by zone.</em>' }),
+  ],
   // A — proven line "Not every breakout is the same" (12.5M + 5.5M on IG)
   same: [
     para({ img: 'photos/h1-hook.jpg', cut: 'cut/h1.png', dur: 2.3, z: [1.03, 1.13], dx: 10, cap: 'Not every breakout is the same.', top: 1340 }),
@@ -147,9 +162,9 @@ const ADS = {
     endcard({ dur: 2.7, in: 'flash', line: 'Your skin\'s been telling you. <em>Skinstel translates.</em>' }),
   ],
 };
-const VOMAP = { same: ['a1','a2','a3','a4','a5','a6','a7','a8','a9'], story: ['b1','b2','b3','b4','b5','b6','b7','b8'] };
+const VOMAP = { facescan: [], same: ['a1','a2','a3','a4','a5','a6','a7','a8','a9'], story: ['b1','b2','b3','b4','b5','b6','b7','b8'] };
 const P = new URLSearchParams(location.search); const AD = P.get('ad') || 'same'; const segs = ADS[AD];
-segs.forEach((s, i) => { s.vo = VOMAP[AD][i]; const d = (window.VO || {})[s.vo]; if (d) s.dur = Math.max(s.dur, d + (d < 1.4 ? .2 : .38)); });
+segs.forEach((s, i) => { s.vo = (VOMAP[AD] || [])[i]; const d = (window.VO || {})[s.vo]; if (d) s.dur = Math.max(s.dur, d + (d < 1.4 ? .2 : .38)); });
 let acc = 0; segs.forEach(s => { s.a = acc; acc += s.dur; s.b = acc; }); window.DUR = acc;
 const stage = $('stage');
 segs.forEach(s => { s.el = document.createElement('div'); s.el.className = 'seg'; s.mk(s.el); stage.appendChild(s.el); });
