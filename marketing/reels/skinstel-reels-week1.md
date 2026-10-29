@@ -1,6 +1,9 @@
 # Skinstel reels — week 1 (14 reels, 2/day)
 
-Format (per the Kiku system, by structure only — no reused footage):
+Format (per the Kiku system, by structure only — no reused footage). Each reel names the reference clip it
+recreates; film that shot (same framing, expression, ~3 s) and render it in with `reels.html?r=<n>&clip=<your.mp4>`.
+Branding: the stressed word in cream with a terracotta outline, the teardrop mascot sticker top-right.
+
 0:00–0:03 reaction close-up, no talking, hook text on screen → HARD CUT at ~0:03 → real Skinstel screen
 recording with its own overlay text → end ~0:11–0:13. Hook text: white, bold, black outline, centred over
 the upper third (the reference reels sit it on or just above the face), one emoji, ≤ 14 words.
@@ -32,6 +35,7 @@ the upper third (the reference reels sit it on or just above the face), one emoj
 ## DAY 1
 
 ### Reel 1 — REGRET
+**Reference clip:** `01_4486likes_molly_DcP2lsVvi20_hook.mp4` (timing, text position and performance to recreate; not used as footage)
 **Hook:** 4 years of layering random serums in chaos and I just find this now... like wtf 😭
 **Reaction:** hands over mouth, eyes wide then squeezed shut, slight head shake. Selfie angle, phone at chin
 height, bathroom mirror light. Hair in a claw clip, skincare headband on.
@@ -45,6 +49,7 @@ I'll send you the link 💕 #skincare #skincareroutine #retinol #skintok #skinca
 **Sound:** [SOUND: record scratch @ 0:03]
 
 ### Reel 2 — FRIEND POV QUESTION
+**Reference clip:** `13_354likes_molly_Db0Q9DjEgyt_hook.mp4` (timing, text position and performance to recreate; not used as footage)
 **Hook:** "how do you know which of your products clash??" 🤨
 **Reaction:** mid-routine, patting serum into cheeks, glances at camera with a smug little smile and a
 shrug. Mirror shot, phone propped on the counter. Robe or oversized tee.
@@ -60,6 +65,7 @@ shrug. Mirror shot, phone propped on the counter. Robe or oversized tee.
 ## DAY 2
 
 ### Reel 3 — COMPETITOR CALL OUT
+**Reference clip:** `18_204likes_lucy_DbdoxzRTTC4_hook.mp4` (timing, text position and performance to recreate; not used as footage)
 **Hook:** I can't believe people STILL google "can I mix these" at 11pm 😭
 **Reaction:** skeptical side-eye into the camera, slow blink, then a pained "no" head tilt. In bed, lamp
 light, holding two serum bottles up next to her face.
@@ -73,6 +79,7 @@ light, holding two serum bottles up next to her face.
 **Sound:** [SOUND: keyboard taps @ 0:03]
 
 ### Reel 4 — WISH SOMEONE TOLD ME
+**Reference clip:** `16_257likes_lucy_DcF5dB1xMIV_hook.mp4` (timing, text position and performance to recreate; not used as footage)
 **Hook:** i WISH someone told me about this skincare app earlier 🥲
 **Reaction:** chin resting on fist, pouty, eyes up to the ceiling, sighs. Sitting at a vanity, shelf of
 products blurred behind her.
@@ -88,6 +95,7 @@ products blurred behind her.
 ## DAY 3
 
 ### Reel 5 — REGRET
+**Reference clip:** `02_1470likes_molly_DdMVeUlDIIl_hook.mp4` (timing, text position and performance to recreate; not used as footage)
 **Hook:** 3 years of buying every serum the internet told me to and I just find this now 😭
 **Reaction:** face buried in hands, then peeks out between fingers. Close selfie, holding a full basket or
 bag of products in frame.
@@ -100,6 +108,7 @@ link 💕 #skincare #skincaretips #skintok #skincareaddict
 **Sound:** [SOUND: ding @ 0:00]
 
 ### Reel 6 — COMPETITOR CALL OUT
+**Reference clip:** `14_316likes_molly_DdXz-1PHP4P_hook.mp4` (timing, text position and performance to recreate; not used as footage)
 **Hook:** I can't believe people STILL put 5 actives on their face without checking 😭
 **Reaction:** mouth open in disbelief, hand flat on chest. Selfie angle, towel turban.
 **Demo (KIT A):**
@@ -114,6 +123,7 @@ link 💕 #skincare #skincaretips #skintok #skincareaddict
 ## DAY 4
 
 ### Reel 7 — FRIEND POV QUESTION
+**Reference clip:** `12_372likes_molly_Dc_TDsOjU0D_hook.mp4` (timing, text position and performance to recreate; not used as footage)
 **Hook:** "wait how did you know not to use those two on the same night??" 😳
 **Reaction:** caught off-guard, pauses mid-cleanser, then a slow knowing grin. Mirror shot, sink running.
 **Demo (KIT A):**
@@ -126,6 +136,7 @@ link 💕 #skincare #skincaretips #skintok #skincareaddict
 **Sound:** [SOUND: error buzz @ 0:06]
 
 ### Reel 8 — WDYM
+**Reference clip:** `17_233likes_molly_DdsoE-rjRPw_hook.mp4` (timing, text position and performance to recreate; not used as footage)
 **Hook:** wdym i've been doing skincare for 6 years and i'm just finding this now.. like wtf 😭
 **Reaction:** squinting, face scrunched, slowly lowers the phone toward the camera like "explain". Close
 selfie, under-eye patches on.
@@ -140,6 +151,7 @@ selfie, under-eye patches on.
 ## DAY 5
 
 ### Reel 9 — REGRET
+**Reference clip:** `24_158likes_molly_Dbstx0xv98v_hook.mp4` (timing, text position and performance to recreate; not used as footage)
 **Hook:** 5 years of googling which serums I can mix and I just find this now... 😭
 **Reaction:** laughing-crying, hand over eyes, rocks back. In bed, phone held above.
 **Demo (KIT C):**
@@ -152,6 +164,7 @@ selfie, under-eye patches on.
 **Sound:** [SOUND: soft "pop" @ 0:03]
 
 ### Reel 10 — WISH SOMEONE TOLD ME
+**Reference clip:** `21_167likes_lucy_DdwJ13BDUNb_hook.mp4` (timing, text position and performance to recreate; not used as footage)
 **Hook:** i WISH someone told me to check my products BEFORE layering them 🥲
 **Reaction:** hand over mouth, eyes glassy, tiny nod. Close selfie, holding a serum dropper.
 **Demo (KIT B → KIT A):**
@@ -166,6 +179,7 @@ selfie, under-eye patches on.
 ## DAY 6
 
 ### Reel 11 — COMPETITOR CALL OUT
+**Reference clip:** `15_263likes_lucy_DbLLMiFzf6U_hook.mp4` (timing, text position and performance to recreate; not used as footage)
 **Hook:** I can't believe people STILL only read the front of the bottle 😭
 **Reaction:** holds a bottle up to the camera front-first, raises one eyebrow, turns it to the back.
 Close selfie, daylight by a window.
@@ -178,6 +192,7 @@ Close selfie, daylight by a window.
 **Sound:** [SOUND: click @ 0:03]
 
 ### Reel 12 — JUST FOUND THIS
+**Reference clip:** `11_417likes_molly_DdRFvdGgBIy_hook.mp4` (timing, text position and performance to recreate; not used as footage)
 **Hook:** i can't believe i JUST found this app for checking my skincare 😭
 **Reaction:** both hands over mouth, eyes wide, slow lean toward the camera. Selfie, skincare headband.
 **Demo (KIT A):**
@@ -192,6 +207,7 @@ Close selfie, daylight by a window.
 ## DAY 7
 
 ### Reel 13 — FRIEND POV QUESTION
+**Reference clip:** `23_159likes_molly_DeCKKPkH1Ph_hook.mp4` (timing, text position and performance to recreate; not used as footage)
 **Hook:** "how do you always know what order your products go in???" 🤨
 **Reaction:** mid-action, applying moisturiser, mouths "what?" then a confident smirk. Mirror shot.
 **Demo (KIT A):**
@@ -204,6 +220,7 @@ Close selfie, daylight by a window.
 **Sound:** [SOUND: soft "ding" @ 0:03]
 
 ### Reel 14 — KISS THE MAKER
+**Reference clip:** `20_174likes_lucy_DaIBvXNTb4N_hook.mp4` (timing, text position and performance to recreate; not used as footage)
 **Hook:** i wish i could KISS the person who made this app 😭💕
 **Reaction:** blows a kiss at the camera, then hugs her phone to her chest. Selfie, cosy hoodie.
 **Demo (KIT A):**

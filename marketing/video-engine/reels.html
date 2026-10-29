@@ -12,14 +12,19 @@ const ease = x => { x = clamp(x); return 1 - Math.pow(1 - x, 3); };
 html,body{width:1080px;height:1920px;overflow:hidden;background:#000}
 .seg{position:absolute;inset:0;overflow:hidden;display:none}
 #himg{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
-/* Kiku-style text: big white bold with a black outline, readable muted at a glance */
-.ot{position:absolute;left:70px;right:70px;text-align:center;font:800 64px/1.18 'TikTok Sans',sans-serif;color:#fff;
-  -webkit-text-stroke:7px #000;paint-order:stroke fill;z-index:20;letter-spacing:-.3px}
-#dot{font-size:58px}
+/* Reference style (TikTok native text): white, bold, dark outline, readable muted at a glance.
+   Skinstel twist: the stressed word in cream with a terracotta outline. */
+.ot{position:absolute;left:80px;right:80px;text-align:center;font:700 58px/1.22 'TikTok Sans',sans-serif;color:#fff;
+  -webkit-text-stroke:6px #1A1814;paint-order:stroke fill;z-index:20;letter-spacing:-.2px}
+.ot em{font-style:normal;color:#F4EDE0;-webkit-text-stroke:7px #A35848}
+#dot{font-size:56px}
+/* Skinstel sticker: the teardrop mascot, top-right, like a creator's sticker */
+.stk{position:absolute;right:46px;top:190px;width:150px;height:150px;z-index:25;filter:drop-shadow(0 6px 12px rgba(26,24,20,.25))}
 #dscr{position:absolute;left:0;top:0;width:393px;height:852px;transform-origin:0 0}
 </style></head><body>
-<div class="seg" id="hook"><img id="himg"><div class="ot" id="htxt"></div></div>
+<div class="seg" id="hook"><img id="himg"><video id="hvid" muted playsinline style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;display:none"></video><div class="ot" id="htxt"></div></div>
 <div class="seg" id="demo" style="background:#F4EDE0"><div id="dscr"></div><div class="ot" id="dot"></div></div>
+<img class="stk" id="stk" src="mascot/drop.png">
 <script>
 document.head.insertAdjacentHTML('beforeend', `<style>${APP_CSS}</style>`);
 const $ = id => document.getElementById(id);
@@ -28,14 +33,27 @@ const P = new URLSearchParams(location.search); const R = REELS.find(r => r.n ==
 const A = ASSET[R.a], K = KITS[R.kit], BEATS = BEAT_AT[R.kit];
 window.DUR = HOOK + K.dur;
 window.EVENTS = { dur: window.DUR, amb: .12, fx: R.cues.map(([n, t]) => [t, n, .8]) };
-$('htxt').textContent = R.hook; $('htxt').style.top = A.top + 'px';
-const himg = $('himg'); if (A.img) himg.src = A.img;
+// Stress the first ALL-CAPS word (STILL, WISH, JUST, KISS, YOUR...) in the Skinstel accent.
+const esc = t => t.replace(/&/g, '&amp;').replace(/</g, '&lt;');
+const accent = t => { let done = false; return esc(t).replace(/\b([A-Z]{3,})\b/g, (m) => done ? m : (done = true, `<em>${m}</em>`)); };
+$('htxt').innerHTML = accent(R.hook); $('htxt').style.top = (R.top || A.top) + 'px';
+// ?clip=path: a filmed recreation of the reference clip replaces the stock reaction (no text burned in).
+const CLIP = P.get('clip');
+const himg = $('himg'), hvid = $('hvid');
+if (CLIP) { hvid.src = CLIP; hvid.style.display = 'block'; himg.style.display = 'none'; }
+else if (A.img) himg.src = A.img;
 himg.style.objectPosition = `${A.fx}% ${A.fy}%`;
 const S = 1080 / 393;
 window.render = async (t) => {
   const inHook = t < HOOK;
   $('hook').style.display = inHook ? 'block' : 'none'; $('demo').style.display = inHook ? 'none' : 'block';
-  if (inHook) {
+  const st = $('stk'); st.style.transform = `rotate(${-8 + Math.sin(t * 2.2) * 3}deg) translateY(${Math.sin(t * 2.2) * 6}px) scale(${t < .35 ? .6 + .4 * ease(t / .35) : 1})`;
+  st.style.top = inHook ? '190px' : '1420px'; st.style.width = st.style.height = inHook ? '150px' : '120px';
+  if (inHook && CLIP) {
+    if (hvid.readyState < 1) await new Promise(r => hvid.addEventListener('loadedmetadata', r, { once: true }));
+    hvid.currentTime = Math.min(t, (hvid.duration || HOOK) - .02); await new Promise(r => hvid.addEventListener('seeked', r, { once: true }));
+    $('htxt').style.opacity = clamp(t / .12);
+  } else if (inHook) {
     if (A.seq) { const f = Math.min(A.frames, (A.from || 0) + Math.floor(t * 30) + 1); const src = `${A.seq}/f${String(f).padStart(4, '0')}.jpg`;
       if (!himg.src.endsWith(src)) { himg.src = src; await himg.decode().catch(() => {}); } }
     // hand-held selfie feel: slow push-in + small drift
@@ -52,7 +70,7 @@ window.render = async (t) => {
       + (r.touch ? `<div class="scr" style="background:none;z-index:90"><div class="touch" style="left:${r.touch[0]}px;top:${r.touch[1] - (r.scroll || 0)}px"></div></div>` : '');
     await Promise.all([...sc.querySelectorAll('img')].map(i => i.decode().catch(() => {})));
     let bi = 0; BEATS.forEach((b, i) => { if (u >= b) bi = i; });
-    const o = $('dot'); o.style.top = (R.kit === 'C' ? 1300 : 1640) + 'px'; o.textContent = R.beats[Math.min(bi, R.beats.length - 1)];
+    const o = $('dot'); o.style.top = (R.kit === 'C' ? 1300 : 1640) + 'px'; o.innerHTML = accent(R.beats[Math.min(bi, R.beats.length - 1)]);
     const d = u - BEATS[bi]; o.style.opacity = clamp(d / .1); o.style.transform = `scale(${.9 + .1 * ease(d / .25)})`;
   }
 };
