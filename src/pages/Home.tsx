@@ -73,7 +73,29 @@ function ScanDemo() {
   );
 }
 
-type Plan = 'prepay' | 'monthly';
+type Plan = 'prepay' | 'monthly' | 'facescan';
+
+/** Must match FACE_SCAN_DEADLINE in api/stripe-checkout.ts (Nov 14, 2026, 11:59 pm Pacific). */
+const FACE_SCAN_DEADLINE = Date.parse('2026-11-15T07:59:59Z');
+
+async function startCheckout(email: string, plan: Plan) {
+  const ref = readRef();
+  const res = await fetch('/api/stripe-checkout?offer=launch', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ email, plan, ref }),
+  });
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok || !data?.url) {
+    throw new Error(
+      data?.error === 'Invalid email' ? 'That email doesn’t look right.'
+        : data?.error === 'Offer ended' ? 'Early access has closed.'
+          : 'Checkout isn’t available right now. Try again in a minute.',
+    );
+  }
+  track('launch_checkout', { plan, ref: ref ?? 'direct' });
+  window.location.href = data.url;
+}
 
 function OfferCard() {
   const [plan, setPlan] = useState<Plan>('prepay');
@@ -88,18 +110,7 @@ function OfferCard() {
     setBusy(true);
     setErr(null);
     try {
-      const ref = readRef();
-      const res = await fetch('/api/stripe-checkout?offer=launch', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email: clean, plan, ref }),
-      });
-      const data = await res.json().catch(() => ({}));
-      if (!res.ok || !data?.url) {
-        throw new Error(data?.error === 'Invalid email' ? 'That email doesn’t look right.' : 'Checkout isn’t available right now. Try again in a minute.');
-      }
-      track('launch_checkout', { plan, ref: ref ?? 'direct' });
-      window.location.href = data.url;
+      await startCheckout(clean, plan);
     } catch (e) {
       setErr(e instanceof Error ? e.message : 'Something went wrong. Try again.');
       setBusy(false);
@@ -175,6 +186,148 @@ function OfferCard() {
   );
 }
 
+function useCountdown(deadline: number) {
+  const [now, setNow] = useState(() => Date.now());
+  useEffect(() => {
+    const id = window.setInterval(() => setNow(Date.now()), 1000);
+    return () => window.clearInterval(id);
+  }, []);
+  const left = Math.max(0, deadline - now);
+  return {
+    ended: left === 0,
+    parts: [
+      ['DAYS', Math.floor(left / 86_400_000)],
+      ['HRS', Math.floor(left / 3_600_000) % 24],
+      ['MIN', Math.floor(left / 60_000) % 60],
+      ['SEC', Math.floor(left / 1000) % 60],
+    ] as const,
+  };
+}
+
+/** A face under a scan beam, zone dots lighting up, then the locked Day 1 card. CSS only. */
+function FaceScanDemo() {
+  const zones = [
+    { name: 'Forehead', x: 50, y: 24 },
+    { name: 'Nose', x: 50, y: 50 },
+    { name: 'Left cheek', x: 30, y: 58 },
+    { name: 'Right cheek', x: 70, y: 58 },
+    { name: 'Chin', x: 50, y: 80 },
+  ];
+  return (
+    <div className="relative mx-auto w-full max-w-[300px] overflow-hidden rounded-[28px] border border-[#3A332B] bg-[#1A1814] p-5 text-[#F4EDE0]">
+      <style>{`
+        @keyframes fs-beam{0%,100%{transform:translateY(0)}50%{transform:translateY(196px)}}
+        @keyframes fs-dot{0%,30%{opacity:.15;transform:translate(-50%,-50%) scale(.6)}45%,100%{opacity:1;transform:translate(-50%,-50%) scale(1)}}
+        .fs-beam{animation:fs-beam 3s cubic-bezier(.45,0,.55,1) infinite}
+        .fs-dot{animation:fs-dot 3s cubic-bezier(.32,.72,0,1) infinite alternate}
+        @media (prefers-reduced-motion:reduce){.fs-beam{animation:none;opacity:0}.fs-dot{animation:none}}
+      `}</style>
+      <p className="font-mono text-[10px] tracking-[0.18em] text-[#EAD8C8]">YOUR SKIN MAP · DAY 1 OF 7</p>
+      <div className="relative mx-auto mt-3 h-[200px] w-[150px]">
+        <svg viewBox="0 0 150 200" className="absolute inset-0 h-full w-full" aria-hidden>
+          <ellipse cx="75" cy="100" rx="62" ry="88" fill="none" stroke="#F4EDE0" strokeOpacity=".28" strokeWidth="1.5" />
+          <ellipse cx="75" cy="100" rx="44" ry="70" fill="none" stroke="#F4EDE0" strokeOpacity=".1" />
+          <path d="M52 78q8-5 16 0M82 78q8-5 16 0M75 92v20q-5 4 0 6M62 140q13 8 26 0" fill="none" stroke="#F4EDE0" strokeOpacity=".35" strokeWidth="1.5" strokeLinecap="round" />
+        </svg>
+        {zones.map((z, i) => (
+          <span
+            key={z.name}
+            className="fs-dot absolute h-3 w-3 rounded-full bg-[#A35848] shadow-[0_0_12px_4px_rgba(163,88,72,0.55)]"
+            style={{ left: `${z.x}%`, top: `${z.y}%`, animationDelay: `${i * 0.25}s` }}
+          />
+        ))}
+        <span className="fs-beam absolute -left-3 -right-3 top-0 h-[3px] rounded-full bg-[#A35848] shadow-[0_0_14px_3px_rgba(163,88,72,0.5)]" />
+      </div>
+      <div className="relative mt-4 overflow-hidden rounded-2xl bg-[#FFFEFA] px-4 py-3 text-ink">
+        <div className="space-y-2 blur-[5px]" aria-hidden>
+          {['Forehead · Shine', 'Nose · Texture', 'Cheeks · Redness'].map((r) => (
+            <div key={r} className="flex justify-between text-[13px]"><span>{r}</span><span>Some</span></div>
+          ))}
+        </div>
+        <div className="absolute inset-0 flex flex-col items-center justify-center bg-[#FFFEFA]/40">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="#A35848" aria-hidden><path d="M17 10V7a5 5 0 0 0-10 0v3H5v12h14V10h-2Zm-8 0V7a3 3 0 0 1 6 0v3H9Z" /></svg>
+          <p className="mt-1 text-[14px] font-semibold">6 days left to unlock</p>
+          <p className="text-[11px] text-[#6B6760]">Scan daily to build your full report</p>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function FaceScanOffer() {
+  const { ended, parts } = useCountdown(FACE_SCAN_DEADLINE);
+  const [email, setEmail] = useState('');
+  const [busy, setBusy] = useState(false);
+  const [err, setErr] = useState<string | null>(null);
+
+  async function submit(e: FormEvent) {
+    e.preventDefault();
+    const clean = email.trim();
+    if (!clean) return;
+    setBusy(true);
+    setErr(null);
+    try {
+      await startCheckout(clean, 'facescan');
+    } catch (e) {
+      setErr(e instanceof Error ? e.message : 'Something went wrong. Try again.');
+      setBusy(false);
+    }
+  }
+
+  return (
+    <div className="mx-auto w-full max-w-[460px] rounded-[26px] border border-[#E6DED2] bg-[#FBF7F0] p-5 shadow-[0_20px_50px_rgba(70,42,28,0.08)]">
+      <div className="flex flex-wrap items-center gap-2">
+        <span className="rounded-full bg-[#A35848] px-2.5 py-1 font-mono text-[10px] tracking-[0.14em] text-[#FFFEFA]">LIMITED-TIME DEAL</span>
+        <span className="rounded-full border border-[#A35848] px-2.5 py-1 font-mono text-[10px] tracking-[0.14em] text-[#A35848]">LIMITED ACCESS</span>
+      </div>
+      {ended ? (
+        <p className="mt-4 text-[16px] font-semibold">Early access has closed. Face Scan comes to everyone soon.</p>
+      ) : (
+        <>
+          <p className="mt-4 text-[13px] font-semibold text-[#6B6760]">Early access closes in</p>
+          <div className="mt-2 grid grid-cols-4 gap-2" role="timer" aria-live="off">
+            {parts.map(([label, n]) => (
+              <div key={label} className="rounded-[14px] bg-[#1A1814] py-2.5 text-center text-[#FFFEFA]">
+                <div className="font-mono text-[22px] font-semibold tabular-nums">{String(n).padStart(2, '0')}</div>
+                <div className="font-mono text-[9px] tracking-[0.16em] text-[#EAD8C8]">{label}</div>
+              </div>
+            ))}
+          </div>
+          <div className="mt-4 flex items-baseline justify-between">
+            <span className="text-[16px] font-semibold">Skintel+ with Face Scan</span>
+            <span className="text-[17px] font-semibold tabular-nums">$7.99/mo</span>
+          </div>
+          <p className="mt-1 text-[12.5px] leading-relaxed text-[#6B6760]">
+            Skintel+ starts today, and Face Scan opens on your account first. $7.99 a month for as long as you stay subscribed (regular Skintel+ is $8.99). Cancel any time.
+          </p>
+          <form onSubmit={submit}>
+            <label htmlFor="face-email" className="mt-4 block text-[14px] font-semibold">Email you use in the Skintel app</label>
+            <input
+              id="face-email"
+              type="email"
+              required
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              placeholder="you@example.com"
+              autoComplete="email"
+              className="mt-1.5 w-full rounded-[14px] border border-[#E6DED2] bg-[#FFFEFA] px-4 py-3 text-base text-ink outline-none placeholder:text-[#9A8D80] focus:border-[#A35848]"
+            />
+            <button
+              disabled={busy}
+              className="mt-4 w-full rounded-full bg-ink py-3.5 text-[16px] font-semibold text-[#FFFEFA] transition-transform duration-200 ease-ios active:scale-[0.98] disabled:opacity-70"
+            >
+              {busy ? 'Opening checkout…' : 'Get early access · $7.99/month'}
+            </button>
+          </form>
+          <p className={`mt-2.5 text-center text-[12px] ${err ? 'text-[#A35848]' : 'text-[#8A7A6C]'}`}>
+            {err ?? 'Secure checkout by Stripe. Billed by Skintel, not Apple.'}
+          </p>
+        </>
+      )}
+    </div>
+  );
+}
+
 const STEPS = [
   { icon: '/email/scan.png', title: 'Scan', text: 'Any bottle, any barcode.' },
   { icon: '/email/log.png', title: 'Log', text: 'Ten seconds a day.' },
@@ -224,6 +377,10 @@ export default function Home() {
               </button>
             </div>
             <p className="mt-3 text-[13px] text-[#8A7A6C]">Free to download. Skintel+ launch price for your first 3 months.</p>
+            <a href="#face-scan" className="mt-4 inline-flex items-center gap-2 rounded-full border border-[#E6DED2] bg-[#FFFEFA] py-1.5 pl-1.5 pr-3.5 text-[13px] font-semibold">
+              <span className="rounded-full bg-[#A35848] px-2 py-0.5 font-mono text-[10px] tracking-[0.12em] text-[#FFFEFA]">NEW</span>
+              Face Scan early access · limited time →
+            </a>
           </div>
           <div className="mx-auto mt-9 w-[min(78vw,330px)] md:ml-auto md:mr-0 md:mt-0 md:w-[360px]">
             <img
@@ -251,6 +408,22 @@ export default function Home() {
             <div ref={card}><OfferCard /></div>
           </div>
           <div className="mt-10 md:hidden"><ScanDemo /></div>
+        </section>
+
+        <section id="face-scan" className="scroll-mt-20 pb-4 pt-16 md:pt-20">
+          <div className="grid items-center gap-10 md:grid-cols-[0.9fr_1.1fr]">
+            <div className="text-center md:text-left">
+              <p className="font-mono text-[11px] tracking-[0.22em] text-[#A35848]">NEW · FACE SCAN EARLY ACCESS</p>
+              <h2 className="mt-3 font-display text-[clamp(38px,9vw,58px)] font-normal leading-[1.0] tracking-[-0.01em]">
+                Map your skin <em className="italic text-[#A35848]">zone by zone.</em>
+              </h2>
+              <p className="mx-auto mt-3 max-w-[400px] text-[16px] leading-relaxed text-[#6B6760] md:mx-0">
+                One selfie a day for 7 days. Skintel reads shine, redness and texture on each zone, then unlocks your full skin report on Day 7.
+              </p>
+              <div className="mt-7"><FaceScanDemo /></div>
+            </div>
+            <FaceScanOffer />
+          </div>
         </section>
 
         <section className="pb-2 pt-14">
