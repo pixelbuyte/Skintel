@@ -106,15 +106,19 @@ async function scheduleMonthlyAfterPrepay(sub: Stripe.Subscription) {
   });
 }
 
-async function sendLaunchWelcome(email: string | null, prepaid: boolean) {
+async function sendLaunchWelcome(email: string | null, launch: string | undefined) {
   if (!email) return;
+  const terms =
+    launch === 'facescan'
+      ? "You're in Face Scan early access at $7.99/month, kept for as long as you stay subscribed. Cancel any time."
+      : `${launch === 'prepay' ? 'Your first 3 months are paid' : 'Your first 3 months are $6.49 each'}, then it's $8.99/month. Cancel any time.`;
   await sendEmail({
     to: email,
     subject: "You're Skintel+ — here's how to get in",
     html: `
       <div style="font-family:-apple-system,Helvetica,Arial,sans-serif;max-width:520px;margin:0 auto;color:#1A1814;line-height:1.55">
         <h2 style="font-family:Georgia,serif;font-weight:400;font-size:26px;margin:0 0 10px">You're Skintel+.</h2>
-        <p style="color:#5E554C">${prepaid ? 'Your first 3 months are paid' : 'Your first 3 months are $6.49 each'}, then it's $8.99/month. Cancel any time.</p>
+        <p style="color:#5E554C">${terms}</p>
         <p style="color:#5E554C"><strong>To use it:</strong> open Skintel on your iPhone and sign in with <strong>${email}</strong>. That's the account Skintel+ is on.</p>
         <p style="color:#5E554C">New to Skintel? Tap <em>Continue with email</em>, then <em>Forgot password?</em> to set a password for this address.</p>
         <a href="https://apps.apple.com/app/id6812903021" style="display:inline-block;margin-top:10px;background:#A35848;color:#FFFEFA;padding:12px 26px;border-radius:999px;text-decoration:none;font-weight:600">Get the app</a>
@@ -204,7 +208,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
               metadata: { ...sub.metadata, supabase_user_id: userId },
             });
             if (session.metadata?.launch === 'prepay') await scheduleMonthlyAfterPrepay(sub);
-            await sendLaunchWelcome(guestEmail, session.metadata?.launch === 'prepay');
+            await sendLaunchWelcome(guestEmail, session.metadata?.launch);
           }
           await upsertFromSubscription(sub, userId);
         } else if (
