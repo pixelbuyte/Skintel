@@ -206,21 +206,62 @@ function useCountdown(deadline: number) {
 
 /** The real Face Scan walkthrough, muted and looping, in a phone-shaped frame. */
 function FaceScanDemo() {
+  const video = useRef<HTMLVideoElement>(null);
+  const [playing, setPlaying] = useState(false);
+
+  useEffect(() => {
+    const v = video.current;
+    if (!v) return;
+    // React doesn't write the `muted` attribute, and iOS only autoplays muted video, so set it here.
+    v.muted = true;
+    v.defaultMuted = true;
+    v.play().catch(() => setPlaying(false));
+  }, []);
+
+  function toggle() {
+    const v = video.current;
+    if (!v) return;
+    if (v.paused) {
+      v.muted = true;
+      v.play().catch(() => setPlaying(false));
+    } else {
+      v.pause();
+    }
+  }
+
   return (
-    <div className="mx-auto w-full max-w-[300px] overflow-hidden rounded-[34px] border-[6px] border-[#FFFEFA] bg-[#EFE5D8] shadow-[0_30px_60px_-20px_rgba(70,42,28,0.35)]">
+    <div className="relative mx-auto w-full max-w-[300px] overflow-hidden rounded-[34px] border-[6px] border-[#FFFEFA] bg-[#EFE5D8] shadow-[0_30px_60px_-20px_rgba(70,42,28,0.35)]">
       <video
-        src="/landing/face-scan.mp4"
+        ref={video}
         poster="/landing/face-scan-poster.jpg"
         autoPlay
         muted
         loop
         playsInline
-        preload="metadata"
+        preload="auto"
         width={540}
         height={960}
+        onPlaying={() => setPlaying(true)}
+        onPause={() => setPlaying(false)}
         aria-label="Face Scan demo: a 15-second head turn, a 3D map of your face, every zone in plain words, then Ask Skinstel about your scan"
         className="block aspect-[9/16] w-full object-cover"
-      />
+      >
+        <source src="/landing/face-scan.mp4" type='video/mp4; codecs="avc1.42E01E"' />
+        <source src="/landing/face-scan.webm" type="video/webm" />
+      </video>
+      <button
+        type="button"
+        onClick={toggle}
+        aria-label={playing ? 'Pause the demo' : 'Play the demo'}
+        className="absolute inset-0 flex items-center justify-center"
+      >
+        {!playing && (
+          <span className="flex items-center gap-2 rounded-full bg-[#A35848] px-5 py-3 text-[15px] font-semibold text-[#FFFEFA] shadow-[0_10px_30px_rgba(70,42,28,0.35)]">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" aria-hidden><path d="M7 4.5v15l13-7.5z" /></svg>
+            Watch the demo
+          </span>
+        )}
+      </button>
     </div>
   );
 }
