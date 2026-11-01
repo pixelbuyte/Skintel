@@ -204,52 +204,23 @@ function useCountdown(deadline: number) {
   };
 }
 
-/** A face under a scan beam, zone dots lighting up, then the locked Day 1 card. CSS only. */
+/** The real Face Scan walkthrough, muted and looping, in a phone-shaped frame. */
 function FaceScanDemo() {
-  const zones = [
-    { name: 'Forehead', x: 50, y: 24 },
-    { name: 'Nose', x: 50, y: 50 },
-    { name: 'Left cheek', x: 30, y: 58 },
-    { name: 'Right cheek', x: 70, y: 58 },
-    { name: 'Chin', x: 50, y: 80 },
-  ];
   return (
-    <div className="relative mx-auto w-full max-w-[300px] overflow-hidden rounded-[28px] border border-[#3A332B] bg-[#1A1814] p-5 text-[#F4EDE0]">
-      <style>{`
-        @keyframes fs-beam{0%,100%{transform:translateY(0)}50%{transform:translateY(196px)}}
-        @keyframes fs-dot{0%,30%{opacity:.15;transform:translate(-50%,-50%) scale(.6)}45%,100%{opacity:1;transform:translate(-50%,-50%) scale(1)}}
-        .fs-beam{animation:fs-beam 3s cubic-bezier(.45,0,.55,1) infinite}
-        .fs-dot{animation:fs-dot 3s cubic-bezier(.32,.72,0,1) infinite alternate}
-        @media (prefers-reduced-motion:reduce){.fs-beam{animation:none;opacity:0}.fs-dot{animation:none}}
-      `}</style>
-      <p className="font-mono text-[10px] tracking-[0.18em] text-[#EAD8C8]">YOUR SKIN MAP · DAY 1 OF 7</p>
-      <div className="relative mx-auto mt-3 h-[200px] w-[150px]">
-        <svg viewBox="0 0 150 200" className="absolute inset-0 h-full w-full" aria-hidden>
-          <ellipse cx="75" cy="100" rx="62" ry="88" fill="none" stroke="#F4EDE0" strokeOpacity=".28" strokeWidth="1.5" />
-          <ellipse cx="75" cy="100" rx="44" ry="70" fill="none" stroke="#F4EDE0" strokeOpacity=".1" />
-          <path d="M52 78q8-5 16 0M82 78q8-5 16 0M75 92v20q-5 4 0 6M62 140q13 8 26 0" fill="none" stroke="#F4EDE0" strokeOpacity=".35" strokeWidth="1.5" strokeLinecap="round" />
-        </svg>
-        {zones.map((z, i) => (
-          <span
-            key={z.name}
-            className="fs-dot absolute h-3 w-3 rounded-full bg-[#A35848] shadow-[0_0_12px_4px_rgba(163,88,72,0.55)]"
-            style={{ left: `${z.x}%`, top: `${z.y}%`, animationDelay: `${i * 0.25}s` }}
-          />
-        ))}
-        <span className="fs-beam absolute -left-3 -right-3 top-0 h-[3px] rounded-full bg-[#A35848] shadow-[0_0_14px_3px_rgba(163,88,72,0.5)]" />
-      </div>
-      <div className="relative mt-4 overflow-hidden rounded-2xl bg-[#FFFEFA] px-4 py-3 text-ink">
-        <div className="space-y-2 blur-[5px]" aria-hidden>
-          {['Forehead · Shine', 'Nose · Texture', 'Cheeks · Redness'].map((r) => (
-            <div key={r} className="flex justify-between text-[13px]"><span>{r}</span><span>Some</span></div>
-          ))}
-        </div>
-        <div className="absolute inset-0 flex flex-col items-center justify-center bg-[#FFFEFA]/40">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="#A35848" aria-hidden><path d="M17 10V7a5 5 0 0 0-10 0v3H5v12h14V10h-2Zm-8 0V7a3 3 0 0 1 6 0v3H9Z" /></svg>
-          <p className="mt-1 text-[14px] font-semibold">6 days left to unlock</p>
-          <p className="text-[11px] text-[#6B6760]">Scan daily to build your full report</p>
-        </div>
-      </div>
+    <div className="mx-auto w-full max-w-[300px] overflow-hidden rounded-[34px] border-[6px] border-[#FFFEFA] bg-[#EFE5D8] shadow-[0_30px_60px_-20px_rgba(70,42,28,0.35)]">
+      <video
+        src="/landing/face-scan.mp4"
+        poster="/landing/face-scan-poster.jpg"
+        autoPlay
+        muted
+        loop
+        playsInline
+        preload="metadata"
+        width={540}
+        height={960}
+        aria-label="Face Scan demo: a 15-second head turn, a 3D map of your face, every zone in plain words, then Ask Skinstel about your scan"
+        className="block aspect-[9/16] w-full object-cover"
+      />
     </div>
   );
 }
@@ -287,9 +258,9 @@ function FaceScanOffer() {
           <p className="mt-4 text-[13px] font-semibold text-[#6B6760]">Early access closes in</p>
           <div className="mt-2 grid grid-cols-4 gap-2" role="timer" aria-live="off">
             {parts.map(([label, n]) => (
-              <div key={label} className="rounded-[14px] bg-[#1A1814] py-2.5 text-center text-[#FFFEFA]">
+              <div key={label} className="rounded-[14px] bg-[#EAD8C8] py-2.5 text-center text-[#7A4A32]">
                 <div className="font-mono text-[22px] font-semibold tabular-nums">{String(n).padStart(2, '0')}</div>
-                <div className="font-mono text-[9px] tracking-[0.16em] text-[#EAD8C8]">{label}</div>
+                <div className="font-mono text-[9px] tracking-[0.16em] text-[#A35848]">{label}</div>
               </div>
             ))}
           </div>
@@ -314,7 +285,7 @@ function FaceScanOffer() {
             />
             <button
               disabled={busy}
-              className="mt-4 w-full rounded-full bg-ink py-3.5 text-[16px] font-semibold text-[#FFFEFA] transition-transform duration-200 ease-ios active:scale-[0.98] disabled:opacity-70"
+              className="mt-4 w-full rounded-full bg-[#A35848] py-3.5 text-[16px] font-semibold text-[#FFFEFA] transition-transform duration-200 ease-ios active:scale-[0.98] disabled:opacity-70"
             >
               {busy ? 'Opening checkout…' : 'Get early access · $7.99/month'}
             </button>
@@ -411,18 +382,18 @@ export default function Home() {
         </section>
 
         <section id="face-scan" className="scroll-mt-20 pb-4 pt-16 md:pt-20">
-          <div className="grid items-center gap-10 md:grid-cols-[0.9fr_1.1fr]">
-            <div className="text-center md:text-left">
+          <div className="grid gap-8 md:grid-cols-[300px_1fr] md:gap-x-14 md:gap-y-7">
+            <div className="text-center md:col-start-2 md:text-left">
               <p className="font-mono text-[11px] tracking-[0.22em] text-[#A35848]">NEW · FACE SCAN EARLY ACCESS</p>
               <h2 className="mt-3 font-display text-[clamp(38px,9vw,58px)] font-normal leading-[1.0] tracking-[-0.01em]">
-                Map your skin <em className="italic text-[#A35848]">zone by zone.</em>
+                See your skin, <em className="italic text-[#A35848]">zone by zone.</em>
               </h2>
-              <p className="mx-auto mt-3 max-w-[400px] text-[16px] leading-relaxed text-[#6B6760] md:mx-0">
-                One selfie a day for 7 days. Skintel reads shine, redness and texture on each zone, then unlocks your full skin report on Day 7.
+              <p className="mx-auto mt-3 max-w-[460px] text-[16px] leading-relaxed text-[#6B6760] md:mx-0">
+                A 15-second head turn maps your face in 3D. Every zone in plain words, tips from your own shelf, and Ask Skinstel about your scan. Follow it for 7 days.
               </p>
-              <div className="mt-7"><FaceScanDemo /></div>
             </div>
-            <FaceScanOffer />
+            <div className="md:col-start-1 md:row-span-2 md:row-start-1 md:self-start"><FaceScanDemo /></div>
+            <div className="md:col-start-2 md:[&>div]:mx-0"><FaceScanOffer /></div>
           </div>
         </section>
 
