@@ -26,6 +26,7 @@ struct SettingsView: View {
     @State private var showEditProfile = false
     @State private var showPersonalization = false
     @State private var showAccount = false
+    @State private var showBilling = false
 
     var body: some View {
         ScrollView {
@@ -57,6 +58,7 @@ struct SettingsView: View {
                 .padding(.horizontal, 4)
 
                 SettingsGroup(title: "Account") {
+                    SettingsRow(title: "Billing", subtitle: env.subscription.entitlement.tierLabel) { showBilling = true }
                     SettingsRow(title: "Account & data", subtitle: env.session.user?.email) { showAccount = true }
                     SettingsLinkRow(title: "Privacy policy", url: env.config.privacyURL)
                     SettingsLinkRow(title: "Terms", url: env.config.termsURL, last: true)
@@ -73,6 +75,7 @@ struct SettingsView: View {
         .overlay(alignment: .topLeading) { if !isRoot { BackButton().padding(.top, 2) } }
         .navigationDestination(isPresented: $showPersonalization) { PersonalizationView() }
         .navigationDestination(isPresented: $showAccount) { AccountDataView() }
+        .navigationDestination(isPresented: $showBilling) { BillingView() }
         .sheet(isPresented: $showEditProfile) { EditProfileSheet() }
         .task {
             await env.subscription.load()
@@ -373,9 +376,9 @@ struct SettingsView: View {
                 }
                 Spacer(minLength: 0)
                 Button {
-                    if ent.isPro { showAccount = true } else { openPaywall(.general) }
+                    if ent.isPro { showBilling = true } else { openPaywall(.general) }
                 } label: {
-                    Text(ent.isPro ? "Manage subscription" : "Get Skintel+")
+                    Text(ent.isPro ? "Billing" : "Get Skintel+")
                         .font(SKFont.sans(14, weight: .semibold, relativeTo: .subheadline))
                         .padding(.horizontal, 14)
                         .frame(height: 34)
@@ -594,11 +597,7 @@ enum RoutineReminders {
 
 private struct AccountDataView: View {
     @Environment(AppEnvironment.self) private var env
-    @Environment(\.openPaywall) private var openPaywall
 
-    @State private var showManageSubs = false
-    @State private var restoring = false
-    @State private var restoreMessage: String?
     @State private var exporting = false
     @State private var exportURL: URL?
     @State private var exportError: String?
@@ -622,26 +621,6 @@ private struct AccountDataView: View {
                     Text(env.session.user?.email ?? "").font(SKFont.secondary).foregroundStyle(SKColor.muted).lineLimit(1)
                 }
                 .padding(.horizontal, SKSpace.lg).padding(.vertical, 14)
-            }
-
-            SettingsGroup(title: "Membership") {
-                SettingsRow(title: "Your plan", trailing: {
-                    SKChip(env.subscription.entitlement.tierLabel, tone: env.subscription.entitlement.isPro ? .good : .neutral)
-                }) { manageSubscription() }
-                if let end = env.subscription.entitlement.periodEnd, env.subscription.entitlement.isPro {
-                    SettingsInfo(text: env.subscription.subscription?.tier == .founding
-                                 ? "Founding access until \(end.formatted(date: .abbreviated, time: .omitted))"
-                                 : "Renews \(end.formatted(date: .abbreviated, time: .omitted))")
-                }
-                if env.subscription.subscription?.isManagedByStripe == true {
-                    SettingsInfo(text: "Managed on skinstel.com")
-                }
-                SettingsRow(title: "Restore purchases", last: restoreMessage == nil, trailing: {
-                    if restoring { ProgressView().tint(SKColor.primary) }
-                }) {
-                    Task { await restore() }
-                }
-                if let restoreMessage { SettingsInfo(text: restoreMessage, last: true) }
             }
 
             SettingsGroup(title: "Your data") {
@@ -680,7 +659,6 @@ private struct AccountDataView: View {
             .background(SKColor.badBg, in: RoundedRectangle(cornerRadius: 18, style: .continuous))
             .padding(.top, SKSpace.md)
         }
-        .manageSubscriptionsSheet(isPresented: $showManageSubs)
         .sheet(item: $exportURL) { url in ShareSheet(items: [url]) }
         .confirmationDialog("Sign out of Skintel?", isPresented: $showSignOut, titleVisibility: .visible) {
             Button("Sign out", role: .destructive) { Task { await env.session.signOut() } }
@@ -705,21 +683,6 @@ private struct AccountDataView: View {
             appleDeletionConfirmation
         }
         .overlay { if deleting { ZStack { Color.black.opacity(0.3).ignoresSafeArea(); ProgressView().tint(.white) } } }
-        .task { await env.subscription.load() }
-    }
-
-    private func manageSubscription() {
-        let ent = env.subscription.entitlement
-        if !ent.isPro { openPaywall(.general); return }
-        if env.subscription.subscription?.isManagedByApple == true { showManageSubs = true }
-        // Stripe-managed rows show the "Managed on skinstel.com" line instead of a link.
-    }
-
-    private func restore() async {
-        restoring = true; restoreMessage = nil
-        defer { restoring = false }
-        await env.subscriptionService.restore()
-        restoreMessage = env.subscriptionService.lastMessage ?? (env.subscription.entitlement.isPro ? "Restored — you're on \(env.subscription.entitlement.tierLabel)." : nil)
     }
 
     private func export() async {
@@ -813,6 +776,102 @@ private struct AccountDataView: View {
         } catch {
             deleteError = (error as? APIError)?.userMessage ?? error.localizedDescription
         }
+    }
+}
+
+// MARK: - Billing
+
+/// Plan, manage and restore in one place. A plan is managed where it was bought, so
+/// "Manage subscription" first says where, then takes the person there.
+private struct BillingView: View {
+    @Environment(AppEnvironment.self) private var env
+    @Environment(\.openPaywall) private var openPaywall
+    @Environment(\.openURL) private var openURL
+
+    @State private var showManageInfo = false
+    @State private var showManageSubs = false
+    @State private var restoring = false
+    @State private var restoreMessage: String?
+
+    private enum Source { case apple, web, founding, other }
+
+    private static let webBilling = URL(string: "https://www.skinstel.com/app/settings")!
+
+    private var entitlement: Entitlement { env.subscription.entitlement }
+
+    private var source: Source {
+        guard let sub = env.subscription.subscription else { return .other }
+        if sub.tier == .founding { return .founding }
+        if sub.isManagedByApple { return .apple }
+        if sub.isManagedByStripe { return .web }
+        return .other
+    }
+
+    private var planFooter: String? {
+        guard entitlement.isPro else { return nil }
+        let end = entitlement.periodEnd?.formatted(date: .abbreviated, time: .omitted)
+        switch source {
+        case .founding: return end.map { "Founding access until \($0)" } ?? "Founding access"
+        case .apple: return end.map { "Renews \($0) · billed by Apple" } ?? "Billed by Apple"
+        case .web: return end.map { "Renews \($0) · billed on skinstel.com" } ?? "Billed on skinstel.com"
+        case .other: return end.map { "Active until \($0)" }
+        }
+    }
+
+    private var manageMessage: String {
+        switch source {
+        case .apple: "You subscribed in the App Store. Change or cancel your plan there."
+        case .web: "You subscribed on skinstel.com. Change or cancel your plan there."
+        case .founding: "Founding access is a one-time payment, so there's nothing to renew or cancel."
+        case .other: "Your plan was set up outside the app. Email skinstelreview@gmail.com to change it."
+        }
+    }
+
+    var body: some View {
+        SettingsPage(title: "Billing") {
+            SettingsGroup(footer: planFooter) {
+                HStack {
+                    Text("Account plan").font(SKFont.sans(17, relativeTo: .body)).foregroundStyle(SKColor.ink)
+                    Spacer(minLength: SKSpace.sm)
+                    SKChip(entitlement.tierLabel, tone: entitlement.isPro ? .good : .neutral)
+                }
+                .padding(.horizontal, SKSpace.lg).padding(.vertical, 14)
+                .accessibilityElement(children: .combine)
+            }
+
+            SettingsGroup {
+                SettingsRow(icon: "dollarsign", title: entitlement.isPro ? "Manage subscription" : "Get Skintel+",
+                            showsChevron: false) {
+                    if entitlement.isPro { showManageInfo = true } else { openPaywall(.general) }
+                }
+                SettingsRow(icon: "arrow.clockwise", title: "Restore purchases", showsChevron: false,
+                            last: restoreMessage == nil, trailing: {
+                    if restoring { ProgressView().tint(SKColor.primary) }
+                }) {
+                    Task { await restore() }
+                }
+                if let restoreMessage { SettingsInfo(text: restoreMessage, last: true) }
+            }
+        }
+        .manageSubscriptionsSheet(isPresented: $showManageSubs)
+        .alert("Manage subscription", isPresented: $showManageInfo) {
+            switch source {
+            case .apple: Button("Manage in App Store") { showManageSubs = true }
+            case .web: Button("Manage on skinstel.com") { openURL(Self.webBilling) }
+            case .founding, .other: EmptyView()
+            }
+            Button("OK", role: .cancel) {}
+        } message: {
+            Text(manageMessage)
+        }
+        .task { await env.subscription.load() }
+    }
+
+    private func restore() async {
+        restoring = true; restoreMessage = nil
+        defer { restoring = false }
+        await env.subscriptionService.restore()
+        restoreMessage = env.subscriptionService.lastMessage ?? (entitlement.isPro ? "Restored — you're on \(entitlement.tierLabel)." : nil)
     }
 }
 
