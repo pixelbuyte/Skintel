@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Skintel — App Store · fetch / analyzing</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600;9..40,700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#F4EDE0; --cream:#FFFEFA; --primary:#A35848;
+  --ink:#1A1814; --muted:#6B6760; --line:#EAE6DF;
+  --caution-bg:#FFF4E0; --caution-fg:#8B6914;
+  --sans:"DM Sans",ui-sans-serif,system-ui,sans-serif;
+  --mono:"JetBrains Mono",ui-monospace,monospace;
+}
+*{margin:0;padding:0;box-sizing:border-box}
+html,body{width:100%;height:100%;overflow:hidden;background:#0B0A08}
+body{font-family:var(--sans);color:var(--ink);-webkit-font-smoothing:antialiased}
+
+.screen{
+  position:relative;width:100vw;height:100vh;overflow:hidden;
+  background:
+    radial-gradient(46% 40% at 50% 38%,rgba(163,88,72,.28) 0%,rgba(163,88,72,0) 72%),
+    radial-gradient(130% 80% at 25% 10%,#4A2E28 0%,rgba(74,46,40,0) 55%),
+    linear-gradient(170deg,#241713 0%,#150D0A 80%);
+}
+.island{position:absolute;top:12px;left:50%;transform:translateX(-50%);width:126px;height:37px;background:#0B0A08;border-radius:20px;z-index:60}
+.sbar{position:absolute;top:0;left:0;right:0;height:58px;display:flex;align-items:center;justify-content:space-between;padding:8px 34px 0;z-index:55;color:#FFFEFA;pointer-events:none}
+.sbar .time{font-size:16px;font-weight:600;letter-spacing:.01em}
+.sbar .sicons{display:flex;align-items:center;gap:7px}
+.scrim{position:absolute;inset:0;background:rgba(11,10,8,.45)}
+
+.sheet{
+  position:absolute;left:0;right:0;bottom:0;
+  background:var(--cream);
+  border-radius:28px 28px 0 0;
+  box-shadow:0 -14px 36px rgba(26,24,20,.32);
+  padding:12px 24px 48px;
+}
+.handle{width:42px;height:5px;border-radius:3px;background:#DDD6C9;margin:4px auto 20px}
+
+.header{display:flex;align-items:flex-start;gap:16px}
+.mark{
+  width:60px;height:60px;border-radius:16px;flex:none;
+  background:linear-gradient(160deg,#E4EDF6,#AEC3D8);
+  display:flex;align-items:center;justify-content:center;
+  font-size:26px;font-weight:700;color:#243447;letter-spacing:-.02em;
+}
+.name{font-size:22px;font-weight:600;line-height:1.2;letter-spacing:-.02em;color:var(--ink)}
+.sub{font-family:var(--mono);font-size:12px;color:var(--muted);margin-top:5px}
+
+.progress{
+  margin-top:22px;padding:14px 16px;
+  background:rgba(255,244,224,.6);
+  border:1px solid rgba(139,105,20,.2);
+  border-radius:16px;
+  display:flex;align-items:center;gap:14px;
+}
+.mascot{width:72px;height:72px;object-fit:contain;flex:none}
+.ptitle{font-size:16px;font-weight:600;color:var(--ink);letter-spacing:-.01em}
+.psub{font-size:13.5px;color:var(--muted);margin-top:3px;line-height:1.35}
+
+.bar{margin-top:16px;height:6px;border-radius:3px;background:#EFEAE2;overflow:hidden}
+.bar>i{display:block;width:62%;height:100%;border-radius:3px;background:linear-gradient(90deg,#A35848,#D9917F)}
+
+.foot{display:flex;justify-content:space-between;align-items:center;margin-top:18px;font-size:14px}
+.foot .muted{color:var(--muted)}
+.foot .link{color:var(--primary);font-weight:600}
+
+.homebar{position:absolute;left:50%;bottom:10px;transform:translateX(-50%);width:140px;height:5px;border-radius:3px;background:rgba(26,24,20,.9);z-index:70}
+</style>
+</head>
+<body>
+<div class="screen" id="shot">
+  <div class="island"></div>
+  <div class="sbar">
+    <span class="time">9:41</span>
+    <span class="sicons" aria-hidden="true">
+      <svg width="18" height="12" viewBox="0 0 18 12" fill="#FFFEFA"><rect x="0" y="8" width="3" height="4" rx="0.6"/><rect x="4.5" y="5" width="3" height="7" rx="0.6"/><rect x="9" y="2.5" width="3" height="9.5" rx="0.6"/><rect x="13.5" y="0" width="3" height="12" rx="0.6" opacity=".35"/></svg>
+      <svg width="16" height="12" viewBox="0 0 16 12" fill="#FFFEFA"><path d="M8 3.2c2.1 0 4 .8 5.5 2.1l-1.1 1.1A6.3 6.3 0 0 0 8 4.8c-1.6 0-3 .6-4.1 1.6L2.8 5.3A7.9 7.9 0 0 1 8 3.2zm0 2.6c1.3 0 2.5.5 3.4 1.3L10.3 8A3.4 3.4 0 0 0 8 7c-.9 0-1.7.3-2.3.9L4.6 6.8A5 5 0 0 1 8 5.8zm0 2.6c.6 0 1.1.2 1.5.6L8 11.5 6.5 9c.4-.4.9-.6 1.5-.6z"/></svg>
+      <svg width="27" height="13" viewBox="0 0 27 13"><rect x=".5" y=".5" width="22" height="12" rx="3.5" stroke="#FFFEFA" stroke-opacity=".35" fill="none"/><rect x="2" y="2" width="17" height="9" rx="2" fill="#FFFEFA"/><path d="M24 4.5v4a2.2 2.2 0 0 0 0-4z" fill="#FFFEFA" opacity=".4"/></svg>
+    </span>
+  </div>
+  <div class="scrim"></div>
+
+  <div class="sheet">
+    <div class="handle"></div>
+    <div class="header">
+      <div class="mark">C</div>
+      <div>
+        <div class="name">CeraVe Foaming Facial Cleanser</div>
+        <div class="sub">3 606000 537400 · matched ✓</div>
+      </div>
+    </div>
+
+    <div class="progress">
+      <img class="mascot" src="../../ios/Skintel/Skintel/Resources/Assets.xcassets/Mascot.imageset/Mascot.png" alt="">
+      <div>
+        <div class="ptitle">Reading 24 ingredients…</div>
+        <div class="psub">Matching against 3 known triggers</div>
+      </div>
+    </div>
+
+    <div class="bar"><i></i></div>
+
+    <div class="foot">
+      <span class="muted">Auto-confirmed — no extra taps</span>
+      <span class="link">Wrong product?</span>
+    </div>
+  </div>
+
+  <div class="homebar"></div>
+</div>
+</body>
+</html>
