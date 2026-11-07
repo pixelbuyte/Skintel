@@ -2,8 +2,8 @@ import StoreKit
 import SwiftUI
 import SkintelCore
 
-/// Design §16 with the shipped offer: the founding deal ($20 once, three months, 500
-/// seats) featured while seats remain, monthly/yearly underneath. Every price shown comes
+/// Design §16: Skintel+ monthly and yearly (the founding deal is no longer offered; existing
+/// founding members keep it). Every price shown comes
 /// from StoreKit's localized `displayPrice`. Opened from a wall, it leads with every
 /// Skintel+ feature (the one the person came from first, its demo playing), then the
 /// plans; the purchase button stays pinned so it never scrolls away.
@@ -16,7 +16,7 @@ struct PaywallView: View {
     @Environment(AppEnvironment.self) private var env
     @Environment(\.dismiss) private var dismiss
     @State private var service: SubscriptionService?
-    @State private var selected: SubscriptionService.ProductID = .founding
+    @State private var selected: SubscriptionService.ProductID = .proYearly
     /// Free trials StoreKit reports on the monthly and yearly plans for this Apple ID.
     @State private var trials: [SubscriptionService.ProductID: SubscriptionService.FreeTrial] = [:]
     /// Where the plan is paid: the App Store, or skinstel.com (US storefront only, where Apple
@@ -88,15 +88,11 @@ struct PaywallView: View {
             let s = env.subscriptionService
             service = s
             s.startObserving()
-            async let p: () = s.loadProducts()
-            async let f: () = env.subscription.loadFoundingSeats()
-            _ = await (p, f)
-            if (env.subscription.foundingSeatsRemaining ?? 1) <= 0 || s.product(.founding) == nil { selected = .proYearly }
+            await s.loadProducts()
             // Apple lets apps link to web purchases on the US storefront only.
             if await Storefront.current?.countryCode == "USA" {
                 webAllowed = true
                 store = .web
-                if selected == .founding { selected = .proYearly }
             }
         }
         .onChange(of: scenePhase) { _, phase in
@@ -131,12 +127,9 @@ struct PaywallView: View {
         .padding(.top, SKSpace.md)
     }
 
-    /// Only promise the founding deal when it is actually on sale: the product loaded from
-    /// App Store Connect and seats remain. Otherwise the plans below would contradict it.
     private var headline: String {
-        let foundingOnSale = service?.product(.founding) != nil && (env.subscription.foundingSeatsRemaining ?? 1) > 0
         if reason == .faceScan { return faceMapReady ? "Your face map is ready." : "See your skin, zone by zone." }
-        return foundingOnSale ? "The founding member deal." : "Everything, for your skin."
+        return "Everything, for your skin."
     }
 
     private var reasonLine: String {
@@ -175,10 +168,6 @@ struct PaywallView: View {
             } else if s.products.isEmpty {
                 SKSkeleton(height: 180); SKSkeleton(height: 72); SKSkeleton(height: 72)
             } else {
-                let seats = env.subscription.foundingSeatsRemaining
-                if let founding = s.product(.founding), (seats ?? 1) > 0 {
-                    foundingCard(founding, seats: seats)
-                }
                 if let monthly = s.product(.proMonthly) {
                     planRow(.proMonthly, price: monthly.displayPrice, period: s.periodText(.proMonthly), caption: "Cancel anytime")
                 }
@@ -238,7 +227,6 @@ struct PaywallView: View {
         .onChange(of: store) { _, new in
             Haptics.selection()
             webError = nil
-            if new == .web && selected == .founding { selected = .proYearly }
         }
         .accessibilityLabel("Pay with \(store.rawValue)")
     }
@@ -282,31 +270,6 @@ struct PaywallView: View {
         guard twelveMonths > 0, y.price < twelveMonths else { return nil }
         let percent = Int((NSDecimalNumber(decimal: (twelveMonths - y.price) / twelveMonths).doubleValue * 100).rounded(.down))
         return percent > 0 ? "SAVE \(percent)%" : nil
-    }
-
-    private func foundingCard(_ p: StoreKit.Product, seats: Int?) -> some View {
-        let taken = Entitlement.foundingSeatsTotal - (seats ?? Entitlement.foundingSeatsTotal)
-        return Button { selected = .founding; Haptics.selection() } label: {
-            VStack(spacing: SKSpace.md) {
-                HStack(alignment: .firstTextBaseline, spacing: 8) {
-                    Text(p.displayPrice).font(SKFont.price).foregroundStyle(SKColor.ink)
-                    Text("once").font(SKFont.sans(18, relativeTo: .title3)).foregroundStyle(SKColor.muted)
-                }
-                Text("Three months of Skintel+ · nothing renews").font(SKFont.sans(16, weight: .semibold, relativeTo: .body)).foregroundStyle(SKColor.primary)
-                SKProgressBar(fraction: Double(taken) / Double(Entitlement.foundingSeatsTotal), height: 8)
-                Text(seats.map { "\(taken) of \(Entitlement.foundingSeatsTotal) founding spots taken · \($0) left" } ?? "500 founding spots")
-                    .font(SKFont.dataSmall).foregroundStyle(SKColor.muted)
-            }
-            .padding(SKSpace.xl)
-            .frame(maxWidth: .infinity)
-            .background(LinearGradient(colors: [SKColor.cream, SKColor.blush], startPoint: .top, endPoint: .bottom),
-                        in: RoundedRectangle(cornerRadius: SKRadius.card, style: .continuous))
-            .overlay(RoundedRectangle(cornerRadius: SKRadius.card, style: .continuous)
-                .stroke(selected == .founding ? SKColor.primary : SKColor.line, lineWidth: selected == .founding ? 1.5 : 1))
-            .skCardShadow()
-        }
-        .buttonStyle(SKPressStyle())
-        .accessibilityAddTraits(selected == .founding ? [.isButton, .isSelected] : .isButton)
     }
 
     private func planRow(_ id: SubscriptionService.ProductID, price: String, period: String, caption: String,
