@@ -23,6 +23,8 @@ struct PaywallView: View {
     /// allows a link out to the web). The web price is lower because no store fee applies.
     @State private var store: Store = .appStore
     @State private var webAllowed = false
+    /// The live Stripe prices for the web plans; the Web option only shows once they load.
+    @State private var webPrices: WebPrices?
     @State private var webBusy = false
     @State private var webError: String?
     /// Set once Safari opens checkout, so coming back to the app re-reads the subscription.
@@ -89,11 +91,14 @@ struct PaywallView: View {
             service = s
             s.startObserving()
             await s.loadProducts()
-            // Apple lets apps link to web purchases on the US storefront only.
-            if await Storefront.current?.countryCode == "USA" {
-                webAllowed = true
-                store = .web
-            }
+            // Apple lets apps link to web purchases on the US storefront only. The web prices
+            // come from Stripe, and Web is picked first only when it is actually cheaper.
+            guard await Storefront.current?.countryCode == "USA",
+                  let prices = try? await env.api.webPrices(),
+                  prices.proMonthly.currency == "USD", prices.proYearly.currency == "USD" else { return }
+            webPrices = prices
+            webAllowed = true
+            if webIsCheaper(s, selected) { store = .web }
         }
         .onChange(of: scenePhase) { _, phase in
             guard phase == .active, awaitingWeb else { return }
@@ -186,20 +191,30 @@ struct PaywallView: View {
         id == .proMonthly ? .proMonthly : .proYearly
     }
 
+    private func webAmount(_ id: SubscriptionService.ProductID) -> Decimal {
+        webPrices?.price(webPlan(id)).amount ?? 0
+    }
+
     private func webPrice(_ id: SubscriptionService.ProductID) -> String {
-        webPlan(id).usdPrice.formatted(Self.usd)
+        webAmount(id).formatted(Self.usd)
+    }
+
+    /// True when the App Store charges dollars for this plan and more than the web does.
+    private func webIsCheaper(_ s: SubscriptionService, _ id: SubscriptionService.ProductID) -> Bool {
+        guard webPrices != nil, let p = s.product(id), p.priceFormatStyle.currencyCode == "USD" else { return false }
+        return p.price > webAmount(id)
     }
 
     /// The App Store price for the same plan, struck through beside the web price, when the
     /// storefront also charges in dollars and the web price really is lower.
     private func appStorePrice(_ s: SubscriptionService, _ id: SubscriptionService.ProductID) -> String? {
-        guard let p = s.product(id), p.priceFormatStyle.currencyCode == "USD", p.price > webPlan(id).usdPrice else { return nil }
+        guard webIsCheaper(s, id), let p = s.product(id) else { return nil }
         return p.displayPrice
     }
 
     private func webPlans(_ s: SubscriptionService) -> some View {
-        let monthly = WebCheckoutPlan.proMonthly.usdPrice, yearly = WebCheckoutPlan.proYearly.usdPrice
-        let percent = Int((NSDecimalNumber(decimal: (monthly * 12 - yearly) / (monthly * 12)).doubleValue * 100).rounded(.down))
+        let monthly = webAmount(.proMonthly), yearly = webAmount(.proYearly)
+        let percent = monthly > 0 ? Int((NSDecimalNumber(decimal: (monthly * 12 - yearly) / (monthly * 12)).doubleValue * 100).rounded(.down)) : 0
         return VStack(spacing: SKSpace.md) {
             planRow(.proMonthly, price: webPrice(.proMonthly), period: "/month", caption: "Cancel anytime",
                     was: appStorePrice(s, .proMonthly), showsTrial: false)

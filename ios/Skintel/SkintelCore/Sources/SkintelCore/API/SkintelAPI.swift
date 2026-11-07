@@ -154,6 +154,10 @@ public struct SkintelAPI: Sendable {
                        body: WebCheckoutRequest(plan: plan.rawValue, from: "app")).url
     }
 
+    public func webPrices() async throws -> WebPrices {
+        try await get(WebPrices.self, "stripe-checkout", ["offer": "app-prices"])
+    }
+
     // MARK: Internals
 
     private func headers() async throws -> [String: String] {

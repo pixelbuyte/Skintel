@@ -176,5 +176,7 @@ private func decode<T: Decodable>(_ t: T.Type, _ json: String) throws -> T {
     #expect(dict == ["plan": "pro_yearly", "from": "app"])
     let r = try JSONCoding.decode(WebCheckoutResponse.self, from: Data(#"{"url":"https://checkout.stripe.com/c/pay/cs_test_1"}"#.utf8))
     #expect(r.url.host() == "checkout.stripe.com")
-    #expect(WebCheckoutPlan.proMonthly.usdPrice == Decimal(string: "8.99"))
+    let prices = try JSONCoding.decode(WebPrices.self, from: Data(#"{"pro_monthly":{"amount":8.99,"currency":"USD"},"pro_yearly":{"amount":79,"currency":"USD"}}"#.utf8))
+    #expect(prices.price(.proMonthly).amount == Decimal(string: "8.99"))
+    #expect(prices.price(.proYearly).currency == "USD")
 }

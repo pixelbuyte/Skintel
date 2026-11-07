@@ -93,8 +93,23 @@ async function faceScanCheckout(res: VercelResponse, email: string, ref: string)
   return json(res, { url: session.url });
 }
 
+/**
+ * The live Stripe prices behind the iOS paywall's "Web" option, so the app never shows a
+ * hard-coded web price. Public: the same numbers are on the Pricing page.
+ */
+async function appWebPrices(res: VercelResponse) {
+  const ids = { pro_monthly: process.env.VITE_STRIPE_PRICE_PRO, pro_yearly: process.env.VITE_STRIPE_PRICE_PRO_YEARLY };
+  if (!ids.pro_monthly || !ids.pro_yearly) return json(res, { error: 'Not configured' }, 500);
+  const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!);
+  const [m, y] = await Promise.all([stripe.prices.retrieve(ids.pro_monthly), stripe.prices.retrieve(ids.pro_yearly)]);
+  const row = (p: Stripe.Price) => ({ amount: (p.unit_amount ?? 0) / 100, currency: p.currency.toUpperCase() });
+  res.setHeader('Cache-Control', 'public, s-maxage=300');
+  return json(res, { pro_monthly: row(m), pro_yearly: row(y) });
+}
+
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (req.query.offer === 'launch') return launchCheckout(req, res);
+  if (req.query.offer === 'app-prices') return appWebPrices(res);
   const isGuestFounding = req.query.offer === 'founding';
 
   // Guest founding checkout shares this endpoint so the Hobby deployment stays
