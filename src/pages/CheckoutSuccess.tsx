@@ -8,15 +8,36 @@ export default function CheckoutSuccess() {
   const { user, loading } = useAuth();
   const [params] = useSearchParams();
   const launch = params.get('offer') === 'launch';
+  // Opened from the iOS paywall's "Web" option: send the buyer back to the app, where
+  // Skintel+ unlocks on the same account once the webhook lands.
+  const fromApp = params.get('from') === 'app';
+  const cancelled = params.get('cancelled') === '1';
 
   // Logged-in buyers go straight to the dashboard. Guest buyers stay here —
   // their account was just created by the webhook and the sign-in link is in
   // their email; bouncing them to /app would hit the login wall.
   useEffect(() => {
-    if (launch || loading || !user) return;
+    if (fromApp || launch || loading || !user) return;
     const t = setTimeout(() => nav('/app'), 2500);
     return () => clearTimeout(t);
-  }, [nav, user, loading, launch]);
+  }, [nav, user, loading, launch, fromApp]);
+
+  if (fromApp) {
+    return (
+      <div className="min-h-screen flex items-center justify-center p-6">
+        <div className="card p-10 max-w-md text-center">
+          {!cancelled && <CheckCircle2 size={48} className="text-good-fg mx-auto mb-4" />}
+          <h1 className="font-display text-3xl mb-2">{cancelled ? 'No charge made.' : 'You\u2019re Skintel+.'}</h1>
+          <p className="text-muted mb-6">
+            {cancelled
+              ? 'Checkout was closed before paying. Go back to Skinstel to pick a plan again.'
+              : 'Payment received. Go back to Skinstel: Skintel+ unlocks there in a few seconds.'}
+          </p>
+          <a href="skintel://open" className="btn-primary">Back to Skinstel</a>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen flex items-center justify-center p-6">

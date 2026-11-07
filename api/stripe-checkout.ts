@@ -144,8 +144,18 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   const body = (typeof req.body === 'string' ? JSON.parse(req.body) : req.body) as {
     priceId?: string;
     tier?: 'pro' | 'founding';
+    plan?: string;
+    from?: string;
   };
-  const { priceId, tier } = body ?? {};
+  // The iOS paywall's "Web" option names a plan instead of a price id (it can't read the
+  // web build's env), and comes back to the app after paying.
+  const fromApp = body?.from === 'app';
+  const appPlanPrice =
+    body?.plan === 'pro_monthly' ? process.env.VITE_STRIPE_PRICE_PRO :
+    body?.plan === 'pro_yearly' ? process.env.VITE_STRIPE_PRICE_PRO_YEARLY : undefined;
+  if (body?.plan && !appPlanPrice) return json(res, { error: 'Unknown plan' }, 400);
+  const priceId = appPlanPrice ?? body?.priceId;
+  const tier = appPlanPrice ? 'pro' : body?.tier;
   if (!priceId || !tier) return json(res, { error: 'Missing priceId or tier' }, 400);
 
   const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, { apiVersion: '2024-12-18.acacia' as any });
@@ -177,9 +187,10 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     ...(isFounding
       ? { discounts: [{ promotion_code: FOUNDING_PROMO_CODE_ID }] }
       : { subscription_data: { metadata: { supabase_user_id: user.id, tier } } }),
-    success_url: `${appUrl()}/checkout/success?session_id={CHECKOUT_SESSION_ID}`,
-    cancel_url: `${appUrl()}/pricing`,
+    success_url: `${appUrl()}/checkout/success?${fromApp ? 'from=app&' : ''}session_id={CHECKOUT_SESSION_ID}`,
+    cancel_url: fromApp ? `${appUrl()}/checkout/success?from=app&cancelled=1` : `${appUrl()}/pricing`,
   });
 
+  if (!session.url) return json(res, { error: 'Checkout failed' }, 500);
   return json(res, { url: session.url });
 }

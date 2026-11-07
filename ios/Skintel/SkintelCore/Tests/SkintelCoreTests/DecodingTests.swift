@@ -169,3 +169,12 @@ private func decode<T: Decodable>(_ t: T.Type, _ json: String) throws -> T {
     #expect(j["notes"] == nil)
     #expect(j["category"] == nil)
 }
+
+@Test func webCheckoutRequestAndResponseMatchTheServer() throws {
+    let body = try JSONEncoder().encode(WebCheckoutRequest(plan: WebCheckoutPlan.proYearly.rawValue, from: "app"))
+    let dict = try #require(JSONSerialization.jsonObject(with: body) as? [String: String])
+    #expect(dict == ["plan": "pro_yearly", "from": "app"])
+    let r = try JSONCoding.decode(WebCheckoutResponse.self, from: Data(#"{"url":"https://checkout.stripe.com/c/pay/cs_test_1"}"#.utf8))
+    #expect(r.url.host() == "checkout.stripe.com")
+    #expect(WebCheckoutPlan.proMonthly.usdPrice == Decimal(string: "8.99"))
+}

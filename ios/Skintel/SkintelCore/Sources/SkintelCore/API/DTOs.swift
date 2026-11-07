@@ -274,3 +274,29 @@ public struct AppleVerifyRequest: Encodable, Sendable {
 public struct AppleVerifyResponse: Codable, Sendable {
     public var subscription: Subscription
 }
+
+// MARK: Web checkout (iOS paywall "Web" option, US storefront only)
+
+/// A Skintel+ plan bought on skinstel.com from the app. `usdPrice` must match the Stripe prices
+/// behind `VITE_STRIPE_PRICE_PRO` / `VITE_STRIPE_PRICE_PRO_YEARLY` (src/pages/Pricing.tsx shows the same).
+public enum WebCheckoutPlan: String, Sendable, CaseIterable {
+    case proMonthly = "pro_monthly"
+    case proYearly = "pro_yearly"
+
+    public var usdPrice: Decimal {
+        switch self {
+        case .proMonthly: Decimal(string: "8.99")!
+        case .proYearly: Decimal(79)
+        }
+    }
+}
+
+public struct WebCheckoutRequest: Encodable, Sendable {
+    public var plan: String
+    public var from: String
+    public init(plan: String, from: String) { self.plan = plan; self.from = from }
+}
+
+public struct WebCheckoutResponse: Decodable, Sendable {
+    public var url: URL
+}

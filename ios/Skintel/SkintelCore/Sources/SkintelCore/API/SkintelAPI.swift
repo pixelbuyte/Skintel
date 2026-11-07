@@ -145,6 +145,15 @@ public struct SkintelAPI: Sendable {
                        body: AppleVerifyRequest(signedTransaction: signedTransaction)).subscription
     }
 
+    // MARK: Web checkout
+
+    /// The paywall's "Web" option: a Stripe Checkout page for this signed-in account, opened in
+    /// Safari. The webhook then grants Skintel+ to the same user id, so nothing is claimed here.
+    public func webCheckoutURL(_ plan: WebCheckoutPlan) async throws -> URL {
+        try await post(WebCheckoutResponse.self, "stripe-checkout",
+                       body: WebCheckoutRequest(plan: plan.rawValue, from: "app")).url
+    }
+
     // MARK: Internals
 
     private func headers() async throws -> [String: String] {
