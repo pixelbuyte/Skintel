@@ -269,8 +269,7 @@ struct CameraStepView: View {
 /// Skintel+ yet. What it offers comes from StoreKit, never assumed:
 /// 1. a free trial, only when the yearly or monthly plan has an introductory free-trial
 ///    offer AND this Apple ID can still take it;
-/// 2. otherwise the founding deal, while it is on sale;
-/// 3. otherwise the regular plan.
+/// 2. otherwise the regular plan (the founding deal is no longer offered).
 /// Prices are StoreKit's `displayPrice`. Buying goes through `SubscriptionService.purchase`,
 /// and Skintel+ only unlocks once the server confirms it. "Continue with Free" is always on
 /// screen.
@@ -323,9 +322,7 @@ struct OnboardingOfferView: View {
             loaded = false
             let s = env.subscriptionService
             s.startObserving()
-            async let p: () = s.loadProducts()
-            async let f: () = env.subscription.loadFoundingSeats()
-            _ = await (p, f)
+            await s.loadProducts()
             offer = await resolveOffer(s)
             loaded = true
         }
@@ -334,12 +331,11 @@ struct OnboardingOfferView: View {
         }
     }
 
-    /// Trial first (yearly, then monthly), then the founding deal, then the plain plan.
+    /// Trial first (yearly, then monthly), then the plain plan.
     private func resolveOffer(_ s: SubscriptionService) async -> Offer? {
         for id in [SubscriptionService.ProductID.proYearly, .proMonthly] {
             if let trial = await s.eligibleFreeTrial(id) { return .trial(id, trial) }
         }
-        if s.product(.founding) != nil, (env.subscription.foundingSeatsRemaining ?? 1) > 0 { return .founding }
         if s.product(.proYearly) != nil { return .plan(.proYearly) }
         if s.product(.proMonthly) != nil { return .plan(.proMonthly) }
         return nil

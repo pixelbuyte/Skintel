@@ -2,8 +2,8 @@ import StoreKit
 import SwiftUI
 import SkintelCore
 
-/// Design §16 with the shipped offer: the founding deal ($20 once, three months, 500
-/// seats) featured while seats remain, monthly/yearly underneath. Every price shown comes
+/// Design §16: Skintel+ monthly and yearly (the founding deal is no longer offered; existing
+/// founding members keep it). Every price shown comes
 /// from StoreKit's localized `displayPrice`. Opened from a wall, it leads with every
 /// Skintel+ feature (the one the person came from first, its demo playing), then the
 /// plans; the purchase button stays pinned so it never scrolls away.
@@ -16,11 +16,29 @@ struct PaywallView: View {
     @Environment(AppEnvironment.self) private var env
     @Environment(\.dismiss) private var dismiss
     @State private var service: SubscriptionService?
-    @State private var selected: SubscriptionService.ProductID = .founding
+    @State private var selected: SubscriptionService.ProductID = .proYearly
     /// Free trials StoreKit reports on the monthly and yearly plans for this Apple ID.
     @State private var trials: [SubscriptionService.ProductID: SubscriptionService.FreeTrial] = [:]
+    /// Where the plan is paid: the App Store, or skinstel.com (US storefront only, where Apple
+    /// allows a link out to the web). The web price is lower because no store fee applies.
+    @State private var store: Store = .appStore
+    @State private var webAllowed = false
+    /// The live Stripe prices for the web plans; the Web option only shows once they load.
+    @State private var webPrices: WebPrices?
+    @State private var webBusy = false
+    @State private var webError: String?
+    /// Set once Safari opens checkout, so coming back to the app re-reads the subscription.
+    @State private var awaitingWeb = false
+    @Environment(\.openURL) private var openURL
+    @Environment(\.scenePhase) private var scenePhase
+
+    private enum Store: String, CaseIterable, Identifiable {
+        case web = "Web", appStore = "App Store"
+        var id: String { rawValue }
+    }
 
     private var isPro: Bool { env.subscription.entitlement.isPro }
+    private var onWeb: Bool { store == .web && webAllowed }
 
     var body: some View {
         NavigationStack {
@@ -44,7 +62,7 @@ struct PaywallView: View {
             }
             .skPageBackground()
             .safeAreaInset(edge: .bottom, spacing: 0) {
-                if !isPro, let service, !service.products.isEmpty {
+                if !isPro, let service, onWeb || !service.products.isEmpty {
                     cta(service)
                         .skPagePadding()
                         .padding(.top, SKSpace.md)
@@ -57,6 +75,9 @@ struct PaywallView: View {
                 }
             }
             .toolbar {
+                if webAllowed && !isPro {
+                    ToolbarItem(placement: .topBarLeading) { storeMenu }
+                }
                 ToolbarItem(placement: .topBarTrailing) {
                     Button { dismiss() } label: { Image(systemName: "xmark").font(.system(size: 15, weight: .semibold)) }
                         .accessibilityLabel("Close")
@@ -69,10 +90,19 @@ struct PaywallView: View {
             let s = env.subscriptionService
             service = s
             s.startObserving()
-            async let p: () = s.loadProducts()
-            async let f: () = env.subscription.loadFoundingSeats()
-            _ = await (p, f)
-            if (env.subscription.foundingSeatsRemaining ?? 1) <= 0 || s.product(.founding) == nil { selected = .proYearly }
+            await s.loadProducts()
+            // Apple lets apps link to web purchases on the US storefront only. The web prices
+            // come from Stripe, and Web is picked first only when it is actually cheaper.
+            guard await Storefront.current?.countryCode == "USA",
+                  let prices = try? await env.api.webPrices(),
+                  prices.proMonthly.currency == "USD", prices.proYearly.currency == "USD" else { return }
+            webPrices = prices
+            webAllowed = true
+            if webIsCheaper(s, selected) { store = .web }
+        }
+        .onChange(of: scenePhase) { _, phase in
+            guard phase == .active, awaitingWeb else { return }
+            Task { await refreshAfterWeb() }
         }
         // Re-checked whenever the plans (re)load, so "Try Again" picks a trial up too.
         .task(id: service?.products.count ?? 0) {
@@ -102,12 +132,9 @@ struct PaywallView: View {
         .padding(.top, SKSpace.md)
     }
 
-    /// Only promise the founding deal when it is actually on sale: the product loaded from
-    /// App Store Connect and seats remain. Otherwise the plans below would contradict it.
     private var headline: String {
-        let foundingOnSale = service?.product(.founding) != nil && (env.subscription.foundingSeatsRemaining ?? 1) > 0
         if reason == .faceScan { return faceMapReady ? "Your face map is ready." : "See your skin, zone by zone." }
-        return foundingOnSale ? "The founding member deal." : "Everything, for your skin."
+        return "Everything, for your skin."
     }
 
     private var reasonLine: String {
@@ -127,7 +154,9 @@ struct PaywallView: View {
 
     private func plans(_ s: SubscriptionService) -> some View {
         VStack(spacing: SKSpace.md) {
-            if s.products.isEmpty, let msg = emptyProductsMessage(s.phase) {
+            if onWeb {
+                webPlans(s)
+            } else if s.products.isEmpty, let msg = emptyProductsMessage(s.phase) {
                 SKCard {
                     VStack(alignment: .leading, spacing: SKSpace.md) {
                         SKInlineError(message: msg)
@@ -144,14 +173,102 @@ struct PaywallView: View {
             } else if s.products.isEmpty {
                 SKSkeleton(height: 180); SKSkeleton(height: 72); SKSkeleton(height: 72)
             } else {
-                let seats = env.subscription.foundingSeatsRemaining
-                if let founding = s.product(.founding), (seats ?? 1) > 0 {
-                    foundingCard(founding, seats: seats)
+                if let monthly = s.product(.proMonthly) {
+                    planRow(.proMonthly, price: monthly.displayPrice, period: s.periodText(.proMonthly), caption: "Cancel anytime")
                 }
-                if let monthly = s.product(.proMonthly) { planRow(.proMonthly, product: monthly, caption: "Cancel anytime") }
-                if let yearly = s.product(.proYearly) { planRow(.proYearly, product: yearly, caption: yearlyCaption(s), badge: yearlySavingBadge(s)) }
+                if let yearly = s.product(.proYearly) {
+                    planRow(.proYearly, price: yearly.displayPrice, period: s.periodText(.proYearly), caption: yearlyCaption(s), badge: yearlySavingBadge(s))
+                }
             }
         }
+    }
+
+    // MARK: Web (skinstel.com)
+
+    private static let usd = Decimal.FormatStyle.Currency(code: "USD").precision(.fractionLength(0...2))
+
+    private func webPlan(_ id: SubscriptionService.ProductID) -> WebCheckoutPlan {
+        id == .proMonthly ? .proMonthly : .proYearly
+    }
+
+    private func webAmount(_ id: SubscriptionService.ProductID) -> Decimal {
+        webPrices?.price(webPlan(id)).amount ?? 0
+    }
+
+    private func webPrice(_ id: SubscriptionService.ProductID) -> String {
+        webAmount(id).formatted(Self.usd)
+    }
+
+    /// True when the App Store charges dollars for this plan and more than the web does.
+    private func webIsCheaper(_ s: SubscriptionService, _ id: SubscriptionService.ProductID) -> Bool {
+        guard webPrices != nil, let p = s.product(id), p.priceFormatStyle.currencyCode == "USD" else { return false }
+        return p.price > webAmount(id)
+    }
+
+    /// The App Store price for the same plan, struck through beside the web price, when the
+    /// storefront also charges in dollars and the web price really is lower.
+    private func appStorePrice(_ s: SubscriptionService, _ id: SubscriptionService.ProductID) -> String? {
+        guard webIsCheaper(s, id), let p = s.product(id) else { return nil }
+        return p.displayPrice
+    }
+
+    private func webPlans(_ s: SubscriptionService) -> some View {
+        let monthly = webAmount(.proMonthly), yearly = webAmount(.proYearly)
+        let percent = monthly > 0 ? Int((NSDecimalNumber(decimal: (monthly * 12 - yearly) / (monthly * 12)).doubleValue * 100).rounded(.down)) : 0
+        return VStack(spacing: SKSpace.md) {
+            planRow(.proMonthly, price: webPrice(.proMonthly), period: "/month", caption: "Cancel anytime",
+                    was: appStorePrice(s, .proMonthly), showsTrial: false)
+            planRow(.proYearly, price: webPrice(.proYearly), period: "/year",
+                    caption: "Billed annually · \((yearly / 12).formatted(Self.usd))/mo",
+                    badge: percent > 0 ? "SAVE \(percent)%" : nil, was: appStorePrice(s, .proYearly), showsTrial: false)
+        }
+    }
+
+    private var storeMenu: some View {
+        Menu {
+            Picker("Pay with", selection: $store) {
+                ForEach(Store.allCases) { Text($0.rawValue).tag($0) }
+            }
+        } label: {
+            HStack(spacing: 6) {
+                Text(store.rawValue).font(SKFont.sans(15, weight: .semibold, relativeTo: .body))
+                Image(systemName: "chevron.up.chevron.down").font(.system(size: 11, weight: .semibold))
+            }
+            .foregroundStyle(SKColor.ink)
+            .padding(.horizontal, 14).padding(.vertical, 8)
+            .background(SKColor.cream, in: Capsule())
+            .overlay(Capsule().stroke(SKColor.line, lineWidth: 1))
+        }
+        .onChange(of: store) { _, new in
+            Haptics.selection()
+            webError = nil
+        }
+        .accessibilityLabel("Pay with \(store.rawValue)")
+    }
+
+    private func openWebCheckout() async {
+        webBusy = true
+        webError = nil
+        defer { webBusy = false }
+        do {
+            let url = try await env.api.webCheckoutURL(webPlan(selected))
+            awaitingWeb = true
+            openURL(url)
+        } catch let e as APIError {
+            webError = e.userMessage
+        } catch {
+            webError = "Couldn't open checkout. Try again."
+        }
+    }
+
+    /// Back from Safari: the Stripe webhook can take a few seconds, so ask a few times.
+    private func refreshAfterWeb() async {
+        for _ in 0..<5 {
+            await env.subscription.load()
+            if isPro { break }
+            try? await Task.sleep(for: .seconds(2))
+        }
+        awaitingWeb = false
     }
 
     /// "Billed annually · $6.67/mo": the yearly price spread over twelve months, in the
@@ -170,32 +287,8 @@ struct PaywallView: View {
         return percent > 0 ? "SAVE \(percent)%" : nil
     }
 
-    private func foundingCard(_ p: StoreKit.Product, seats: Int?) -> some View {
-        let taken = Entitlement.foundingSeatsTotal - (seats ?? Entitlement.foundingSeatsTotal)
-        return Button { selected = .founding; Haptics.selection() } label: {
-            VStack(spacing: SKSpace.md) {
-                HStack(alignment: .firstTextBaseline, spacing: 8) {
-                    Text(p.displayPrice).font(SKFont.price).foregroundStyle(SKColor.ink)
-                    Text("once").font(SKFont.sans(18, relativeTo: .title3)).foregroundStyle(SKColor.muted)
-                }
-                Text("Three months of Skintel+ · nothing renews").font(SKFont.sans(16, weight: .semibold, relativeTo: .body)).foregroundStyle(SKColor.primary)
-                SKProgressBar(fraction: Double(taken) / Double(Entitlement.foundingSeatsTotal), height: 8)
-                Text(seats.map { "\(taken) of \(Entitlement.foundingSeatsTotal) founding spots taken · \($0) left" } ?? "500 founding spots")
-                    .font(SKFont.dataSmall).foregroundStyle(SKColor.muted)
-            }
-            .padding(SKSpace.xl)
-            .frame(maxWidth: .infinity)
-            .background(LinearGradient(colors: [SKColor.cream, SKColor.blush], startPoint: .top, endPoint: .bottom),
-                        in: RoundedRectangle(cornerRadius: SKRadius.card, style: .continuous))
-            .overlay(RoundedRectangle(cornerRadius: SKRadius.card, style: .continuous)
-                .stroke(selected == .founding ? SKColor.primary : SKColor.line, lineWidth: selected == .founding ? 1.5 : 1))
-            .skCardShadow()
-        }
-        .buttonStyle(SKPressStyle())
-        .accessibilityAddTraits(selected == .founding ? [.isButton, .isSelected] : .isButton)
-    }
-
-    private func planRow(_ id: SubscriptionService.ProductID, product: StoreKit.Product, caption: String, badge: String? = nil) -> some View {
+    private func planRow(_ id: SubscriptionService.ProductID, price: String, period: String, caption: String,
+                         badge: String? = nil, was: String? = nil, showsTrial: Bool = true) -> some View {
         Button { selected = id; Haptics.selection() } label: {
             HStack(spacing: SKSpace.md) {
                 Circle().stroke(selected == id ? SKColor.primary : SKColor.line, lineWidth: 1.5).frame(width: 22, height: 22)
@@ -203,7 +296,7 @@ struct PaywallView: View {
                 VStack(alignment: .leading, spacing: 2) {
                     Text(id == .proMonthly ? "Skintel+ Monthly" : "Skintel+ Yearly").font(SKFont.cardTitle).foregroundStyle(SKColor.ink)
                     Text(caption).font(SKFont.caption).foregroundStyle(SKColor.muted)
-                    if let trial = trials[id] {
+                    if showsTrial, let trial = trials[id] {
                         HStack(spacing: 6) {
                             Text("\(trial.length) free")
                                 .font(SKFont.sans(12, weight: .semibold, relativeTo: .caption))
@@ -211,7 +304,7 @@ struct PaywallView: View {
                                 .padding(.horizontal, 8)
                                 .padding(.vertical, 3)
                                 .background(SKColor.primary.opacity(0.16), in: Capsule())
-                            Text("then \(product.displayPrice)\(service?.periodText(id) ?? "")")
+                            Text("then \(price)\(period)")
                                 .font(SKFont.caption)
                                 .foregroundStyle(SKColor.muted)
                         }
@@ -219,8 +312,13 @@ struct PaywallView: View {
                     }
                 }
                 Spacer()
-                (Text(product.displayPrice).font(SKFont.sans(17, weight: .semibold)) + Text(" \(service?.periodText(id) ?? "")").font(SKFont.secondary))
-                    .foregroundStyle(SKColor.ink)
+                VStack(alignment: .trailing, spacing: 2) {
+                    (Text(price).font(SKFont.sans(17, weight: .semibold)) + Text(" \(period)").font(SKFont.secondary))
+                        .foregroundStyle(SKColor.ink)
+                    if let was {
+                        Text("App Store \(was)").font(SKFont.caption).strikethrough().foregroundStyle(SKColor.muted)
+                    }
+                }
             }
             .padding(SKSpace.lg)
             .background(SKColor.cream, in: RoundedRectangle(cornerRadius: SKRadius.card, style: .continuous))
@@ -279,7 +377,23 @@ struct PaywallView: View {
         .accessibilityElement(children: .combine)
     }
 
+    @ViewBuilder
     private func cta(_ s: SubscriptionService) -> some View {
+        if onWeb { webCTA } else { storeCTA(s) }
+    }
+
+    private var webCTA: some View {
+        VStack(spacing: SKSpace.sm) {
+            if let webError { SKInlineError(message: webError) }
+            SKButton(title: "Continue on web · \(webPrice(selected))\(selected == .proMonthly ? "/mo" : "/yr")", kind: .dark, isLoading: webBusy) {
+                Task { await openWebCheckout() }
+            }
+            Text("Opens skinstel.com in Safari to pay by card. Skintel+ unlocks on this account when you come back. Billed, renewed and cancelled on skinstel.com, not the App Store.")
+                .font(SKFont.caption).foregroundStyle(SKColor.muted).multilineTextAlignment(.center)
+        }
+    }
+
+    private func storeCTA(_ s: SubscriptionService) -> some View {
         VStack(spacing: SKSpace.sm) {
             if let msg = s.lastMessage { Text(msg).font(SKFont.secondary).foregroundStyle(SKColor.cautionFg).multilineTextAlignment(.center) }
             if case .failed(let msg) = s.phase, !s.products.isEmpty { SKInlineError(message: msg) }

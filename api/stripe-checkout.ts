@@ -93,8 +93,23 @@ async function faceScanCheckout(res: VercelResponse, email: string, ref: string)
   return json(res, { url: session.url });
 }
 
+/**
+ * The live Stripe prices behind the iOS paywall's "Web" option, so the app never shows a
+ * hard-coded web price. Public: the same numbers are on the Pricing page.
+ */
+async function appWebPrices(res: VercelResponse) {
+  const ids = { pro_monthly: process.env.VITE_STRIPE_PRICE_PRO, pro_yearly: process.env.VITE_STRIPE_PRICE_PRO_YEARLY };
+  if (!ids.pro_monthly || !ids.pro_yearly) return json(res, { error: 'Not configured' }, 500);
+  const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!);
+  const [m, y] = await Promise.all([stripe.prices.retrieve(ids.pro_monthly), stripe.prices.retrieve(ids.pro_yearly)]);
+  const row = (p: Stripe.Price) => ({ amount: (p.unit_amount ?? 0) / 100, currency: p.currency.toUpperCase() });
+  res.setHeader('Cache-Control', 'public, s-maxage=300');
+  return json(res, { pro_monthly: row(m), pro_yearly: row(y) });
+}
+
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (req.query.offer === 'launch') return launchCheckout(req, res);
+  if (req.query.offer === 'app-prices') return appWebPrices(res);
   const isGuestFounding = req.query.offer === 'founding';
 
   // Guest founding checkout shares this endpoint so the Hobby deployment stays
@@ -144,8 +159,18 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   const body = (typeof req.body === 'string' ? JSON.parse(req.body) : req.body) as {
     priceId?: string;
     tier?: 'pro' | 'founding';
+    plan?: string;
+    from?: string;
   };
-  const { priceId, tier } = body ?? {};
+  // The iOS paywall's "Web" option names a plan instead of a price id (it can't read the
+  // web build's env), and comes back to the app after paying.
+  const fromApp = body?.from === 'app';
+  const appPlanPrice =
+    body?.plan === 'pro_monthly' ? process.env.VITE_STRIPE_PRICE_PRO :
+    body?.plan === 'pro_yearly' ? process.env.VITE_STRIPE_PRICE_PRO_YEARLY : undefined;
+  if (body?.plan && !appPlanPrice) return json(res, { error: 'Unknown plan' }, 400);
+  const priceId = appPlanPrice ?? body?.priceId;
+  const tier = appPlanPrice ? 'pro' : body?.tier;
   if (!priceId || !tier) return json(res, { error: 'Missing priceId or tier' }, 400);
 
   const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, { apiVersion: '2024-12-18.acacia' as any });
@@ -177,9 +202,10 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     ...(isFounding
       ? { discounts: [{ promotion_code: FOUNDING_PROMO_CODE_ID }] }
       : { subscription_data: { metadata: { supabase_user_id: user.id, tier } } }),
-    success_url: `${appUrl()}/checkout/success?session_id={CHECKOUT_SESSION_ID}`,
-    cancel_url: `${appUrl()}/pricing`,
+    success_url: `${appUrl()}/checkout/success?${fromApp ? 'from=app&' : ''}session_id={CHECKOUT_SESSION_ID}`,
+    cancel_url: fromApp ? `${appUrl()}/checkout/success?from=app&cancelled=1` : `${appUrl()}/pricing`,
   });
 
+  if (!session.url) return json(res, { error: 'Checkout failed' }, 500);
   return json(res, { url: session.url });
 }
