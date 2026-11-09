@@ -33,12 +33,16 @@ struct VerdictView: View {
                             Text("\(parsed.count) ingredients · \(scan.source ?? "scan")").font(SKFont.dataSmall).foregroundStyle(SKColor.muted)
                         }
                     }
+                    .skEntrance(0)
                 }
 
                 VerdictCard(result: scan.result, goodCount: buckets.good.count)
+                    .skEntrance(1)
 
                 Text("Why this verdict").font(SKFont.section).foregroundStyle(SKColor.ink).padding(.top, SKSpace.sm)
+                    .skEntrance(2)
                 FlagList(result: scan.result, goodRows: Array(buckets.good.prefix(3)), culpritRows: buckets.watchOut)
+                    .skEntrance(3)
 
                 if let notes = scan.result.notes, !notes.isEmpty {
                     Text(notes).font(SKFont.secondary).foregroundStyle(SKColor.muted)
@@ -46,8 +50,10 @@ struct VerdictView: View {
 
                 actions(scan)
                     .padding(.top, SKSpace.sm)
+                    .skEntrance(4)
 
                 AskAboutProductButton(scan: scan)
+                    .skEntrance(5)
             }
             .skPagePadding()
             .padding(.vertical, SKSpace.md)
@@ -117,6 +123,8 @@ struct VerdictView: View {
 struct VerdictCard: View {
     let result: ScanResult
     let goodCount: Int
+    /// Bumped when the ring's count lands: a ripple spreads across the card from the ring.
+    @State private var settleKick = 0
 
     var body: some View {
         let tone = result.verdict.tone
@@ -128,7 +136,7 @@ struct VerdictCard: View {
                     .font(SKFont.dataSmall).foregroundStyle(SKColor.muted)
             }
             HStack(alignment: .center, spacing: SKSpace.xl) {
-                SKScoreRing(score: result.score, size: 118, settleHaptic: true)
+                SKScoreRing(score: result.score, size: 118, settleHaptic: true, onSettle: { settleKick += 1 })
                 VStack(spacing: 0) {
                     countRow("Good for you", goodCount, SKColor.goodFg)
                     countRow("Watch", result.mediumCount + result.lowCount, SKColor.cautionFg)
@@ -145,6 +153,8 @@ struct VerdictCard: View {
             LinearGradient(colors: [tone.bg, SKColor.cream], startPoint: .topLeading, endPoint: .bottomTrailing),
             in: RoundedRectangle(cornerRadius: SKRadius.card, style: .continuous))
         .overlay(RoundedRectangle(cornerRadius: SKRadius.card, style: .continuous).stroke(tone.fg.opacity(0.22)))
+        // The ring's centre: card padding + chip row + spacing + half the ring.
+        .skRipple(trigger: settleKick, origin: CGPoint(x: SKSpace.lg + 59, y: SKSpace.lg + 26 + SKSpace.lg + 59))
         .skCardShadow()
     }
 

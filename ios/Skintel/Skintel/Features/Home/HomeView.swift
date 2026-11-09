@@ -21,6 +21,9 @@ struct HomeView: View {
     @AppStorage(CheckInPrompt.lastKey) private var lastPrompt = ""
     @Environment(\.scenePhase) private var scenePhase
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    /// Skinstel 3.0: picking a mood sends a water ripple across the skin-log card from the tap.
+    @State private var moodKick = 0
+    @State private var moodTap = CGPoint(x: 90, y: 110)
 
     var body: some View {
         NavigationStack(path: $path) {
@@ -145,7 +148,10 @@ struct HomeView: View {
             } else {
                 todayCard.skEntrance(1).skScrollDepth()
                 routineCard.skEntrance(2).skScrollDepth()
-                checkInCard.skEntrance(3).skScrollDepth()
+                checkInCard
+                    .simultaneousGesture(SpatialTapGesture().onEnded { moodTap = $0.location })
+                    .skRipple(trigger: moodKick, origin: moodTap)
+                    .skEntrance(3).skScrollDepth()
                 askCard.skEntrance(4).skScrollDepth()
                 suspectCard.skEntrance(5).skScrollDepth()
                 recommendRow.skEntrance(6).skScrollDepth()
@@ -321,7 +327,10 @@ struct HomeView: View {
                         FlowLayout(spacing: SKSpace.sm) {
                             ForEach(JournalCondition.allCases, id: \.self) { c in
                                 MoodChoiceButton(condition: c, selected: today?.condition == c,
-                                                 dimmed: today?.condition != nil && today?.condition != c) { quickSave(c) }
+                                                 dimmed: today?.condition != nil && today?.condition != c) {
+                                    moodKick += 1
+                                    quickSave(c)
+                                }
                             }
                         }
                         HStack(spacing: SKSpace.sm) {

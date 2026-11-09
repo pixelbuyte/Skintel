@@ -9,6 +9,8 @@ struct SKScoreRing: View {
     var caption: String = "match"
     /// A haptic when the count lands. Off where several rings reveal at once (Compare).
     var settleHaptic = false
+    /// Called once when the count lands (the verdict card sends a ripple from the ring).
+    var onSettle: (() -> Void)? = nil
 
     @State private var progress: Double = 0
     @State private var shown = 0
@@ -77,6 +79,7 @@ struct SKScoreRing: View {
         withAnimation(.spring(response: 0.35, dampingFraction: 0.5)) { settled = true }
         withAnimation(.easeOut(duration: 0.18)) { halo = 0.55 }
         if settleHaptic { Haptics.medium() }
+        onSettle?()
         try? await Task.sleep(for: .milliseconds(220))
         if Task.isCancelled { return }
         withAnimation(.easeOut(duration: 0.9)) { halo = 0 }

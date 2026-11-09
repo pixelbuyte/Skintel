@@ -20,6 +20,7 @@ struct SKBloomIntro: View {
     @State private var rings = false
     @State private var letters = 0
     @State private var iris: CGFloat = 0
+    @State private var landKick = 0
 
     private static let word = Array("Skinstel")
     private static let dropTop = Color(hex: 0xC97A66)
@@ -57,6 +58,8 @@ struct SKBloomIntro: View {
                 }
                 .offset(y: 86)
             }
+            .skRipple(trigger: landKick, origin: CGPoint(x: geo.size.width / 2, y: geo.size.height / 2 + 24),
+                      amplitude: 10, speed: 700, decay: 3.5, duration: 1.6)
             .mask {
                 Rectangle()
                     .overlay {
@@ -80,6 +83,7 @@ struct SKBloomIntro: View {
         withAnimation(.timingCurve(0.55, 0, 1, 0.45, duration: 0.42)) { dropY = 0 }
         try? await Task.sleep(for: .seconds(0.42))
         Haptics.tap()
+        landKick += 1
         rings = true
         withAnimation(.spring(response: 0.16, dampingFraction: 0.5)) { squash = 0.7 }
         try? await Task.sleep(for: .seconds(0.12))
@@ -135,6 +139,41 @@ private struct SKScrollDepth: ViewModifier {
     }
 }
 
+/// Water: a ripple travels out from `origin` across the view each time `trigger` changes
+/// (`SKRipple.metal`). Only for pure SwiftUI content: a layer effect can't draw UIKit-backed
+/// views (text fields, spinners, system lists). Off under Reduce Motion.
+private struct SKRipple: ViewModifier {
+    let trigger: Int
+    let origin: CGPoint
+    var amplitude: Double = 7
+    var speed: Double = 800
+    var decay: Double = 5
+    var duration: TimeInterval = 1.4
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @State private var start: Date? = nil
+    @State private var run = 0
+
+    func body(content: Content) -> some View {
+        TimelineView(.animation(paused: start == nil)) { context in
+            let elapsed = start.map { context.date.timeIntervalSince($0) } ?? 0
+            let shader = ShaderLibrary.skRipple(
+                .float2(origin), .float(elapsed), .float(amplitude), .float(15), .float(decay), .float(speed))
+            content.layerEffect(shader, maxSampleOffset: CGSize(width: amplitude, height: amplitude),
+                                isEnabled: start != nil && elapsed < duration)
+        }
+        .onChange(of: trigger) { _, _ in
+            guard !reduceMotion else { return }
+            run += 1
+            let id = run
+            start = Date()
+            Task {
+                try? await Task.sleep(for: .seconds(duration))
+                if run == id { start = nil }
+            }
+        }
+    }
+}
+
 /// First appearance: pop up from small, `index` steps after the first (left to right in a row).
 private struct SKPopIn: ViewModifier {
     let index: Int
@@ -156,6 +195,13 @@ private struct SKPopIn: ViewModifier {
 }
 
 extension View {
+    /// A water ripple from `origin` (this view's own coordinates) each time `trigger` changes.
+    func skRipple(trigger: Int, origin: CGPoint, amplitude: Double = 7, speed: Double = 800,
+                  decay: Double = 5, duration: TimeInterval = 1.4) -> some View {
+        modifier(SKRipple(trigger: trigger, origin: origin, amplitude: amplitude, speed: speed,
+                          decay: decay, duration: duration))
+    }
+
     /// Pop up from small the first time this appears; `index` staggers a row left to right.
     func skPopIn(_ index: Int) -> some View { modifier(SKPopIn(index: index)) }
 

@@ -36,7 +36,7 @@ struct ProductsListView: View {
                             SampleShelf(onAdd: { addTapped() }) { withAnimation(SKAnimation.ios(0.3)) { samplesHidden = true } }
                         }
                     } else {
-                        ForEach(products) { p in
+                        ForEach(Array(products.enumerated()), id: \.element.id) { i, p in
                             NavigationLink(value: AppDestination.productDetail(id: p.id)) {
                                 ProductRow(product: p, score: env.scans.score(for: p.id))
                             }
@@ -45,6 +45,8 @@ struct ProductsListView: View {
                                 NavigationLink(value: AppDestination.productForm(.edit(productID: p.id))) { Label("Edit", systemImage: "pencil") }
                                 Button(role: .destructive) { pendingDelete = p } label: { Label("Delete", systemImage: "trash") }
                             }
+                            .skEntrance(min(i, 8))
+                            .skScrollDepth()
                         }
                     }
                 }
