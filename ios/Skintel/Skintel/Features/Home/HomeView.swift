@@ -25,12 +25,17 @@ struct HomeView: View {
         NavigationStack(path: $path) {
             ScrollView {
                 VStack(alignment: .leading, spacing: SKSpace.lg) {
-                    header
+                    header.skEntrance(0)
                     content
                 }
                 .skPagePadding()
                 .padding(.top, SKSpace.sm)
                 .padding(.bottom, SKSpace.xxl)
+                .background(alignment: .top) {
+                    SKAurora()
+                        .frame(height: 420)
+                        .padding(.top, -200)
+                }
             }
             .refreshable {
                 await env.products.load()
@@ -135,14 +140,14 @@ struct HomeView: View {
             SKErrorState(error: e) { Task { await env.products.load() } }
         case .loaded(let products):
             if products.isEmpty {
-                newUserCard
+                newUserCard.skEntrance(1)
             } else {
-                todayCard
-                routineCard
-                checkInCard
-                askCard
-                suspectCard
-                recommendRow
+                todayCard.skEntrance(1).skScrollDepth()
+                routineCard.skEntrance(2).skScrollDepth()
+                checkInCard.skEntrance(3).skScrollDepth()
+                askCard.skEntrance(4).skScrollDepth()
+                suspectCard.skEntrance(5).skScrollDepth()
+                recommendRow.skEntrance(6).skScrollDepth()
             }
         }
     }
