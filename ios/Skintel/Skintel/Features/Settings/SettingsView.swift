@@ -389,6 +389,7 @@ struct SettingsView: View {
             .background(LinearGradient(colors: [Color(hex: 0xB2634F), SKColor.primary, SKColor.primaryPressed],
                                        startPoint: .topLeading, endPoint: .bottomTrailing),
                         in: RoundedRectangle(cornerRadius: 18, style: .continuous))
+            .skHolo(cornerRadius: 18)
             .skPrimaryGlow(strength: 0.25)
         }
     }
