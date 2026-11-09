@@ -1,0 +1,347 @@
+<title>Skinstel 3.0</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600;9..40,700&family=Instrument+Serif:ital@0;1&family=JetBrains+Mono:wght@400;700&display=swap">
+<style>
+/* Layout: a live phone on a warm table (left, sticky) beside the change log (right); stacks on phones.
+   Skinstel's own system: cream, clay, ink; Instrument Serif / DM Sans / JetBrains Mono. The app is light-only, so the page is too. */
+:root{
+  --bg:#F4EDE0; --table:#E9DFCE; --cream:#FFFEFA; --clay:#A35848; --clay-deep:#8E4538; --drop-top:#C97A66;
+  --ink:#1A1814; --muted:#6B6760; --line:#EAE6DF; --blush:rgba(163,88,72,.08);
+  --good-bg:#EEF2DD; --good-fg:#5C7A4F; --chip:#EFEAE2;
+  --serif:"Instrument Serif",Georgia,serif; --sans:"DM Sans",system-ui,sans-serif; --mono:"JetBrains Mono",ui-monospace,monospace;
+  --k:1; color-scheme:light;
+}
+*{box-sizing:border-box;margin:0}
+html{background:var(--bg)}
+body{background:var(--bg);color:var(--ink);font-family:var(--sans);-webkit-font-smoothing:antialiased;
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:28px 56px}
+.wrap{max-width:1180px;margin:0 auto;display:grid;grid-template-columns:minmax(0,430px) minmax(0,1fr);gap:56px;align-items:start}
+@media (max-width:900px){.wrap{grid-template-columns:minmax(0,1fr);gap:36px}}
+.stage{position:sticky;top:20px;display:flex;flex-direction:column;align-items:center;gap:16px}
+@media (max-width:900px){.stage{position:static}}
+.table{width:100%;background:radial-gradient(120% 80% at 50% 0%,#F1E7D7 0%,var(--table) 70%);border-radius:32px;padding:28px 0 30px;display:flex;justify-content:center}
+
+/* ---------- phone ---------- */
+.phone{width:360px;max-width:calc(100% - 24px);aspect-ratio:360/760;background:#1A1814;border-radius:54px;padding:10px;box-shadow:0 40px 70px -30px rgba(70,40,25,.45),0 2px 0 rgba(255,255,255,.4) inset}
+.screen{position:relative;width:100%;height:100%;border-radius:44px;overflow:hidden;background:var(--bg);container-type:size}
+.island{position:absolute;top:10px;left:50%;transform:translateX(-50%);width:31%;height:30px;border-radius:20px;background:#0c0b0a;z-index:30}
+.sb{position:absolute;top:0;left:0;right:0;height:50px;display:flex;justify-content:space-between;align-items:center;padding:4px 30px 0;font:600 14px var(--sans);color:var(--ink);z-index:25;pointer-events:none}
+.scroller{position:absolute;inset:0;overflow-y:auto;overflow-x:hidden;scrollbar-width:none;padding:58px 18px 110px}
+.scroller::-webkit-scrollbar{display:none}
+.aurora{position:absolute;left:-18px;right:-18px;top:-150px;height:420px;width:calc(100% + 36px);pointer-events:none}
+.content{position:relative;display:flex;flex-direction:column;gap:16px}
+.lbl{font:400 10.5px var(--mono);letter-spacing:1.6px;text-transform:uppercase;color:var(--muted)}
+.greet{font:400 34px/1.04 var(--serif);color:var(--ink);margin-top:6px;letter-spacing:-.2px}
+.chips{display:flex;gap:6px;align-items:center;margin-top:10px;flex-wrap:wrap}
+.chip{font:600 11.5px var(--sans);padding:5px 10px;border-radius:99px;background:var(--chip);color:var(--muted)}
+.chip.good{background:var(--good-bg);color:var(--good-fg)}
+.card{background:var(--cream);border:1px solid var(--line);border-radius:18px;padding:16px;box-shadow:0 1px 2px rgba(26,24,20,.04),0 1px 3px rgba(26,24,20,.06);transform-origin:50% 50%;will-change:transform}
+.row{display:flex;align-items:center;gap:12px}
+.ct{font:600 15.5px var(--sans);color:var(--ink)} .cs{font:400 12px var(--sans);color:var(--muted)}
+.bar{height:6px;border-radius:9px;background:var(--chip);overflow:hidden;margin:10px 0 4px}
+.bar i{display:block;height:100%;width:50%;background:var(--clay);border-radius:9px}
+.item{display:flex;align-items:center;gap:12px;padding:9px 0;border-top:1px solid var(--line)}
+.dot{width:22px;height:22px;border-radius:50%;border:1.5px solid var(--line);display:grid;place-items:center;flex:none;font-size:11px;color:var(--cream)}
+.dot.done{background:var(--good-fg);border-color:var(--good-fg)}
+.moods{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:12px}
+.mood{border:1px solid var(--line);border-radius:14px;padding:10px 4px;text-align:center;font:600 12.5px var(--sans);color:var(--ink);background:var(--bg)}
+.mood b{display:block;width:12px;height:12px;border-radius:50%;margin:0 auto 6px}
+.tile{width:42px;height:42px;border-radius:12px;display:grid;place-items:center;flex:none}
+.tag{font:700 10px var(--mono);letter-spacing:1.2px;text-transform:uppercase;color:var(--clay);background:var(--blush);padding:4px 8px;border-radius:99px}
+
+/* entrance (.skEntrance): rise out of a soft blur, staggered */
+.enter{opacity:0;transform:translateY(28px) scale(.97);filter:blur(10px);transform-origin:50% 0}
+.go .enter{opacity:1;transform:none;filter:blur(0);
+  transition:opacity calc(.55s*var(--k)) cubic-bezier(.23,1,.32,1) calc((80ms + var(--i)*70ms)*var(--k)),
+             transform calc(.7s*var(--k)) cubic-bezier(.34,1.32,.64,1) calc((80ms + var(--i)*70ms)*var(--k)),
+             filter calc(.5s*var(--k)) ease calc((80ms + var(--i)*70ms)*var(--k))}
+
+/* tab bar (springy icons) */
+.tabbar{position:absolute;left:0;right:0;bottom:0;height:86px;background:rgba(244,237,224,.92);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);border-top:1px solid var(--line);display:grid;grid-template-columns:repeat(5,1fr);align-items:start;padding-top:8px;z-index:20}
+.tab{display:flex;flex-direction:column;align-items:center;gap:3px;font:500 10px var(--sans);color:var(--muted);background:none;border:0;cursor:pointer;padding:4px 0}
+.tab svg{transition:transform calc(.38s*var(--k)) cubic-bezier(.34,1.9,.5,1)}
+.tab.on{color:var(--clay)} .tab.on svg{transform:scale(1.12)}
+.tab:focus-visible{outline:2px solid var(--clay);outline-offset:2px;border-radius:10px}
+.fab{width:50px;height:50px;border-radius:50%;background:var(--clay);display:grid;place-items:center;margin:-2px auto 0;box-shadow:0 6px 16px rgba(163,88,72,.35)}
+
+/* launch bloom (SKBloomIntro) */
+.bloom{position:absolute;inset:0;background:var(--bg);z-index:40;pointer-events:none}
+.ring{position:absolute;left:50%;top:50%;width:90px;height:90px;margin:-45px 0 0 -45px;border-radius:50%;border:1.5px solid rgba(163,88,72,.45);opacity:0}
+.drop{position:absolute;left:50%;top:50%;width:46px;height:60px;margin:-54px 0 0 -23px;transform-origin:50% 100%;filter:drop-shadow(0 8px 14px rgba(163,88,72,.35))}
+.word{position:absolute;left:0;right:0;top:50%;margin-top:40px;display:flex;justify-content:center;font:400 54px/1 var(--serif);color:var(--ink)}
+.word span{display:inline-block;opacity:0;transform:translateY(20px);filter:blur(8px)}
+.word span.on{opacity:1;transform:none;filter:blur(0);transition:opacity calc(.4s*var(--k)) ease,transform calc(.5s*var(--k)) cubic-bezier(.34,1.56,.64,1),filter calc(.45s*var(--k)) ease}
+
+/* controls */
+.ctrls{display:flex;gap:10px;flex-wrap:wrap;justify-content:center}
+.btn{font:600 14px var(--sans);border-radius:99px;padding:11px 18px;border:1px solid var(--line);background:var(--cream);color:var(--ink);cursor:pointer;display:inline-flex;gap:8px;align-items:center;min-height:44px}
+.btn.primary{background:var(--ink);color:var(--cream);border-color:var(--ink)}
+.btn[aria-pressed="true"]{background:var(--clay);border-color:var(--clay);color:var(--cream)}
+.btn:focus-visible{outline:2px solid var(--clay);outline-offset:3px}
+.hint{font:400 12px var(--sans);color:var(--muted);text-align:center;max-width:36ch}
+
+/* notes */
+.notes{min-width:0;display:flex;flex-direction:column;gap:30px;padding-top:8px}
+.eyebrow{font:400 11px var(--mono);letter-spacing:2px;text-transform:uppercase;color:var(--clay)}
+h1{font:400 clamp(52px,7vw,84px)/.95 var(--serif);letter-spacing:-1.2px;text-wrap:balance;margin-top:10px}
+h1 em{color:var(--clay)}
+.lede{font:400 17px/1.55 var(--sans);color:var(--muted);max-width:56ch;margin-top:14px}
+h2{font:400 30px/1.1 var(--serif);text-wrap:balance}
+.list{display:flex;flex-direction:column;border-top:1px solid var(--line)}
+.li{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:6px 18px;padding:16px 0;border-bottom:1px solid var(--line)}
+.li b{font:600 16px var(--sans)} .li p{grid-column:1/-1;font:400 14.5px/1.5 var(--sans);color:var(--muted);max-width:64ch}
+.li code{font:400 11.5px var(--mono);color:var(--clay-deep);background:var(--blush);padding:2px 6px;border-radius:6px;white-space:nowrap}
+.state{font:700 10px var(--mono);letter-spacing:1.2px;text-transform:uppercase;padding:5px 9px;border-radius:99px;align-self:start;white-space:nowrap}
+.state.in{background:var(--good-bg);color:var(--good-fg)} .state.next{background:var(--chip);color:var(--muted)}
+.meta{display:grid;grid-template-columns:auto minmax(0,1fr);gap:8px 18px;font:400 13.5px var(--sans)}
+.meta dt{font:400 11px var(--mono);letter-spacing:1.4px;text-transform:uppercase;color:var(--muted);padding-top:2px}
+.meta dd{margin:0;min-width:0;overflow-wrap:anywhere}
+.meta a{color:var(--clay-deep)}
+.panel{background:var(--cream);border:1px solid var(--line);border-radius:22px;padding:22px}
+@media (prefers-reduced-motion:reduce){.enter{opacity:1;transform:none;filter:none}.bloom{display:none}}
+</style>
+
+<div class="wrap">
+  <section class="stage" aria-label="Live prototype">
+    <div class="table">
+      <div class="phone">
+        <div class="screen" id="screen">
+          <div class="island"></div>
+          <div class="sb"><span>9:41</span><span>&#9679;&#9679;&#9679; 100%</span></div>
+          <div class="scroller" id="scroller">
+            <canvas class="aurora" id="aurora" aria-hidden="true"></canvas>
+            <div class="content" id="content">
+              <header class="enter" style="--i:0">
+                <div class="lbl">Monday &middot; November 9</div>
+                <div class="greet">Good morning, Maya</div>
+                <div class="chips"><span class="chip good">AM 5 of 7</span><span class="chip">PM 3 of 7</span><span class="cs">this week</span></div>
+              </header>
+              <div class="card enter" style="--i:1">
+                <div class="row" style="justify-content:space-between"><span class="lbl">Today</span><span class="tag">2 of 4</span></div>
+                <div class="ct" style="margin-top:8px;font:400 24px/1.1 var(--serif)">Halfway through today.</div>
+                <div class="bar"><i></i></div>
+                <div class="item"><span class="dot done">&#10003;</span><div><div class="ct">Morning routine</div><div class="cs">3 steps &middot; done 7:52</div></div></div>
+                <div class="item"><span class="dot done">&#10003;</span><div><div class="ct">Check in</div><div class="cs">Clear &middot; slept 7 h</div></div></div>
+                <div class="item"><span class="dot"></span><div><div class="ct">Night routine</div><div class="cs">Starts after 8 pm</div></div></div>
+                <div class="item"><span class="dot"></span><div><div class="ct">Scan something new</div><div class="cs">Barcode, label or link</div></div></div>
+              </div>
+              <div class="card enter" style="--i:2">
+                <div class="lbl">Tonight &middot; 3 steps</div>
+                <div class="item" style="border-top:0"><span class="tile" style="background:var(--chip);font:400 18px var(--serif)">G</span><div><div class="ct">Gel Cleanser</div><div class="cs">Cleanser</div></div></div>
+                <div class="item"><span class="tile" style="background:var(--chip);font:400 18px var(--serif)">N</span><div><div class="ct">Niacinamide Serum</div><div class="cs">Serum &middot; no clashes</div></div></div>
+                <div class="item"><span class="tile" style="background:var(--chip);font:400 18px var(--serif)">B</span><div><div class="ct">Barrier Cream</div><div class="cs">Moisturiser</div></div></div>
+              </div>
+              <div class="card enter" style="--i:3">
+                <div class="row" style="justify-content:space-between"><span class="ct">How&rsquo;s your skin today?</span><span class="cs">6-day streak</span></div>
+                <div class="moods"><div class="mood"><b style="background:#5C7A4F"></b>Clear</div><div class="mood"><b style="background:#D9B26E"></b>Okay</div><div class="mood"><b style="background:#A35848"></b>Broke out</div></div>
+              </div>
+              <div class="card enter" style="--i:4">
+                <div class="row"><span class="tile" style="background:rgba(163,88,72,.1);color:var(--clay);font-size:20px">&#10022;</span><div style="min-width:0"><div class="ct">Ask Skinstel</div><div class="cs">&ldquo;Is my retinol why my cheeks feel tight?&rdquo;</div></div></div>
+              </div>
+              <div class="card enter" style="--i:5">
+                <div class="row" style="justify-content:space-between"><span class="lbl">Pattern</span><span class="tag">Possible trigger</span></div>
+                <div class="ct" style="margin-top:8px">Fragrance shows up before 3 of your 4 bad days.</div>
+                <div class="cs" style="margin-top:4px">From your check-ins and shelf, last 30 days</div>
+              </div>
+              <div class="card enter" style="--i:6">
+                <div class="row" style="justify-content:space-between"><div><div class="ct">Picks for your shelf</div><div class="cs">Fragrance-free, under $30</div></div><span style="color:var(--clay);font-size:20px">&rsaquo;</span></div>
+              </div>
+            </div>
+          </div>
+          <nav class="tabbar" aria-label="Tabs">
+            <button class="tab on" data-tab><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg>Today</button>
+            <button class="tab" data-tab><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"><path d="M12 3l1.9 5.1L19 10l-5.1 1.9L12 17l-1.9-5.1L5 10l5.1-1.9z"/><path d="M19 15l.8 2.2L22 18l-2.2.8L19 21l-.8-2.2L16 18l2.2-.8z"/></svg>Ask</button>
+            <div><div class="fab" aria-hidden="true"><svg width="20" height="20" viewBox="0 0 24 24" stroke="#FFFEFA" stroke-width="2.4" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg></div></div>
+            <button class="tab" data-tab><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/></svg>Insights</button>
+            <button class="tab" data-tab><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="12" cy="8" r="4"/><path d="M4 21c1.5-4 4.5-6 8-6s6.5 2 8 6"/></svg>You</button>
+          </nav>
+          <div class="bloom" id="bloom" aria-hidden="true">
+            <div class="ring"></div><div class="ring"></div><div class="ring"></div>
+            <svg class="drop" id="drop" viewBox="0 0 46 60"><defs><linearGradient id="dg" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#C97A66"/><stop offset="1" stop-color="#A35848"/></linearGradient></defs><path fill="url(#dg)" d="M23 0C32.2 13.2 46 23.8 46 37 46 49.7 35.7 60 23 60S0 49.7 0 37C0 23.8 13.8 13.2 23 0Z"/></svg>
+            <div class="word" id="word"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="ctrls">
+      <button class="btn primary" id="replay" type="button">&#8635; Replay launch</button>
+      <button class="btn" id="slow" type="button" aria-pressed="false">Slow motion &times;4</button>
+    </div>
+    <p class="hint">Scroll inside the phone to see the cards lean back at the edges. Tap the tabs. Sample data.</p>
+  </section>
+
+  <main class="notes">
+    <div>
+      <div class="eyebrow">Motion pass &middot; round 1 of 2</div>
+      <h1>Skinstel <em>3.0</em></h1>
+      <p class="lede">Opening the app now has a moment. A clay drop falls and lands in rings, the name rises letter by letter, and an iris opens from the drop onto Today. Today unfolds section by section under a slow warm light, and the cards lean back as they scroll away.</p>
+    </div>
+
+    <div>
+      <h2>In the app now</h2>
+      <div class="list" style="margin-top:14px">
+        <div class="li"><b>Launch bloom</b><span class="state in">Pushed</span><p>The drop falls with gravity, squashes on landing with a light haptic, three rings spread, &ldquo;Skinstel&rdquo; rises out of a blur, then the iris reveals the app. About 1.6 s on a cold launch. It never takes touches, so the screen underneath works straight away. <code>SKBloomIntro</code> <code>AppRouter.swift</code></p></div>
+        <div class="li"><b>Today unfolds</b><span class="state in">Pushed</span><p>The greeting and each card rise out of a soft blur, 70 ms apart, on a spring. <code>.skEntrance(_:)</code> <code>HomeView.swift</code></p></div>
+        <div class="li"><b>Scroll depth</b><span class="state in">Pushed</span><p>Cards shrink a little, fade and soften as they cross the top or bottom edge, and settle as they arrive. <code>.skScrollDepth()</code></p></div>
+        <div class="li"><b>Warm aurora</b><span class="state in">Pushed</span><p>Four soft glows in clay, peach, sand and sage drift on slow, out-of-step loops behind the Today header. Drawn on a 30 fps canvas. <code>SKAurora</code></p></div>
+        <div class="li"><b>Springy tabs</b><span class="state in">Pushed</span><p>The selected tab icon springs up 12%, on both the classic and the iOS 26 glass tab bar. <code>MainTabView.swift</code></p></div>
+        <div class="li"><b>Reduce Motion</b><span class="state in">Respected</span><p>With Reduce Motion on, all of the above switch off: no launch sequence, cards appear in place, the aurora holds still.</p></div>
+      </div>
+    </div>
+
+    <div>
+      <h2>Round 2 &middot; 4:48 am</h2>
+      <div class="list" style="margin-top:14px">
+        <div class="li"><b>Scan verdict reveal</b><span class="state next">Next</span><p>The score ring sweeps in and the number counts up to the verdict, with a haptic on the settle.</p></div>
+        <div class="li"><b>Check-in moods</b><span class="state next">Next</span><p>The chosen mood swells and fills, the others step back, and the streak number rolls over.</p></div>
+        <div class="li"><b>Insights charts draw in</b><span class="state next">Next</span><p>Lines and bars draw from left to right the first time each chart is on screen.</p></div>
+        <div class="li"><b>Round 1 build fixes</b><span class="state next">First</span><p>Round 2 starts by reading the round 1 iOS build result and fixing anything it caught.</p></div>
+      </div>
+    </div>
+
+    <div class="panel">
+      <dl class="meta">
+        <dt>Branch</dt><dd>claude/skinstel-3-motion</dd>
+        <dt>Pull request</dt><dd id="pr"><a href="https://github.com/pixelbuyte/Skintel/pull/109">#109 on GitHub</a></dd>
+        <dt>iOS build</dt><dd>Codemagic ios-ci 6af14d159e35bfd90af9e827, started; not yet confirmed green</dd>
+        <dt>Files</dt><dd>DesignSystem/Components/SKMotion.swift (new), App/AppRouter.swift, Features/Home/HomeView.swift, App/MainTabView.swift</dd>
+      </dl>
+    </div>
+  </main>
+</div>
+
+<script>
+(function(){
+  var reduce = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  var root = document.documentElement, k = 1, runId = 0;
+  var screen = document.getElementById('screen'), scroller = document.getElementById('scroller');
+  var bloom = document.getElementById('bloom'), drop = document.getElementById('drop'), word = document.getElementById('word');
+  var rings = bloom.querySelectorAll('.ring');
+  'Skinstel'.split('').forEach(function(c){ var s=document.createElement('span'); s.textContent=c; word.appendChild(s); });
+  var letters = word.querySelectorAll('span');
+
+  function clamp(x,a,b){ return Math.max(a, Math.min(b, x)); }
+  function easeIn(t){ return Math.pow(t, 2.4); }
+  function easeOut(t){ return 1 - Math.pow(1 - t, 3); }
+  function easeInOut(t){ return t < .5 ? 4*t*t*t : 1 - Math.pow(-2*t + 2, 3)/2; }
+  function spring(t, response, damping){
+    if (t <= 0) return 0;
+    var w = 2*Math.PI/response, z = damping, wd = w*Math.sqrt(1 - z*z);
+    return 1 - Math.exp(-z*w*t)*(Math.cos(wd*t) + (z*w/wd)*Math.sin(wd*t));
+  }
+
+  function setIris(r){
+    var m = 'radial-gradient(circle at 50% 47%, transparent ' + r + 'px, #000 ' + (r + 1) + 'px)';
+    bloom.style.webkitMaskImage = m; bloom.style.maskImage = m;
+  }
+
+  function play(){
+    var id = ++runId;
+    screen.classList.remove('go');
+    scroller.scrollTop = 0; depth();
+    letters.forEach(function(l){ l.classList.remove('on'); });
+    if (reduce){ bloom.hidden = true; screen.classList.add('go'); return; }
+    bloom.hidden = false; setIris(0);
+    var reach = Math.hypot(screen.clientWidth, screen.clientHeight) * 0.62;
+    var t0 = performance.now(), shown = 0;
+    function frame(now){
+      if (id !== runId) return;
+      var t = (now - t0) / k;                       // ms at normal speed
+      // fall (0-420), squash on landing (420-540), spring back up (540+)
+      var y, sq;
+      if (t < 420){ y = -340 + 340*easeIn(t/420); sq = 1; }
+      else if (t < 540){ y = 0; sq = 1 - .3*spring((t-420)/1000, .16, .5); }
+      else { var s = spring((t-540)/1000, .5, .55); y = -30*s; sq = .7 + .3*s; }
+      drop.style.transform = 'translateY(' + y + 'px) scale(' + (2 - sq) + ',' + sq + ')';
+      rings.forEach(function(r, i){
+        var p = clamp((t - 420 - i*120)/1150, 0, 1), e = easeOut(p);
+        r.style.opacity = p <= 0 ? 0 : (.9*(1 - e));
+        r.style.transform = 'translateY(24px) scale(' + (.2 + (4.2 + i*1.6)*e) + ')';
+      });
+      var want = clamp(Math.floor((t - 540)/35) + 1, 0, letters.length);
+      while (shown < want){ letters[shown].classList.add('on'); shown++; }
+      var irisStart = 540 + letters.length*35 + 320;
+      if (t >= irisStart){
+        var q = clamp((t - irisStart)/550, 0, 1);
+        setIris(reach * easeInOut(q));
+        if (q >= .35 && !screen.classList.contains('go')) screen.classList.add('go');
+        if (q >= 1){ bloom.hidden = true; tour(id); return; }
+      }
+      requestAnimationFrame(frame);
+    }
+    requestAnimationFrame(frame);
+  }
+
+  // .skScrollDepth: lean back and soften past either edge
+  var cards = Array.prototype.slice.call(document.querySelectorAll('.card'));
+  function depth(){
+    if (reduce) return;
+    var top = scroller.getBoundingClientRect().top + 50, bottom = scroller.getBoundingClientRect().bottom - 86;
+    cards.forEach(function(c){
+      var r = c.getBoundingClientRect(), h = Math.max(r.height, 1), v = 0;
+      if (r.top < top) v = clamp((top - r.top)/h, 0, 1);
+      else if (r.bottom > bottom) v = clamp((r.bottom - bottom)/h, 0, 1);
+      c.style.transform = 'scale(' + (1 - v*.05) + ')';
+      c.style.opacity = String(1 - v*.35);
+      c.style.filter = v > 0.01 ? 'blur(' + (v*2).toFixed(2) + 'px)' : '';
+    });
+  }
+  scroller.addEventListener('scroll', depth, {passive:true});
+
+  // a gentle scroll down and back once Today has unfolded, until the viewer touches it
+  var touched = false;
+  ['wheel','touchstart','pointerdown','keydown'].forEach(function(ev){ scroller.addEventListener(ev, function(){ touched = true; }, {passive:true}); });
+  function glide(from, to, ms, id, done){
+    var t0 = performance.now();
+    function step(now){
+      if (id !== runId || touched) return;
+      var p = clamp((now - t0)/(ms*k), 0, 1);
+      scroller.scrollTop = from + (to - from)*easeInOut(p);
+      if (p < 1) requestAnimationFrame(step); else if (done) done();
+    }
+    requestAnimationFrame(step);
+  }
+  function tour(id){
+    touched = false;
+    setTimeout(function(){
+      if (id !== runId || touched) return;
+      var max = scroller.scrollHeight - scroller.clientHeight;
+      glide(0, Math.min(420, max), 1800, id, function(){ setTimeout(function(){ glide(scroller.scrollTop, 0, 1500, id); }, 500*k); });
+    }, 1300*k);
+  }
+
+  // SKAurora: four glows on slow, out-of-step loops (30 fps)
+  var cv = document.getElementById('aurora'), ctx = cv.getContext('2d');
+  var glows = [['163,88,72',.18,.35,.55,.11,.22],['232,185,168',.78,.25,.6,.08,.22],['226,205,166',.55,.7,.5,.13,.22],['92,122,79',.92,.75,.35,.09,.12]];
+  var last = 0;
+  function aurora(now){
+    if (now - last >= 33){
+      last = now;
+      var dpr = Math.min(window.devicePixelRatio || 1, 2), w = cv.clientWidth, h = cv.clientHeight;
+      if (cv.width !== Math.round(w*dpr)){ cv.width = Math.round(w*dpr); cv.height = Math.round(h*dpr); }
+      ctx.setTransform(dpr,0,0,dpr,0,0); ctx.clearRect(0,0,w,h);
+      var t = reduce ? 0 : now/1000/k;
+      glows.forEach(function(g, i){
+        var ph = t*g[4] + i*1.7, cx = w*(g[1] + .08*Math.sin(ph)), cy = h*(g[2] + .1*Math.cos(ph*1.3)), rad = w*g[3]*(1 + .08*Math.sin(ph*.7));
+        var gr = ctx.createRadialGradient(cx, cy, 0, cx, cy, rad);
+        gr.addColorStop(0, 'rgba(' + g[0] + ',' + g[5] + ')'); gr.addColorStop(1, 'rgba(' + g[0] + ',0)');
+        ctx.fillStyle = gr; ctx.beginPath(); ctx.arc(cx, cy, rad, 0, Math.PI*2); ctx.fill();
+      });
+    }
+    if (!reduce) requestAnimationFrame(aurora);
+  }
+  requestAnimationFrame(aurora);
+
+  // springy tabs
+  var tabs = document.querySelectorAll('[data-tab]');
+  tabs.forEach(function(b){ b.addEventListener('click', function(){ tabs.forEach(function(x){ x.classList.toggle('on', x === b); }); }); });
+
+  document.getElementById('replay').addEventListener('click', play);
+  var slow = document.getElementById('slow');
+  slow.addEventListener('click', function(){
+    k = k === 1 ? 4 : 1; root.style.setProperty('--k', k);
+    slow.setAttribute('aria-pressed', String(k !== 1)); play();
+  });
+  play();
+})();
+</script>
