@@ -98,6 +98,39 @@ h2{font:400 30px/1.1 var(--serif);text-wrap:balance}
 .meta dd{margin:0;min-width:0;overflow-wrap:anywhere}
 .meta a{color:var(--clay-deep)}
 .panel{background:var(--cream);border:1px solid var(--line);border-radius:22px;padding:22px}
+/* round 2 demos */
+.demos{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:14px;margin-top:14px}
+.demo{background:var(--cream);border:1px solid var(--line);border-radius:22px;padding:18px;display:flex;flex-direction:column;gap:12px;min-width:0}
+.demo h3{font:600 15px var(--sans)} .demo .cs{font-size:12.5px}
+.demo .btn{align-self:flex-start;padding:8px 14px;min-height:40px;font-size:13px}
+.ringwrap{position:relative;width:140px;height:140px;align-self:center;transform:scale(.94);transition:transform calc(.45s*var(--k)) cubic-bezier(.34,1.8,.5,1)}
+.ringwrap.settled{transform:scale(1)}
+.ringwrap svg{position:absolute;inset:0;overflow:visible}
+.halo{filter:blur(7px)}
+.ringnum{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center}
+.ringnum b{font:400 50px/1 var(--serif);font-variant-numeric:tabular-nums}
+.ringnum span{font:400 9.5px var(--mono);letter-spacing:1.4px;text-transform:uppercase;color:var(--muted);margin-top:2px}
+.mchips{display:flex;flex-wrap:wrap;gap:8px}
+.mchip{display:inline-flex;align-items:center;gap:7px;padding:0 13px;min-height:40px;border-radius:99px;border:1px solid var(--line);background:var(--cream);font:600 13.5px var(--sans);color:var(--ink);cursor:pointer;
+  transition:transform calc(.42s*var(--k)) cubic-bezier(.34,1.7,.5,1),opacity calc(.25s*var(--k)) ease,background calc(.25s*var(--k)) ease,border-color calc(.25s*var(--k)) ease,color calc(.25s*var(--k)) ease}
+.mchip i{width:8px;height:8px;border-radius:50%;background:var(--dot);transition:transform calc(.42s*var(--k)) cubic-bezier(.34,1.7,.5,1)}
+.mchip.sel{transform:scale(1.06);background:var(--tbg);border:1.5px solid var(--tfg);color:var(--tfg)} .mchip.sel i{transform:scale(1.3);background:var(--tfg)}
+.mchip.dim{transform:scale(.96);opacity:.55}
+.mchip:focus-visible{outline:2px solid var(--clay);outline-offset:2px}
+.streak{display:inline-flex;align-items:center;font:400 11px var(--mono);color:var(--muted);height:24px;transition:background calc(.3s*var(--k)) ease,color calc(.3s*var(--k)) ease,padding calc(.3s*var(--k)) ease;border-radius:99px;align-self:flex-start}
+.streak.on{background:var(--good-bg);color:var(--good-fg);padding:0 10px;font:600 12.5px var(--sans)}
+.digit{display:inline-block;position:relative;overflow:hidden;height:1.3em;line-height:1.3em;vertical-align:bottom}
+.digit span{display:block;transition:transform calc(.45s*var(--k)) cubic-bezier(.34,1.4,.5,1),opacity calc(.3s*var(--k)) ease}
+.digit .nx{position:absolute;left:0;top:0;transform:translateY(100%);opacity:0}
+.digit.roll .cur{transform:translateY(-100%);opacity:0} .digit.roll .nx{transform:none;opacity:1}
+.kept{display:flex;flex-direction:column;gap:6px}
+.kept .row{justify-content:space-between;font:500 13.5px var(--sans)} .kept .row span{font:400 11px var(--mono);color:var(--muted)}
+.trk{height:6px;border-radius:9px;background:var(--line);overflow:hidden}
+.trk i{display:block;height:100%;width:0;border-radius:9px;transition:width calc(.9s*var(--k)) cubic-bezier(.23,1,.32,1) calc(.15s*var(--k))}
+.week{display:grid;grid-template-columns:repeat(7,1fr);gap:4px;text-align:center}
+.week div{display:flex;flex-direction:column;align-items:center;gap:8px;font:400 10px var(--mono);color:var(--muted);text-transform:uppercase}
+.week b{width:16px;height:16px;border-radius:50%;transform:scale(.4);opacity:0}
+.week.go b{transform:none;opacity:1;transition:transform calc(.42s*var(--k)) cubic-bezier(.34,1.7,.5,1) calc((120ms + var(--d)*60ms)*var(--k)),opacity calc(.2s*var(--k)) ease calc((120ms + var(--d)*60ms)*var(--k))}
 @media (prefers-reduced-motion:reduce){.enter{opacity:1;transform:none;filter:none}.bloom{display:none}}
 </style>
 
@@ -172,9 +205,53 @@ h2{font:400 30px/1.1 var(--serif);text-wrap:balance}
 
   <main class="notes">
     <div>
-      <div class="eyebrow">Motion pass &middot; round 1 of 2</div>
+      <div class="eyebrow">Motion pass &middot; round 2 of 2</div>
       <h1>Skinstel <em>3.0</em></h1>
-      <p class="lede">Opening the app now has a moment. A clay drop falls and lands in rings, the name rises letter by letter, and an iris opens from the drop onto Today. Today unfolds section by section under a slow warm light, and the cards lean back as they scroll away.</p>
+      <p class="lede">Opening the app now has a moment. A clay drop falls and lands in rings, the name rises letter by letter, and an iris opens from the drop onto Today. Today unfolds section by section under a slow warm light, and the cards lean back as they scroll away. Round 2 adds the moments after: a verdict ring that lands with a glow, mood chips that react to your pick, and Insights that draw themselves in.</p>
+    </div>
+
+    <div>
+      <h2>Round 2, live</h2>
+      <div class="demos">
+        <div class="demo">
+          <h3>Verdict ring</h3>
+          <div class="ringwrap" id="ringwrap">
+            <svg viewBox="0 0 140 140" aria-hidden="true">
+              <circle cx="70" cy="70" r="64.5" fill="none" stroke="#EAE6DF" stroke-width="11"/>
+              <circle class="halo" id="halo" cx="70" cy="70" r="64.5" fill="none" stroke="#5C7A4F" stroke-width="11" stroke-linecap="round" transform="rotate(-90 70 70)" opacity="0"/>
+              <circle id="arc" cx="70" cy="70" r="64.5" fill="none" stroke="#5C7A4F" stroke-width="11" stroke-linecap="round" transform="rotate(-90 70 70)"/>
+              <g id="bead" opacity="0"><circle cx="70" cy="5.5" r="3" fill="#FFFEFA" style="filter:drop-shadow(0 0 4px #5C7A4F)"/></g>
+            </svg>
+            <div class="ringnum"><b id="ringnum">0</b><span>Good match</span></div>
+          </div>
+          <p class="cs">A bright bead rides the arc, the number counts up, then the ring pops and glows once. A haptic lands with it on the verdict screen.</p>
+          <button class="btn" type="button" id="ringplay">&#8635; Replay</button>
+        </div>
+        <div class="demo">
+          <h3>Skin log</h3>
+          <span class="streak" id="streak"><span id="spre"></span><span class="digit" id="digit"><span class="cur">4</span><span class="nx">5</span></span><span id="spost">-day streak</span></span>
+          <div class="mchips" id="mchips">
+            <button type="button" class="mchip" style="--dot:#A9BE95;--tbg:#EEF2DD;--tfg:#5C7A4F"><i></i>Clear</button>
+            <button type="button" class="mchip" style="--dot:#D9B26E;--tbg:#F5E6DC;--tfg:#743C2B"><i></i>A bit off</button>
+            <button type="button" class="mchip" style="--dot:#C9876F;--tbg:#EAD8C8;--tfg:#7A4A32"><i></i>Irritated</button>
+            <button type="button" class="mchip" style="--dot:#C45A5A;--tbg:#FDEAEA;--tfg:#B22B2B"><i></i>Breaking out</button>
+          </div>
+          <p class="cs">Tap a mood. Your pick swells and its dot grows, the others step back, and the streak rolls to today.</p>
+          <button class="btn" type="button" id="moodreset">&#8635; Reset</button>
+        </div>
+        <div class="demo">
+          <h3>Insights</h3>
+          <div class="kept" id="kept">
+            <div class="row"><b style="font-weight:500">Morning</b><span>5 of 7</span></div><div class="trk"><i style="--w:71.4%;background:#5C7A4F"></i></div>
+            <div class="row" style="margin-top:6px"><b style="font-weight:500">Night</b><span>3 of 7</span></div><div class="trk"><i style="--w:42.9%;background:#A35848"></i></div>
+          </div>
+          <div class="week" id="week">
+            <div style="--d:0">Mon<b style="background:#5C7A4F"></b></div><div style="--d:1">Tue<b style="background:#5C7A4F"></b></div><div style="--d:2">Wed<b style="background:#D9B26E"></b></div><div style="--d:3">Thu<b style="background:#5C7A4F"></b></div><div style="--d:4">Fri<b style="background:#C45A5A"></b></div><div style="--d:5">Sat<b style="background:#5C7A4F"></b></div><div style="--d:6">Sun<b style="background:#EAE6DF"></b></div>
+          </div>
+          <p class="cs">Cards unfold like Today, routine bars draw in from the left, and the week&rsquo;s dots pop in one day at a time.</p>
+          <button class="btn" type="button" id="insplay">&#8635; Replay</button>
+        </div>
+      </div>
     </div>
 
     <div>
@@ -185,17 +262,19 @@ h2{font:400 30px/1.1 var(--serif);text-wrap:balance}
         <div class="li"><b>Scroll depth</b><span class="state in">Pushed</span><p>Cards shrink a little, fade and soften as they cross the top or bottom edge, and settle as they arrive. <code>.skScrollDepth()</code></p></div>
         <div class="li"><b>Warm aurora</b><span class="state in">Pushed</span><p>Four soft glows in clay, peach, sand and sage drift on slow, out-of-step loops behind the Today header. Drawn on a 30 fps canvas. <code>SKAurora</code></p></div>
         <div class="li"><b>Springy tabs</b><span class="state in">Pushed</span><p>The selected tab icon springs up 12%, on both the classic and the iOS 26 glass tab bar. <code>MainTabView.swift</code></p></div>
-        <div class="li"><b>Reduce Motion</b><span class="state in">Respected</span><p>With Reduce Motion on, all of the above switch off: no launch sequence, cards appear in place, the aurora holds still.</p></div>
+        <div class="li"><b>Verdict ring lands</b><span class="state in">Round 2</span><p>A bright bead rides the arc while the score counts up, then the ring pops from 94% and glows once. On the verdict screen a medium haptic lands with it; Compare stays quiet because several rings land together. <code>SKScoreRing</code> <code>VerdictView.swift</code></p></div>
+        <div class="li"><b>Mood chips react</b><span class="state in">Round 2</span><p>The picked chip swells and its dot grows, the others step back to 96% and fade. The streak is now one label, so its number rolls when today&rsquo;s log extends the run. <code>MoodChoiceButton</code> <code>HomeView.swift</code></p></div>
+        <div class="li"><b>Insights draw in</b><span class="state in">Round 2</span><p>Header and cards unfold like Today, the week&rsquo;s dots pop in left to right, and progress bars fill from the left the first time they appear, wherever the app uses them. <code>.skPopIn(_:)</code> <code>SKProgressBar</code> <code>JournalView.swift</code></p></div>
+        <div class="li"><b>Reduce Motion</b><span class="state in">Respected</span><p>With Reduce Motion on, all of the above switch off: no launch sequence, no bead or pop, chips and dots appear in place, the aurora holds still.</p></div>
       </div>
     </div>
 
     <div>
-      <h2>Round 2 &middot; 4:48 am</h2>
+      <h2>Left for you</h2>
       <div class="list" style="margin-top:14px">
-        <div class="li"><b>Scan verdict reveal</b><span class="state next">Next</span><p>The score ring sweeps in and the number counts up to the verdict, with a haptic on the settle.</p></div>
-        <div class="li"><b>Check-in moods</b><span class="state next">Next</span><p>The chosen mood swells and fills, the others step back, and the streak number rolls over.</p></div>
-        <div class="li"><b>Insights charts draw in</b><span class="state next">Next</span><p>Lines and bars draw from left to right the first time each chart is on screen.</p></div>
-        <div class="li"><b>Round 1 build fixes</b><span class="state next">First</span><p>Round 2 starts by reading the round 1 iOS build result and fixing anything it caught.</p></div>
+        <div class="li"><b>Feel it on a phone</b><span class="state next">You</span><p>Timing and haptics only really show on a device. Install a TestFlight build from this branch and open the app cold, log a mood, and scan a product.</p></div>
+        <div class="li"><b>Progress bars everywhere</b><span class="state next">Check</span><p>The draw-in applies to every progress bar in the app, not only Insights. Say if any screen should keep its bar still.</p></div>
+        <div class="li"><b>Merge</b><span class="state next">You</span><p>Merge PR #109 once the round 2 build is green.</p></div>
       </div>
     </div>
 
@@ -203,8 +282,9 @@ h2{font:400 30px/1.1 var(--serif);text-wrap:balance}
       <dl class="meta">
         <dt>Branch</dt><dd>claude/skinstel-3-motion</dd>
         <dt>Pull request</dt><dd id="pr"><a href="https://github.com/pixelbuyte/Skintel/pull/109">#109 on GitHub</a></dd>
-        <dt>iOS build</dt><dd>Codemagic ios-ci 6af14d159e35bfd90af9e827, started; not yet confirmed green</dd>
-        <dt>Files</dt><dd>DesignSystem/Components/SKMotion.swift (new), App/AppRouter.swift, Features/Home/HomeView.swift, App/MainTabView.swift</dd>
+        <dt>Round 1 build</dt><dd>ios-ci 6af14d159e35bfd90af9e827: passed (simulator build, unit tests, UI tests, core tests)</dd>
+        <dt>Round 2 build</dt><dd>ios-ci 6af1988aca7158a8f8abd345: started; not yet confirmed</dd>
+        <dt>Files</dt><dd>SKMotion.swift (new), SKScoreRing.swift, AppRouter.swift, MainTabView.swift, HomeView.swift, VerdictView.swift, JournalView.swift</dd>
       </dl>
     </div>
   </main>
@@ -343,5 +423,58 @@ h2{font:400 30px/1.1 var(--serif);text-wrap:balance}
     slow.setAttribute('aria-pressed', String(k !== 1)); play();
   });
   play();
+
+  // ---- round 2 demos ----
+  var C = 2*Math.PI*64.5, arc = document.getElementById('arc'), halo = document.getElementById('halo'), bead = document.getElementById('bead');
+  var ringwrap = document.getElementById('ringwrap'), ringnum = document.getElementById('ringnum'), ringRun = 0;
+  function emil(t){ var a = 1 - t; return 1 - a*a*a*a; }
+  function playRing(){
+    var id = ++ringRun, score = 86, target = score/100;
+    ringwrap.classList.remove('settled'); halo.style.transition = 'none'; halo.setAttribute('opacity', '0');
+    arc.setAttribute('stroke-dasharray', C); halo.setAttribute('stroke-dasharray', C);
+    if (reduce){ arc.setAttribute('stroke-dashoffset', C*(1 - target)); ringnum.textContent = score; ringwrap.classList.add('settled'); return; }
+    var t0 = performance.now(); bead.setAttribute('opacity', '1');
+    function f(now){
+      if (id !== ringRun) return;
+      var p = clamp((now - t0)/(1100*k), 0, 1), q = target*emil(p);
+      arc.setAttribute('stroke-dashoffset', C*(1 - q)); halo.setAttribute('stroke-dashoffset', C*(1 - q));
+      bead.setAttribute('transform', 'rotate(' + (360*q) + ' 70 70)');
+      ringnum.textContent = Math.round(score*clamp((now - t0)/(1000*k), 0, 1));
+      if (p < 1) { requestAnimationFrame(f); return; }
+      ringnum.textContent = score; bead.setAttribute('opacity', '0'); ringwrap.classList.add('settled');
+      halo.style.transition = 'opacity ' + (.18*k) + 's ease-out'; halo.setAttribute('opacity', '.55');
+      setTimeout(function(){ if (id !== ringRun) return; halo.style.transition = 'opacity ' + (.9*k) + 's ease-out'; halo.setAttribute('opacity', '0'); }, 220*k);
+    }
+    requestAnimationFrame(f);
+  }
+  document.getElementById('ringplay').addEventListener('click', playRing);
+
+  var chips = Array.prototype.slice.call(document.querySelectorAll('.mchip'));
+  var streak = document.getElementById('streak'), digit = document.getElementById('digit');
+  var spre = document.getElementById('spre'), spost = document.getElementById('spost');
+  function pick(c){
+    chips.forEach(function(x){ x.classList.toggle('sel', x === c); x.classList.toggle('dim', x !== c); x.setAttribute('aria-pressed', String(x === c)); });
+    if (!streak.classList.contains('on')){
+      streak.classList.add('on'); spre.textContent = 'Day '; spost.textContent = ''; digit.classList.add('roll');
+    }
+  }
+  function resetMood(){
+    chips.forEach(function(x){ x.classList.remove('sel', 'dim'); x.setAttribute('aria-pressed', 'false'); });
+    streak.classList.remove('on'); spre.textContent = ''; spost.textContent = '-day streak'; digit.classList.remove('roll');
+  }
+  chips.forEach(function(c){ c.addEventListener('click', function(){ pick(c); }); });
+  document.getElementById('moodreset').addEventListener('click', resetMood);
+
+  var week = document.getElementById('week'), bars = document.querySelectorAll('.trk i');
+  function playInsights(){
+    week.classList.remove('go'); bars.forEach(function(b){ b.style.transition = 'none'; b.style.width = '0'; });
+    void week.offsetWidth;
+    bars.forEach(function(b){ b.style.transition = ''; b.style.width = b.style.getPropertyValue('--w'); });
+    week.classList.add('go');
+  }
+  document.getElementById('insplay').addEventListener('click', playInsights);
+
+  setTimeout(function(){ playRing(); playInsights(); }, 600);
+  setTimeout(function(){ if (!chips.some(function(c){ return c.classList.contains('sel'); })) pick(chips[0]); }, 2400);
 })();
 </script>
