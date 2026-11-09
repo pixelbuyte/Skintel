@@ -239,6 +239,8 @@ struct SKAurora: View {
                 }
             }
         }
+        // Fade out before the canvas ends, so a glow is never cut off in a straight line.
+        .mask { LinearGradient(colors: [.black, .black, .clear], startPoint: .top, endPoint: .bottom) }
         .allowsHitTesting(false)
         .accessibilityHidden(true)
     }
