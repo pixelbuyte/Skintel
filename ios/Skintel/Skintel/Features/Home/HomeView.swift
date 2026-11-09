@@ -20,6 +20,7 @@ struct HomeView: View {
     @AppStorage(CheckInPrompt.enabledKey) private var autoPrompt = true
     @AppStorage(CheckInPrompt.lastKey) private var lastPrompt = ""
     @Environment(\.scenePhase) private var scenePhase
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     var body: some View {
         NavigationStack(path: $path) {
@@ -319,7 +320,8 @@ struct HomeView: View {
                             .fixedSize(horizontal: false, vertical: true)
                         FlowLayout(spacing: SKSpace.sm) {
                             ForEach(JournalCondition.allCases, id: \.self) { c in
-                                MoodChoiceButton(condition: c, selected: today?.condition == c) { quickSave(c) }
+                                MoodChoiceButton(condition: c, selected: today?.condition == c,
+                                                 dimmed: today?.condition != nil && today?.condition != c) { quickSave(c) }
                             }
                         }
                         HStack(spacing: SKSpace.sm) {
@@ -344,19 +346,25 @@ struct HomeView: View {
     }
 
     /// "Day 4" once today is logged; the run so far while today is still open.
+    /// One label in both states, so the number rolls when today's log extends the run.
     @ViewBuilder
     private func streakMark(_ s: Streaks) -> some View {
-        if s.loggedToday && s.current > 0 {
-            Text("Day \(s.current)")
-                .font(SKFont.sans(13, weight: .semibold, relativeTo: .caption))
-                .foregroundStyle(SKColor.goodFg)
-                .padding(.horizontal, 10)
-                .padding(.vertical, 4)
-                .background(SKColor.goodBg, in: Capsule())
-                .accessibilityLabel("Day \(s.current) of your check-in streak")
-        } else if s.current > 0 {
-            Text("\(s.current)-day streak")
-                .font(SKFont.dataSmall).foregroundStyle(SKColor.muted)
+        if s.current > 0 {
+            let logged = s.loggedToday
+            HStack(spacing: 0) {
+                if logged { Text("Day ") }
+                Text("\(s.current)").contentTransition(.numericText(value: Double(s.current)))
+                if !logged { Text("-day streak") }
+            }
+            .font(logged ? SKFont.sans(13, weight: .semibold, relativeTo: .caption) : SKFont.dataSmall)
+            .foregroundStyle(logged ? SKColor.goodFg : SKColor.muted)
+            .padding(.horizontal, logged ? 10 : 0)
+            .padding(.vertical, logged ? 4 : 0)
+            .background(logged ? SKColor.goodBg : Color.clear, in: Capsule())
+            .animation(reduceMotion ? nil : Animation.spring(response: 0.45, dampingFraction: 0.7), value: s.current)
+            .animation(reduceMotion ? nil : SKAnimation.ios(0.3), value: logged)
+            .accessibilityElement(children: .ignore)
+            .accessibilityLabel(logged ? "Day \(s.current) of your check-in streak" : "\(s.current)-day streak")
         }
     }
 
@@ -605,13 +613,17 @@ enum SkinLogPrompt {
 struct MoodChoiceButton: View {
     let condition: JournalCondition
     let selected: Bool
+    /// Another choice is picked: this one steps back.
+    var dimmed = false
     let action: () -> Void
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     var body: some View {
         let tint = condition.logTint
         Button(action: action) {
             HStack(spacing: 7) {
                 Circle().fill(selected ? tint.fg : tint.dot).frame(width: 8, height: 8)
+                    .scaleEffect(selected && !reduceMotion ? 1.3 : 1)
                 Text(condition.checkInLabel)
                     .font(SKFont.sans(15, weight: .semibold, relativeTo: .subheadline))
                     .lineLimit(1)
@@ -624,7 +636,10 @@ struct MoodChoiceButton: View {
             .contentShape(Capsule())
         }
         .buttonStyle(SKPressStyle())
-        .animation(SKAnimation.ios(0.25), value: selected)
+        .scaleEffect(reduceMotion ? 1 : (selected ? 1.06 : (dimmed ? 0.96 : 1)))
+        .opacity(dimmed ? 0.55 : 1)
+        .animation(reduceMotion ? SKAnimation.ios(0.25) : Animation.spring(response: 0.38, dampingFraction: 0.55), value: selected)
+        .animation(SKAnimation.ios(0.25), value: dimmed)
         .accessibilityLabel(condition.checkInLabel)
         .accessibilityAddTraits(selected ? [.isButton, .isSelected] : .isButton)
     }

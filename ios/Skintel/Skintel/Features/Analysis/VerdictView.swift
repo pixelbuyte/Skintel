@@ -128,7 +128,7 @@ struct VerdictCard: View {
                     .font(SKFont.dataSmall).foregroundStyle(SKColor.muted)
             }
             HStack(alignment: .center, spacing: SKSpace.xl) {
-                SKScoreRing(score: result.score, size: 118)
+                SKScoreRing(score: result.score, size: 118, settleHaptic: true)
                 VStack(spacing: 0) {
                     countRow("Good for you", goodCount, SKColor.goodFg)
                     countRow("Watch", result.mediumCount + result.lowCount, SKColor.cautionFg)

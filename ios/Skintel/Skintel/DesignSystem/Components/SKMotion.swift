@@ -135,7 +135,30 @@ private struct SKScrollDepth: ViewModifier {
     }
 }
 
+/// First appearance: pop up from small, `index` steps after the first (left to right in a row).
+private struct SKPopIn: ViewModifier {
+    let index: Int
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @State private var shown = false
+
+    func body(content: Content) -> some View {
+        let settled = shown || reduceMotion
+        content
+            .scaleEffect(settled ? 1 : 0.4)
+            .opacity(settled ? 1 : 0)
+            .onAppear {
+                guard !shown, !reduceMotion else { return }
+                withAnimation(.spring(response: 0.42, dampingFraction: 0.58).delay(0.12 + Double(index) * 0.06)) {
+                    shown = true
+                }
+            }
+    }
+}
+
 extension View {
+    /// Pop up from small the first time this appears; `index` staggers a row left to right.
+    func skPopIn(_ index: Int) -> some View { modifier(SKPopIn(index: index)) }
+
     /// Rise out of a soft blur the first time this appears; `index` staggers siblings.
     func skEntrance(_ index: Int) -> some View { modifier(SKEntrance(index: index)) }
 
