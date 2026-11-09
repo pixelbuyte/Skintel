@@ -65,6 +65,13 @@ workflows:
           xcodegen --version
           cd "$CM_BUILD_DIR/ios/Skintel" && xcodegen generate --spec project.yml
 
+      - name: Install the Metal Toolchain (Xcode 26 ships it separately)
+        script: |
+          set -euo pipefail
+          # The app compiles a Metal shader (SKRipple.metal). Xcode 26 no longer bundles the
+          # Metal compiler; without this step the build stops at CompileMetalFile.
+          xcodebuild -downloadComponent MetalToolchain || sudo xcodebuild -downloadComponent MetalToolchain
+
       - name: Resolve Swift Package Manager dependencies
         script: |
           set -euo pipefail
@@ -144,6 +151,13 @@ workflows:
           command -v xcodegen >/dev/null 2>&1 || brew install xcodegen
           xcodegen --version
           cd "$CM_BUILD_DIR/ios/Skintel" && xcodegen generate --spec project.yml
+
+      - name: Install the Metal Toolchain (Xcode 26 ships it separately)
+        script: |
+          set -euo pipefail
+          # The app compiles a Metal shader (SKRipple.metal). Xcode 26 no longer bundles the
+          # Metal compiler; without this step the build stops at CompileMetalFile.
+          xcodebuild -downloadComponent MetalToolchain || sudo xcodebuild -downloadComponent MetalToolchain
 
       - name: Resolve Swift Package Manager dependencies
         script: |
@@ -288,6 +302,13 @@ workflows:
           command -v xcodegen >/dev/null 2>&1 || brew install xcodegen
           xcodegen --version
           cd "$CM_BUILD_DIR/ios/Skintel" && xcodegen generate --spec project.yml
+
+      - name: Install the Metal Toolchain (Xcode 26 ships it separately)
+        script: |
+          set -euo pipefail
+          # The app compiles a Metal shader (SKRipple.metal). Xcode 26 no longer bundles the
+          # Metal compiler; without this step the build stops at CompileMetalFile.
+          xcodebuild -downloadComponent MetalToolchain || sudo xcodebuild -downloadComponent MetalToolchain
 
       - name: Resolve Swift Package Manager dependencies
         script: |
