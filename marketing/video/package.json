@@ -18,7 +18,18 @@
     "render:projection": "node render.mjs projection 30",
     "render:live": "npm run render:hero && npm run render:shelf && npm run render:routine && npm run render:versus && npm run render:progress",
     "render:all": "npm run render:v1 && npm run render:v2 && npm run render:v3 && npm run render:launch && npm run render:live",
-    "ads": "node shoot.mjs ads"
+    "ads": "node shoot.mjs ads",
+    "render:reel-droste": "node render.mjs reel-droste 30",
+    "render:reel-fights": "node render.mjs reel-fights 30",
+    "render:reel-cta": "node render.mjs reel-cta 30",
+    "render:reels": "npm run render:reel-droste && npm run render:reel-fights && npm run render:reel-cta && node shoot-overlays.mjs",
+    "render:f-ask-when": "node render.mjs f-ask-when 30",
+    "render:f-ask-tag": "node render.mjs f-ask-tag 30",
+    "render:f-ask-routine": "node render.mjs f-ask-routine 30",
+    "render:f-scan": "node render.mjs f-scan 30",
+    "render:f-conflicts": "node render.mjs f-conflicts 30",
+    "render:f-triggers": "node render.mjs f-triggers 30",
+    "render:features": "npm run render:f-ask-when && npm run render:f-ask-tag && npm run render:f-ask-routine && npm run render:f-scan && npm run render:f-conflicts && npm run render:f-triggers"
   },
   "dependencies": {
     "@fontsource/dm-sans": "^5.3.0",

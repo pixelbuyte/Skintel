@@ -1,0 +1,57 @@
+# Real-footage hook videos
+
+The Fastlane / Cal AI look (a real hand holding a phone, the app doing its thing) without filming
+and without fake people:
+
+1. **Hook, 2.2 s:** the hook line in TikTok Sans over faceless stock B-roll (serum dripping, a cream
+   jar, a shelf with its labels blurred).
+2. **Demo:** a stock clip of a real hand holding a phone with a blank white or green screen. The
+   live Skintel UI (`f-*.html?mode=screen`) is tracked onto the screen frame by frame
+   (`track.py`, `composite.py`): the screen area is found again on every frame, the app is warped
+   into its corners, and the area itself is the mask, so the notch, rounded corners and fingers
+   stay real and the glass keeps its own shading.
+3. **End card:** Comment SKINSTEL.
+
+```bash
+pip install opencv-python-headless numpy
+CHROME_PATH=... python3 stock/build_stock.py            # → out/stock-*.mp4
+CHROME_PATH=... python3 stock/build_stock.py stock-02   # one video
+```
+
+## Clips
+
+`clips.json` lists every clip with its source page and licence. They download into `cache/`
+(gitignored) on first use.
+
+Rules for adding a clip:
+
+- **Faceless.** Pexels and Mixkit both forbid using a recognisable person in a way that implies
+  they endorse the product; a stock face reacting to Skintel would do exactly that.
+- **No readable brands.** Add `"blur": 7` (or more) for clips with legible labels.
+- **Phone clips** need a flat white or green screen held fairly still; mark `"screen": "green"` for
+  green ones. Search Pexels for "hand holding phone white screen" / "green screen phone vertical".
+
+Finding clips: Pexels search pages block scripts, but web search with `site:pexels.com` finds clip
+pages, and `https://www.pexels.com/download/video/<id>/` downloads them. Mixkit search pages
+(`mixkit.co/free-stock-video/<topic>/`) list clip ids, and
+`assets.mixkit.co/videos/<id>/<id>-720.mp4` downloads them (720p only).
+
+## Adding a video
+
+Add a line to `VIDEOS` in `build_stock.py`: hook number (from `hook.html`), B-roll clip and its
+start second, phone clip and crop-in zoom, demo. Check frames before sending.
+
+## Talking-skin skits
+
+`build_talk.py` uses the same demo bodies, but the hook is the Skintel mascot speaking as the viewer's
+skin (a Kling 3.0 clip from Higgsfield, with its own voice), cropped from square to 9:16 over a
+blurred fill, with "POV: your skin can finally talk" and word-timed captions from `talk.html`. Run
+`build_stock.py` first so `out/stock-tmp/*-body.mp4` exist. Steps for a new clip are in the
+`hook-video` skill.
+
+## The mascot talks the whole way
+
+`build_narrated.py` keeps the voice going: the talking-skin hook (or a muted reaction shot with a POV
+line), then a blue-screen Kling clip of the mascot, keyed out, narrating our own app render
+(`out/skintel-f-*-body.mp4`) from the corner, then big on the end card saying the CTA. It writes a
+voice and a silent cut of each. Run `build_talk.py` first (it renders the hook overlays).

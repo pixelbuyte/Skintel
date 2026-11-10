@@ -1,0 +1,98 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<link rel="stylesheet" href="./style.css">
+<style>
+  /* Reaction hook, 2.2 s (HOOKS.md): a face reacting + one line in TikTok's own font, cut straight
+     into a demo body. The face is the Skintel mascot, a brand character, never an "AI customer".
+     hook.html?h=N picks the line; ?kit=1 renders only the text on transparent for founder clips. */
+  @font-face { font-family: "TikTok Sans"; font-weight: 700; src: url("./fonts/TikTokSans-700.ttf"); }
+  @font-face { font-family: "TikTok Sans"; font-weight: 800; src: url("./fonts/TikTokSans-800.ttf"); }
+  #room { position: absolute; inset: -40px; background:
+      radial-gradient(520px 640px at 50% 30%, rgba(255,214,170,.42), transparent 70%),
+      radial-gradient(300px 300px at 16% 18%, rgba(255,196,140,.35), transparent 70%),
+      radial-gradient(240px 240px at 86% 26%, rgba(255,224,190,.28), transparent 70%),
+      radial-gradient(900px 500px at 50% 112%, rgba(30,22,18,.85), transparent 70%),
+      linear-gradient(180deg, #6F5B4F 0%, #57463D 55%, #3A2F29 100%);
+      filter: blur(2px); }
+  /* a soft mirror arch + shelf line, out of focus, so it reads as a real room */
+  #arch { position: absolute; left: 290px; top: 230px; width: 500px; height: 760px; border-radius: 250px 250px 20px 20px;
+          background: linear-gradient(180deg, rgba(255,236,214,.22), rgba(255,236,214,.06)); filter: blur(14px); }
+  #shelf { position: absolute; left: 120px; right: 120px; top: 1080px; height: 18px; background: rgba(255,230,205,.16); filter: blur(10px); }
+  #face { position: absolute; left: 50%; top: 860px; width: 820px; height: 820px; margin-left: -410px; transform-origin: 50% 80%;
+          filter: drop-shadow(0 40px 50px rgba(0,0,0,.45)); }
+  #face img { width: 100%; height: 100%; object-fit: contain; }
+  #lines { position: absolute; left: 50%; top: 1290px; width: 0; height: 0; }
+  #lines i { position: absolute; left: -5px; top: -330px; width: 10px; height: 70px; border-radius: 5px; background: #FFE9D6; transform-origin: 5px 330px; }
+  #txt { position: absolute; left: 70px; right: 70px; top: 470px; text-align: center; z-index: 20;
+         font-family: "TikTok Sans", sans-serif; font-weight: 700; font-size: 76px; line-height: 1.12; color: #fff; letter-spacing: -.005em;
+         text-shadow: 0 0 2px rgba(0,0,0,.9), 0 2px 4px rgba(0,0,0,.75), 0 0 18px rgba(0,0,0,.35); }
+  html.kit, html.kit body, html.kit #stage { background: transparent !important; }
+  html.kit #room, html.kit #arch, html.kit #shelf, html.kit #face, html.kit #lines, html.kit #grain, html.kit #vignette { display: none; }
+</style>
+</head>
+<body>
+<div id="stage">
+  <div id="cam" style="position:absolute;inset:0">
+    <div id="room"></div><div id="arch"></div><div id="shelf"></div>
+    <div id="lines"></div>
+    <div id="face"><img id="pose"></div>
+  </div>
+  <div id="txt"></div>
+  <div id="vignette"></div>
+  <div id="grain"></div>
+</div>
+<script src="./engine.js"></script>
+<script>
+const E = window.__E, $ = id => document.getElementById(id);
+const ART = "../../ios/Skintel/Skintel/Resources/Assets.xcassets";
+// [text, pose]. Same numbering as the hook bank in HOOKS.md.
+const HOOKS = {
+  1:  ["2 years of breakouts and NOW I find this??", "DropWarning"],
+  2:  ["wait… my retinol and my toner were FIGHTING??", "DropWarning"],
+  3:  ["I scanned my whole shelf and I'm not okay", "DropScanner"],
+  4:  ["why did nobody tell me this app existed", "DropWarning"],
+  5:  ["the app just told me what keeps breaking me out", "DropIngredients"],
+  6:  ["POV: you scan it before you buy it", "DropScanner"],
+  7:  ["asked when to use my retinol and it KNEW my routine", "DropAsk"],
+  8:  ["stop scrolling if you break out and don't know why", "DropWarning"],
+  9:  ["I've been layering my skincare wrong this whole time??", "DropWarning"],
+  10: ["tagged my toner and asked how often… 😳", "DropAsk"],
+  11: ["my shelf had 2 conflicts. TWO.", "DropWarning"],
+  12: ["this is your sign to check what's actually in your moisturizer", "DropIngredients"],
+};
+const q = new URLSearchParams(location.search);
+const [text, pose] = HOOKS[q.get('h') || '1'] || HOOKS[1];
+$('txt').textContent = text;
+$('pose').src = `${ART}/${pose}.imageset/${pose}.png`;
+if (q.get('kit')) document.documentElement.classList.add('kit');
+$('lines').innerHTML = [-62, -36, 36, 62].map(a => `<i style="transform:rotate(${a}deg)"></i>`).join('');
+const DURATION = 2.2;
+
+function render(t) {
+  // The reaction: snap in large, a quick double-take shake, then hold with a little breath.
+  const punch = E.easeEmil(E.seg(t, 0, 0.28));
+  const shake = Math.max(0, 1 - t / 0.55) * Math.sin(t * 46);
+  const breath = 1 + Math.sin(t * 3.2) * 0.008;
+  $('face').style.transform = `translateX(${shake * 14}px) rotate(${shake * 3.5}deg) scale(${E.lerp(1.16, 1, punch) * breath})`;
+  // Shock lines pop around the head once.
+  const l = E.seg(t, 0.12, 0.6);
+  $('lines').querySelectorAll('i').forEach(i => {
+    const a = parseFloat(i.style.transform.match(/-?\d+/)[0]);
+    i.style.transform = `rotate(${a}deg) translateY(${-E.easeOut(l) * 40}px)`;
+    i.style.opacity = l > 0 && l < 1 ? 1 - l * 0.9 : 0;
+  });
+  // Hand-held camera: tiny drift, never still.
+  $('cam').style.transform = `translate(${Math.sin(t * 1.7) * 5}px, ${Math.cos(t * 1.3) * 4}px) scale(1.01)`;
+  // Text is there from frame one (sound-off viewers decide in ~1.5 s); a soft 4-frame settle only.
+  const tp = E.easeOut(E.seg(t, 0, 0.13));
+  $('txt').style.opacity = q.get('kit') ? 1 : 0.4 + 0.6 * tp;
+  $('txt').style.transform = `scale(${E.lerp(1.04, 1, tp)})`;
+}
+window.__seek = t => { render(t); return true; };
+window.__duration = DURATION;
+render(q.get('kit') ? 1 : 0);
+</script>
+</body>
+</html>

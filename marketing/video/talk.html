@@ -1,0 +1,84 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<style>
+  /* "POV: your skin can finally talk": text over the talking-mascot hook (a Kling clip of the
+     Skintel mascot, stock/build_talk.py) and then over the real-hands demo. Transparent:
+     render-alpha.mjs talk <id>. Word timings come from transcribing each clip (faster-whisper),
+     relative to the trimmed clip; keep HOOK and BODY in sync with TALKS in build_talk.py. */
+  @font-face { font-family: "TikTok Sans"; font-weight: 700; src: url("./fonts/TikTokSans-700.ttf"); }
+  @font-face { font-family: "TikTok Sans"; font-weight: 800; src: url("./fonts/TikTokSans-800.ttf"); }
+  html, body { margin: 0; background: transparent !important; }
+  #stage { position: relative; width: 1080px; height: 1920px; overflow: hidden; }
+  .t { position: absolute; left: 80px; right: 80px; text-align: center; font-family: "TikTok Sans", sans-serif; color: #fff;
+       text-shadow: 0 0 2px rgba(0,0,0,.9), 0 2px 4px rgba(0,0,0,.75), 0 0 18px rgba(0,0,0,.35); }
+  #top { top: 160px; font-weight: 700; font-size: 74px; line-height: 1.12; }
+  /* Over the demo: one short line above the phone, never on its status bar. */
+  #top.demo { top: 130px; font-size: 58px; text-shadow: none; }
+  #top.demo span { display: inline-block; background: rgba(0,0,0,.62); padding: 10px 28px 14px; border-radius: 18px; }
+  /* Spoken line, lower third: TikTok auto-caption look, a chunk at a time. Sits over the
+     mascot's feet, clear of the TikTok UI (bottom ~380 px). */
+  #say { top: 1330px; left: 40px; right: 40px; font-weight: 800; font-size: 76px; line-height: 1.08; white-space: nowrap;
+         text-shadow: -4px -4px 0 #000, 4px -4px 0 #000, -4px 4px 0 #000, 4px 4px 0 #000, 0 5px 0 #000, 0 0 22px rgba(0,0,0,.5); }
+  html.print #stage { background: #8FA3A0; }
+</style>
+</head>
+<body>
+<div id="stage"><div class="t" id="top"></div><div class="t" id="say"></div></div>
+<script src="./engine.js"></script>
+<script>
+const E = window.__E, $ = id => document.getElementById(id);
+// hook: trimmed clip length; say: [start, text] chunks of the spoken line; body: demo length;
+// demo: [start in the demo, text] captions over the real-hands footage (same claims as f-*.html).
+const TALKS = {
+  conflicts: {
+    hook: 4.95, body: 8.0,
+    say: [[0.0, 'You put retinol'], [1.34, 'AND an acid'], [2.02, 'on me last night?!'], [3.16, 'I’m begging you…'], [4.36, 'check first.']],
+    demo: [[0.0, 'checks your whole routine'], [3.1, '2 conflicts in ONE routine'], [5.6, 'and how to fix them']],
+  },
+  scan: {
+    hook: 3.95, body: 9.4,
+    say: [[0.36, 'Before you buy that…'], [1.98, 'can we scan it first?'], [3.48, 'Please.']],
+    demo: [[0.0, 'scan the barcode'], [2.2, 'finds it in seconds'], [5.9, 'a verdict for YOUR skin']],
+  },
+  triggers: {
+    hook: 3.7, body: 8.5,
+    say: [[0.52, 'I’ve been trying'], [1.5, 'to tell you'], [1.88, 'what’s breaking me out'], [2.76, 'for two years.']],
+    demo: [[0.0, 'log your skin in one tap'], [3.7, 'what your bad days share'], [6.2, 'a pattern, not a diagnosis']],
+  },
+};
+const q = new URLSearchParams(location.search);
+const T = TALKS[q.get('f')] || TALKS.conflicts;
+const DURATION = T.hook + T.body;
+
+// The chunk on screen at t: its index and start, or -1.
+function current(list, t) { let i = -1; list.forEach((c, k) => { if (t >= c[0]) i = k; }); return i; }
+function show(el, list, t, end, pop) {
+  const i = current(list, t);
+  if (i < 0 || t >= end) { el.style.opacity = 0; return; }
+  if (el.dataset.i !== String(i)) { el.dataset.i = String(i); el.innerHTML = `<span>${list[i][1]}</span>`; }
+  const p = E.easeEmil(E.seg(t, list[i][0], list[i][0] + 0.12));
+  el.style.opacity = 1;
+  el.style.transform = `scale(${E.lerp(pop, 1, p)})`;
+}
+
+function render(t) {
+  if (t < T.hook) {
+    // The series line is on screen from frame one; sound-off viewers read it, sound-on hear the mascot.
+    $('top').textContent = 'POV: your skin can finally talk';
+    $('top').style.opacity = 1; $('top').style.transform = 'none'; $('top').classList.remove('demo'); delete $('top').dataset.i;
+    show($('say'), T.say, t, T.hook, 1.12);
+  } else {
+    $('say').style.opacity = 0;
+    $('top').classList.add('demo');
+    show($('top'), T.demo, t - T.hook, T.body, 1.04);
+  }
+}
+window.__seek = t => { render(t); return true; };
+window.__duration = DURATION;
+if (q.get('print')) document.documentElement.classList.add('print');
+render(0.5);
+</script>
+</body>
+</html>

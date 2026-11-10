@@ -1,0 +1,60 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<link rel="stylesheet" href="./style.css">
+<style>
+  /* Reel 8 format as a reusable end card: the keyword shown, said (VO) and de-risked, with the real time-box. */
+  .wrap { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; padding: 0 90px; }
+  .sign { background: #FFFDF8; border-radius: 40px; padding: 70px 60px 64px; width: 860px;
+          box-shadow: 0 40px 80px rgba(26,24,20,.18), 0 0 0 2px #EAE6DF; transform-origin: 50% 100%; }
+  .sign .s1 { font-family: 'Instrument Serif', serif; font-style: italic; font-size: 92px; color: var(--muted); }
+  .sign .kw { font-family: 'Instrument Serif', serif; font-size: 190px; line-height: .95; color: var(--primary); margin-top: 6px; }
+  .sign .s2 { font-size: 42px; color: var(--ink); margin-top: 26px; line-height: 1.3; }
+  .m { width: 260px; height: 260px; object-fit: contain; margin-bottom: -40px; position: relative; z-index: 2; }
+  .derisk { font-size: 44px; color: var(--muted); margin-top: 60px; line-height: 1.35; }
+  .derisk b { color: var(--ink); }
+  .offer { margin-top: 44px; display: inline-flex; gap: 18px; align-items: center; background: var(--ink); color: var(--cream);
+           padding: 22px 36px; border-radius: 999px; font-size: 38px; font-weight: 700; }
+  .offer i { width: 16px; height: 16px; border-radius: 50%; background: #D98A76; display: inline-block; }
+</style>
+</head>
+<body>
+<div id="stage">
+  <div class="wrap">
+    <img class="m" id="m" src="../../ios/Skintel/Skintel/Resources/Assets.xcassets/Mascot.imageset/Mascot.png">
+    <div class="sign" id="sign">
+      <div class="s1" id="s1">comment</div>
+      <div class="kw" id="kw">SKINSTEL</div>
+      <div class="s2" id="s2">and I&rsquo;ll DM you the link</div>
+    </div>
+    <div class="derisk" id="dr">You&rsquo;re already on your phone.<br><b>It takes one second.</b></div>
+    <div class="offer" id="of"><i></i>500 founding spots &middot; $20 for 3 months</div>
+  </div>
+  <div id="vignette"></div>
+  <div id="grain"></div>
+</div>
+<script src="./engine.js"></script>
+<script>
+const E = window.__E;
+const $ = id => document.getElementById(id);
+const DURATION = 7.0;
+function render(t) {
+  // The sign swings up into frame like it's being held to camera, then settles.
+  const p = E.seg(t, 0.05, 0.9);
+  const sw = Math.sin(p * Math.PI * 2.2) * (1 - p) * 9;
+  $('sign').style.transform = `translateY(${(1 - E.easeEmil(p)) * 900}px) rotate(${sw - 2 + Math.sin(t * 1.4) * 0.6}deg)`;
+  const m = E.easeEmil(E.seg(t, 0.6, 1.1));
+  $('m').style.opacity = m;
+  $('m').style.transform = `translateY(${(1 - m) * 80 + Math.sin(t * 3) * 8}px)`;
+  const k = E.easeEmil(E.seg(t, 0.75, 1.15));
+  $('kw').style.transform = `scale(${E.lerp(0.8, 1, k)})`;
+  E.riseIn($('dr'), t, 1.6, { rise: 30 });
+  E.riseIn($('of'), t, 2.4, { rise: 30 });
+}
+window.__seek = t => { render(t); return true; };
+window.__duration = DURATION;
+render(0);
+</script>
+</body>
+</html>

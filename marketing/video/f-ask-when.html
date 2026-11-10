@@ -1,0 +1,79 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<link rel="stylesheet" href="./style.css">
+<link rel="stylesheet" href="./app-ui.css">
+</head>
+<body>
+<div id="stage">
+  <div id="main">
+    <div id="cap"></div>
+    <div class="rphone" id="phone"><div class="scr"><div class="mock" id="m">
+      <div id="welcome" style="position:absolute;left:22px;right:22px;top:118px">
+        <div class="avatar" style="width:52px;height:52px"><svg width="24" height="24" viewBox="0 0 24 24" fill="#FFFEFA"><path d="M12 2l2.2 6.8L21 11l-6.8 2.2L12 20l-2.2-6.8L3 11l6.8-2.2z"/></svg></div>
+        <div class="serif" style="font-size:52px;line-height:1.05;margin-top:22px;width:230px">What can I help with?</div>
+        <img src="ART/Mascot.imageset/Mascot.png" style="position:absolute;right:0;top:40px;height:120px">
+        <div style="font-size:17px;color:#6B6760;margin-top:16px;line-height:1.35">Ask about your routine, ingredients or a reaction. Answers use your shelf and routine.</div>
+      </div>
+      <div class="askhead">Ask Skintel</div>
+      <div class="thread">
+        <div class="ububble" id="q1">When should I use my retinol?</div>
+        <div class="typing" id="d1"><i></i><i></i><i></i></div>
+        <div class="arow" id="a1"><span class="avatar"></span><div class="atext" id="a1t">
+          <p><b>At night.</b> Your <b>Retinol 0.3% Night Serum</b> is already in your night routine, right after your toner. Keep it there.</p>
+          <p>Start with 2–3 nights a week and build up as your skin settles. Skip the <b>Glycolic Exfoliating Toner</b> on retinol nights.</p>
+          <p>Wear <b>Daily Mineral SPF 50</b> every morning while you&rsquo;re using it.</p>
+        </div></div>
+      </div>
+      <div class="composer">
+        <div class="field" id="field"></div>
+        <div class="tools"><span class="atbtn">@</span><span class="toggle"><span class="on">☾ Luna</span><span>☼ Sol</span></span>
+          <span class="send" id="send"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#FFFEFA" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M12 19V5M5 12l7-7 7 7"/></svg></span></div>
+      </div>
+      <div class="disclaim"><span style="color:#A35848;font-weight:600">Luna</span> · Fastest for everyday questions<br>Answers can be wrong. Skintel isn&rsquo;t a doctor.</div>
+      <img class="tabbar" src="./assets/tab-ask.png">
+    </div></div><div class="isl"></div></div>
+    <div class="tapdot" id="tapdot"></div>
+  </div>
+  <div id="ctaslot"></div>
+  <div id="vignette"></div>
+  <div id="grain"></div>
+</div>
+<script src="./engine.js"></script>
+<script src="./feature.js"></script>
+<script>
+const E = window.__E, $ = F.$;
+$('m').insertAdjacentHTML('afterbegin', F.STATUS);
+document.querySelectorAll('.avatar:empty').forEach(a => a.innerHTML = F.SPARK);
+$('ctaslot').outerHTML = F.ctaHTML('and I&rsquo;ll DM you the link.<br>Ask about <i>your</i> routine.');
+F.art();
+const DURATION = 16.5;
+const Q = 'When should I use my retinol?';
+const T = { type: 1.0, send: 3.3, answer: 5.0, cta: 13.0 };
+
+function render(t) {
+  F.phoneIn(t, 0.15, [[T.answer + 0.4, T.cta + 0.4, 1.32, 0]]);
+  F.captions(t, [
+    [0.0, 'Ask Skintel', 'When do I <em>actually</em> use my retinol?'],
+    [T.answer + 0.2, 'It knows your shelf', 'Answers about <em>your</em> products'],
+    [9.4, 'Your routine, your order', 'Tells you <em>when</em> and how often'],
+  ]);
+  const sent = t >= T.send;
+  F.type($('field'), sent ? '' : Q, t, T.type, 15, !sent);
+  if (!sent && t < T.type - 0.6) $('field').innerHTML = '<span class="ph">Ask about your skin or products</span>';
+  $('send').classList.toggle('on', !sent && t >= T.type + Q.length / 15);
+  F.taps(t, [[T.send - 0.05, 348, 690]]);
+  F.appear($('welcome'), t, -1, T.send, 0);
+  F.appear($('q1'), t, T.send + 0.05);
+  F.dots($('d1'), t, T.send + 0.4, T.answer);
+  F.appear($('a1'), t, T.answer);
+  if (t >= T.answer) E.revealWords($('a1t'), t, T.answer, { step: 0.035, dur: 0.3, rise: 6 });
+  F.cta(t, T.cta);
+}
+window.__seek = t => { render(t); return true; };
+window.__duration = DURATION;
+render(0);
+</script>
+</body>
+</html>

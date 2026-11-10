@@ -1,0 +1,121 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<link rel="stylesheet" href="./style.css">
+<link rel="stylesheet" href="./app-ui.css">
+<style>
+  .asksheet { position: absolute; left: 0; right: 0; top: 54px; bottom: 0; border-radius: 38px 38px 0 0; z-index: 36;
+              background: radial-gradient(420px 420px at 0 0, rgba(247,227,214,.55), transparent 100%), #F4EDE0; box-shadow: 0 -10px 30px rgba(0,0,0,.12); }
+  .asksheet .askhead { top: 14px; }
+  .asksheet .thread { top: 70px; }
+  .asksheet .composer { bottom: 52px; }
+  .asksheet .disclaim { bottom: 14px; }
+  .opt { display: flex; align-items: center; gap: 16px; }
+  .opt .ic { width: 48px; height: 48px; border-radius: 14px; background: rgba(163,88,72,.08); display: grid; place-items: center; flex: none; }
+  #today { position: absolute; inset: 0; z-index: 45; }  /* above the drawn status bar: the screen image has its own */
+  #today img { width: 100%; height: 100%; display: block; }
+</style>
+</head>
+<body>
+<div id="stage">
+  <div id="main">
+    <div id="cap"></div>
+    <div class="rphone" id="phone"><div class="scr"><div class="mock" id="m">
+      <!-- RoutineView, small shelf: setupHelp -->
+      <div class="page" style="gap:14px">
+        <div style="position:relative;padding-top:8px">
+          <svg style="position:absolute;left:-6px;top:10px" width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="#1A1814" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 5l-7 7 7 7"/></svg>
+          <div class="serif" style="font-size:34px;padding-left:44px;line-height:1.15">Routine</div>
+        </div>
+        <div style="display:flex;padding:4px;background:var(--chip);border-radius:13px">
+          <div style="flex:1;height:36px;display:grid;place-items:center;font-size:15px;font-weight:500;color:#6B6760">AM</div>
+          <div style="flex:1;height:36px;display:grid;place-items:center;font-size:15px;font-weight:600;background:#FFFEFA;border-radius:10px;box-shadow:0 1px 1.5px rgba(26,24,20,.08)">PM</div>
+        </div>
+        <div style="text-align:center;margin-top:6px">
+          <img src="ART/DropNight.imageset/DropNight.png" style="height:120px">
+          <div class="serif" style="font-size:28px;margin-top:6px">Want more to choose from?</div>
+          <div class="sec" style="margin-top:8px;padding:0 10px">A routine is built from your shelf, which has 5 products so far. Get ideas for your night routine, or add what you already use.</div>
+        </div>
+        <div class="card opt" id="opt1"><span class="ic"><svg width="20" height="20" viewBox="0 0 24 24" fill="#A35848"><path d="M12 2l2.2 6.8L21 11l-6.8 2.2L12 20l-2.2-6.8L3 11l6.8-2.2z"/></svg></span>
+          <div style="flex:1"><div class="title">Get recommendations from Ask Skintel</div><div class="sec">&ldquo;What should my night routine include?&rdquo;</div></div><span style="color:#6B6760">›</span></div>
+        <div class="card opt"><span class="ic"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#A35848" stroke-width="2.2" stroke-linecap="round"><path d="M4 8V5a1 1 0 0 1 1-1h3M16 4h3a1 1 0 0 1 1 1v3M20 16v3a1 1 0 0 1-1 1h-3M8 20H5a1 1 0 0 1-1-1v-3M8 12h8"/></svg></span>
+          <div style="flex:1"><div class="title">Scan or add products</div><div class="sec">Scan, photo, link or type it in</div></div><span style="color:#6B6760">›</span></div>
+        <div style="text-align:center;font-weight:600;font-size:15px;color:#6B6760">Build with what I have</div>
+      </div>
+      <img class="tabbar" src="./assets/tab-today.png">
+
+      <!-- Ask Skintel sheet, question put in the composer (not sent) -->
+      <div class="asksheet" id="sheet">
+        <span style="position:absolute;top:6px;left:50%;transform:translateX(-50%);width:36px;height:5px;border-radius:3px;background:#CFC9C0"></span>
+        <div class="askhead">Ask Skintel</div>
+        <div class="thread">
+          <div class="ububble" id="q1">What should my night routine include?</div>
+          <div class="typing" id="d1"><i></i><i></i><i></i></div>
+          <div class="arow" id="a1"><span class="avatar"></span><div class="atext" id="a1t">
+            <p>From what&rsquo;s on your shelf, tonight could be:</p>
+            <ol><li><b>Hydrating Gel Cleanser</b></li><li><b>Soothing Hydrating Toner</b></li>
+                <li><b>Retinol 0.3% Night Serum</b>, 3 nights a week to start</li><li><b>Barrier Repair Cream</b></li></ol>
+            <p>On the other nights, swap the retinol for your <b>Glycolic Exfoliating Toner</b>. Never both on the same night.</p>
+          </div></div>
+        </div>
+        <div class="composer">
+          <div class="field" id="field"></div>
+          <div class="tools"><span class="atbtn">@</span><span class="toggle"><span class="on">☾ Luna</span><span>☼ Sol</span></span>
+            <span class="send" id="send"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#FFFEFA" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M12 19V5M5 12l7-7 7 7"/></svg></span></div>
+        </div>
+        <div class="disclaim"><span style="color:#A35848;font-weight:600">Luna</span> · Fastest for everyday questions<br>Answers can be wrong. Skintel isn&rsquo;t a doctor.</div>
+      </div>
+      <!-- Today, with tonight's steps set up -->
+      <div id="today"><img src="./assets/app-today.png"></div>
+    </div></div><div class="isl"></div></div>
+    <div class="tapdot" id="tapdot"></div>
+  </div>
+  <div id="ctaslot"></div>
+  <div id="vignette"></div>
+  <div id="grain"></div>
+</div>
+<script src="./engine.js"></script>
+<script src="./feature.js"></script>
+<script>
+const E = window.__E, $ = F.$;
+$('m').insertAdjacentHTML('afterbegin', F.STATUS);
+document.querySelectorAll('.avatar:empty').forEach(a => a.innerHTML = F.SPARK);
+$('ctaslot').outerHTML = F.ctaHTML('and I&rsquo;ll DM you the link.<br>Plan yours from your own shelf.');
+F.art();
+const DURATION = 20.5;
+const Q = 'What should my night routine include?';
+const T = { tapOpt: 2.3, sheet: 2.5, send: 4.2, answer: 5.9, today: 13.2, cta: 17.0 };
+
+function render(t) {
+  F.phoneIn(t, 0.15, [[T.answer + 0.4, T.today - 0.1, 1.28, 0]]);
+  F.captions(t, [
+    [0.0, 'Ask Skintel · routine', 'Don&rsquo;t know <em>what goes where</em>?'],
+    [T.sheet + 0.3, 'One tap from Routine', 'Ask what your night routine <em>should include</em>'],
+    [T.answer + 0.2, 'Built from your shelf', 'It plans it with <em>what you already own</em>'],
+    [T.today, 'Then every night', 'Add the steps. <em>Tick them off.</em>'],
+  ]);
+  // Sheet slides up with the question already in the composer.
+  const sp = E.easeEmil(E.seg(t, T.sheet, T.sheet + 0.5));
+  $('sheet').style.transform = `translateY(${(1 - sp) * 860}px)`;
+  const sent = t >= T.send;
+  $('field').innerHTML = sent ? '<span class="ph">Ask about your skin or products</span>' : Q;
+  $('send').classList.toggle('on', !sent);
+  F.taps(t, [[T.tapOpt - 0.05, 190, 395], [T.send - 0.05, 348, 784]]);
+  F.appear($('q1'), t, T.send + 0.05);
+  F.dots($('d1'), t, T.send + 0.4, T.answer);
+  F.appear($('a1'), t, T.answer);
+  if (t >= T.answer) E.revealWords($('a1t'), t, T.answer, { step: 0.03, dur: 0.3, rise: 6 });
+  // Cut to Today with tonight's steps.
+  const tp = E.easeEmil(E.seg(t, T.today, T.today + 0.5));
+  $('today').style.opacity = tp;
+  $('today').style.transform = `scale(${E.lerp(1.04, 1, tp)})`;
+  $('today').style.visibility = tp > 0 ? 'visible' : 'hidden';
+  F.cta(t, T.cta);
+}
+window.__seek = t => { render(t); return true; };
+window.__duration = DURATION;
+render(0);
+</script>
+</body>
+</html>

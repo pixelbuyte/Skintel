@@ -1,0 +1,285 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<link rel="stylesheet" href="./style.css">
+<style>
+  /* Text-story format drawn as a real iOS 26 iMessage screen recording (1 pt = 2.77 px): Liquid Glass
+     header and input bar, the keyboard up, your messages typed key by key into the field and sent
+     with the arrow, the other side's typing dots, photo messages. textmsg.html?s=<story>. The contact
+     is your skin (mascot photo) or a skit character. stock/build_skits.py adds the demo and sounds. */
+  @font-face { font-family: "TikTok Sans"; font-weight: 800; src: url("./fonts/TikTokSans-800.ttf"); }
+  #stage { background: #fff !important; font-family: Inter, -apple-system, 'DM Sans', sans-serif; letter-spacing: -.01em; }
+  #grain, #vignette { display: none; }
+  .status { position: absolute; left: 0; right: 0; top: 0; height: 150px; display: flex; align-items: center; justify-content: space-between;
+            padding: 22px 88px 0 100px; font-size: 47px; font-weight: 600; z-index: 8; }
+  .status svg { display: block; }
+  /* Header: content scrolls under a soft white fade, glass buttons float on it. */
+  .nav { position: absolute; left: 0; right: 0; top: 0; height: 440px; z-index: 7; pointer-events: none;
+         background: linear-gradient(180deg, #fff 0%, #fff 87%, rgba(255,255,255,0)); }
+  .glass { position: absolute; background: rgba(255,255,255,.72); border: 1.5px solid rgba(0,0,0,.06); border-radius: 999px;
+           box-shadow: 0 6px 22px rgba(0,0,0,.10), inset 0 1px 0 rgba(255,255,255,.9); backdrop-filter: blur(20px); }
+  .nav .back { left: 40px; top: 186px; width: 124px; height: 124px; display: flex; align-items: center; justify-content: center; }
+  .nav .back svg { width: 30px; height: 52px; }
+  .nav .ft { right: 40px; top: 186px; width: 124px; height: 124px; display: flex; align-items: center; justify-content: center; }
+  .nav .ft svg { width: 66px; height: 44px; }
+  .nav .av { position: absolute; left: 50%; top: 150px; width: 150px; height: 150px; margin-left: -75px; border-radius: 50%; background: #F4EDE0; overflow: hidden; }
+  .nav .av img { position: absolute; left: -12%; top: 4%; width: 124%; }
+  .nav .av.ini { background: linear-gradient(180deg, #A5ABB6, #868C97); color: #fff; font-size: 70px; font-weight: 500; line-height: 150px; text-align: center; }
+  .nav .av.emo { background: linear-gradient(180deg, #E4E4E8, #D4D4D9); font-size: 82px; line-height: 150px; text-align: center; }
+  .nav .pill { position: absolute; left: 50%; top: 316px; transform: translateX(-50%); padding: 10px 30px 12px; font-size: 33px; font-weight: 600; white-space: nowrap; }
+  .nav .pill b { color: #A1A1A6; font-weight: 500; }
+  #feed { position: absolute; left: 0; right: 0; top: 0; height: 975px; overflow: hidden; }
+  #list { position: absolute; left: 0; right: 0; top: 0; padding: 440px 44px 20px; }
+  .stamp { text-align: center; font-size: 30px; color: #8E8E93; margin: 0 0 26px; line-height: 1.35; }
+  .stamp b { font-weight: 600; }
+  .m { display: flex; margin-top: 6px; position: relative; }
+  .m.gap { margin-top: 26px; }
+  .me { justify-content: flex-end; }
+  .b { max-width: 750px; padding: 18px 34px 20px; border-radius: 50px; font-size: 47px; line-height: 1.3; position: relative; transform-origin: 0 100%; }
+  .them .b { background: #E9E9EB; color: #000; }
+  .me .b { background: linear-gradient(180deg, #2E9BFF, #0A7CFF); color: #fff; transform-origin: 100% 100%; }
+  .tail.them .b::before { content: ''; position: absolute; left: -14px; bottom: 0; width: 44px; height: 44px; background: #E9E9EB; border-bottom-right-radius: 32px 28px; }
+  .tail.them .b::after { content: ''; position: absolute; left: -30px; bottom: 0; width: 30px; height: 46px; background: #fff; border-bottom-right-radius: 22px; }
+  .tail.me .b::before { content: ''; position: absolute; right: -14px; bottom: 0; width: 44px; height: 44px; background: #0A7CFF; border-bottom-left-radius: 32px 28px; }
+  .tail.me .b::after { content: ''; position: absolute; right: -30px; bottom: 0; width: 30px; height: 46px; background: #fff; border-bottom-left-radius: 22px; }
+  .b span { position: relative; z-index: 1; }
+  .pic .b { padding: 0; background: none !important; border-radius: 46px; overflow: hidden; border: 2px solid #E5E5EA; }
+  .pic .b::before, .pic .b::after { display: none; }
+  .pic img { display: block; width: 520px; height: 640px; object-fit: cover; object-position: top; }
+  /* Link preview: an App Store link sent in the chat (iMessage's rich card). */
+  .link .b { padding: 0; background: #E9E9EB !important; width: 620px; border-radius: 46px; overflow: hidden; color: #000; }
+  .link .b::before, .link .b::after { display: none; }
+  .link .art { height: 330px; background: linear-gradient(160deg, #F4EDE0, #E9D9C8); display: flex; align-items: center; justify-content: center; }
+  .link .art img { width: 210px; height: 210px; border-radius: 48px; box-shadow: 0 10px 30px rgba(0,0,0,.18); }
+  .link .meta { padding: 22px 34px 26px; }
+  .link .t1 { font-size: 42px; font-weight: 600; line-height: 1.2; }
+  .link .t2 { font-size: 32px; color: #8E8E93; margin-top: 4px; }
+  .typing .b { display: flex; gap: 12px; padding: 30px 34px; }
+  .typing i { width: 20px; height: 20px; border-radius: 50%; background: #8E8E93; display: block; }
+  .who { font-size: 30px; color: #8E8E93; margin: 26px 0 4px 34px; }
+  .read { text-align: right; font-size: 30px; color: #8E8E93; margin: 8px 6px 0; font-weight: 500; }
+  /* Floating glass input bar above the keyboard. */
+  .bar { position: absolute; left: 0; right: 0; bottom: 805px; height: 140px; z-index: 6; }
+  .bar .plus { left: 36px; bottom: 16px; width: 108px; height: 108px; color: #3C3C43; font-size: 80px; line-height: 100px; text-align: center; font-weight: 300; }
+  .bar .field { left: 162px; right: 36px; bottom: 16px; min-height: 108px; line-height: 1.25; border-radius: 54px; font-size: 45px; padding: 26px 120px 26px 40px; color: #000; }
+  .bar .field .ph { color: #A8A8AD; }
+  .bar .field .caret { display: inline-block; width: 4px; height: 52px; background: #0A7CFF; vertical-align: -10px; margin-left: 2px; border-radius: 2px; }
+  .bar .field .send { position: absolute; right: 12px; bottom: 12px; width: 84px; height: 84px; border-radius: 50%; background: #0A7CFF; display: none; align-items: center; justify-content: center; }
+  .bar .field .mic { position: absolute; right: 36px; top: 28px; width: 34px; height: 52px; }
+  /* iOS keyboard, light. */
+  .kb { position: absolute; left: 0; right: 0; bottom: 0; height: 805px; background: #D5D7DD; z-index: 6; padding: 22px 8px 0; }
+  .row { display: flex; justify-content: center; gap: 16px; margin-bottom: 30px; }
+  .k { width: 88px; height: 120px; border-radius: 22px; background: #fff; box-shadow: 0 3px 0 #8E9096; font-size: 62px; line-height: 116px; text-align: center; color: #000; position: relative; }
+  .k.f { background: #ABB0BA; font-size: 44px; }
+  .k.w1 { width: 124px; } .k.w2 { width: 240px; font-size: 44px; } .k.sp { width: 560px; }
+  .k .pop { position: absolute; left: 50%; bottom: 96px; width: 140px; height: 190px; margin-left: -70px; background: #fff; border-radius: 30px; box-shadow: 0 4px 14px rgba(0,0,0,.18);
+            font-size: 96px; line-height: 150px; display: none; }
+  .kbar { display: flex; justify-content: space-between; padding: 6px 60px 0; font-size: 64px; color: #555; }
+  .home { position: absolute; left: 50%; bottom: 22px; width: 372px; height: 14px; margin-left: -186px; border-radius: 7px; background: #000; z-index: 7; }
+  #hook { position: absolute; left: 50px; right: 50px; top: 600px; text-align: center; font-family: "TikTok Sans", sans-serif; letter-spacing: 0;
+          font-weight: 800; font-size: 74px; line-height: 1.1; color: #fff; z-index: 20;
+          text-shadow: -4px -4px 0 #000, 4px -4px 0 #000, -4px 4px 0 #000, 4px 4px 0 #000, 0 5px 0 #000, 0 0 20px rgba(0,0,0,.4); }
+</style>
+</head>
+<body>
+<div id="stage">
+  <div id="feed"><div id="list"></div></div>
+  <div class="status"><span>9:41</span>
+    <svg width="210" height="40" viewBox="0 0 210 40"><g fill="#000">
+      <rect x="0" y="26" width="10" height="12" rx="2.5"/><rect x="15" y="19" width="10" height="19" rx="2.5"/><rect x="30" y="11" width="10" height="27" rx="2.5"/><rect x="45" y="3" width="10" height="35" rx="2.5"/>
+      <path d="M92 13a27 27 0 0 1 37 0l-4 4a21 21 0 0 0-29 0z M98 20a18 18 0 0 1 25 0l-4 4a12 12 0 0 0-17 0z M104 27a9 9 0 0 1 13 0l-6.5 7z"/>
+      <rect x="146" y="5" width="56" height="30" rx="9" fill="none" stroke="#000" stroke-opacity=".4" stroke-width="3"/><rect x="150.5" y="9.5" width="40" height="21" rx="5"/><rect x="204.5" y="14" width="4" height="12" rx="2" fill-opacity=".45"/></g></svg>
+  </div>
+  <div class="nav">
+    <div class="glass back"><svg viewBox="0 0 30 52"><path d="M25 4 6 26l19 22" fill="none" stroke="#000" stroke-width="6.5" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+    <div class="glass ft"><svg viewBox="0 0 66 44"><rect x="3" y="5" width="40" height="34" rx="9" fill="none" stroke="#000" stroke-width="5"/><path d="M47 17l15-9v28l-15-9z" fill="none" stroke="#000" stroke-width="5" stroke-linejoin="round"/></svg></div>
+    <div class="av" id="avbox"><img id="av"></div>
+    <div class="glass pill"><span id="name"></span> <b>&#8250;</b></div>
+  </div>
+  <div class="bar"><div class="glass plus">+</div><div class="glass field" id="field"><span id="ftext"></span><svg class="mic" id="mic" viewBox="0 0 34 52"><rect x="9" y="2" width="16" height="30" rx="8" fill="#A8A8AD"/><path d="M3 24a14 14 0 0 0 28 0M17 38v12" fill="none" stroke="#A8A8AD" stroke-width="4" stroke-linecap="round"/></svg><div class="send" id="send"><svg width="40" height="46" viewBox="0 0 40 46"><path d="M20 42V6M6 19 20 5l14 14" fill="none" stroke="#fff" stroke-width="7" stroke-linecap="round" stroke-linejoin="round"/></svg></div></div></div>
+  <div class="kb" id="kb"></div>
+  <div class="home"></div>
+  <div id="hook"></div>
+</div>
+<script src="./engine.js"></script>
+<script>
+const E = window.__E, $ = id => document.getElementById(id);
+const MASCOT = '../../ios/Skintel/Skintel/Resources/Assets.xcassets/DropWarning.imageset/DropWarning.png';
+// contact: who you're texting (default: your skin, with the mascot as its photo). msgs: [who, text, sting?];
+// who is 'me', 'them', or a member's key in a group chat; '@screen' sends an app screenshot; the third
+// element is a meme-style sting on that punchline. The human chats are skits.
+const STORIES = {
+  conflicts: { hook: 'POV: your skin finally texts you', msgs: [
+    ['them', 'we need to talk'],
+    ['them', 'retinol AND an acid toner. same night. AGAIN??', 'buzzer'],
+    ['me', 'it’s called self care 💅'],
+    ['them', 'it’s called stinging for 2 days 🙂', 'boom'],
+    ['me', 'ok how was i supposed to know'],
+    ['them', 'Skinstel checks your whole routine. one tap.'],
+    ['them', '@conflicts'],
+    ['them', '#link'],
+  ]},
+  scan: { hook: 'my skin texting me before i buy ANYTHING', msgs: [
+    ['me', 'found the cutest moisturizer 😍 buying it'],
+    ['them', 'scan it first'],
+    ['me', 'it’s $38 and the bottle is SO cute'],
+    ['them', 'the last cute bottle gave me bumps for 3 weeks', 'wahwah'],
+    ['them', 'scan. it. first.', 'dun'],
+    ['me', '@verdict'],
+    ['them', 'ok. it can stay 🙂'],
+    ['them', 'for next time:'],
+    ['them', '#link'],
+  ]},
+  triggers: { hook: 'when your skin knows what’s breaking you out and you don’t', msgs: [
+    ['them', 'that’s the 4th breakout this month btw'],
+    ['me', 'it’s probably hormones'],
+    ['them', 'it’s the same ingredient. every. time.', 'dun'],
+    ['me', 'WHICH ONE', 'boom'],
+    ['them', 'log me for a week. Skinstel lines it up.'],
+    ['them', '#link'],
+  ]},
+  mom: { hook: 'my mom discovering skincare at 52 😭', contact: { name: 'Mom ❤️', initials: 'M' }, msgs: [
+    ['them', 'is it bad to use retinol and my peel pads the same night'],
+    ['them', 'asking for a friend 🙂'],
+    ['me', 'MOM yes', 'buzzer'],
+    ['them', 'why do bottles fight'],
+    ['me', 'put your stuff in Skinstel, it checks'],
+    ['them', 'it found 2 conflicts', 'boom'],
+    ['them', '@conflicts'],
+    ['them', 'screenshotting this for my book club', 'badum'],
+    ['them', 'send me the link so i can share it'],
+    ['me', '#link'],
+  ]},
+  mom2: { hook: 'mom I need to tell you something…', contact: { name: 'Mom ❤️', initials: 'M' }, msgs: [
+    ['me', 'mom i need to tell you something'],
+    ['them', 'what happened 😳'],
+    ['them', 'are you ok??'],
+    ['me', 'i found out why my skin keeps breaking out'],
+    ['them', 'WHY', 'dun'],
+    ['me', 'it’s something in the moisturizer you keep buying me 😭'],
+    ['me', '@triggers'],
+    ['them', 'HOW do you even know that', 'boom'],
+    ['me', 'Skinstel lined up my bad days with what i used'],
+    ['them', 'ok send me this app'],
+    ['me', '#link'],
+    ['them', 'downloading 😂'],
+  ]},
+  bestie: { hook: 'my best friend before every shopping trip', contact: { name: 'bestie 💅', initials: 'A' }, msgs: [
+    ['them', 'shopping at 4?'],
+    ['me', 'yes i need a new cleanser 😍'],
+    ['them', 'scan it before you buy it this time'],
+    ['me', 'it was ONE bad cleanser'],
+    ['them', 'you cried in the car for 20 min', 'laugh'],
+    ['me', '…downloading Skinstel'],
+    ['me', '@verdict'],
+    ['them', '86?? ok fine it can come home', 'ding'],
+    ['them', 'send me the link rn'],
+    ['me', '#link'],
+  ]},
+  class: { hook: 'the group chat during finals week', contact: { name: 'bio lab 🧬', emoji: '🧬', group: { j: 'Jordan', a: 'Ava', s: 'Sam' } }, msgs: [
+    ['j', 'why is everyone breaking out rn'],
+    ['a', 'finals stress 💀', 'wahwah'],
+    ['s', 'mine’s the same 2 spots every month tho'],
+    ['me', 'log your skin in Skinstel, it lines your bad days up with what you used'],
+    ['me', '@triggers'],
+    ['s', 'wait it shows what my bad days have in common??', 'boom'],
+    ['j', 'send the link 😭'],
+    ['me', '#link'],
+  ]},
+};
+
+const q = new URLSearchParams(location.search);
+const S = STORIES[q.get('s')] || STORIES.conflicts;
+$('hook').textContent = S.hook;
+const C = S.contact || { name: 'my skin 🫠', mascot: true };
+$('name').textContent = C.name;
+if (C.mascot) $('av').src = MASCOT;
+else { $('avbox').className = 'av ' + (C.emoji ? 'emo' : 'ini'); $('avbox').textContent = C.emoji || C.initials; }
+const side = w => w === 'me' ? 'me' : 'them';
+const LINK = `<div class="art"><img src="../../ios/Skintel/Skintel/Resources/Assets.xcassets/AppIcon.appiconset/AppIcon-1024.png"></div>` +
+  `<div class="meta"><div class="t1">Skinstel</div><div class="t2">apps.apple.com</div></div>`;
+
+// Keyboard.
+const ROWS = ['qwertyuiop', 'asdfghjkl', 'zxcvbnm'];
+$('kb').innerHTML =
+  `<div class="row">${[...ROWS[0]].map(c => `<div class="k" data-c="${c}">${c}<div class="pop">${c}</div></div>`).join('')}</div>` +
+  `<div class="row">${[...ROWS[1]].map(c => `<div class="k" data-c="${c}">${c}<div class="pop">${c}</div></div>`).join('')}</div>` +
+  `<div class="row"><div class="k f w1">⇧</div>${[...ROWS[2]].map(c => `<div class="k" data-c="${c}">${c}<div class="pop">${c}</div></div>`).join('')}<div class="k f w1">⌫</div></div>` +
+  `<div class="row"><div class="k f w2">123</div><div class="k sp" data-c=" ">space</div><div class="k f w2">return</div></div>` +
+  `<div class="kbar"><span>☺</span><span>🎙</span></div>`;
+const KEYS = {}; document.querySelectorAll('.k[data-c]').forEach(k => { KEYS[k.dataset.c] = k; });
+
+// Timeline. The other side: typing dots for 0.55 s, then the message. You: the text is typed into the
+// field at a natural pace (longer messages take longer), then sent. Photos are sent from the field.
+const TYPE = 0.55, GAP_THEM = 1.15, GAP_ME = 0.4, CPS = 22;
+const T = []; let t = 0;
+S.msgs.forEach(([w, text], i) => {
+  if (w === 'me') {
+    const typed = (text[0] === '@' || text[0] === '#') ? 0 : Math.min(1.8, Math.max(0.5, text.length / CPS));
+    const start = i === 0 ? 0 : t + GAP_ME;
+    T.push({ start, at: start + typed + 0.15, typed });
+    t = start + typed + 0.15;
+  } else {
+    const at = (i === 0 ? 0.55 : t + GAP_THEM);
+    T.push({ start: at - TYPE, at, typed: 0 });
+    t = at;
+  }
+});
+const DURATION = t + 2.4;
+// Cues for build_skits.py: keyboard ticks while you type, the send / receive sounds, stings.
+window.__cues = S.msgs.flatMap(([w, , meme], i) => (w === 'me'
+  ? (T[i].typed ? [[T[i].start, 'keys'], [T[i].at, 'send']] : [[T[i].at, 'send']])
+  : [[T[i].at, 'recv']]).concat(meme ? [[T[i].at + 0.12, meme]] : []));
+
+const html = S.msgs.map(([w, text], i) => {
+  const prev = S.msgs[i - 1], next = S.msgs[i + 1];
+  const newRun = !prev || prev[0] !== w, endRun = !next || next[0] !== w;
+  return (C.group && w !== 'me' && newRun ? `<div class="who" id="w${i}">${C.group[w]}</div>` : '') +
+    (w !== 'me' ? `<div class="m them tail typing ${newRun && !C.group && i ? 'gap' : ''}" id="t${i}"><div class="b"><i></i><i></i><i></i></div></div>` : '') +
+    `<div class="m ${side(w)} ${text[0] === '@' ? 'pic' : ''} ${text === '#link' ? 'link' : ''} ${endRun ? 'tail' : ''} ${newRun && !(C.group && w !== 'me') && i ? 'gap' : ''}" id="m${i}"><div class="b">${text === '#link' ? LINK : text[0] === '@' ? `<img src="./assets/app-${text.slice(1)}.png">` : `<span>${text}</span>`}</div></div>`;
+}).join('');
+$('list').innerHTML = `<div class="stamp">iMessage<br><b>Today</b> 9:41 PM</div>` + html + `<div class="read" id="read">Delivered</div>`;
+
+function render(t) {
+  let field = '', pressed = null;
+  S.msgs.forEach(([w, text], i) => {
+    const { start, at, typed } = T[i], el = $('m' + i);
+    el.style.display = t >= at ? 'flex' : 'none';
+    if ($('w' + i)) $('w' + i).style.display = t >= at - (w !== 'me' ? TYPE : 0) ? 'block' : 'none';
+    const p = E.easeEmil(E.seg(t, at, at + 0.22));
+    el.querySelector('.b').style.transform = `scale(${E.lerp(0.85, 1, p)})`;
+    el.style.opacity = p;
+    const ty = $('t' + i);
+    if (ty) {
+      ty.style.display = t >= at - TYPE && t < at ? 'flex' : 'none';
+      ty.querySelectorAll('i').forEach((d, k) => { d.style.opacity = 0.35 + 0.65 * Math.max(0, Math.sin((t * 7) - k * 0.9)); });
+    }
+    // Your message being typed: characters fill the field, the matching key pops.
+    if (w === 'me' && typed && t >= start && t < at) {
+      const n = Math.min(text.length, Math.floor((t - start) / typed * text.length) + 1);
+      field = text.slice(0, n);
+      const c = text[n - 1] && text[n - 1].toLowerCase();
+      if (t < start + typed) pressed = c;
+    }
+  });
+  $('ftext').innerHTML = field ? `${field}<span class="caret"></span>` : `<span class="ph">iMessage</span>`;
+  $('send').style.display = field ? 'flex' : 'none';
+  $('mic').style.display = field ? 'none' : 'block';
+  Object.entries(KEYS).forEach(([c, k]) => { k.querySelector('.pop') && (k.querySelector('.pop').style.display = c === pressed && c !== ' ' ? 'block' : 'none'); k.style.background = c === pressed && c === ' ' ? '#E5E5EA' : '#fff'; });
+  const last = side(S.msgs[S.msgs.length - 1][0]);
+  $('read').style.display = last === 'me' && t >= T[T.length - 1].at + 0.5 ? 'block' : 'none';
+  // Keep the newest message in view, as the phone would.
+  const list = $('list'), feed = $('feed');
+  list.style.transform = `translateY(${-Math.max(0, list.scrollHeight - feed.clientHeight)}px)`;
+  // The hook owns the first seconds, then gets out of the chat's way.
+  const end = DURATION - 1.6;
+  if (t >= end) { $('hook').textContent = 'comment SKINSTEL for the link 👇'; $('hook').style.top = '1300px'; $('hook').style.opacity = E.seg(t, end, end + 0.2); }
+  else { $('hook').textContent = S.hook; $('hook').style.top = ''; $('hook').style.opacity = 1 - E.seg(t, 3.0, 3.4); }
+}
+window.__seek = t => { render(t); return true; };
+window.__duration = DURATION;
+render(q.get('still') ? DURATION : 0);
+</script>
+</body>
+</html>

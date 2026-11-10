@@ -1,0 +1,49 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<style>
+  /* A TikTok/Instagram photo carousel: "skincare things nobody tells you", Skinstel on slides 5–6.
+     Carousels earn saves and comments and cost nothing to make. carousel.html?s=N renders slide N;
+     shoot-carousel.mjs saves all of them to out/carousel/. Backgrounds are the AI stills in
+     stock/cache/roi/ (unbranded, no faces); app screens are frames of our own screen renders. Claims
+     stay general and true: Skintel finds patterns to test, it doesn't treat skin. */
+  @font-face { font-family: "TikTok Sans"; font-weight: 800; src: url("./fonts/TikTokSans-800.ttf"); }
+  html, body { margin: 0; background: #111; }
+  #stage { position: relative; width: 1080px; height: 1920px; overflow: hidden; font-family: "TikTok Sans", sans-serif; }
+  .bg { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+  .bg.blur { filter: blur(40px) brightness(.55) saturate(1.1); transform: scale(1.15); }
+  .shade { position: absolute; inset: 0; background: linear-gradient(180deg, rgba(0,0,0,.45) 0%, rgba(0,0,0,0) 38%, rgba(0,0,0,0) 62%, rgba(0,0,0,.35) 100%); }
+  .t { position: absolute; left: 80px; right: 80px; top: 260px; text-align: center; color: #fff; font-weight: 800;
+       font-size: 76px; line-height: 1.1;
+       text-shadow: -4px -4px 0 #000, 4px -4px 0 #000, -4px 4px 0 #000, 4px 4px 0 #000, 0 5px 0 #000, 0 0 22px rgba(0,0,0,.5); }
+  .t small { display: block; margin-top: 26px; font-size: 52px; line-height: 1.16; }
+  .t.big { top: 640px; font-size: 104px; }
+  .screen { position: absolute; left: 50%; top: 760px; width: 560px; margin-left: -280px; border-radius: 54px;
+            box-shadow: 0 30px 80px rgba(0,0,0,.55), 0 0 0 10px #1a1a1a; }
+  .n { position: absolute; right: 60px; bottom: 120px; color: rgba(255,255,255,.75); font-weight: 800; font-size: 40px; }
+</style>
+</head>
+<body>
+<div id="stage"></div>
+<script>
+const R = './stock/cache/roi/';
+// [background, text, app screen or null]. A big centred title for slide 1.
+const SLIDES = [
+  ['bed.png', 'skincare things<br>nobody tells you 🫧', null, true],
+  ['serums.png', '1. retinol and acids on the same night can leave skin red and stingy<small>alternate nights instead</small>', null],
+  ['lineup.png', '2. more products isn’t better<small>every extra step is one more thing that could be the problem</small>', null],
+  ['drops.png', '3. a breakout can show up days after whatever caused it<small>so it’s hard to tell what did it</small>', null],
+  ['serums.png', '4. so track it<small>Skinstel lines up your bad days with what you used and finds what they share</small>', 'shot-triggers.png'],
+  ['lineup.png', '5. check new products before you buy<small>scan it, see if it has what broke you out before. comment SKINSTEL for the link</small>', 'shot-scan.png'],
+];
+window.__ids = SLIDES.map((_, i) => i + 1);
+const s = Number(new URLSearchParams(location.search).get('s') || 1);
+const [bg, text, shot, big] = SLIDES[s - 1];
+document.getElementById('stage').innerHTML =
+  `<img class="bg${shot ? ' blur' : ''}" src="${R}${bg}"><div class="shade"></div>` +
+  (shot ? `<img class="screen" src="./out/carousel/${shot}">` : '') +
+  `<div class="t${big ? ' big' : ''}">${text}</div><div class="n">${s}/${SLIDES.length}</div>`;
+</script>
+</body>
+</html>

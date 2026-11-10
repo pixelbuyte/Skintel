@@ -1,0 +1,84 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<link rel="stylesheet" href="./style.css">
+<style>
+  /* Reel 9 format: a paper plane flies into founder-shot footage and unfolds into a flyer with
+     ONE conflict fact + the keyword. Transparent: render-alpha.mjs → ProRes 4444 / WebM alpha.
+     plane.html?f=1|2|3 picks the flyer (a series: same gag, a new ingredient pair each episode).
+     plane.html?f=1&print=1 renders the flat flyer for printing and folding a real plane. */
+  html, body, #stage { background: transparent !important; }
+  #plane { position: absolute; left: 0; top: 0; width: 420px; height: 260px; transform-origin: 50% 50%; }
+  #card { position: absolute; left: 140px; top: 470px; width: 800px; height: 1000px; transform-origin: 50% 50%;
+          background: #FFFDF8; border-radius: 10px; padding: 80px 70px; text-align: center;
+          box-shadow: 0 40px 80px rgba(0,0,0,.28);
+          background-image: linear-gradient(90deg, transparent 49.6%, rgba(0,0,0,.05) 50%, transparent 50.4%),
+                            linear-gradient(0deg, transparent 33%, rgba(0,0,0,.035) 33.3%, transparent 33.6%, transparent 66.3%, rgba(0,0,0,.035) 66.6%, transparent 67%); }
+  #card .fact { font-family: 'Instrument Serif', serif; font-style: italic; font-size: 92px; line-height: 1.05; color: #1A1814; }
+  #card .fact b { font-style: normal; color: #A35848; font-weight: 400; }
+  #card .rule { width: 120px; height: 4px; background: #A35848; margin: 50px auto; border-radius: 2px; }
+  #card .kw1 { font-family: 'Instrument Serif', serif; font-style: italic; font-size: 64px; color: #6B6760; }
+  #card .kw { font-family: 'Instrument Serif', serif; font-size: 150px; line-height: .95; color: #A35848; }
+  #card .m { width: 170px; position: absolute; right: 40px; bottom: 30px; transform: rotate(8deg); }
+  #card .h { position: absolute; left: 60px; bottom: 56px; font-size: 32px; font-weight: 700; color: #6B6760; }
+  html.print, html.print body, html.print #stage { background: #fff !important; }
+  html.print #plane { display: none; }
+  html.print #card { left: 140px; top: 460px; box-shadow: none; transform: none !important; opacity: 1 !important; }
+</style>
+</head>
+<body>
+<div id="stage">
+  <svg id="plane" viewBox="0 0 420 260">
+    <!-- folded paper plane, nose to the left -->
+    <polygon points="10,130 410,20 250,150" fill="#FFFDF8"/>
+    <polygon points="10,130 250,150 300,240" fill="#EDE6DA"/>
+    <polygon points="10,130 410,20 300,240 250,150" fill="none" stroke="rgba(26,24,20,.18)" stroke-width="2"/>
+    <polyline points="10,130 250,150" stroke="rgba(26,24,20,.25)" stroke-width="2" fill="none"/>
+    <path d="M160 100 q30 -8 60 4" stroke="#A35848" stroke-width="5" fill="none" stroke-linecap="round" opacity=".7"/>
+  </svg>
+  <div id="card">
+    <div class="fact" id="fact"></div>
+    <div class="rule"></div>
+    <div class="kw1">comment</div>
+    <div class="kw">SKINSTEL</div>
+    <img class="m" src="../../ios/Skintel/Skintel/Resources/Assets.xcassets/Mascot.imageset/Mascot.png">
+    <div class="h">@skins_tel</div>
+  </div>
+</div>
+<script src="./engine.js"></script>
+<script>
+const E = window.__E;
+const $ = id => document.getElementById(id);
+const q = new URLSearchParams(location.search);
+const FACTS = {
+  1: "Retinol + glycolic acid on the <b>same night</b>? That's too much at once.",
+  2: "Retinol + vitamin C? <b>Split them:</b> C in the morning, retinol at night.",
+  3: "Two exfoliating acids in one routine? <b>Keep one.</b>",
+};
+$('fact').innerHTML = FACTS[q.get('f') || '1'] || FACTS[1];
+if (q.get('print')) document.documentElement.classList.add('print');
+const DURATION = 6.5;
+
+function render(t) {
+  // Glide in from top-right, bobbing, growing as it nears the camera; land at centre by 2.4 s.
+  const p = E.seg(t, 0.0, 2.4);
+  const e = E.easeInOut(p);
+  const x = E.lerp(1250, 330, e), y = E.lerp(-120, 820, e) + Math.sin(p * Math.PI * 2.4) * 70 * (1 - p);
+  const s = E.lerp(0.45, 1.6, e);
+  const rot = E.lerp(-18, 6, e) + Math.sin(p * Math.PI * 3) * 6 * (1 - p);
+  const unfold = E.seg(t, 2.35, 2.9);
+  $('plane').style.transform = `translate(${x}px, ${y}px) rotate(${rot}deg) scale(${s * (1 - unfold * 0.4)})`;
+  $('plane').style.opacity = 1 - unfold;
+  // The plane opens into the flyer: grows from a folded sliver, settles with a small sway.
+  const c = E.easeEmil(E.seg(t, 2.45, 3.2));
+  const sway = Math.sin((t - 3.2) * 2.2) * 1.4 * (t > 3.2 ? 1 : 0);
+  $('card').style.opacity = c;
+  $('card').style.transform = `scale(${E.lerp(0.25, 1, c)}, ${E.lerp(0.05, 1, c)}) rotate(${E.lerp(-12, -2, c) + sway}deg)`;
+}
+window.__seek = t => { render(t); return true; };
+window.__duration = DURATION;
+render(q.get('print') ? 6 : 0);
+</script>
+</body>
+</html>

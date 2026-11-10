@@ -15,7 +15,7 @@ const browser = await chromium.launch({
   args: ['--force-color-profile=srgb', '--disable-lcd-text', '--font-render-hinting=none'],
 });
 const page = await browser.newPage({ viewport: { width: 1080, height: 1920 }, deviceScaleFactor: 1 });
-await page.goto('file://' + resolve(HERE, `${NAME}.html`));
+await page.goto('file://' + resolve(HERE, `${NAME}.html`) + (process.env.QUERY ? `?${process.env.QUERY}` : ''));
 await page.evaluate(() => document.fonts.ready);
 await page.waitForTimeout(400);
 
