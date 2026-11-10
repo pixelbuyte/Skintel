@@ -38,17 +38,32 @@ enum SkintelDeepLink: String, CaseIterable, Sendable {
     }
 }
 
-/// What the Shelf widget shows. Deliberately tiny: a count and the first few product
-/// names. No ingredients, outcomes, notes or account data ever leave the app.
+/// How the user marked a product. Mirrors SkintelCore's `Outcome` raw values, which this
+/// Foundation-only file cannot import.
+enum ShelfWidgetOutcome: String, Codable, Sendable {
+    case good, bad, unsure
+}
+
+/// What the Shelf widget shows. Deliberately tiny: a count, the first few product names and
+/// how each of those was marked. No ingredients, notes or account data ever leave the app.
 struct ShelfWidgetSnapshot: Codable, Sendable, Equatable {
     var count: Int
     var names: [String]
+    /// Parallel to `names`. Optional so snapshots written before outcomes existed still decode.
+    var outcomes: [ShelfWidgetOutcome]?
 
-    static let maxNames = 3
+    /// The large widget's four tiles; the small widget draws only the first three.
+    static let maxNames = 4
 
-    init(count: Int, names: [String]) {
+    init(count: Int, names: [String], outcomes: [ShelfWidgetOutcome] = []) {
         self.count = max(0, count)
         self.names = Array(names.prefix(Self.maxNames))
+        self.outcomes = Array(outcomes.prefix(self.names.count))
+    }
+
+    func outcome(at index: Int) -> ShelfWidgetOutcome? {
+        guard let outcomes, outcomes.indices.contains(index) else { return nil }
+        return outcomes[index]
     }
 }
 
