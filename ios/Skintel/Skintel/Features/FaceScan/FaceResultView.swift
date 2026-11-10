@@ -16,6 +16,9 @@ struct FaceResultView: View {
 
     @State private var selected: Int?
 
+    private var isCalibrating: Bool { !calibration.isUnlocked(.fullReport) }
+    private var calibrationDaysLeft: Int { calibration.scansToGo(for: .fullReport) }
+
     private var scans: [FaceScanEntry] { calibration.scans }
     private var index: Int {
         guard !scans.isEmpty else { return 0 }
@@ -30,7 +33,7 @@ struct FaceResultView: View {
                 VStack(spacing: 14) {
                     ringsCard
                     insightCard
-                    zonesCard
+                    if isCalibrating { calibratingZonesCard } else { zonesCard }
                     if let report = calibration.latestReport?.report { reportCard(report) }
                     if let routine, !(routine.pm.isEmpty && routine.am.isEmpty) { routineCard(routine) }
                     if let nextAction { SKButton(title: nextAction, systemImage: "faceid") { onNext() } }
@@ -153,6 +156,38 @@ struct FaceResultView: View {
         .padding(.horizontal, SKSpace.lg).padding(.vertical, SKSpace.xs)
         .background(SKColor.cream, in: RoundedRectangle(cornerRadius: SKRadius.card, style: .continuous))
         .skCardShadow()
+    }
+
+    private var calibratingZonesCard: some View {
+        ZStack {
+            zonesCard
+                .blur(radius: 6)
+                .allowsHitTesting(false)
+                .accessibilityHidden(true)
+
+            VStack(spacing: 10) {
+                Image(systemName: "lock.fill")
+                    .font(.system(size: 28, weight: .medium))
+                    .foregroundStyle(SKColor.primary)
+
+                Text("\(calibrationDaysLeft) day\(calibrationDaysLeft == 1 ? "" : "s") left to unlock")
+                    .font(SKFont.sans(17, weight: .semibold, relativeTo: .headline))
+                    .foregroundStyle(SKColor.ink)
+
+                if let next = calibration.nextMilestone {
+                    Text("Next: \(next.label) · \(calibration.scansToGo(for: next)) scan\(calibration.scansToGo(for: next) == 1 ? "" : "s") to go")
+                        .font(SKFont.caption)
+                        .foregroundStyle(SKColor.muted)
+                }
+
+                Text("Scan tomorrow to keep building your profile")
+                    .font(SKFont.caption)
+                    .foregroundStyle(SKColor.primary.opacity(0.8))
+                    .padding(.top, 2)
+            }
+            .padding(.vertical, SKSpace.xl)
+            .frame(maxWidth: .infinity)
+        }
     }
 
     private func zoneRow(_ zone: FaceZone) -> some View {
