@@ -33,6 +33,28 @@ Routing:
 
 Repo practice: work on a branch, open a PR, the founder reviews and merges. Don't push to `main`.
 
+## Token budget (usage limits are real)
+
+Every wake-up re-reads the whole session, so background checks are the biggest hidden cost.
+
+- **PR check-ins: every 6 hours, never hourly.** Schedule with `send_later` `delay_minutes=360`.
+- A check is ONE `git fetch` + `git merge-tree` per branch. Don't pull PR comments, statuses or
+  notifications unless a wake event says something changed.
+- Nothing changed → re-arm and output nothing. Message the founder only for a conflict, a human
+  review comment, or a failing check that is this PR's.
+- Bot comment edits (Vercel, Supabase) are noise: don't re-verify after them. Unsubscribe from PRs
+  that are clean and waiting on the founder.
+- Start long, unrelated jobs (videos, audits) in a fresh session instead of this one.
+- Don't read images/screenshots you don't need; render once, check one contact sheet, not many.
+
+**Questions and non-coding requests** (explain, "how does X work", advice, status, opinions):
+
+- Answer directly from what you already know or one targeted `Grep`/`Read`. No `git fetch`/pull,
+  no new branch, no build, no PR API calls, no subagents.
+- Keep it to a few sentences; no headers, recaps, or option menus unless asked.
+- Only fetch/pull/branch/build when about to change code. Ask for the answer to be longer if needed.
+- Don't re-verify things already established earlier in the session.
+
 ## Style
 
 Terse, direct, no fluff. Blue/black aesthetic for UI defaults **only when a new UI has no
