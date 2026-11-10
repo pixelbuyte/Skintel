@@ -1,0 +1,140 @@
+<title>Skinstel Workstation</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600&family=JetBrains+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: a live strip ("Claude is on…") over a five-lane status board; lanes stack on phones. */
+:root{
+  --bg:#F4EDE0; --card:#FFFEFA; --ink:#1A1814; --muted:#6B6760; --line:#E4DED3;
+  --clay:#A35848; --clay-soft:#F1DCD3; --sage:#5C7A4F; --sage-soft:#E6ECD8;
+  --rose:#B22B2B; --rose-soft:#FBE4E1; --blush:#F6E4DA; --shadow:0 1px 0 rgba(26,24,20,.04),0 8px 24px -14px rgba(26,24,20,.18);
+  --serif:"Instrument Serif",Georgia,serif; --sans:"DM Sans",system-ui,sans-serif; --mono:"JetBrains Mono",ui-monospace,monospace;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --bg:#1C1916; --card:#262220; --ink:#F4EDE0; --muted:#A79F95; --line:#3A3430;
+  --clay:#E08E7B; --clay-soft:#43302A; --sage:#A8C49A; --sage-soft:#2C3628; --rose:#F08A80; --rose-soft:#45292A; --blush:#33292A;
+  --shadow:0 8px 24px -14px rgba(0,0,0,.6); color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#1C1916; --card:#262220; --ink:#F4EDE0; --muted:#A79F95; --line:#3A3430;
+  --clay:#E08E7B; --clay-soft:#43302A; --sage:#A8C49A; --sage-soft:#2C3628; --rose:#F08A80; --rose-soft:#45292A; --blush:#33292A;
+  --shadow:0 8px 24px -14px rgba(0,0,0,.6); color-scheme:dark}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--ink);font:15px/1.45 var(--sans);margin:0}
+.wrap{max-width:1360px;margin:0 auto;padding-block:28px 56px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));display:grid;gap:22px}
+header{display:flex;flex-wrap:wrap;align-items:end;justify-content:space-between;gap:16px}
+h1{font:400 clamp(40px,6vw,64px)/1 var(--serif);margin:0;letter-spacing:-.01em}
+h1 em{color:var(--clay)}
+.sub{color:var(--muted);margin:6px 0 0;max-width:60ch}
+.meter{min-width:260px;flex:0 1 360px;display:grid;gap:8px}
+.meter .row{display:flex;justify-content:space-between;font:500 12px var(--mono);letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
+.meter .big{font:400 40px/1 var(--serif);color:var(--ink);text-transform:none;letter-spacing:0}
+.bar{height:10px;border-radius:99px;background:var(--line);overflow:hidden;display:flex}
+.bar i{display:block;height:100%;transition:width .8s cubic-bezier(.32,.72,0,1)}
+.now{display:flex;gap:14px;align-items:flex-start;background:var(--card);border:1px solid var(--line);border-radius:18px;padding:14px 18px;box-shadow:var(--shadow)}
+.pulse{width:10px;height:10px;border-radius:50%;background:var(--clay);margin-top:6px;flex:none;box-shadow:0 0 0 0 var(--clay);animation:p 1.8s infinite}
+@keyframes p{0%{box-shadow:0 0 0 0 color-mix(in srgb,var(--clay) 60%,transparent)}100%{box-shadow:0 0 0 12px transparent}}
+.now b{font:500 11px var(--mono);letter-spacing:.08em;text-transform:uppercase;color:var(--clay);display:block}
+.now p{margin:2px 0 0;font-size:16px;min-width:0}
+.now small{color:var(--muted);font:12px var(--mono)}
+.chips{display:flex;flex-wrap:wrap;gap:8px}
+.chip{font:500 13px var(--sans);border:1px solid var(--line);background:transparent;color:var(--ink);border-radius:99px;padding:6px 12px;cursor:pointer}
+.chip[aria-pressed="true"]{background:var(--ink);color:var(--bg);border-color:var(--ink)}
+.chip:focus-visible,.card:focus-visible,.st button:focus-visible{outline:2px solid var(--clay);outline-offset:2px}
+.board{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:14px;align-items:start}
+@media (max-width:1100px){.board{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media (max-width:620px){.board{grid-template-columns:1fr}}
+.lane{display:grid;gap:10px;min-width:0}
+.lane h2{display:flex;align-items:center;gap:8px;margin:0 0 2px;font:500 12px var(--mono);letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+.lane h2 .dot{width:8px;height:8px;border-radius:50%}
+.lane h2 .n{margin-left:auto;font-variant-numeric:tabular-nums}
+.card{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:12px 14px;display:grid;gap:6px;cursor:pointer;box-shadow:var(--shadow);transition:transform .35s cubic-bezier(.32,.72,0,1);min-width:0;text-align:left;font:inherit;color:inherit;width:100%}
+.card:hover{transform:translateY(-2px)}
+.card h3{margin:0;font:600 15px/1.3 var(--sans)}
+.card p{margin:0;color:var(--muted);font-size:13.5px}
+.meta{display:flex;flex-wrap:wrap;gap:6px;align-items:center}
+.tag{font:500 11px var(--mono);letter-spacing:.04em;padding:2px 8px;border-radius:99px;background:var(--blush);color:var(--clay)}
+.ref{font:11px var(--mono);color:var(--muted)}
+.lane[data-s="you"] .card{border-color:color-mix(in srgb,var(--rose) 45%,var(--line));background:linear-gradient(var(--rose-soft),var(--card) 70%)}
+.lane[data-s="done"] .card h3{color:var(--muted)}
+.st{display:flex;flex-wrap:wrap;gap:6px;padding-top:4px}
+.st button{font:500 12px var(--sans);border:1px solid var(--line);background:var(--bg);color:var(--ink);border-radius:99px;padding:4px 10px;cursor:pointer}
+.empty{border:1px dashed var(--line);border-radius:16px;padding:14px;color:var(--muted);font-size:13px}
+.foot{color:var(--muted);font:12px var(--mono)}
+@media (prefers-reduced-motion:reduce){.pulse{animation:none}.card,.bar i{transition:none}}
+</style>
+
+<div class="wrap">
+  <header>
+    <div>
+      <h1>Skinstel <em>workstation</em></h1>
+      <p class="sub">Everything built for Skinstel, where it stands, and what is waiting on you. Claude updates it as work moves; tap a card to change its lane.</p>
+    </div>
+    <div class="meter" aria-live="polite">
+      <div class="row"><span>Shipped or built</span><span id="pct">–</span></div>
+      <div class="big" id="count">Loading…</div>
+      <div class="bar" id="bar" aria-hidden="true"></div>
+    </div>
+  </header>
+
+  <div class="now" id="now"><span class="pulse" aria-hidden="true"></span><div style="min-width:0"><b>Claude is on</b><p id="nowText">Connecting to the live board…</p><small id="nowWhen"></small></div></div>
+
+  <div class="chips" id="chips" role="toolbar" aria-label="Filter by area"></div>
+
+  <div class="board" id="board"></div>
+  <p class="foot" id="foot">Live · changes appear for everyone who has this open.</p>
+</div>
+
+<script>
+const LANES=[
+  {s:"you",label:"Needs you",c:"var(--rose)"},
+  {s:"review",label:"In review",c:"var(--clay)"},
+  {s:"doing",label:"In progress",c:"#D9A441"},
+  {s:"next",label:"Up next",c:"var(--muted)"},
+  {s:"done",label:"Done",c:"var(--sage)"}
+];
+let items=[],area="All",open=null,db=null,canWrite=true;
+const $=id=>document.getElementById(id);
+function ago(t){if(!t)return"";const m=Math.round((Date.now()-t)/6e4);if(m<1)return"just now";if(m<60)return m+" min ago";const h=Math.round(m/60);if(h<48)return h+" h ago";return Math.round(h/24)+" days ago"}
+function render(){
+  const areas=["All",...[...new Set(items.map(i=>i.area).filter(Boolean))].sort()];
+  const chips=$("chips");chips.replaceChildren(...areas.map(a=>{const b=document.createElement("button");b.className="chip";b.textContent=a;b.setAttribute("aria-pressed",a===area);b.onclick=()=>{area=a;render()};return b}));
+  const shown=items.filter(i=>area==="All"||i.area===area);
+  const board=$("board");board.replaceChildren(...LANES.map(L=>{
+    const lane=document.createElement("section");lane.className="lane";lane.dataset.s=L.s;
+    const list=shown.filter(i=>i.status===L.s).sort((a,b)=>(a.order||0)-(b.order||0));
+    const h=document.createElement("h2");const d=document.createElement("span");d.className="dot";d.style.background=L.c;
+    const n=document.createElement("span");n.className="n";n.textContent=list.length;h.append(d,L.label,n);lane.append(h);
+    if(!list.length){const e=document.createElement("div");e.className="empty";e.textContent=L.s==="you"?"Nothing waiting on you.":"Nothing here yet.";lane.append(e)}
+    for(const it of list){
+      const c=document.createElement("div");c.className="card";c.tabIndex=0;c.setAttribute("role","button");
+      const t=document.createElement("h3");t.textContent=it.title||"Untitled";
+      const p=document.createElement("p");p.textContent=it.note||"";
+      const m=document.createElement("div");m.className="meta";
+      if(it.area){const g=document.createElement("span");g.className="tag";g.textContent=it.area;m.append(g)}
+      if(it.ref){const r=document.createElement("span");r.className="ref";r.textContent=it.ref;m.append(r)}
+      if(it.updated){const r=document.createElement("span");r.className="ref";r.textContent="· "+ago(it.updated);m.append(r)}
+      c.append(t);if(it.note)c.append(p);c.append(m);
+      if(open===it.id&&db&&canWrite){
+        const st=document.createElement("div");st.className="st";
+        for(const o of LANES){if(o.s===it.status)continue;const b=document.createElement("button");b.textContent="→ "+o.label;
+          b.onclick=async e=>{e.stopPropagation();open=null;try{await db.doc("items/"+it.id).update({status:o.s,updated:Date.now()})}catch(err){$("foot").textContent="Couldn't move that card: you may only have view access."}};st.append(b)}
+        c.append(st)}
+      const toggle=()=>{open=open===it.id?null:it.id;render()};
+      c.onclick=toggle;c.onkeydown=e=>{if(e.key==="Enter"||e.key===" "){e.preventDefault();toggle()}};
+      lane.append(c)}
+    return lane}));
+  const total=items.length,done=items.filter(i=>i.status==="done"||i.status==="review").length;
+  $("count").textContent=total?done+" of "+total:"No items yet";
+  $("pct").textContent=total?Math.round(done/total*100)+"%":"–";
+  const bar=$("bar");bar.replaceChildren(...LANES.slice().reverse().map(L=>{const i=document.createElement("i");i.style.background=L.c;i.style.width=total?(items.filter(x=>x.status===L.s).length/total*100)+"%":"0";return i}));
+}
+render();
+(async()=>{
+  db=await window.claude?.use?.("db");
+  if(!db){$("nowText").textContent="The live board isn't available in this view. Open it signed in to claude.ai.";return}
+  try{const u=await window.claude.use("user");if(u&&u.can){const w=u.can("data.write");if(w===false)canWrite=false}}catch(e){}
+  db.collection("items").onSnapshot(s=>{items=s.docs.map(d=>({id:d.id,...d.data()}));render()},e=>{$("foot").textContent="Lost the live connection. Reload to reconnect."});
+  db.doc("board/now").onSnapshot(s=>{const d=s.exists?s.data():null;$("nowText").textContent=d?.text||"Nothing right now.";$("nowWhen").textContent=d?.updated?"Updated "+ago(d.updated):""});
+  setInterval(render,60000);
+})();
+</script>
