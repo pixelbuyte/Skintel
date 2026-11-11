@@ -612,12 +612,13 @@ struct InsightsView: View {
                         Text("Your last seven days").font(SKFont.sans(17, relativeTo: .body)).foregroundStyle(SKColor.muted)
                     }
                     .padding(.top, SKSpace.md)
+                    .skEntrance(0)
 
-                    consistencyCard
-                    skinDaysCard
-                    suspectsCard
-                    patternRow
-                    historyRow
+                    consistencyCard.skEntrance(1)
+                    skinDaysCard.skEntrance(2)
+                    suspectsCard.skEntrance(3)
+                    patternRow.skEntrance(4)
+                    historyRow.skEntrance(5)
                 }
                 .skPagePadding()
                 .padding(.bottom, SKSpace.xxl)
@@ -697,7 +698,7 @@ struct InsightsView: View {
                     }
                 }
                 HStack {
-                    ForEach(Array(week.enumerated()), id: \.offset) { _, day in
+                    ForEach(Array(week.enumerated()), id: \.offset) { i, day in
                         VStack(spacing: 10) {
                             Text(DateFormatting.weekdayShort(day.date)).font(SKFont.mono(11)).textCase(.uppercase).foregroundStyle(SKColor.muted)
                             SKDot(tone: day.entry?.condition.tone ?? .neutral, size: 16)
@@ -706,6 +707,7 @@ struct InsightsView: View {
                                 }
                         }
                         .frame(maxWidth: .infinity)
+                        .skPopIn(i)
                         .accessibilityElement(children: .ignore)
                         .accessibilityLabel("\(DateFormatting.weekdayShort(day.date)): \(day.entry?.condition.checkInLabel ?? "not logged")")
                     }

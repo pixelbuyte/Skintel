@@ -408,6 +408,8 @@ struct SKTabBar: View {
         } label: {
             VStack(spacing: 4) {
                 Image(systemName: t.icon).font(.system(size: 21, weight: .regular))
+                    .scaleEffect(selection == t ? 1.12 : 1)
+                    .animation(.spring(response: 0.32, dampingFraction: 0.5), value: selection == t)
                 Text(t.title).font(SKFont.tab)
             }
             .foregroundStyle(selection == t ? SKColor.primary : SKColor.muted)
@@ -481,6 +483,8 @@ private struct SKGlassTabBar: View {
         } label: {
             VStack(spacing: 3) {
                 Image(systemName: t.icon).font(.system(size: 20, weight: isSelected ? .semibold : .regular))
+                    .scaleEffect(isSelected ? 1.12 : 1)
+                    .animation(.spring(response: 0.32, dampingFraction: 0.5), value: isSelected)
                 Text(t.title).font(SKFont.tab)
             }
             .foregroundStyle(isSelected ? SKColor.primary : Color.primary)

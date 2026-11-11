@@ -29,6 +29,9 @@ struct RootView: View {
     /// Onboarding just finished: the Skintel+ offer shows once before the app opens.
     @AppStorage(OnboardingOfferView.pendingKey) private var offerPending = false
     @State private var warmed = false
+    /// The Skinstel 3.0 launch (`SKBloomIntro`) plays once per cold launch, over the app.
+    @State private var intro = true
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     private var route: AppRoute {
         AppRoute.resolve(env.session.state, onboardingSkippedLocally: onboardingSkipped)
@@ -55,6 +58,11 @@ struct RootView: View {
             }
         }
         .animation(SKAnimation.ios(0.35), value: route)
+        .overlay {
+            if intro && !reduceMotion {
+                SKBloomIntro { intro = false }
+            }
+        }
         .task { await env.session.restore() }
         // Widget links (skintel://scan|ask|shelf|checkin). Kept while the session is still
         // restoring so a cold launch lands where the widget pointed; signed-out users just
