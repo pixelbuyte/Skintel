@@ -385,10 +385,10 @@ export default function Home() {
             <div className="mt-6 flex flex-wrap items-center gap-3">
               <AppStoreButton />
               <button onClick={jumpToOffer} className="rounded-full bg-[#A35848] px-5 py-3 text-[15px] font-semibold text-[#FFFEFA]">
-                Skintel+ for $6.49
+                See Skintel+
               </button>
             </div>
-            <p className="mt-3 text-[13px] text-[#8A7A6C]">Free to download. Skintel+ launch price for your first 3 months.</p>
+            <p className="mt-3 text-[13px] text-[#8A7A6C]">Free to download on iPhone.</p>
             <a href="#face-scan" className="mt-4 inline-flex items-center gap-2 rounded-full border border-[#E6DED2] bg-[#FFFEFA] py-1.5 pl-1.5 pr-3.5 text-[13px] font-semibold">
               <span className="rounded-full bg-[#A35848] px-2 py-0.5 font-mono text-[10px] tracking-[0.12em] text-[#FFFEFA]">NEW</span>
               Face Scan early access · limited time →
@@ -477,7 +477,7 @@ export default function Home() {
         aria-hidden={!showBar}
       >
         <button onClick={jumpToOffer} tabIndex={showBar ? 0 : -1} className="min-w-0 truncate text-left text-sm">
-          Launch offer <span className="text-[#E7B8A6]">$6.49/mo</span>
+          Free on iPhone
         </button>
         <a href={APP_STORE_URL} tabIndex={showBar ? 0 : -1} className="shrink-0 rounded-full bg-[#A35848] px-[18px] py-[11px] text-sm font-semibold">
           Get the app
