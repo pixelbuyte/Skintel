@@ -471,8 +471,8 @@ export default function Home() {
       </div>
 
       <div
-        className={`fixed left-3 right-3 top-[calc(env(safe-area-inset-top)+10px)] z-10 flex items-center justify-between gap-2.5 rounded-full bg-[rgba(26,24,20,0.92)] py-2 pl-5 pr-2 text-[#FFFEFA] backdrop-blur-md transition-transform duration-500 ease-ios md:left-auto md:right-6 md:w-auto ${
-          showBar ? 'translate-y-0 shadow-[0_10px_30px_rgba(26,24,20,0.18)]' : '-translate-y-[calc(100%+env(safe-area-inset-top)+40px)] shadow-none'
+        className={`fixed bottom-[calc(env(safe-area-inset-bottom)+12px)] left-3 right-3 z-10 flex items-center justify-between gap-2.5 rounded-full bg-[rgba(26,24,20,0.92)] py-2 pl-5 pr-2 text-[#FFFEFA] backdrop-blur-md transition-transform duration-500 ease-ios md:left-auto md:right-6 md:w-auto ${
+          showBar ? 'translate-y-0 shadow-[0_10px_30px_rgba(26,24,20,0.18)]' : 'translate-y-[calc(100%+env(safe-area-inset-bottom)+40px)] shadow-none'
         }`}
         aria-hidden={!showBar}
       >
