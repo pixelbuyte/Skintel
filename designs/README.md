@@ -86,3 +86,16 @@ Previews are shot from the HTML with Playwright (`deviceScaleFactor: 2`).
 Install Instrument Serif, DM Sans and JetBrains Mono locally first so headless
 Chromium doesn't fall back to system fonts, then screenshot each `#s-*` section
 of `skintel-ios-designs.html`.
+
+## App Store screenshots
+
+Marketing stills for App Store Connect live in [`app-store-screenshots/`](app-store-screenshots/).
+They are design-faithful composites (not simulator captures). The analyzing /
+“fetch” frame (`03-product-recognized.png`) is rendered from `fetch.html`:
+
+```bash
+npm install   # needs playwright
+node designs/app-store-screenshots/shoot.mjs
+```
+
+Outputs `1290×2796` (6.7") and `1179×2556` (`03-product-recognized-6.1.png`).
