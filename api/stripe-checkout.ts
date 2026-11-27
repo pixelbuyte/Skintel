@@ -31,8 +31,10 @@ async function launchCheckout(req: VercelRequest, res: VercelResponse) {
   }
   const email = (typeof body.email === 'string' ? body.email : '').trim().toLowerCase();
   if (!EMAIL.test(email) || email.length > 200) return json(res, { error: 'Invalid email' }, 400);
-  const plan = body.plan === 'monthly' ? 'monthly' : 'prepay';
+  const plan = body.plan === 'monthly' ? 'monthly' : body.plan === 'facescan' ? 'facescan' : 'prepay';
   const ref = (typeof body.ref === 'string' ? body.ref : '').slice(0, 40);
+
+  if (plan === 'facescan') return faceScanCheckout(res, email, ref);
 
   const monthlyPrice = process.env.STRIPE_PRICE_LAUNCH_MONTHLY;
   const prepayPrice = process.env.STRIPE_PRICE_LAUNCH_PREPAY;
@@ -52,6 +54,40 @@ async function launchCheckout(req: VercelRequest, res: VercelResponse) {
     subscription_data: { metadata: meta },
     success_url: `${appUrl()}/checkout/success?offer=launch&session_id={CHECKOUT_SESSION_ID}`,
     cancel_url: `${appUrl()}/#offer`,
+  });
+  if (!session.url) return json(res, { error: 'Checkout failed' }, 500);
+  return json(res, { url: session.url });
+}
+
+/** Must match FACE_SCAN_DEADLINE in src/pages/Home.tsx (Nov 14, 2026, 11:59 pm Pacific). */
+const FACE_SCAN_DEADLINE = Date.parse('2026-11-15T07:59:59Z');
+
+/**
+ * Face Scan early access: Skintel+ (which includes Face Scan) at $7.99/month, kept for as
+ * long as the subscription stays active. The price is inline so no dashboard object is
+ * needed; the offer closes at FACE_SCAN_DEADLINE.
+ */
+async function faceScanCheckout(res: VercelResponse, email: string, ref: string) {
+  if (Date.now() > FACE_SCAN_DEADLINE) return json(res, { error: 'Offer ended' }, 410);
+  const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!);
+  const meta = { tier: 'pro', guest: 'true', launch: 'facescan', ...(ref ? { ref } : {}) };
+  const session = await stripe.checkout.sessions.create({
+    mode: 'subscription',
+    payment_method_types: ['card'],
+    line_items: [{
+      quantity: 1,
+      price_data: {
+        currency: 'usd',
+        unit_amount: 799,
+        recurring: { interval: 'month' },
+        product_data: { name: 'Skintel+ · Face Scan early access' },
+      },
+    }],
+    customer_email: email,
+    metadata: meta,
+    subscription_data: { metadata: meta },
+    success_url: `${appUrl()}/checkout/success?offer=launch&session_id={CHECKOUT_SESSION_ID}`,
+    cancel_url: `${appUrl()}/#face-scan`,
   });
   if (!session.url) return json(res, { error: 'Checkout failed' }, 500);
   return json(res, { url: session.url });

@@ -73,7 +73,29 @@ function ScanDemo() {
   );
 }
 
-type Plan = 'prepay' | 'monthly';
+type Plan = 'prepay' | 'monthly' | 'facescan';
+
+/** Must match FACE_SCAN_DEADLINE in api/stripe-checkout.ts (Nov 14, 2026, 11:59 pm Pacific). */
+const FACE_SCAN_DEADLINE = Date.parse('2026-11-15T07:59:59Z');
+
+async function startCheckout(email: string, plan: Plan) {
+  const ref = readRef();
+  const res = await fetch('/api/stripe-checkout?offer=launch', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ email, plan, ref }),
+  });
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok || !data?.url) {
+    throw new Error(
+      data?.error === 'Invalid email' ? 'That email doesn’t look right.'
+        : data?.error === 'Offer ended' ? 'Early access has closed.'
+          : 'Checkout isn’t available right now. Try again in a minute.',
+    );
+  }
+  track('launch_checkout', { plan, ref: ref ?? 'direct' });
+  window.location.href = data.url;
+}
 
 function OfferCard() {
   const [plan, setPlan] = useState<Plan>('prepay');
@@ -88,18 +110,7 @@ function OfferCard() {
     setBusy(true);
     setErr(null);
     try {
-      const ref = readRef();
-      const res = await fetch('/api/stripe-checkout?offer=launch', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email: clean, plan, ref }),
-      });
-      const data = await res.json().catch(() => ({}));
-      if (!res.ok || !data?.url) {
-        throw new Error(data?.error === 'Invalid email' ? 'That email doesn’t look right.' : 'Checkout isn’t available right now. Try again in a minute.');
-      }
-      track('launch_checkout', { plan, ref: ref ?? 'direct' });
-      window.location.href = data.url;
+      await startCheckout(clean, plan);
     } catch (e) {
       setErr(e instanceof Error ? e.message : 'Something went wrong. Try again.');
       setBusy(false);
@@ -175,6 +186,160 @@ function OfferCard() {
   );
 }
 
+function useCountdown(deadline: number) {
+  const [now, setNow] = useState(() => Date.now());
+  useEffect(() => {
+    const id = window.setInterval(() => setNow(Date.now()), 1000);
+    return () => window.clearInterval(id);
+  }, []);
+  const left = Math.max(0, deadline - now);
+  return {
+    ended: left === 0,
+    parts: [
+      ['DAYS', Math.floor(left / 86_400_000)],
+      ['HRS', Math.floor(left / 3_600_000) % 24],
+      ['MIN', Math.floor(left / 60_000) % 60],
+      ['SEC', Math.floor(left / 1000) % 60],
+    ] as const,
+  };
+}
+
+/** The real Face Scan walkthrough, muted and looping, in a phone-shaped frame. */
+function FaceScanDemo() {
+  const video = useRef<HTMLVideoElement>(null);
+  const [playing, setPlaying] = useState(false);
+
+  useEffect(() => {
+    const v = video.current;
+    if (!v) return;
+    // React doesn't write the `muted` attribute, and iOS only autoplays muted video, so set it here.
+    v.muted = true;
+    v.defaultMuted = true;
+    v.play().catch(() => setPlaying(false));
+  }, []);
+
+  function toggle() {
+    const v = video.current;
+    if (!v) return;
+    if (v.paused) {
+      v.muted = true;
+      v.play().catch(() => setPlaying(false));
+    } else {
+      v.pause();
+    }
+  }
+
+  return (
+    <div className="relative mx-auto w-full max-w-[300px] overflow-hidden rounded-[34px] border-[6px] border-[#FFFEFA] bg-[#EFE5D8] shadow-[0_30px_60px_-20px_rgba(70,42,28,0.35)]">
+      <video
+        ref={video}
+        poster="/landing/face-scan-poster.jpg"
+        autoPlay
+        muted
+        loop
+        playsInline
+        preload="auto"
+        width={540}
+        height={960}
+        onPlaying={() => setPlaying(true)}
+        onPause={() => setPlaying(false)}
+        aria-label="Face Scan demo: a 15-second head turn, a 3D map of your face, every zone in plain words, then Ask Skinstel about your scan"
+        className="block aspect-[9/16] w-full object-cover"
+      >
+        <source src="/landing/face-scan.mp4" type='video/mp4; codecs="avc1.42E01E"' />
+        <source src="/landing/face-scan.webm" type="video/webm" />
+      </video>
+      <button
+        type="button"
+        onClick={toggle}
+        aria-label={playing ? 'Pause the demo' : 'Play the demo'}
+        className="absolute inset-0 flex items-center justify-center"
+      >
+        {!playing && (
+          <span className="flex items-center gap-2 rounded-full bg-[#A35848] px-5 py-3 text-[15px] font-semibold text-[#FFFEFA] shadow-[0_10px_30px_rgba(70,42,28,0.35)]">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" aria-hidden><path d="M7 4.5v15l13-7.5z" /></svg>
+            Watch the demo
+          </span>
+        )}
+      </button>
+    </div>
+  );
+}
+
+function FaceScanOffer() {
+  const { ended, parts } = useCountdown(FACE_SCAN_DEADLINE);
+  const [email, setEmail] = useState('');
+  const [busy, setBusy] = useState(false);
+  const [err, setErr] = useState<string | null>(null);
+
+  async function submit(e: FormEvent) {
+    e.preventDefault();
+    const clean = email.trim();
+    if (!clean) return;
+    setBusy(true);
+    setErr(null);
+    try {
+      await startCheckout(clean, 'facescan');
+    } catch (e) {
+      setErr(e instanceof Error ? e.message : 'Something went wrong. Try again.');
+      setBusy(false);
+    }
+  }
+
+  return (
+    <div className="mx-auto w-full max-w-[460px] rounded-[26px] border border-[#E6DED2] bg-[#FBF7F0] p-5 shadow-[0_20px_50px_rgba(70,42,28,0.08)]">
+      <div className="flex flex-wrap items-center gap-2">
+        <span className="rounded-full bg-[#A35848] px-2.5 py-1 font-mono text-[10px] tracking-[0.14em] text-[#FFFEFA]">LIMITED-TIME DEAL</span>
+        <span className="rounded-full border border-[#A35848] px-2.5 py-1 font-mono text-[10px] tracking-[0.14em] text-[#A35848]">LIMITED ACCESS</span>
+      </div>
+      {ended ? (
+        <p className="mt-4 text-[16px] font-semibold">Early access has closed. Face Scan comes to everyone soon.</p>
+      ) : (
+        <>
+          <p className="mt-4 text-[13px] font-semibold text-[#6B6760]">Early access closes in</p>
+          <div className="mt-2 grid grid-cols-4 gap-2" role="timer" aria-live="off">
+            {parts.map(([label, n]) => (
+              <div key={label} className="rounded-[14px] bg-[#EAD8C8] py-2.5 text-center text-[#7A4A32]">
+                <div className="font-mono text-[22px] font-semibold tabular-nums">{String(n).padStart(2, '0')}</div>
+                <div className="font-mono text-[9px] tracking-[0.16em] text-[#A35848]">{label}</div>
+              </div>
+            ))}
+          </div>
+          <div className="mt-4 flex items-baseline justify-between">
+            <span className="text-[16px] font-semibold">Skintel+ with Face Scan</span>
+            <span className="text-[17px] font-semibold tabular-nums">$7.99/mo</span>
+          </div>
+          <p className="mt-1 text-[12.5px] leading-relaxed text-[#6B6760]">
+            Skintel+ starts today, and Face Scan opens on your account first. $7.99 a month for as long as you stay subscribed (regular Skintel+ is $8.99). Cancel any time.
+          </p>
+          <form onSubmit={submit}>
+            <label htmlFor="face-email" className="mt-4 block text-[14px] font-semibold">Email you use in the Skintel app</label>
+            <input
+              id="face-email"
+              type="email"
+              required
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              placeholder="you@example.com"
+              autoComplete="email"
+              className="mt-1.5 w-full rounded-[14px] border border-[#E6DED2] bg-[#FFFEFA] px-4 py-3 text-base text-ink outline-none placeholder:text-[#9A8D80] focus:border-[#A35848]"
+            />
+            <button
+              disabled={busy}
+              className="mt-4 w-full rounded-full bg-[#A35848] py-3.5 text-[16px] font-semibold text-[#FFFEFA] transition-transform duration-200 ease-ios active:scale-[0.98] disabled:opacity-70"
+            >
+              {busy ? 'Opening checkout…' : 'Get early access · $7.99/month'}
+            </button>
+          </form>
+          <p className={`mt-2.5 text-center text-[12px] ${err ? 'text-[#A35848]' : 'text-[#8A7A6C]'}`}>
+            {err ?? 'Secure checkout by Stripe. Billed by Skintel, not Apple.'}
+          </p>
+        </>
+      )}
+    </div>
+  );
+}
+
 const STEPS = [
   { icon: '/email/scan.png', title: 'Scan', text: 'Any bottle, any barcode.' },
   { icon: '/email/log.png', title: 'Log', text: 'Ten seconds a day.' },
@@ -220,10 +385,14 @@ export default function Home() {
             <div className="mt-6 flex flex-wrap items-center gap-3">
               <AppStoreButton />
               <button onClick={jumpToOffer} className="rounded-full bg-[#A35848] px-5 py-3 text-[15px] font-semibold text-[#FFFEFA]">
-                Skintel+ for $6.49
+                See Skintel+
               </button>
             </div>
-            <p className="mt-3 text-[13px] text-[#8A7A6C]">Free to download. Skintel+ launch price for your first 3 months.</p>
+            <p className="mt-3 text-[13px] text-[#8A7A6C]">Free to download on iPhone.</p>
+            <a href="#face-scan" className="mt-4 inline-flex items-center gap-2 rounded-full border border-[#E6DED2] bg-[#FFFEFA] py-1.5 pl-1.5 pr-3.5 text-[13px] font-semibold">
+              <span className="rounded-full bg-[#A35848] px-2 py-0.5 font-mono text-[10px] tracking-[0.12em] text-[#FFFEFA]">NEW</span>
+              Face Scan early access · limited time →
+            </a>
           </div>
           <div className="mx-auto mt-9 w-[min(78vw,330px)] md:ml-auto md:mr-0 md:mt-0 md:w-[360px]">
             <img
@@ -251,6 +420,22 @@ export default function Home() {
             <div ref={card}><OfferCard /></div>
           </div>
           <div className="mt-10 md:hidden"><ScanDemo /></div>
+        </section>
+
+        <section id="face-scan" className="scroll-mt-20 pb-4 pt-16 md:pt-20">
+          <div className="grid gap-8 md:grid-cols-[300px_1fr] md:gap-x-14 md:gap-y-7">
+            <div className="text-center md:col-start-2 md:text-left">
+              <p className="font-mono text-[11px] tracking-[0.22em] text-[#A35848]">NEW · FACE SCAN EARLY ACCESS</p>
+              <h2 className="mt-3 font-display text-[clamp(38px,9vw,58px)] font-normal leading-[1.0] tracking-[-0.01em]">
+                See your skin, <em className="italic text-[#A35848]">zone by zone.</em>
+              </h2>
+              <p className="mx-auto mt-3 max-w-[460px] text-[16px] leading-relaxed text-[#6B6760] md:mx-0">
+                A 15-second head turn maps your face in 3D. Every zone in plain words, tips from your own shelf, and Ask Skinstel about your scan. Follow it for 7 days.
+              </p>
+            </div>
+            <div className="md:col-start-1 md:row-span-2 md:row-start-1 md:self-start"><FaceScanDemo /></div>
+            <div className="md:col-start-2 md:[&>div]:mx-0"><FaceScanOffer /></div>
+          </div>
         </section>
 
         <section className="pb-2 pt-14">
@@ -286,13 +471,13 @@ export default function Home() {
       </div>
 
       <div
-        className={`fixed left-3 right-3 top-[calc(env(safe-area-inset-top)+10px)] z-10 flex items-center justify-between gap-2.5 rounded-full bg-[rgba(26,24,20,0.92)] py-2 pl-5 pr-2 text-[#FFFEFA] backdrop-blur-md transition-transform duration-500 ease-ios md:left-auto md:right-6 md:w-auto ${
-          showBar ? 'translate-y-0 shadow-[0_10px_30px_rgba(26,24,20,0.18)]' : '-translate-y-[calc(100%+env(safe-area-inset-top)+40px)] shadow-none'
+        className={`fixed bottom-[calc(env(safe-area-inset-bottom)+12px)] left-3 right-3 z-10 flex items-center justify-between gap-2.5 rounded-full bg-[rgba(26,24,20,0.92)] py-2 pl-5 pr-2 text-[#FFFEFA] backdrop-blur-md transition-transform duration-500 ease-ios md:left-auto md:right-6 md:w-auto ${
+          showBar ? 'translate-y-0 shadow-[0_10px_30px_rgba(26,24,20,0.18)]' : 'translate-y-[calc(100%+env(safe-area-inset-bottom)+40px)] shadow-none'
         }`}
         aria-hidden={!showBar}
       >
         <button onClick={jumpToOffer} tabIndex={showBar ? 0 : -1} className="min-w-0 truncate text-left text-sm">
-          Launch offer <span className="text-[#E7B8A6]">$6.49/mo</span>
+          Free on iPhone
         </button>
         <a href={APP_STORE_URL} tabIndex={showBar ? 0 : -1} className="shrink-0 rounded-full bg-[#A35848] px-[18px] py-[11px] text-sm font-semibold">
           Get the app
