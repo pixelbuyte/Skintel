@@ -1,7 +1,7 @@
 import SwiftUI
 
 /// A small "NEW" pill for a freshly shipped feature: clay fill, cream mono caps.
-/// Pair it with `@AppStorage("seen.faceScan")` (or similar) to hide it after first open.
+/// Face scan's tags stay up until a first scan is stored (`FaceScanStore.shared.entries`).
 struct SKNewBadge: View {
     var body: some View {
         Text("NEW")

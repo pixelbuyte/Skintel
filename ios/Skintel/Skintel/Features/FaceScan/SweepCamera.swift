@@ -13,11 +13,19 @@ struct SweepReading: Sendable, Equatable {
     /// only relies on its size and on the two turns having opposite signs.
     var yaw: Double = 0
     var evenLight = false
-    var goodDistance = false
+    /// Face box width as a share of the frame (0 with no face): drives "closer" / "back a little".
+    var faceWidth: Double = 0
     var sharp = false
+    /// The face barely moved since the last analysed frame (no motion blur).
+    var steady = false
+
+    static let distanceRange = 0.32...0.72
 
     var oneFace: Bool { faceCount == 1 }
-    var ready: Bool { oneFace && evenLight && goodDistance && sharp }
+    var goodDistance: Bool { Self.distanceRange.contains(faceWidth) }
+    var tooFar: Bool { oneFace && faceWidth < Self.distanceRange.lowerBound }
+    var tooClose: Bool { oneFace && faceWidth > Self.distanceRange.upperBound }
+    var ready: Bool { oneFace && evenLight && goodDistance && sharp && steady }
 }
 
 /// The encoded images of one locked angle.
@@ -36,6 +44,8 @@ final class SweepCamera: NSObject, @unchecked Sendable, AVCaptureVideoDataOutput
         case none
         /// Lock the next ready frame as this role (front also cuts the zone crops).
         case capture(FaceScanImage.Role)
+        /// The manual shutter: lock the next frame that has a face, whatever the checks say.
+        case forced(FaceScanImage.Role)
     }
 
     private let session = AVCaptureSession()
@@ -46,9 +56,16 @@ final class SweepCamera: NSObject, @unchecked Sendable, AVCaptureVideoDataOutput
     private let onCapture: @MainActor @Sendable (SweepCapture, Double) -> Void
     private var frameIndex = 0
     private var configured = false
+    /// Queue-only state: where the face was last frame, and how many ready frames in a row.
+    private var lastFace: (center: CGPoint, yaw: Double)?
+    private var readyStreak = 0
+    /// Analysed frames (about 10 a second) that must all pass before an angle locks: about 0.6 s
+    /// held still, so one lucky frame mid-turn never becomes the photo.
+    static let framesToLock = 6
 
     /// Image orientation for the front camera held upright, unmirrored (the person's right cheek
-    /// is on the image's left, as another person would see them).
+    /// is on the image's left, as another person would see them). Photos sent and kept stay this
+    /// way; only the screen mirrors (the preview layer, the photo map).
     private let orientation: CGImagePropertyOrientation = .right
 
     init(onReading: @escaping @MainActor @Sendable (SweepReading) -> Void,
@@ -74,10 +91,17 @@ final class SweepCamera: NSObject, @unchecked Sendable, AVCaptureVideoDataOutput
         target.withLock { $0 = value }
     }
 
-    func start() {
+    /// The session, for an `AVCaptureVideoPreviewLayer` set up on the main actor. The session is
+    /// still only configured, started and stopped on the camera queue.
+    var captureSession: AVCaptureSession { session }
+
+    /// `onRunning` is called on the main actor once the session runs: the preview layer's
+    /// connection exists from then on (`SweepPreview` mirrors it).
+    func start(onRunning: (@MainActor @Sendable () -> Void)? = nil) {
         queue.async { [self] in
             if !configured { configure() }
             if configured && !session.isRunning { session.startRunning() }
+            if configured, let onRunning { Task { @MainActor in onRunning() } }
         }
     }
 
@@ -119,23 +143,48 @@ final class SweepCamera: NSObject, @unchecked Sendable, AVCaptureVideoDataOutput
         let faces = rects.results ?? []
         var reading = SweepReading()
         reading.faceCount = faces.count
-        reading.evenLight = Self.meanLuma(pixelBuffer).map { $0 > 0.22 && $0 < 0.9 } ?? false
+        // The server turned down frames that passed 0.22 as "too dim"; 0.3 asks for real light.
+        reading.evenLight = Self.meanLuma(pixelBuffer).map { $0 > 0.3 && $0 < 0.9 } ?? false
         let face = faces.first
         if let face {
             reading.yaw = face.yaw?.doubleValue ?? 0
-            let w = face.boundingBox.width
-            reading.goodDistance = w > 0.28 && w < 0.8
+            reading.faceWidth = Double(face.boundingBox.width)
+            let center = CGPoint(x: face.boundingBox.midX, y: face.boundingBox.midY)
+            if let last = lastFace {
+                reading.steady = hypot(center.x - last.center.x, center.y - last.center.y) < 0.02
+                    && abs(reading.yaw - last.yaw) < 0.08
+            }
+            lastFace = (center, reading.yaw)
+        } else {
+            lastFace = nil
         }
         let captureQuality: Float = quality.results?.first?.faceCaptureQuality ?? 0
-        reading.sharp = captureQuality >= 0.3
+        reading.sharp = captureQuality >= 0.45
 
+        // A `let` copy: capturing the `var` itself is a data race to Swift 6's region checker.
         let handlerReading = onReading
-        Task { @MainActor in handlerReading(reading) }
+        let snapshot = reading
+        Task { @MainActor in handlerReading(snapshot) }
 
-        guard reading.ready, let face else { return }
         let current = target.withLock { $0 }
-        guard case .capture(let role) = current,
-              Self.matches(role: role, yaw: reading.yaw) else { return }
+        guard let face else { readyStreak = 0; return }
+        let role: FaceScanImage.Role
+        switch current {
+        case .none:
+            readyStreak = 0
+            return
+        case .forced(let forcedRole):
+            role = forcedRole
+        case .capture(let wanted):
+            guard reading.ready, Self.matches(role: wanted, yaw: reading.yaw) else {
+                readyStreak = 0
+                return
+            }
+            readyStreak += 1
+            guard readyStreak >= Self.framesToLock else { return }
+            role = wanted
+        }
+        readyStreak = 0
         target.withLock { $0 = .none }
 
         guard let capture = encode(pixelBuffer: pixelBuffer, face: face.boundingBox, role: role) else {
@@ -189,8 +238,9 @@ final class SweepCamera: NSObject, @unchecked Sendable, AVCaptureVideoDataOutput
     // MARK: Encoding (PRO-SPEC §3: views 1024 px, crops 512 px, JPEG 0.8 stepping to 0.6)
 
     /// Zone rectangles in the face box's unit space (origin bottom-left, as Vision and Core Image
-    /// use). The image is unmirrored, so the person's right cheek is on the image's left.
-    private static let zoneRects: [FaceZone: CGRect] = [
+    /// use). The image is unmirrored, so the person's right cheek is on the image's left. The photo
+    /// map maps the AI's marked spots back through these (`FacePhotoLayout.spot`).
+    static let zoneRects: [FaceZone: CGRect] = [
         .forehead: CGRect(x: 0.2, y: 0.82, width: 0.6, height: 0.3),
         .nose: CGRect(x: 0.34, y: 0.32, width: 0.32, height: 0.4),
         .rightCheek: CGRect(x: 0.04, y: 0.22, width: 0.34, height: 0.38),

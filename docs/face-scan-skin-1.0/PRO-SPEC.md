@@ -13,7 +13,7 @@ the 7-day check (drag the day).
 | Tier | Where | Model (exact OpenRouter id) | Price in / out per 1M tokens | Role |
 |---|---|---|---|---|
 | 1 Sweep + zone slicer | On device | ARKit `ARFaceAnchor` (TrueDepth) or MediaPipe canonical mesh (468 vertices, Apache-2.0) | $0 | Guide the head turn: centre 0°, left 45°, right 45°. Check light, distance and one face. Cut 5 zone crops: forehead, nose/T-zone, left cheek, right cheek, chin. |
-| 2a Baseline + final read (Day 1, Day 7) | Server | `google/gemini-4-argon`, request `reasoning: { effort: "high" }` (reasoning is mandatory on this model) | $2 / $10 | 5 crops + 3 views → per-zone findings with approximate regions (§3) |
+| 2a Baseline + final read (Day 1, Day 7) | Server | `google/gemini-3.5-flash` (founder, Oct 26: no Argon), `reasoning` medium on Day 1, high on Day 7; fallback `google/gemini-3.1-flash-lite` | Flash pricing | 5 crops + 3 views → per-zone findings with approximate regions (§3) |
 | 2b Daily read (Days 2–6) | Server | `google/gemini-3.5-flash` | $1.50 / $9 | 1 front photo → per-zone 0–100 scores, under ~2 s |
 | 3 Synthesis (Day 7) + routine | Server | `anthropic/claude-sonnet-5.5`; `anthropic/claude-opus-5.5` only on retry or escalation | $2 / $10 (Opus $4 / $20) | 7-day JSON trend, Day 1 vs Day 7 findings and answers → report + conflict-checked AM/PM routine |
 
@@ -39,7 +39,9 @@ Anthropic account's retention terms.
   "Journal photo: Not built"), and none gets added for this.
 - **Day 7 needs Day 1's crops.** They are kept on the device only, in the app container with
   `FileProtectionType.complete`, excluded from backup. They are sent again together with the Day 7 crops and deleted
-  when the cycle ends, the person deletes the scan, or the account is deleted.
+  when the cycle ends (after 14 days if the week isn't finished), the person deletes the scan, or the account is
+  deleted. Consent copy: "Day 1 close-ups stay on this phone for your 7-day check, then are deleted (after 14 days if
+  the week isn't finished)."
 - The face mesh never leaves the device (App Review 5.1.2(vi): facial-mapping data may not be used for marketing,
   advertising or data mining, including by third parties).
 - Copy may say "Photos are read, then deleted" only once all of the above ships.
@@ -88,7 +90,7 @@ number (§6). Zones: `forehead, nose, left_cheek, right_cheek, chin`.
   - **Region kinds:** `raised_blemish`, `clogged_pore`, `red_mark`, `brown_mark`, `uneven_texture`.
   - **Daily caps per user (UTC):** 8 calls in total; at most baseline 2, final 2, report 2, daily 4. A call that
     reached the model counts even if it timed out.
-  - **Free scan:** a non-Pro account gets one `baseline` per lifetime, answered with `locked: true` and only the zones with findings (no scores, regions, notes or report). After that, and for every other stage, 402 `{error:"Pro required", freeScanUsed?}`.
+  - **Free scan:** a non-Pro account gets one readable `baseline` per lifetime, answered as a real Day 1 map: `locked: true`, every zone with its scores and note, and the model's summary (no regions, report or routine). `locked` means "this is the free scan; the 7-day check is locked". After that, and for every other stage, 402 `{error:"Pro required", freeScanUsed?}`.
   - **Errors:** 401, 402 `{error:"Pro required"}`, 400, 413, 429, 502/503. The app checks the status before
     decoding, and uses a 60 s timeout because the server budget is 55 s.
 - Validate server-side, clamp every score to 0–100 and drop unknown keys. On bad JSON, retry once, then return
@@ -156,7 +158,7 @@ number (§6). Zones: `forehead, nose, left_cheek, right_cheek, chin`.
 
 ## 7. Open founder decisions (add to the PR #76 question list)
 
-1. ~~Paid-only vs free first scan~~: answered, **one free scan first** (founder, Oct 26): one lifetime free baseline per account, shown as the locked map + paywall. Was: The spec says post-purchase Pro only. BRIEF §10.1 suggests one free scan before
+1. ~~Paid-only vs free first scan~~: answered, **one free scan first** (founder, Oct 26): one lifetime free baseline per account. **Free = a real Day 1 map; the week is Skintel+** (founder, Oct 26): the free scan shows the 3D map, zones and summary for real, and the 7-day check is what Skintel+ pays for. The free baseline is kept like a paid one (real cycle, Day 1 crops on device, answers), so after Skintel+ the week goes on at Day 2 with no new sweep. Was: shown as the locked map + paywall. Before that: The spec says post-purchase Pro only. BRIEF §10.1 suggests one free scan before
    sign-up to fix the sign-in leak. The canvas shows the locked-map paywall as a middle ground.
 2. ~~Under-18s~~: answered, **allowed** (founder, Oct 26). Proposed: 13+ only for face scan (COPPA: a child's photo is personal information under 13), hide Q5 pregnancy options and Q16 for 13–17. Confirmed by the founder: **face scan is 13+** (an age check on the intro when onboarding age is unknown or under 18). Was: Onboarding offers "Under 18" (`AgeRange.under18`). Allow face scan for them? If yes, hide Q5's
    pregnancy options and Q16 supplements for them.

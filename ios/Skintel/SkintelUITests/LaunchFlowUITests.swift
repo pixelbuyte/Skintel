@@ -8,6 +8,7 @@ final class LaunchFlowUITests: XCTestCase {
         continueAfterFailure = false
         app = XCUIApplication()
         app.launch()
+        dismissFeatureIntro(app)
     }
 
     func testWelcomeShowsAndRoutesToSignUpAndSignIn() {
@@ -66,6 +67,7 @@ final class AppTourRecording: XCTestCase {
 
         let app = XCUIApplication()
         app.launch()
+        dismissFeatureIntro(app)
 
         // Sign in through the real form.
         let haveAccount = app.buttons["I already have an account"]
@@ -140,4 +142,11 @@ final class AppTourRecording: XCTestCase {
     private func pause(_ seconds: TimeInterval) {
         _ = XCTWaiter.wait(for: [XCTestExpectation(description: "pause")], timeout: seconds)
     }
+}
+
+/// A fresh install opens on the one-time "Face scan is here" demo; close it so the tests
+/// start on the welcome screen.
+func dismissFeatureIntro(_ app: XCUIApplication) {
+    let gotIt = app.buttons["Got it"]
+    if gotIt.waitForExistence(timeout: 10) { gotIt.tap() }
 }

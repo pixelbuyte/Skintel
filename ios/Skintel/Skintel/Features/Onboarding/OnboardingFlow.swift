@@ -2,8 +2,8 @@ import SwiftUI
 import SkintelCore
 import SkinstelMascot
 
-/// Signed-in but not yet profiled: age range, skin profile (§04), then camera permission (§05).
-/// Step 1 of the four is the welcome screen shown before sign-in.
+/// Signed-in but not yet profiled: age range, skin profile (§04), how Skinstel works, then camera
+/// permission (§05). Step 1 of the five is the welcome screen shown before sign-in.
 struct OnboardingFlow: View {
     @Environment(AppEnvironment.self) private var env
     @State private var model: OnboardingViewModel?
@@ -21,8 +21,12 @@ struct OnboardingFlow: View {
                                     back: { withAnimation(SKAnimation.ios()) { step = 2 } },
                                     next: { withAnimation(SKAnimation.ios()) { step = 4 } })
                         .transition(.move(edge: .trailing))
+                case 4:
+                    HowItWorksStepView(back: { withAnimation(SKAnimation.ios()) { step = 3 } },
+                                       next: { withAnimation(SKAnimation.ios()) { step = 5 } })
+                        .transition(.move(edge: .trailing))
                 default:
-                    CameraStepView(model: model, back: { withAnimation(SKAnimation.ios()) { step = 3 } })
+                    CameraStepView(model: model, back: { withAnimation(SKAnimation.ios()) { step = 4 } })
                         .transition(.move(edge: .trailing))
                 }
             } else {
@@ -36,8 +40,8 @@ struct OnboardingFlow: View {
     }
 }
 
-private struct StepHeader: View {
-    static let total = 4
+struct StepHeader: View {
+    static let total = 5
     let step: Int
     var back: (() -> Void)?
 
@@ -176,7 +180,7 @@ struct CameraStepView: View {
 
     var body: some View {
         VStack(spacing: 0) {
-            StepHeader(step: 4, back: back).skPagePadding().padding(.top, SKSpace.sm)
+            StepHeader(step: 5, back: back).skPagePadding().padding(.top, SKSpace.sm)
             ScrollView {
                 VStack(alignment: .leading, spacing: SKSpace.xl) {
                     Text("Scan your first product.").font(SKFont.hero).foregroundStyle(SKColor.ink).padding(.top, SKSpace.xl)

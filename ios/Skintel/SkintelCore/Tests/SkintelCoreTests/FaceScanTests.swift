@@ -314,12 +314,66 @@ private let specExample = """
     let old = try decodeFace(FaceScanResult.self, specExample)
     #expect(old.locked == false)
     let free = try decodeFace(FaceScanResult.self, """
-    { "quality": { "ok": true, "issues": [] }, "locked": true, "summary": "Your face map is ready.",
-      "zones": [ { "zone": "chin", "scores": {}, "regions": [], "note": null } ] }
+    { "quality": { "ok": true, "issues": [] }, "locked": true, "summary": "Shine on the T-zone, a few blemishes on the chin.",
+      "zones": [ { "zone": "chin", "scores": { "redness": 30, "raised_blemishes": 41 }, "note": "A few raised blemishes along the jawline." },
+                 { "zone": "nose", "scores": { "shine": 62 }, "note": "Shine on the T-zone." } ] }
     """)
     #expect(free.locked)
-    #expect(free.zones.map(\.zone) == [.chin])
-    #expect(free.zones.first?.scores.isEmpty == true)
+    #expect(free.zones.map(\.zone) == [.chin, .nose])
+    #expect(free.zones.first?.scores == [.redness: 30, .raisedBlemishes: 41])
+    #expect(free.zones.first?.note == "A few raised blemishes along the jawline.")
+    #expect(free.zones.allSatisfy { $0.regions.isEmpty })
+    #expect(free.summary == "Shine on the T-zone, a few blemishes on the chin.")
+    #expect(free.report == nil && free.routine == nil)
     let round = try JSONCoding.decode(FaceScanResult.self, from: JSONCoding.encoder.encode(free))
     #expect(round.locked)
+}
+
+// MARK: - Tips, top finding, goals (v2)
+
+@Test func faceScanDecodesTipsAndDropsBadOnes() throws {
+    let json = """
+    {"quality":{"ok":true,"issues":[]},"zones":[],"summary":"s",
+     "tips":[{"title":"Blot, don't scrub, the T-zone","why":"Some shine down the nose.","zone":"nose","metric":"shine"},
+             {"title":"  ","why":"blank title"},
+             {"why":"no title"},
+             {"title":"SPF every morning","why":"Keeps marks from darkening.","zone":"ear","metric":"glow"},
+             {"title":"Third","why":""},
+             {"title":"Fourth","why":"over the cap"}]}
+    """
+    let r = try JSONDecoder().decode(FaceScanResult.self, from: Data(json.utf8))
+    #expect(r.tips.count == 3)
+    #expect(r.tips[0] == FaceTip(title: "Blot, don't scrub, the T-zone", why: "Some shine down the nose.", zone: .nose, metric: .shine))
+    #expect(r.tips[1].zone == nil && r.tips[1].metric == nil)
+    #expect(r.tips[2].title == "Third" && r.tips[2].why.isEmpty)
+    let back = try JSONDecoder().decode(FaceScanResult.self, from: JSONEncoder().encode(r))
+    #expect(back == r)
+}
+
+@Test func faceScanWithoutTipsDecodesEmpty() throws {
+    let r = try JSONDecoder().decode(FaceScanResult.self, from: Data(#"{"quality":{"ok":true,"issues":[]}}"#.utf8))
+    #expect(r.tips.isEmpty)
+}
+
+@Test func faceZoneTopFindingBreaksTiesAwayFromShine() {
+    let tie = FaceZoneResult(zone: .forehead, scores: [.shine: 10, .redness: 10, .texture: 10, .flatMarks: 0])
+    #expect(tie.topFinding?.metric == .redness)
+    #expect(tie.isClear)
+    let marks = FaceZoneResult(zone: .nose, scores: [.shine: 25, .flatMarks: 25, .redness: 15])
+    #expect(marks.topFinding?.metric == .flatMarks)
+    #expect(marks.topFinding?.score == 25)
+    #expect(!marks.isClear)
+    let shine = FaceZoneResult(zone: .nose, scores: [.shine: 40, .flatMarks: 25])
+    #expect(shine.topFinding?.metric == .shine)
+    #expect(FaceZoneResult(zone: .chin).topFinding == nil)
+    #expect(!FaceZoneResult(zone: .chin).isClear)
+}
+
+@Test func faceGoalsReadLabelsAndRawValuesInOrder() {
+    let answers = FaceAnswers(chips: [FaceGoal.chipKey: ["Fade marks", "less_shine", "Fade marks", "Nope"]])
+    #expect(FaceGoal.goals(in: answers) == [.fadeMarks, .lessShine])
+    #expect(FaceGoal.askPrompt(for: [.lessShine]) == FaceGoal.lessShine.askPrompt)
+    #expect(FaceGoal.askPrompt(for: []) == FaceGoal.defaultAskPrompt)
+    #expect(FaceGoal.goals(in: nil).isEmpty)
+    #expect(Set(FaceGoal.allCases.map(\.label)).count == FaceGoal.allCases.count)
 }

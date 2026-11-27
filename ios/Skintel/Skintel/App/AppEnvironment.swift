@@ -25,6 +25,11 @@ final class AppEnvironment {
     /// `MainTabView`). Dropped when the user is signed out or still onboarding.
     var pendingDeepLink: SkintelDeepLink?
 
+    /// A question waiting for Ask Skintel's composer, set when "Ask Skinstel about this scan"
+    /// closes the face scan (`MainTabView`). `AssistantView` puts it in the composer, not sent,
+    /// and clears it, so it is used once.
+    var pendingAsk: PendingAsk?
+
     init(config: AppConfiguration) {
         self.config = config
         let http = HTTPClient(timeout: 20, logger: DebugLog.network)
@@ -44,6 +49,9 @@ final class AppEnvironment {
 
     /// Everything a signed-in user's screens need, loaded together after sign-in.
     func warmUp() async {
+        // Day 1 face crops past day 14 are deleted on launch too, not only when the face scan
+        // opens, so a week nobody comes back to (a free scan that never upgrades) still lets go.
+        FaceScanStore.shared.expireDay1Crops(now: Date())
         // Ready before any Skintel+ wall opens, so a test build shows its chosen wall style
         // straight away. Runs alongside; nothing below waits on it.
         Task { await subscriptionService.checkBuildEnvironment() }
@@ -58,6 +66,7 @@ final class AppEnvironment {
 
     func resetAfterSignOut() {
         pendingDeepLink = nil
+        pendingAsk = nil
         products.reset()
         subscription.reset()
         scans.reset()
@@ -67,6 +76,13 @@ final class AppEnvironment {
         FaceScanStore.shared.reset()
         FaceScanFlowView.resetPreferences()
     }
+}
+
+/// What `AssistantView` opens with when it is handed a question from elsewhere in the app.
+struct PendingAsk: Equatable, Sendable {
+    var question: String
+    /// Put the Face scan tag in the composer with the question.
+    var faceScan: Bool
 }
 
 enum DebugLog {
