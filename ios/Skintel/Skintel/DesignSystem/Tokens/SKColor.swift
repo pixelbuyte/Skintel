@@ -13,6 +13,9 @@ enum SKColor {
     static let line = Color(hex: 0xEAE6DF)
     static let neutralChip = Color(hex: 0xEFEAE2)
     static let blush = Color(hex: 0xA35848).opacity(0.08)
+    /// Dusty pink for the face scan's light look (hero wash, the 3D map's lit heat). A surface,
+    /// never a text colour: clay text on it is 3.6:1, so text sits on cream instead.
+    static let rose = Color(hex: 0xEBD3CB)
 
     static let goodBg = Color(hex: 0xEEF2DD)
     static let goodFg = Color(hex: 0x5C7A4F)

@@ -2066,7 +2066,6 @@ private struct ProGatePresenter: ViewModifier {
 private struct AskSheetPresenter: ViewModifier {
     @Binding var isPresented: Bool
     let initialQuestion: String?
-    var faceTagged = false
     @Environment(AppEnvironment.self) private var env
     @State private var chat = false
     @State private var wall = false
@@ -2082,7 +2081,7 @@ private struct AskSheetPresenter: ViewModifier {
                 }
             }
             .sheet(isPresented: $chat, onDismiss: { isPresented = false }) {
-                AssistantView(initialQuestion: initialQuestion, initialFaceTagged: faceTagged)
+                AssistantView(initialQuestion: initialQuestion)
             }
             .fullScreenCover(isPresented: $wall, onDismiss: {
                 if isPresented && env.subscription.entitlement.isPro { chat = true } else { isPresented = false }
@@ -2107,8 +2106,7 @@ extension View {
     }
 
     /// Presents Ask Skintel, gated: the chat for Skintel+ members, the wall otherwise.
-    /// `faceTagged` opens it with the face scan already tagged ("Ask Skinstel about this scan").
-    func skAskSheet(isPresented: Binding<Bool>, initialQuestion: String? = nil, faceTagged: Bool = false) -> some View {
-        modifier(AskSheetPresenter(isPresented: isPresented, initialQuestion: initialQuestion, faceTagged: faceTagged))
+    func skAskSheet(isPresented: Binding<Bool>, initialQuestion: String? = nil) -> some View {
+        modifier(AskSheetPresenter(isPresented: isPresented, initialQuestion: initialQuestion))
     }
 }

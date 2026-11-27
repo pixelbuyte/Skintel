@@ -48,6 +48,86 @@ public struct FaceAnswers: Codable, Sendable, Hashable {
     }
 }
 
+/// What the person wants from their skin, asked in the questions (multi-select). Stored in
+/// `FaceAnswers.chips[FaceGoal.chipKey]` as the chip labels, like every other chip answer, so the
+/// report model reads plain words.
+public enum FaceGoal: String, Codable, Sendable, Hashable, CaseIterable, Identifiable {
+    case lessShine = "less_shine"
+    case fewerBreakouts = "fewer_breakouts"
+    case fadeMarks = "fade_marks"
+    case calmerRedness = "calmer_redness"
+    case smootherTexture = "smoother_texture"
+    case smallerPores = "smaller_pores"
+    case moreGlow = "more_glow"
+    case simplerRoutine = "simpler_routine"
+    case justCurious = "just_curious"
+
+    public static let chipKey = "goals"
+
+    public var id: String { rawValue }
+
+    public var label: String {
+        switch self {
+        case .lessShine: "Less shine"
+        case .fewerBreakouts: "Fewer breakouts"
+        case .fadeMarks: "Fade marks"
+        case .calmerRedness: "Calmer redness"
+        case .smootherTexture: "Smoother texture"
+        case .smallerPores: "Smaller-looking pores"
+        case .moreGlow: "More glow"
+        case .simplerRoutine: "A simpler routine"
+        case .justCurious: "Just curious"
+        }
+    }
+
+    /// The question put in Ask's composer for this goal.
+    public var askPrompt: String {
+        switch self {
+        case .lessShine: "How do I get less shine, going by my face scan?"
+        case .fewerBreakouts: "What would help with breakouts, going by my face scan?"
+        case .fadeMarks: "How can I help my marks fade, going by my face scan?"
+        case .calmerRedness: "How do I calm the redness my face scan shows?"
+        case .smootherTexture: "How do I get smoother texture, going by my face scan?"
+        case .smallerPores: "How can my pores look smaller, going by my face scan?"
+        case .moreGlow: "How do I get more glow, going by my face scan?"
+        case .simplerRoutine: "What is the simplest routine for the skin my face scan shows?"
+        case .justCurious: Self.defaultAskPrompt
+        }
+    }
+
+    /// The metric a goal is about, so a screen can point at the zone that matters; nil for goals
+    /// that are not about one metric.
+    public var metric: FaceMetric? {
+        switch self {
+        case .lessShine, .smallerPores: .shine
+        case .fewerBreakouts: .raisedBlemishes
+        case .fadeMarks: .flatMarks
+        case .calmerRedness: .redness
+        case .smootherTexture: .texture
+        case .moreGlow, .simplerRoutine, .justCurious: nil
+        }
+    }
+
+    public static let defaultAskPrompt = "What stands out in my face scan, and what should I do about it?"
+
+    /// The goals in `answers`, in the order picked. Reads labels and raw values alike.
+    public static func goals(in answers: FaceAnswers?) -> [FaceGoal] {
+        let picked = answers?.chips?[chipKey] ?? []
+        var out: [FaceGoal] = []
+        for value in picked {
+            guard let goal = allCases.first(where: { $0.label == value || $0.rawValue == value }),
+                  !out.contains(goal) else { continue }
+            out.append(goal)
+        }
+        return out
+    }
+
+    /// What Ask opens with after a face scan: the first goal's question, or the general one.
+    public static func askPrompt(for goals: [FaceGoal]) -> String {
+        goals.first?.askPrompt ?? defaultAskPrompt
+    }
+}
+
 // MARK: - Images
 
 /// One photo in a request. `base64` is the JPEG bytes without a data-URL prefix.

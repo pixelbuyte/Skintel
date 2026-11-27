@@ -25,6 +25,11 @@ final class AppEnvironment {
     /// `MainTabView`). Dropped when the user is signed out or still onboarding.
     var pendingDeepLink: SkintelDeepLink?
 
+    /// A question waiting for Ask Skintel's composer, set when "Ask Skinstel about this scan"
+    /// closes the face scan (`MainTabView`). `AssistantView` puts it in the composer, not sent,
+    /// and clears it, so it is used once.
+    var pendingAsk: PendingAsk?
+
     init(config: AppConfiguration) {
         self.config = config
         let http = HTTPClient(timeout: 20, logger: DebugLog.network)
@@ -61,6 +66,7 @@ final class AppEnvironment {
 
     func resetAfterSignOut() {
         pendingDeepLink = nil
+        pendingAsk = nil
         products.reset()
         subscription.reset()
         scans.reset()
@@ -70,6 +76,13 @@ final class AppEnvironment {
         FaceScanStore.shared.reset()
         FaceScanFlowView.resetPreferences()
     }
+}
+
+/// What `AssistantView` opens with when it is handed a question from elsewhere in the app.
+struct PendingAsk: Equatable, Sendable {
+    var question: String
+    /// Put the Face scan tag in the composer with the question.
+    var faceScan: Bool
 }
 
 enum DebugLog {

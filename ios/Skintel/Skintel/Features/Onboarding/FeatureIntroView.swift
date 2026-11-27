@@ -62,7 +62,7 @@ struct FeatureIntroView: View {
                         .fixedSize(horizontal: false, vertical: true)
 
                     ZStack(alignment: .topTrailing) {
-                        FaceMeshView(mode: .result, levels: levels, labels: labels, zoom: 0.3, palette: .light)
+                        FaceMeshView(mode: .result, levels: levels, labels: labels, zoom: 0.3)
                             .frame(height: 300)
                             .frame(maxWidth: .infinity)
                             .allowsHitTesting(false)

@@ -6,12 +6,12 @@ import SkinstelMascot
 /// one-tap skin check-in, and only the alerts that need attention. Everything shown comes
 /// from what the person has actually done: ticks, check-ins and their shelf.
 struct HomeView: View {
+    /// `MainTabView` has a sheet or cover up: nothing here opens on its own meanwhile.
+    var isCovered = false
+
     @Environment(AppEnvironment.self) private var env
     @Environment(\.openPaywall) private var openPaywall
     @Environment(\.openFaceScan) private var openFaceScan
-    @AppStorage(FaceScanWhatsNewSheet.seenKey) private var whatsNewSeen = false
-    @State private var showWhatsNew = false
-    @State private var scanAfterWhatsNew = false
     @State private var path: [AppDestination] = []
     @State private var slot: RoutineStore.Slot = RoutineStore.currentSlot()
     @State private var showCheckIn = false
@@ -23,6 +23,10 @@ struct HomeView: View {
     @State private var celebratingSlot: RoutineStore.Slot?
     @AppStorage(CheckInPrompt.enabledKey) private var autoPrompt = true
     @AppStorage(CheckInPrompt.lastKey) private var lastPrompt = ""
+    @AppStorage(WhatsNewSheet.seenKey) private var whatsNewSeen = false
+    @State private var showWhatsNew = false
+    /// "Scan my face" on What's New: the face scan opens once the sheet has gone.
+    @State private var scanAfterWhatsNew = false
     @Environment(\.scenePhase) private var scenePhase
 
     var body: some View {
@@ -44,7 +48,9 @@ struct HomeView: View {
             .skPageBackground()
             .toolbar(.hidden, for: .navigationBar)
             .navigationDestination(for: AppDestination.self) { destination(for: $0) }
-            .skHint(.today, when: (!env.products.products.isEmpty || env.isNewFreeShelf) && !showCheckIn && !showAssistant && !showWhatsNew)
+            .skHint(.today, when: (!env.products.products.isEmpty || env.isNewFreeShelf) && !showCheckIn && !showAssistant
+                        && !showWhatsNew && !whatsNewDue)
+            .skSwipeBack()
         }
         .tint(SKColor.primary)
         .sheet(isPresented: $showCheckIn) { CheckInSheet() }
@@ -53,17 +59,24 @@ struct HomeView: View {
         .sheet(isPresented: $showWhatsNew, onDismiss: {
             if scanAfterWhatsNew { scanAfterWhatsNew = false; openFaceScan() }
         }) {
-            FaceScanWhatsNewSheet(onScan: { scanAfterWhatsNew = true; showWhatsNew = false },
-                                  onLater: { showWhatsNew = false })
+            WhatsNewSheet(onScan: { scanAfterWhatsNew = true; showWhatsNew = false },
+                          onLater: { showWhatsNew = false })
+                .presentationDetents([.height(600), .large])
+                .presentationDragIndicator(.visible)
+                .presentationBackground(SKColor.cream)
         }
         .task {
             await env.journal.load()
-            promptCheckInIfDue()
-            // Once: "Face scan is here", unless a check-in prompt is up or they've scanned already.
-            if !whatsNewSeen && !showCheckIn {
-                whatsNewSeen = true
-                if !FaceScanStore.shared.hasCycle { showWhatsNew = true }
-            }
+            // What's New goes first this once; the check-in asks again on the next open.
+            if !whatsNewDue { promptCheckInIfDue() }
+        }
+        // Waits a moment so Today has settled, and starts over whenever MainTabView's sheet or
+        // cover comes or goes (a cancelled wait never presents).
+        .task(id: isCovered) {
+            guard !isCovered, whatsNewDue else { return }
+            try? await Task.sleep(for: .milliseconds(700))
+            guard !Task.isCancelled else { return }
+            showWhatsNewIfDue()
         }
         .onChange(of: scenePhase) { _, phase in
             guard phase == .active else { return }
@@ -74,10 +87,28 @@ struct HomeView: View {
         }
     }
 
+    // MARK: What's New
+
+    /// Not seen yet. Someone who already has a face scan never needs it.
+    private var whatsNewDue: Bool {
+        !whatsNewSeen && FaceScanStore.shared.entries.isEmpty
+    }
+
+    /// Once, on Today, never over another sheet or cover.
+    private func showWhatsNewIfDue() {
+        guard !whatsNewSeen else { return }
+        guard FaceScanStore.shared.entries.isEmpty else { whatsNewSeen = true; return }
+        // A widget deep link opens its own screen first; What's New waits for the next visit.
+        guard env.pendingDeepLink == nil else { return }
+        guard !isCovered, !showCheckIn, !showAssistant, !showAddProduct, !showWhatsNew else { return }
+        whatsNewSeen = true
+        showWhatsNew = true
+    }
+
     /// Morning: ask when nothing is logged yet today. Evening: ask when tonight's part isn't
     /// answered. At most once per part of the day, and never over another sheet.
     private func promptCheckInIfDue() {
-        guard autoPrompt, !showCheckIn, !showAssistant, env.journal.state.value != nil,
+        guard autoPrompt, !isCovered, !showCheckIn, !showAssistant, !showWhatsNew, env.journal.state.value != nil,
               !env.products.products.isEmpty, let part = CheckInPrompt.window() else { return }
         let key = "\(ISO8601.dayString(Date()))-\(part == .morning ? "am" : "pm")"
         guard lastPrompt != key else { return }
@@ -150,13 +181,13 @@ struct HomeView: View {
             SKErrorState(error: e) { Task { await env.products.load() } }
         case .loaded(let products):
             if products.isEmpty {
-                FaceMapCard()
                 newUserCard
+                TodayFaceScanCard()
             } else {
-                FaceMapCard()
                 todayCard
                 routineCard
                 checkInCard
+                TodayFaceScanCard()
                 askCard
                 suspectCard
                 recommendRow
@@ -526,6 +557,47 @@ struct HomeView: View {
         case .recommend: RecommendView()
         case .settings: SettingsView()
         }
+    }
+}
+
+/// Today's face scan card. Before a first scan: the promo with the NEW tag. In a week: the newest
+/// map, the day, and what opening it leads to. Opens through `MainTabView`'s face scan cover.
+private struct TodayFaceScanCard: View {
+    @Environment(AppEnvironment.self) private var env
+    @Environment(\.openFaceScan) private var openFaceScan
+
+    var body: some View {
+        let summary = FaceScanSummary(env: env)
+        Button { openFaceScan() } label: {
+            SKCard {
+                HStack(spacing: SKSpace.md) {
+                    FaceScanThumb(result: summary.newest?.result, size: 64)
+                    VStack(alignment: .leading, spacing: 3) {
+                        if summary.hasScans {
+                            Text("Face scan · \(summary.dayLine)").skLabelStyle()
+                            Text(summary.nextStep)
+                                .font(SKFont.cardTitle).foregroundStyle(SKColor.primary)
+                                .fixedSize(horizontal: false, vertical: true)
+                        } else {
+                            HStack(spacing: SKSpace.sm) {
+                                Text("Scan your face").font(SKFont.cardTitle).foregroundStyle(SKColor.ink)
+                                SKNewBadge()
+                            }
+                            Text("A 15-second head turn, then a zone-by-zone map of your face.")
+                                .font(SKFont.secondary).foregroundStyle(SKColor.muted)
+                                .fixedSize(horizontal: false, vertical: true)
+                        }
+                    }
+                    Spacer(minLength: 0)
+                    Image(systemName: "chevron.right")
+                        .font(.system(size: 13, weight: .semibold))
+                        .foregroundStyle(SKColor.primary)
+                        .accessibilityHidden(true)
+                }
+            }
+        }
+        .buttonStyle(SKPressStyle())
+        .accessibilityHint(summary.hasScans ? "Opens your face scan" : "Starts a face scan")
     }
 }
 

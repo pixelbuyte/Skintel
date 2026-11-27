@@ -31,7 +31,7 @@ struct RootView: View {
     /// The "Face scan is here" demo, once per phone, before sign-in or onboarding.
     @AppStorage(FeatureIntroView.seenKey) private var introSeen = false
     /// Seeing the demo here counts as seeing Today's What's New for the same feature.
-    @AppStorage(FaceScanWhatsNewSheet.seenKey) private var whatsNewSeen = false
+    @AppStorage(WhatsNewSheet.seenKey) private var whatsNewSeen = false
     @State private var warmed = false
 
     private var showsIntro: Binding<Bool> {

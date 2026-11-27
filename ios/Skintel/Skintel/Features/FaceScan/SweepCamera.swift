@@ -64,7 +64,8 @@ final class SweepCamera: NSObject, @unchecked Sendable, AVCaptureVideoDataOutput
     static let framesToLock = 6
 
     /// Image orientation for the front camera held upright, unmirrored (the person's right cheek
-    /// is on the image's left, as another person would see them).
+    /// is on the image's left, as another person would see them). Photos sent and kept stay this
+    /// way; only the screen mirrors (the preview layer, the photo map).
     private let orientation: CGImagePropertyOrientation = .right
 
     init(onReading: @escaping @MainActor @Sendable (SweepReading) -> Void,
@@ -94,10 +95,13 @@ final class SweepCamera: NSObject, @unchecked Sendable, AVCaptureVideoDataOutput
     /// still only configured, started and stopped on the camera queue.
     var captureSession: AVCaptureSession { session }
 
-    func start() {
+    /// `onRunning` is called on the main actor once the session runs: the preview layer's
+    /// connection exists from then on (`SweepPreview` mirrors it).
+    func start(onRunning: (@MainActor @Sendable () -> Void)? = nil) {
         queue.async { [self] in
             if !configured { configure() }
             if configured && !session.isRunning { session.startRunning() }
+            if configured, let onRunning { Task { @MainActor in onRunning() } }
         }
     }
 
@@ -234,8 +238,9 @@ final class SweepCamera: NSObject, @unchecked Sendable, AVCaptureVideoDataOutput
     // MARK: Encoding (PRO-SPEC §3: views 1024 px, crops 512 px, JPEG 0.8 stepping to 0.6)
 
     /// Zone rectangles in the face box's unit space (origin bottom-left, as Vision and Core Image
-    /// use). The image is unmirrored, so the person's right cheek is on the image's left.
-    private static let zoneRects: [FaceZone: CGRect] = [
+    /// use). The image is unmirrored, so the person's right cheek is on the image's left. The photo
+    /// map maps the AI's marked spots back through these (`FacePhotoLayout.spot`).
+    static let zoneRects: [FaceZone: CGRect] = [
         .forehead: CGRect(x: 0.2, y: 0.82, width: 0.6, height: 0.3),
         .nose: CGRect(x: 0.34, y: 0.32, width: 0.32, height: 0.4),
         .rightCheek: CGRect(x: 0.04, y: 0.22, width: 0.34, height: 0.38),

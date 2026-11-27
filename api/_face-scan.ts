@@ -13,7 +13,7 @@ import { getServiceClient, getUserFromAuthHeader, json } from './_lib.js';
  *  - Image bytes live only in the request body and the model request. They are never written to
  *    a database, a file or a log, and the request body is never logged.
  *  - What is stored: one `face_scan_usage` row per request (stage, model, token counts), and each
- *    readable answer in `face_scans` (the response body only: scores, notes, summary). A phone that
+ *    readable answer in `face_scans` (the response body only: scores, notes, summary, tips). A phone that
  *    timed out or closed the screen mid-read gets the answer back with GET (`latestScan`).
  *
  * Request:  { stage, cycleId, day, images, answers?, history?, profile?, shelf?, triggers? }
@@ -22,6 +22,9 @@ import { getServiceClient, getUserFromAuthHeader, json } from './_lib.js';
  *  - The report stage alone reads answers (`answers.locks` is required), history, profile, shelf
  *    and triggers; the photo stages ignore them.
  * Response: PRO-SPEC §3 shape, validated and clamped here. Never the model's raw text.
+ *  - `tips` (baseline and final only; absent when empty): up to 3 `{ title, why, zone?, metric? }`
+ *    cosmetic suggestions. Title <= 60 and why <= 160 characters; an unknown zone or metric is left
+ *    out; a tip with banned or numeric wording, a medicine, or a retinoid/salicylic acid is dropped.
  *
  * GET ?cycleId=…[&stage=…][&day=…]: the newest stored answer for that cycle, `{ scan: null }` if none.
  */
@@ -59,6 +62,9 @@ const MAX_TOTAL_B64 = 3_500_000;
 const MAX_REPORT_DATA_CHARS = 60_000;
 const MAX_DAY = 31;
 const MAX_REGIONS = 6; // per zone; the prompt says the same
+const MAX_TIPS = 3;
+const TIP_TITLE_MAX = 60;
+const TIP_WHY_MAX = 160;
 // Whole-request budget. Each model attempt is capped by what is left; a retry only starts if
 // there is room for its stage's floor (PLANS[stage].minRetryMs).
 const TOTAL_BUDGET_MS = 55_000;
@@ -442,10 +448,13 @@ type ReportBlock = {
   suggested_active: { name: string; why: string; nights_per_week: number } | null;
 };
 type Routine = { am: Step[]; pm: Step[]; conflicts: string[] };
+type Tip = { title: string; why: string; zone?: Zone; metric?: Metric };
 type FaceOutput = {
   quality: { ok: boolean; issues: string[] };
   zones: ZoneResult[];
   summary: string;
+  /** Baseline and final only. */
+  tips?: Tip[];
   report?: ReportBlock;
   routine?: Routine;
 };
@@ -498,6 +507,34 @@ function parseZones(v: unknown, withRegions: boolean): ZoneResult[] {
       result.regions = regions;
     }
     out.push(result);
+  }
+  return out;
+}
+
+// Photo stages never see the person's locks (pregnancy, breastfeeding, skin medicine; the report
+// stage alone reads them), so a tip must not point at anything those locks forbid, nor at medicine.
+const TIP_UNSAFE_RE =
+  /\b(?:antibiotics?|steroids?|cortisone|isotretinoin|accutane|prescribed|medications?|medicines?|dermatologists?|doctors?)\b/i;
+
+/** Strict: a tip with a missing, oversized or unsafe title or why is dropped, never trimmed or rewritten. */
+function parseTips(v: unknown): Tip[] {
+  if (!Array.isArray(v)) return [];
+  const out: Tip[] = [];
+  const seen = new Set<string>();
+  for (const item of v) {
+    if (!isRecord(item)) continue;
+    const title = cleanText(item.title, 500);
+    const why = cleanText(item.why, 1_000);
+    if (!title || title.length > TIP_TITLE_MAX || !why || why.length > TIP_WHY_MAX) continue;
+    const text = `${title} ${why}`;
+    if (TIP_UNSAFE_RE.test(text) || RETINOID_RE.test(text) || SALICYLIC_RE.test(text)) continue;
+    const key = title.toLowerCase();
+    if (seen.has(key)) continue;
+    seen.add(key);
+    const zone = oneOf(ZONES, item.zone);
+    const metric = oneOf(METRICS, item.metric);
+    out.push({ title, why, ...(zone ? { zone } : {}), ...(metric ? { metric } : {}) });
+    if (out.length >= MAX_TIPS) break;
   }
   return out;
 }
@@ -579,10 +616,12 @@ function validateOutput(raw: unknown, stage: FaceStage, locks: Locks): FaceOutpu
   const unique = [...new Set(issues)];
   if (q.ok === false) return { quality: { ok: false, issues: unique }, zones: [], summary };
   if (zones.length === 0) return null;
-  return { quality: { ok: true, issues: unique }, zones, summary };
+  const tips = stage === 'daily' ? [] : parseTips(raw.tips);
+  return { quality: { ok: true, issues: unique }, zones, summary, ...(tips.length ? { tips } : {}) };
 }
 
-type TextKind = 'summary' | 'note' | 'why' | 'stepLabel' | 'stepNote' | 'product' | 'conflict';
+type TextKind =
+  | 'summary' | 'note' | 'why' | 'stepLabel' | 'stepNote' | 'product' | 'conflict' | 'tipTitle' | 'tipWhy';
 
 /** Visit every free-text string the model wrote. Returning null drops it (or blanks the field). */
 function mapTexts(out: FaceOutput, fn: (text: string, kind: TextKind) => string | null): FaceOutput {
@@ -598,6 +637,14 @@ function mapTexts(out: FaceOutput, fn: (text: string, kind: TextKind) => string 
     summary: fn(out.summary, 'summary') ?? '',
     zones: out.zones.map((z) => ({ ...z, note: fn(z.note, 'note') ?? '' })),
   };
+  if (out.tips) {
+    // A tip whose title or why is dropped goes away whole.
+    next.tips = out.tips.flatMap((t) => {
+      const title = fn(t.title, 'tipTitle');
+      const why = fn(t.why, 'tipWhy');
+      return title && why ? [{ ...t, title, why }] : [];
+    });
+  }
   if (out.report) {
     const sa = out.report.suggested_active;
     next.report = {
@@ -644,6 +691,8 @@ const NEUTRAL: Record<Exclude<TextKind, 'summary'>, string | null> = {
   stepNote: 'Keep this step gentle.',
   product: null,
   conflict: null,
+  tipTitle: null, // a flagged tip is dropped whole, never rewritten
+  tipWhy: null,
 };
 
 function replaceFlagged(out: FaceOutput, stage: FaceStage): FaceOutput {
@@ -675,17 +724,36 @@ const RULES = `RULES
 
 function imageSystem(stage: 'baseline' | 'daily' | 'final'): string {
   const withRegions = stage !== 'daily';
+  const withTips = stage !== 'daily';
   return `You read face photos for a cosmetic skincare app and score how the skin looks in plain, cosmetic terms.
 
 ${RULES}
 
 SCORES
 - For each of the five zones (${ZONES.join(', ')}) give five integer scores from 0 to 100, where 0 means nothing visible and 100 means very strong: redness, shine, raised_blemishes (bumps that stand up from the skin), flat_marks (flat red or brown marks left behind), texture (unevenness).
+- Use the same anchors for every metric: 0-24 nothing, or barely visible; 25-59 visible on a close look; 60-100 easy to see at arm's length. Use the whole range: if something is easy to see at arm's length, score it 60 or more. Score each metric on its own; a zone can be high on one and near 0 on the others.
 - Score only what you can see. Lighting changes shine and redness, so do not over-read one bright patch. Keep your scale steady, because the same scale is used on other days.
 - If a zone has its own close-up crop, score it from that crop. Otherwise use the full views.${
     stage === 'final'
       ? `
 - Some crops are from Day 1. Score only today's images; use the Day 1 crops only to keep your scale the same as on Day 1.`
+      : ''
+  }
+
+NOTES AND SUMMARY
+- "note": name the most visible thing in that zone in plain cosmetic words, for example "A few small raised bumps near the jawline." or "Some shine down the centre of the nose." If the zone looks clear and even, say so plainly. Do not default to shine: name whichever of the five things is most visible in that zone.
+- If hair, glasses, a hand or shadow covers part of a zone, say so in that zone's note, and score only what you can see.
+- "summary": name the one or two most visible things across the whole face in words (no numbers), or say the skin looks clear and even overall.${
+    withTips
+      ? `
+
+TIPS
+- Give up to 3 short, practical, cosmetic suggestions tied to what is visible in this read, most useful first. Each has a "title" (at most 60 characters) and a "why" (one plain sentence, at most 160 characters) that points to what you can see. Add "zone" and/or "metric" only when the tip is about one area or one of the five things.
+- Example, only if it matches what you see: { "title": "Blot, don't scrub, the T-zone", "why": "There is some shine down your nose; a light gel moisturiser and blotting papers keep it down without drying the skin.", "zone": "nose", "metric": "shine" }
+- Good topics: a gentle cleanser, a light or richer moisturiser, SPF 30+ every morning, niacinamide, blotting papers, keeping hands off bumps and marks.
+- If the skin looks clear, the tips are about keeping it that way (SPF daily, a gentle cleanser).
+- Never suggest medicine. Never suggest retinol or any retinoid, or salicylic acid: the person's health details are not known here. Never say what causes something. Words only, no percentages or scores.
+- Use an empty list only if there is nothing useful to add.`
       : ''
   }
 
@@ -705,10 +773,15 @@ OUTPUT
       "regions": [ { "kind": ${REGION_KINDS.map((k) => `"${k}"`).join(' | ')}, "box": [x, y, width, height] } ],`
           : ''
       }
-      "note": "${withRegions ? 'one short plain sentence' : 'a few plain words, or an empty string'}"
+      "note": "${withRegions ? 'one short plain sentence' : 'a few plain words naming the most visible thing, or an empty string'}"
     }
   ],
-  "summary": "one or two short plain sentences"
+  "summary": "one or two short plain sentences"${
+    withTips
+      ? `,
+  "tips": [ { "title": string, "why": string, "zone": ${ZONES.map((z) => `"${z}"`).join(' | ')} (optional), "metric": ${METRICS.map((m) => `"${m}"`).join(' | ')} (optional) } ]`
+      : ''
+  }
 }${
     withRegions
       ? `
@@ -994,6 +1067,7 @@ function toResponse(out: FaceOutput | null, locks: Locks, stage: FaceStage) {
     quality: clean.quality,
     zones: clean.zones,
     summary: clean.summary || (clean.quality.ok ? copy.summary : copy.unreadable),
+    ...(clean.tips?.length ? { tips: clean.tips } : {}),
     ...(clean.report ? { report: clean.report } : {}),
     ...(clean.routine ? { routine: clean.routine } : {}),
     disclaimer: FACE_DISCLAIMER,
@@ -1006,8 +1080,8 @@ function toResponse(out: FaceOutput | null, locks: Locks, stage: FaceStage) {
 
 /**
  * The free scan's answer (founder, Oct 26): a real Day 1 map. Every zone with its scores and note,
- * and the model's summary. No regions, report or routine. `locked: true` marks it as the free scan:
- * the 7-day check is what Skintel+ pays for.
+ * the model's summary and its tips (the free map is meant to be useful). No regions, report or
+ * routine. `locked: true` marks it as the free scan: the 7-day check is what Skintel+ pays for.
  */
 export function lockForFreeScan(body: ReturnType<typeof toResponse>) {
   const zones: ZoneResult[] = Array.isArray(body.zones) ? body.zones : [];
@@ -1016,6 +1090,7 @@ export function lockForFreeScan(body: ReturnType<typeof toResponse>) {
     locked: true,
     zones: body.quality.ok ? zones.map((z) => ({ zone: z.zone, scores: z.scores, note: z.note })) : [],
     summary: body.summary,
+    ...(body.quality.ok && body.tips?.length ? { tips: body.tips } : {}),
     disclaimer: body.disclaimer,
   };
 }

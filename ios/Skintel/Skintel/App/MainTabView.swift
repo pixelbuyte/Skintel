@@ -45,13 +45,12 @@ struct MainTabView: View {
     @State private var showAssistant = false
     @State private var showShelf = false
     @State private var showFaceScan = false
-    /// "Ask Skinstel about this scan": close the face scan cover, then open Ask with the scan tagged.
-    @State private var askAfterFaceScan = false
-    @State private var askAboutFace = false
-    /// The ready question a goal row on the map asked ("How do I get less shine?"), or nil.
-    @State private var faceQuestion: String?
-    /// Bumped when You is tapped while already on You: rebuilds its stack, back to the top.
-    @State private var youRoot = 0
+    /// "Ask Skinstel about this scan": the question for Ask's composer, kept while the face scan
+    /// cover closes; Ask opens once it has gone.
+    @State private var askAfterFaceScan: String?
+    /// Bumped when the current tab is tapped again (all but Ask): the tab's stack is rebuilt,
+    /// back on its first page, like the system tab bar.
+    @State private var tabRoot = 0
     @State private var keyboardUp = false
     @AppStorage(AssistantPlacement.key) private var assistantPlacement = AssistantPlacement.tab
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
@@ -60,13 +59,13 @@ struct MainTabView: View {
         ZStack(alignment: .bottom) {
             Group {
                 switch tab {
-                case .today: HomeView()
-                case .shelf: ShelfTab()
+                case .today: HomeView(isCovered: isPresenting).id(tabRoot)
+                case .shelf: ShelfTab().id(tabRoot)
                 // Ask reserves the bar's space itself: an inset from out here doesn't reach a
                 // composer pinned inside its own NavigationStack.
                 case .ask: AssistantView(showsClose: false, tabBarClearance: keyboardUp ? 0 : SKTabBar.height + SKSpace.md, leave: { tab = .today })
-                case .insights: InsightsView(leave: { tab = .today })
-                case .you: YouTab().id(youRoot)
+                case .insights: InsightsView(leave: { tab = .today }).id(tabRoot)
+                case .you: YouTab().id(tabRoot)
                 }
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -105,7 +104,8 @@ struct MainTabView: View {
         }
         .sheet(isPresented: $showQuick, onDismiss: runPending) {
             QuickActionsSheet(canScan: env.subscription.entitlement.canUseScanner,
-                              showsFaceScanNew: FaceScanNew.isActive(),
+                              // NEW stays until a first scan is done, not merely opened.
+                              showsFaceScanNew: FaceScanStore.shared.entries.isEmpty,
                               assistantInTab: assistantPlacement == AssistantPlacement.tab) { action in
                 pending = action
                 showQuick = false
@@ -118,22 +118,21 @@ struct MainTabView: View {
         .sheet(isPresented: $showCheckIn) { CheckInSheet() }
         .sheet(isPresented: $showAddProduct) { AddProductHub().skProGates() }
         .sheet(isPresented: $showCompare) { CompareView().skProGates() }
-        .skAskSheet(isPresented: $showAssistant,
-                    initialQuestion: askAboutFace ? (faceQuestion ?? "What does my face scan show, and what should I try first?") : nil,
-                    faceTagged: askAboutFace)
-        .onChange(of: showAssistant) { _, open in if !open { askAboutFace = false; faceQuestion = nil } }
+        .skAskSheet(isPresented: $showAssistant)
         .sheet(isPresented: $showShelf) { ShelfTab().skProGates() }
-        .fullScreenCover(isPresented: $showFaceScan, onDismiss: {
-            if askAfterFaceScan { askAfterFaceScan = false; askAboutFace = true; showAssistant = true }
-        }) {
+        .fullScreenCover(isPresented: $showFaceScan, onDismiss: openAskAfterFaceScan) {
             FaceScanFlowView(onAsk: { question in
-                faceQuestion = question
-                askAfterFaceScan = true
+                askAfterFaceScan = question
                 showFaceScan = false
-            }).skProGates()
+            })
+            .skProGates()
+        }
+        // A face scan question nobody got to (the Ask wall closed instead) isn't kept for later.
+        .onChange(of: showAssistant) { _, open in
+            if !open { env.pendingAsk = nil }
         }
         .environment(\.openPaywall, OpenPaywallAction { reason in gate(reason) })
-        .environment(\.openFaceScan, OpenFaceScanAction { showFaceScan = true })
+        .environment(\.openFaceScan, OpenFaceScanAction { openFaceScan() })
         .onChange(of: env.pendingDeepLink, initial: true) { consumeDeepLink() }
         .onChange(of: env.subscription.loaded) { consumeDeepLink() }
     }
@@ -171,7 +170,7 @@ struct MainTabView: View {
             showAssistant = false
             showShelf = false
             showFaceScan = false
-            askAfterFaceScan = false
+            askAfterFaceScan = nil
             try? await Task.sleep(for: .milliseconds(650))
         }
         let assistantInTab = assistantPlacement == AssistantPlacement.tab
@@ -186,6 +185,24 @@ struct MainTabView: View {
         case .checkin:
             showCheckIn = true
         }
+    }
+
+    // MARK: Face scan
+
+    /// Every way into the face scan (the + sheet, Today, Insights, You, What's New) comes here.
+    /// Everyone may start: a free account's first scan is a real Day 1 map (one per account); the
+    /// flow opens the wall from its locked 7-day check, or on a 402. With scans it opens on the map.
+    private func openFaceScan() {
+        showFaceScan = true
+    }
+
+    /// After "Ask Skinstel about this scan" closes the cover: Ask opens where it lives, with the
+    /// question in the composer (not sent) and the Face scan tag on it.
+    private func openAskAfterFaceScan() {
+        guard let question = askAfterFaceScan else { return }
+        askAfterFaceScan = nil
+        env.pendingAsk = PendingAsk(question: question, faceScan: true)
+        if assistantPlacement == AssistantPlacement.tab { select(.ask) } else { showAssistant = true }
     }
 
     /// The Skintel+ gate for the scanner, shared by the + menu and the Scan widget.
@@ -229,8 +246,9 @@ struct MainTabView: View {
     }
 
     private func select(_ next: MainTab) {
-        // Tapping You again (from Account & data, Settings…) goes back to the top of You.
-        if next == tab && next == .you { youRoot += 1 }
+        // The tab you're on, tapped again: back to its first page, like the system tab bar. Ask
+        // keeps its conversation.
+        if next == tab && next != .ask { tabRoot += 1 }
         guard let feature = Self.lockedFeature(for: next), !env.subscription.entitlement.isPro else {
             tab = next
             return
@@ -251,7 +269,10 @@ struct MainTabView: View {
     private func wallClosed() {
         guard let feature = lastWall else { return }
         lastWall = nil
-        guard env.subscription.entitlement.isPro else { return }
+        guard env.subscription.entitlement.isPro else {
+            if case .ask = feature { env.pendingAsk = nil }
+            return
+        }
         switch feature {
         case .ask:
             if assistantPlacement == AssistantPlacement.tab { tab = .ask } else { showAssistant = true }
@@ -284,9 +305,7 @@ struct MainTabView: View {
         case .shelf:
             showShelf = true
         case .faceScan:
-            // Everyone may start: a free account's first scan is a real Day 1 map (one per account);
-            // the flow opens the wall from its locked 7-day check, or on a 402.
-            showFaceScan = true
+            openFaceScan()
         }
     }
 }
@@ -301,7 +320,7 @@ enum QuickAction: Hashable {
 private struct QuickActionsSheet: View {
     /// Scanning and Compare share the Skintel+ entitlement (`canUseScanner` is `isPro`).
     let canScan: Bool
-    /// Show the NEW tag on the Scan your face row (hidden once it has been opened).
+    /// Show the NEW tag on the Scan your face row (until a first scan is stored).
     let showsFaceScanNew: Bool
     /// Ask Skintel has its own tab, so the menu offers Shelf (which lost its tab) instead.
     let assistantInTab: Bool
